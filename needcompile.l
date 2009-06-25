@@ -1,0 +1,230 @@
+// copyright (C) 2009 degs <junk@giantblob.com> all rights reserved
+
+import map;
+import stream;
+import stat;
+
+import symbol;
+import compilestate;
+
+namespace Parse {
+    class NeedCompile {
+        CompileState state;
+
+        void init( CompileState state ) {
+            this.state = state;
+        }
+
+        // check classes that this_class depends on against the stored hashes in this_class's .depend file
+        // return true if this_class needs to be compiled, false otherwise
+        bool checkHashList( System.String this_class ) {
+            System.StringBuffer buffer = new System.StringBuffer( state.CacheDir );
+            buffer.append( this_class );
+            buffer.append( ".depend" );
+	    // IO.Std.err.println( "checkHashList: " + buffer );
+            try {
+                IO.Reader f = IO.File.openRead( buffer );
+
+                HashList list = new HashList( state );
+                list.readFrom(f);
+                return list.check( state.CacheDir, this_class );
+            } catch( IO.IOException ie ) {
+                // IO.Std.err.println( "compile " + this_class + ": no or bad dependancy file" );
+                return true;
+            }
+        }
+
+        bool needCompile( System.String source_name, System.String class_name, int hash ) {
+	    var result = needCompile2( source_name, class_name, hash );
+	    // IO.Std.err.println( "need compile: " + source_name + "," + class_name + "," + hash + ": " + result );
+	    return result;
+	}
+
+        bool needCompile2( System.String source_name, System.String class_name, int hash ) {
+	    // IO.Std.err.println( "CCCCCC: need to compile '" + source_name + "' for class " + class_name + ", hash " + System.String.hex(hash) + "?" );
+
+            IO.Stat s = new IO.Stat(), t = new IO.Stat();
+            System.StringBuffer output_name = state.CacheDir + class_name + ".o";
+            int compiled_hash;
+
+            if( !s.stat( source_name ) ) {
+                // IO.Std.err.println( "CCCCCC: weird: source file " + source_name + " absent" );
+                return true;
+            }
+
+            if( t.stat( output_name ) && t.after(s) ) {
+		// have an existing object file and it's newer than the source so we may not need to compile it.
+		
+		// read the hash of the class definition in:
+                try {
+                    IO.Reader f = IO.File.openRead( state.CacheDir + class_name + ".hash" );
+                    compiled_hash = f.readInt();
+                    f.close();
+		} catch( IO.IOException ie1 ) {
+                    // IO.Std.err.println( "CCCCCC: no hash file present/problem reading hash for: " + class_name + ": " + ie1 );
+		    return true;
+		}
+		
+		try {
+		    // IO.Std.err.println( "compiled hash " + compiled_hash + " == " + hash + "?" );
+                    if( compiled_hash == hash ) {
+			// the parsed class defintion matches it's on disk hash (which it really ought to do
+			// since we don't think the source has changed since last compilation). Now check
+			// classes that this class depends on:
+                        if( !checkHashList( class_name ) ) {
+			    // no dependant classes have changed either so we can safely use the existing
+			    // object file without recompiling
+
+			    // IO.Std.err.println( "hash list is OK for " + class_name );
+                            state.addLinkFile( output_name );
+			    // IO.Std.err.println( "hashes OK, adding link file: " + output_name );
+                            return false;
+			    // } else {
+			    // IO.Std.err.println( "hash list is bad" );
+			}
+			// } else {
+			// IO.Std.err.println( "definition has changed" );
+		    }
+                } catch( IO.IOException ie ) {
+		    IO.Std.err.println( "problem checking dependancies for: " + class_name + ": " + ie );
+		    // could not check dependency hashes - need to compile
+                }
+		//} else {
+	     	// IO.Std.err.println( "CCCCCC: no object file or object file out of date: " + class_name );
+	    }
+
+	    // source file changed since object file was last written - need to recompile.
+	    // write out the current class defition hash:
+            IO.Writer g = IO.File.openCreate( state.CacheDir + class_name + ".hash" );
+            g.write( "" + hash + "\n" );
+            g.close();
+
+	    // IO.Std.err.println( "CCCCCC: will compile: " + class_name );
+            return true;
+        }
+    }
+
+    class HashEntry extends System.Object {
+        public int h;
+        public System.String name;
+
+        void init( int h, System.String name ) {
+            super.init();
+            this.h = h;
+            this.name = name;
+        }
+
+        public int hash() {
+            return name.hash();
+        }
+
+        public System.String toString() {
+            System.StringBuffer result = new System.StringBuffer();
+            result.append( h );
+            result.append( ' ' );
+            result.append( name );
+            result.append( '\n' );
+	    return result;
+        }
+    }
+
+    class HashList {
+        CompileState state;
+        Util.Map map;
+        
+        void init( CompileState state ) {
+            this.state = state;
+            map = new Util.Map();
+        }
+
+        void add( int h, System.String n ) {
+	    // IO.Std.err.println( "add: " + n + "->" + System.String.hex(h) );
+            map.put( n, new HashEntry( h, n ) );
+        }
+
+        void forceAdd( int h, System.String n ) {
+	    // IO.Std.err.println( "add: " + n + "->" + System.String.hex(h) );
+            map.put( n, new HashEntry( h, n ) );
+        }
+
+        int find( System.String n ) {
+            HashEntry e = cast<HashEntry>(map[n]);
+            if( e != null ) {
+                return e.h;
+            } else {
+                return 0;
+            }
+        }
+
+        void writeTo( IO.Writer f ) {
+            foreach( HashEntry e; map.elements() ) {
+                f.write( e.toString() );
+                f.write( '\n' );
+            }
+        }
+
+        void readFrom( IO.Reader f ) {
+	    // IO.Std.err.println( "read hash list: " );
+            while( !f.isAtEnd() ) {
+		int h = f.readInt();
+
+		if( f.isAtEnd() ) {
+		    break;
+		}
+		    
+                int c = f.read(); // skip single space
+	        // IO.Std.err.println( "read hash: " + h );
+
+                System.StringBuffer name = new System.StringBuffer();
+		
+                do {
+		    c = f.read();
+		    if( f.isAtEnd() || c == cast<int>('\n') ) {
+		        break;
+		    }
+
+                    name.append( cast<char>(c) );
+                } while( true );
+
+		if( name.getLength() == 0 ) {
+		    break;
+		}
+                
+		// IO.Std.err.println( System.String.hex(h) + " " + name );
+                add( h, name );
+            }
+	    // IO.Std.err.println( "done readFrom" );
+
+            f.close();
+        }
+
+	// check this_class against the hashes of classes it is dependent on. return true if any do not match (true=>compile required)
+        bool check( System.String prefix, System.String this_class ) {
+	    // IO.Std.err.println( "check " + prefix + ": " + this_class + "..." );
+
+            foreach( HashEntry e; map.elements() ) {
+                if( e.name.equals( this_class ) ) {
+		    // IO.Std.err.println( e.name + " automatic match for " + this_class );
+                    continue;
+                }       
+                
+                Symbol s = state.findClass( e.name );
+                if( s == null ) {
+                    // IO.Std.err.println( this_class + " depends on " + e.name + " but not in symbol table: rebuilding" );
+                    return true;
+                } else if( s.getKind() != Symbol.CLASS ) {
+                    // IO.Std.err.println( this_class + " depends on " + e.name + " but its not a class (" + s.getKind() + "): rebuilding" );
+                    return true;
+                }
+                if( cast<Container>(s).getHash() != e.h ) {
+                    // IO.Std.err.println( "CCCCCC: hash in depend file does not match scanned hash for " + e.name );
+                    return true;
+                }
+
+		// IO.Std.err.println( "apparently OK: " + e.name + ", " + e.h );
+            }
+	    // IO.Std.err.println( "CCCCCC: class " + this_class + " does not need building - all dependancies match" );
+            return false;
+        }
+    }
+}

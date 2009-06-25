@@ -1,0 +1,1033 @@
+%{
+
+import parsetree;
+
+namespace Parse {
+
+class Root {
+    public static Package root;
+}
+
+%}
+
+%token FIRST
+
+%token CONST_INT
+%token CONST_DOUBLE
+%token CONST_STRING
+%token CONST_CSTRING
+%token CONST_CHAR
+%token NEWLINE
+%token IDENTIFIER
+%token CONST_TRUE
+%token CONST_FALSE
+%token CONST_NULL
+
+%token QUESTION
+%token COMMA
+%token COLON
+%token ASSIGN
+%token START_BLOCK
+%token END_BLOCK
+%token END_STATEMENT
+%token OPEN_PAREN
+%token CLOSE_PAREN
+%token ARRAY_DEF
+%token OPEN_SQUARE
+%token CLOSE_SQUARE
+%token DOT
+
+%token ADD
+%token SUB
+%token MUL
+%token DIV
+%token MOD
+
+%token AND
+%token OR
+%token XOR
+%token NOT
+
+%token SHIFT_LEFT
+%token SHIFT_RIGHT
+
+%token EQ
+%token NE
+%token LT
+%token LE
+%token GT
+%token GE
+
+%token BOOL_NOT
+%token BOOL_AND
+%token BOOL_OR
+%token AT
+
+%token BOOL
+%token INT
+%token BYTE
+%token CHAR
+%token VOID
+%token VECTOR
+%token REFERENCE
+%token POINTER
+
+%token IF
+%token ELSE
+%token WHILE
+%token DO
+%token FOR
+%token FOREACH
+%token SWITCH
+%token CASE
+%token DEFAULT
+%token BREAK
+%token CONTINUE
+
+%token CLASS
+%token STRUCT
+%token ENUM
+%token EXTENDS
+%token IMPORT
+%token NAMESPACE
+%token USE
+
+%token CONST
+%token STATIC
+%token PUBLIC
+%token PRIVATE
+%token PROTECTED
+
+%token CAST
+%token THIS
+%token SUPER
+
+%token METHOD
+%token VARIABLE
+
+%token TRY
+%token CATCH
+%token FINALLY
+%token THROW
+%token RETURN
+%token NATIVE
+%token NEW
+
+%token UNKNOWN
+%token EOF
+
+%start ROOT
+
+%%
+
+ROOT:
+	package { Root.root = cast<Parse.Package>($1); }
+;
+
+package:
+	class_list { $$ = new Parse.Package( 0, cast<Parse.BlockStatement>($1) ); }
+;
+
+class_thing:
+	class |
+	struct |
+	namespace |
+	use |
+	enumeration |
+	import
+;
+
+class_list:
+	class_thing { $$ = new Parse.BlockStatement( /*@1.*/first_line, cast<Parse.Statement>($1) ); }
+|   class_list class_thing { cast<Parse.BlockStatement>($1).add( cast<Parse.Statement>($2) ); $$ = $1; }
+;
+
+namespace:
+	NAMESPACE name START_BLOCK END_BLOCK { $$ = new Parse.NameSpace( /*@1.*/first_line, cast<Parse.Identifier>($2), null ); } |
+	NAMESPACE name START_BLOCK class_list END_BLOCK { $$ = new Parse.NameSpace( /*@1.*/first_line, cast<Parse.Identifier>($2), cast<Parse.BlockStatement>($4) ); }
+;
+
+use:
+	USE name END_STATEMENT { $$ = new Parse.Use( /*@2.*/first_line, cast<Parse.Identifier>($2) ); }
+;
+
+
+class_specifiers:
+	access_specifiers |
+	{ $$ = new Parse.AccessSpecifier(0,0); }
+;
+
+import:
+    IMPORT name END_STATEMENT { $$ = new Parse.ImportDef( /*@1.*/first_line, cast<Parse.Identifier>($2) ); } |
+    IMPORT constant_string END_STATEMENT { $$ = new Parse.LibraryDef( /*@1.*/first_line, cast<Parse.Constant>($2) ); }
+;
+
+struct:
+    class_specifiers STRUCT identifier class_body
+		{ $$ = new Parse.StructDef(
+			/*@1.*/first_line,
+			cast<Parse.Identifier>($3),
+			cast<Parse.BlockStatement>($4) );
+		  cast<Parse.StructDef>($$).setAccess( cast<Parse.AccessSpecifier>($1).getAccess() );
+		}
+;
+
+class:
+    class_specifiers CLASS identifier class_body
+		{ $$ = new Parse.ClassDef(
+			/*@1.*/first_line,
+			cast<Parse.Identifier>($3),
+			null,
+			cast<Parse.BlockStatement>($4) );
+		  cast<Parse.ClassDef>($$).setAccess( cast<Parse.AccessSpecifier>($1).getAccess() );
+		}
+|   class_specifiers CLASS identifier EXTENDS name class_body
+		{ $$ = new Parse.ClassDef(
+		    /*@1.*/first_line,
+			cast<Parse.Identifier>($3),
+			cast<Parse.Identifier>($5),
+			cast<Parse.BlockStatement>($6) );
+		  cast<Parse.ClassDef>($$).setAccess( cast<Parse.AccessSpecifier>($1).getAccess() );
+		}
+;
+
+enumeration:
+    class_specifiers ENUM identifier START_BLOCK identifier_list END_BLOCK
+	{ $$ = new Parse.EnumDef( /*@3.*/first_line, cast<Parse.Identifier>($3), cast<Parse.IdentifierList>($5) );
+		  cast<Parse.EnumDef>($$).setAccess( cast<Parse.AccessSpecifier>($1).getAccess() );
+	} |
+    class_specifiers ENUM identifier START_BLOCK END_BLOCK
+	{ $$ = new Parse.EnumDef( /*@3.*/first_line, cast<Parse.Identifier>($3), cast<Parse.IdentifierList>($5) );
+		  cast<Parse.EnumDef>($$).setAccess( cast<Parse.AccessSpecifier>($1).getAccess() );
+        }
+;	
+
+class_body:
+	START_BLOCK END_BLOCK {
+		$$ = new Parse.BlockStatement( /*@1.*/first_line, new Parse.NullStatement( /*@1.*/first_line ) );
+	}
+|   START_BLOCK class_body_declarations END_BLOCK {
+		$$ = $2;
+	}
+;
+
+class_body_declarations:
+	class_body_declaration {
+		$$ = new Parse.BlockStatement(
+			/*@1.*/first_line,
+			cast<Parse.Statement>($1)
+		);
+	}
+|   class_body_declarations class_body_declaration {
+		cast<Parse.BlockStatement>($1).add( cast<Parse.Statement>($2) );
+    }
+;
+
+class_body_declaration:
+	field_declaration
+|   method_declaration
+|   native_declaration
+|   access_specifiers field_declaration {
+		cast<Parse.VariableDef>($2).setAccess( cast<Parse.AccessSpecifier>($1).getAccess() );
+		$$ = $2;
+	}
+|   access_specifiers method_declaration {
+		cast<Parse.MethodDef>($2).setAccess( cast<Parse.AccessSpecifier>($1).getAccess() );
+		$$ = $2;
+	}
+|   access_specifiers native_declaration {
+		cast<Parse.NativeDef>($2).setAccess( cast<Parse.AccessSpecifier>($1).getAccess() );
+		$$ = $2;
+       } 
+|   enumeration
+;
+
+field_declaration:
+    type identifier_list END_STATEMENT {
+		$$ = new Parse.VariableDef(
+			/*@1.*/first_line,
+			cast<Parse.IdentifierList>($2),
+			null,
+			cast<Parse.TypeExpr>($1)
+		);
+	}
+;
+
+native_declaration:
+	NATIVE type identifier declare_arguments END_STATEMENT {
+		$$ = new Parse.NativeDef(
+			/*@2.*/first_line,
+			cast<Parse.Identifier>($3),
+			null,
+			cast<Parse.TypeExpr>($2),
+			cast<Parse.ArgumentsDef>($4)
+	        );
+        }
+;
+
+method_declaration:
+	type identifier declare_arguments block_statement {
+		$$ = new Parse.MethodDef(
+			/*@1.*/first_line,
+			cast<Parse.Identifier>($2),
+			null,
+			cast<Parse.TypeExpr>($1),
+			cast<Parse.ArgumentsDef>($3),
+			cast<Parse.BlockStatement>($4)
+		);
+	}
+;
+
+
+declare_arguments:
+	OPEN_PAREN declare_argument_list CLOSE_PAREN {
+		$$ = $2;
+	}
+|	OPEN_PAREN CLOSE_PAREN {
+		$$ = null;
+	}
+;
+
+declare_argument_list:
+	argument_declaration {
+		$$ = new Parse.ArgumentsDef( /*@1.*/first_line, cast<Parse.VariableDef>($1) );
+	}
+|   declare_argument_list COMMA argument_declaration {
+		cast<Parse.ArgumentsDef>($1).add( cast<Parse.VariableDef>($3) );
+		$$=$1;
+	}
+;
+
+
+argument_declaration:
+    type identifier {
+		$$ = new Parse.VariableDef(
+			/*@1.*/first_line,
+			cast<Parse.Identifier>($2),
+			null,
+			cast<Parse.TypeExpr>($1)
+		);
+	}
+;
+
+
+
+type:
+	name
+		 { $$ = new Parse.NamedType( /*@1.*/first_line, cast<Parse.Identifier>($1) ); }
+|   base_type
+|	complex_type
+;
+
+
+complex_type:
+    type ARRAY_DEF
+		{ $$ = new Parse.VectorType( /*@1.*/first_line, cast<Parse.TypeExpr>($1) ); }
+|	type POINTER
+		{ $$ = new Parse.PointerType( /*@1.*/first_line, cast<Parse.TypeExpr>($1) ); }
+|	type REFERENCE
+		{ $$ = new Parse.ReferenceType( /*@1.*/first_line, cast<Parse.TypeExpr>($1) ); }
+;
+
+base_type:
+	INT
+		{ $$ = new Parse.BaseType( /*@1.*/first_line, Type.INTEGER ); }
+|   BOOL
+		{ $$ = new Parse.BaseType( /*@1.*/first_line, Type.BOOL ); }
+|	CHAR
+		{ $$ = new Parse.BaseType( /*@1.*/first_line, Type.CHAR); }
+|	BYTE
+		{ $$ = new Parse.BaseType( /*@1.*/first_line, Type.BYTE); }
+|   VOID
+		{ $$ = new Parse.BaseType( /*@1.*/first_line, Type.VOID); }
+;
+
+
+
+expression:
+	expressionX
+;
+
+
+expressionX:
+	expressionX BOOL_AND expression0
+		{ $$ = new Parse.BooleanExpression( /*@2.*/first_line, Op.BOOL_AND, cast<Parse.Expression>($1), cast<Parse.Expression>($3) ); }
+|   expressionX BOOL_OR expression0
+		{ $$ = new Parse.BooleanExpression( /*@2.*/first_line, Op.BOOL_OR, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
+|   expression0
+;
+
+
+expression0:
+    BOOL_NOT expression0
+		{ $$ = new Parse.BooleanExpression( /*@1.*/first_line, Op.BOOL_NOT, cast<Parse.Expression>($2), null ); }
+|	expressionA
+;
+
+
+
+
+expressionA:
+	expressionA EQ expressionB
+		{ $$ = new Parse.BooleanExpression( /*@2.*/first_line, Op.EQ, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
+|   expressionA NE expressionB
+		{ $$ = new Parse.BooleanExpression( /*@2.*/first_line, Op.NE, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
+|   expressionA GT expressionB
+		{ $$ = new Parse.BooleanExpression( /*@2.*/first_line, Op.GT, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
+|   expressionA LT expressionB
+		{ $$ = new Parse.BooleanExpression( /*@2.*/first_line, Op.LT, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
+|   expressionA GE expressionB
+		{ $$ = new Parse.BooleanExpression( /*@2.*/first_line, Op.GE, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
+|   expressionA LE expressionB
+		{ $$ = new Parse.BooleanExpression( /*@2.*/first_line, Op.LE, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
+|   expressionB
+;
+
+expressionB:
+    expressionB AND expressionC
+		{ $$ = new Parse.ArithExpression( /*@2.*/first_line, Op.AND, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
+|   expressionB OR expressionC
+		{ $$ = new Parse.ArithExpression( /*@2.*/first_line, Op.OR, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
+|   expressionB XOR expressionC
+		{ $$ = new Parse.ArithExpression( /*@2.*/first_line, Op.XOR, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
+|   expressionC
+;
+
+
+expressionC:
+	expressionC SHIFT_LEFT expression1 {
+		$$ = new Parse.ArithExpression( /*@2.*/first_line, Op.SHL, cast<Parse.Expression>($1), cast<Parse.Expression>($3));
+	}
+|   expressionC SHIFT_RIGHT expression1 {
+		$$ = new Parse.ArithExpression( /*@2.*/first_line, Op.SHAR, cast<Parse.Expression>($1), cast<Parse.Expression>($3));
+	}
+|   expression1
+;
+
+expression1:
+    expression1 ADD expression2
+		{ $$ = new Parse.ArithExpression( /*@2.*/first_line, Op.ADD, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
+|   expression1 SUB expression2
+		{ $$ = new Parse.ArithExpression( /*@2.*/first_line, Op.SUB, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
+|   expression2
+;
+
+expression2:
+    expression2 MUL expression3
+		{ $$ = new Parse.ArithExpression( /*@2.*/first_line, Op.MUL, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
+|   expression2 DIV expression3
+		{ $$ = new Parse.ArithExpression( /*@2.*/first_line, Op.DIV, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
+|   expression2 MOD expression3
+		{ $$ = new Parse.ArithExpression( /*@2.*/first_line, Op.MOD, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
+|   expression3
+;
+
+expression3:
+	unary_expression
+|   NOT expression3
+		{ $$ = new Parse.ArithExpression( /*@1.*/first_line, Op.NOT, cast<Parse.Expression>($2), null ); }
+;
+
+
+access_specifiers:
+	access_specifiers access_specifier {
+		cast<Parse.AccessSpecifier>($1).
+			add( cast<Parse.AccessSpecifier>($2).getAccess() );
+		$$ = $1;
+	}
+|   access_specifier
+;
+
+access_specifier:
+    PUBLIC
+		{ $$ = new Parse.AccessSpecifier( /*@1.*/first_line, Symbol.ACCESS_PUBLIC ); }
+|   PRIVATE
+		{ $$ = new Parse.AccessSpecifier( /*@1.*/first_line, Symbol.ACCESS_PRIVATE ); }
+|   PROTECTED
+		{ $$ = new Parse.AccessSpecifier( /*@1.*/first_line, Symbol.ACCESS_PROTECTED ); }
+|   STATIC
+		{ $$ = new Parse.AccessSpecifier( /*@1.*/first_line, Symbol.ACCESS_STATIC ); }
+|   CONST
+		{ $$ = new Parse.AccessSpecifier( /*@1.*/first_line, Symbol.ACCESS_CONST ); }
+;
+
+
+
+
+ident_assign:
+    identifier
+|   identifier ASSIGN expression {
+		$$ = new Parse.IdentifierAssign(
+			/*@1.*/first_line, cast<Parse.Identifier>($1),
+			cast<Parse.Expression>($3) );
+	}
+;
+
+identifier_list:
+	ident_assign {
+		$$ = new Parse.IdentifierList( /*@1.*/first_line, cast<Parse.Identifier>($1) );
+	}
+|	identifier_list COMMA ident_assign {
+		cast<Parse.IdentifierList>($1).add( cast<Parse.Identifier>($3) );
+	}
+;
+
+
+
+
+empty_statement:
+END_STATEMENT	 {
+		$$ = new Parse.NullStatement( /*@1.*/first_line );
+	}
+;
+
+
+method_call_statement:
+	method_call {
+		$$ = new Parse.ExpressionStatement( /*@1.*/first_line, cast<Parse.Expression>($1) );
+	}
+;
+
+
+labelled_statement:
+	identifier COLON loop_statement {
+		cast<Parse.Statement>($3).setLoopName( cast<Parse.Identifier>($1) ); $$ = $3; } |
+	loop_statement ;
+
+loop_statement:
+	foreach_statement |
+	for_statement |
+	do_statement |
+	while_statement ;
+
+do_statement:  DO statement WHILE OPEN_PAREN expression CLOSE_PAREN END_STATEMENT {
+		$$ = new Parse.DoWhileStatement( /*@1.*/first_line, cast<Parse.Expression>($5), cast<Parse.Statement>($2) );
+};
+
+foreach_statement:
+	FOREACH OPEN_PAREN type identifier END_STATEMENT expression CLOSE_PAREN statement {
+		$$ = new Parse.ForEachStatement( /*@1.*/first_line, cast<Parse.TypeExpr>($3),
+			cast<Parse.Identifier>($4), cast<Parse.Expression>($6), cast<Parse.Statement>($8) );
+        }
+;
+
+
+for_statement:
+	FOR OPEN_PAREN within_for_statement expression END_STATEMENT very_simple_statement CLOSE_PAREN statement {
+		$$ = new Parse.ForStatement(
+			/*@1.*/first_line, cast<Parse.Statement>($3), cast<Parse.Expression>($4), cast<Parse.Statement>($6),
+			cast<Parse.Statement>($8) );
+        } |
+	/* 1  2            3                    4               5 inc                 6             7 */
+	FOR OPEN_PAREN within_for_statement END_STATEMENT very_simple_statement CLOSE_PAREN statement {
+		$$ = new Parse.ForStatement(
+			/*@1.*/first_line, cast<Parse.Statement>($3), null, cast<Parse.Statement>($5),
+			cast<Parse.Statement>($7));
+        } |
+	/* 1  2            3                    4          5               6             7 */
+	FOR OPEN_PAREN within_for_statement expression END_STATEMENT CLOSE_PAREN statement {
+		$$ = new Parse.ForStatement(
+			/*@1.*/first_line, cast<Parse.Statement>($3), cast<Parse.Expression>($4), null,
+			cast<Parse.Statement>($7) );
+        } |
+	/* 1  2            3                    4               5             6 */
+	FOR OPEN_PAREN within_for_statement END_STATEMENT CLOSE_PAREN statement {
+		$$ = new Parse.ForStatement(
+			/*@1.*/first_line, cast<Parse.Statement>($3), null, null,
+			cast<Parse.Statement>($6) );
+        }
+
+
+;
+
+switch_statement:
+	SWITCH OPEN_PAREN expression CLOSE_PAREN START_BLOCK case_list END_BLOCK { $$ = $6; cast<Parse.CaseStatement>($$).setExpression(cast<Parse.Expression>($3)); } |
+	SWITCH OPEN_PAREN expression CLOSE_PAREN START_BLOCK END_BLOCK { $$ = new Parse.CaseStatement( /*@1.*/first_line ); cast<Parse.CaseStatement>($$).setExpression(cast<Parse.Expression>($3) ); }
+;
+
+case_list:
+	case { $$ = new Parse.CaseStatement( /*@1.*/first_line ); cast<Parse.CaseStatement>($$).add(cast<Parse.Case>($1)); } |
+	case_list case { cast<Parse.CaseStatement>($1).add( cast<Parse.Case>($2) ); $$ = $1; } |
+	default { $$ = new Parse.CaseStatement( /*@1.*/first_line ); cast<Parse.CaseStatement>($$).setDefault(cast<Parse.BlockStatement>($1));} |
+	case_list default { cast<Parse.CaseStatement>($1).setDefault( cast<Parse.BlockStatement>($2) ); $$ = $1; }
+;
+
+case:
+	CASE expression_list COLON block_statement_list { $$ = new Parse.Case(/*@1.*/first_line, cast<Parse.ExpressionList>($2), cast<Parse.BlockStatement>($4) ); }
+;
+
+default:
+	DEFAULT COLON block_statement_list { $$ = $3; }
+;
+
+if_then_statement:
+	IF OPEN_PAREN expression CLOSE_PAREN statement {
+		$$ = new Parse.IfStatement(
+			/*@1.*/first_line, cast<Parse.Expression>($3),
+			cast<Parse.Statement>($5),
+			null );
+	}
+;
+
+if_then_else_statement:
+	IF OPEN_PAREN expression CLOSE_PAREN statement_inner ELSE statement	{
+		$$ = new Parse.IfStatement(
+			/*@1.*/first_line, cast<Parse.Expression>($3),
+			cast<Parse.Statement>($5),
+			cast<Parse.Statement>($7) );
+	}
+;
+
+if_then_else_statement_inner:
+	IF OPEN_PAREN expression CLOSE_PAREN statement_inner ELSE statement_inner {
+		$$ = new Parse.IfStatement( /*@1.*/first_line, cast<Parse.Expression>($3), cast<Parse.Statement>($5), cast<Parse.Statement>($7) );
+	}
+;
+
+while_statement:
+	WHILE OPEN_PAREN expression CLOSE_PAREN statement {
+		$$ = new Parse.WhileStatement(
+			/*@1.*/first_line,
+			cast<Parse.Expression>($3),
+			cast<Parse.Statement>($5)
+		);
+	}
+;
+
+while_statement_inner:
+	WHILE OPEN_PAREN expression CLOSE_PAREN statement_inner {
+		$$ = new Parse.WhileStatement(
+			/*@1.*/first_line,
+			cast<Parse.Expression>($3),
+			cast<Parse.Statement>($5)
+		);
+	}
+;
+
+return_statement:
+	RETURN END_STATEMENT {
+		$$ = new Parse.ReturnStatement( /*@1.*/first_line, null );
+	}
+|   RETURN expression END_STATEMENT {
+		$$ = new Parse.ReturnStatement( /*@1.*/first_line, cast<Parse.Expression>($2) );
+	}
+;
+
+throw_statement:
+	THROW expression END_STATEMENT {
+		$$ = new Parse.ThrowStatement( /*@1.*/first_line, cast<Parse.Expression>($2) );
+	}
+;
+
+try_statement:
+	TRY block_statement catches {
+		$$ = new Parse.TryStatement(
+			/*@1.*/first_line,
+			cast<Parse.Statement>($2),
+			cast<Parse.Catches>($3),
+			null
+		);
+	}
+|   TRY block_statement finally {
+		$$ = new Parse.TryStatement(
+			/*@1.*/first_line,
+			cast<Parse.Statement>($2),
+			new Parse.Catches( /*@1.*/first_line ),
+			cast<Parse.Statement>($3)
+		);
+	}
+
+|   TRY block_statement catches finally {
+		$$ = new Parse.TryStatement(
+			/*@1.*/first_line,
+			cast<Parse.Statement>($2),
+			cast<Parse.Catches>($3),
+			cast<Parse.Statement>($4)
+		);
+	}
+
+;
+
+catches:
+	catch_clause {
+		$$ = new Parse.Catches( /*@1.*/first_line, cast<Parse.Catch>($1) );
+	}
+|   catches catch_clause {
+		cast<Parse.Catches>($1).add( cast<Parse.Catch>($2) );
+		$$ = $1;
+	}
+
+;
+
+catch_clause:
+	CATCH OPEN_PAREN argument_declaration CLOSE_PAREN block_statement {
+		$$ = new Parse.Catch(
+			/*@1.*/first_line,
+			cast<Parse.VariableDef>($3),
+			cast<Parse.Statement>($5)
+		);
+	}
+;
+
+finally:
+	FINALLY block_statement {
+		$$ = $2;
+	}
+;
+
+break_statement:
+	BREAK { $$ = new Parse.BreakStatement( /*@1.*/first_line ); } |
+	BREAK identifier { $$ = new Parse.BreakStatement( /*@1.*/first_line ); cast<Parse.Statement>($$).setLoopName(cast<Parse.Identifier>($2)); };
+
+continue_statement:
+	CONTINUE { $$ = new Parse.ContinueStatement( /*@1.*/first_line ); } |
+	CONTINUE identifier { $$ = new Parse.ContinueStatement( /*@1.*/first_line ); cast<Parse.Statement>($$).setLoopName(cast<Parse.Identifier>($2)); };
+
+
+statement:
+	simple_statement |
+	if_then_statement |
+	if_then_else_statement |
+	labelled_statement |
+	switch_statement ;
+/*	while_statement |
+	for_statement |
+	foreach_statement */
+
+
+within_for_statement:
+    very_simple_statement END_STATEMENT |
+    local_declaration |
+    END_STATEMENT { $$ = null; }
+;
+
+very_simple_statement:
+    assignment_statement |
+    method_call_statement
+;
+
+simple_statement:
+    very_simple_statement END_STATEMENT |
+    block_statement |
+    throw_statement |
+    return_statement |
+    try_statement |
+    break_statement END_STATEMENT |
+    continue_statement END_STATEMENT |
+    empty_statement
+;
+
+
+assignment_statement:
+	assignment
+;
+
+
+statement_inner:
+	simple_statement
+|   if_then_else_statement_inner
+|   while_statement_inner
+;
+
+local_declaration:
+	field_declaration
+|   VARIABLE field_declaration {
+		$$ = $2;
+    }
+;
+
+within_block_statement:
+	local_declaration
+|	statement
+;
+
+
+left_value:
+	name
+|   pointer_access
+|   field_access
+|   vector_access
+;
+
+assignment:
+	left_value ASSIGN expression {
+		$$ = new Parse.Assignment(
+			/*@2.*/first_line,
+			cast<Parse.Expression>($1),
+			cast<Parse.Expression>($3)
+		);
+	}
+;
+
+
+expression_list:
+	expression {
+		$$ = new Parse.ExpressionList( /*@1.*/first_line, cast<Parse.Expression>($1) );
+	}
+|	expression_list COMMA expression {
+		cast<Parse.ExpressionList>($1).add( cast<Parse.Expression>($3) );
+	}
+;
+
+
+block_statement:
+	START_BLOCK END_BLOCK {
+			$$ = new Parse.BlockStatement( /*@1.*/first_line, null );
+	}
+|	START_BLOCK block_statement_list END_BLOCK {
+		$$ = $2;
+	}
+;
+
+block_statement_list:
+	within_block_statement {
+		$$ = new Parse.BlockStatement( /*@1.*/first_line, cast<Parse.Statement>($1) );
+	}
+|	block_statement_list within_block_statement	{
+		cast<Parse.BlockStatement>($1).add( cast<Parse.Statement>($2) );
+	}
+;
+
+class_qualifier:
+        CLASS LT type GT {
+                $$ = new Parse.ClassQualifier( /*@3.*/first_line, cast<Parse.TypeExpr>($3) );
+        }
+;
+
+
+field_access:
+	primary DOT identifier {
+		cast<Parse.Identifier>($3).qualifies(cast<Parse.Expression>($1));
+		$$ = $3;
+	}
+|   SUPER DOT identifier {
+		cast<Parse.Identifier>($3).qualifies( new Parse.Super( /*@1.*/first_line ) );
+		$$ = $3;
+	}
+;
+
+
+method_call:
+	name OPEN_PAREN CLOSE_PAREN {
+		$$ = new Parse.MethodCall(
+			/*@1.*/first_line,
+			cast<Parse.Expression>(null),
+			cast<Parse.Identifier>($1),
+			cast<Parse.ExpressionList>(null)
+		);
+	}
+|   name OPEN_PAREN expression_list CLOSE_PAREN {
+		$$ = new Parse.MethodCall(
+			/*@1.*/first_line,
+			cast<Parse.Expression>(null),
+			cast<Parse.Identifier>($1),
+			cast<Parse.ExpressionList>($3)
+		);
+	}
+|   primary DOT identifier OPEN_PAREN CLOSE_PAREN {
+		$$ = new Parse.MethodCall(
+			/*@3.*/first_line,
+			cast<Parse.Expression>($1),
+			cast<Parse.Identifier>($3),
+			cast<Parse.ExpressionList>(null)
+		);
+	}
+|   primary DOT identifier OPEN_PAREN expression_list CLOSE_PAREN {
+		$$ = new Parse.MethodCall(
+			/*@3.*/first_line,
+			cast<Parse.Expression>($1),
+			cast<Parse.Identifier>($3),
+			cast<Parse.ExpressionList>($5)
+		);
+	}
+|   SUPER DOT identifier OPEN_PAREN CLOSE_PAREN {
+		$$ = new Parse.MethodCall(
+			/*@1.*/first_line,
+			new Parse.Super( /*@1.*/first_line ),
+			cast<Parse.Identifier>($3),
+			cast<Parse.ExpressionList>(null)
+		);
+	}
+|   SUPER DOT identifier OPEN_PAREN expression_list CLOSE_PAREN {
+		$$ = new Parse.MethodCall(
+			/*@1.*/first_line,
+			new Parse.Super( /*@1.*/first_line ),
+			cast<Parse.Identifier>($3),
+			cast<Parse.ExpressionList>($5)
+		);
+	}
+|   NATIVE DOT identifier OPEN_PAREN CLOSE_PAREN {
+		$$ = new Parse.NativeCall(
+			/*@3.*/first_line,
+			cast<Parse.Identifier>($3),
+			cast<Parse.ExpressionList>(null)
+		);
+	}
+|   NATIVE DOT identifier OPEN_PAREN expression_list CLOSE_PAREN {
+		$$ = new Parse.NativeCall(
+			/*@3.*/first_line,
+			cast<Parse.Identifier>($3),
+			cast<Parse.ExpressionList>($5)
+		);
+	}
+;
+
+name:
+	simple_name
+|   qualified_name
+;
+
+simple_name:
+	identifier
+;
+
+qualified_name:
+	name DOT identifier {
+		cast<Parse.Identifier>($3).qualifies( cast<Parse.Identifier>($1) );
+		$$ = $3;
+	}
+;
+
+
+
+unary_expression:
+        thing
+|   SUB unary_expression {
+                $$ = new Parse.ArithExpression( /*@1.*/first_line, Op.NEG, cast<Parse.Expression>($2), cast<Parse.Expression>(null) );
+        }
+;
+
+
+thing:
+	primary
+|   name
+;
+
+literal:
+	constant_null
+|	constant_integer
+|	constant_string
+|	constant_cstring
+|   constant_char
+|	constant_double
+|   constant_boolean
+;
+
+
+primary:
+	literal
+|   THIS {
+		$$ = new Parse.This( /*@1.*/first_line );
+	}
+|	vector_list
+|	OPEN_PAREN expression CLOSE_PAREN { $$ = $2; }
+|	cast
+|	new
+|	field_access
+|	method_call
+|	vector_access
+|       pointer_access
+|       class_qualifier
+;
+
+
+vector_list:
+	type START_BLOCK expression_list END_BLOCK {
+		$$ = new Parse.VectorList(
+			/*@1.*/first_line,
+			cast<Parse.TypeExpr>($1),
+			cast<Parse.ExpressionList>($3)
+		);
+	} |
+	type START_BLOCK expression_list COMMA END_BLOCK {
+		$$ = new Parse.VectorList(
+			/*@1.*/first_line,
+			cast<Parse.TypeExpr>($1),
+			cast<Parse.ExpressionList>($3)
+		);
+	} |
+	START_BLOCK expression_list END_BLOCK {
+	$$ = new Parse.VectorList(
+			/*@1.*/first_line,
+			null,
+			cast<Parse.ExpressionList>($2)
+		);
+	} |
+	START_BLOCK expression_list COMMA END_BLOCK {
+	$$ = new Parse.VectorList(
+			/*@1.*/first_line,
+			null,
+			cast<Parse.ExpressionList>($2)
+		);
+	}
+;
+
+
+pointer_access:
+	OPEN_SQUARE expression CLOSE_SQUARE {
+		$$ = new Parse.AtExpression( /*@1.*/first_line, cast<Parse.Expression>($2) );
+	}
+;
+
+
+vector_access:
+	name OPEN_SQUARE expression CLOSE_SQUARE {
+		$$ =new Parse.VectorAccess(
+			/*@2.*/first_line,
+			cast<Parse.Expression>($1),
+			cast<Parse.Expression>($3)
+		);
+	}
+|   primary OPEN_SQUARE expression CLOSE_SQUARE {
+		$$ = new Parse.VectorAccess(
+			/*@2.*/first_line,
+			cast<Parse.Expression>($1),
+			cast<Parse.Expression>($3)
+		);
+	}
+;
+
+
+cast:
+	CAST LT type GT OPEN_PAREN expression CLOSE_PAREN
+		{ $$ = new Parse.Cast( /*@1.*/first_line, cast<Parse.TypeExpr>($3), cast<Parse.Expression>($6) ); }
+;
+
+new:
+	NEW type OPEN_SQUARE expression CLOSE_SQUARE {
+		$$ = new Parse.NewExpression(
+			/*@1.*/first_line, cast<Parse.TypeExpr>($2),
+			cast<Parse.Expression>($4)
+		);
+	}
+|   NEW type OPEN_PAREN expression_list CLOSE_PAREN {
+		$$ = new Parse.NewExpression(
+			/*@1.*/first_line, cast<Parse.TypeExpr>($2),
+			cast<Parse.ExpressionList>($4)
+		);
+	}
+|   NEW type OPEN_PAREN CLOSE_PAREN {
+		$$ = new Parse.NewExpression(
+			/*@1.*/first_line,
+			cast<Parse.TypeExpr>($2),
+			cast<Parse.ExpressionList>(null)
+		);
+	}
+;
+
+
+identifier:			IDENTIFIER { $$ = new Parse.Identifier( /*@1.*/first_line, cast<String>(yyLex.getValue())); };
+constant_null:      CONST_NULL    { $$ = new Parse.Constant( /*@1.*/first_line, Type.NULL, "0" ); };
+constant_integer:	CONST_INT	{ $$ = new Parse.Constant( /*@1.*/first_line, Type.INTEGER, cast<String>(yyLex.getValue()) ); };
+constant_string:	CONST_STRING	{ $$ = new Parse.Constant( /*@1.*/first_line, Type.STRING, cast<String>(yyLex.getValue()) ); };
+constant_cstring:	CONST_CSTRING { $$ = new Parse.Constant( /*@1.*/first_line, Type.CSTRING, cast<String>(yyLex.getValue()) ); };
+constant_char:      CONST_CHAR    { $$ = new Parse.Constant( /*@1.*/first_line, Type.CHAR, cast<String>(yyLex.getValue()) ); };
+constant_double:	CONST_DOUBLE	{ $$ = new Parse.Constant( /*@1.*/first_line, Type.DOUBLE, cast<String>(yyLex.getValue()) ); };
+constant_boolean:   CONST_TRUE    { $$ = new Parse.Constant( /*@1.*/first_line, Type.BOOL, "1" ); }
+|                   CONST_FALSE   { $$ = new Parse.Constant( /*@1.*/first_line, Type.BOOL, "0" ); }
+;
+
+%%
+
+
+}

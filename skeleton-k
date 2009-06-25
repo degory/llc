@@ -1,0 +1,207 @@
+#	jay skeleton
+
+#	character in column 1 determines outcome...
+#		# is a comment
+#		. is copied
+#		t is copied as //t if -t is set
+#	other lines are interpreted to call jay procedures
+
+.// copyright (C) 2009 degs <junk@giantblob.com>
+.// created by jay 0.8, jay is copyright (c) 1998 Axel.Schreiner@informatik.uni-osnabrueck.de
+.
+.import stream;
+ prolog		## %{ ... %} prior to the first %%
+.use System.Object;
+.use System.String;
+.use System.Exception;
+.use Parse.Token;
+.use Parse.YaccParser;
+.// %token constants
+./*enum Token {
+ tokens
+.}*/
+.use Parse.ParseException;
+.use Parse.yyInput;
+.class YaccParserK extends Parse.YaccParser {
+.    void init() {
+.        super.init();
+.    }
+.
+.
+ final_rule             ## constant storing final rule
+.
+.  
+.  /** the generated parser, with debugging messages.
+.      Maintains a state and a value stack, currently with fixed maximum size.
+.      @param yyLex scanner.
+.      @param yydebug debug message writer implementing yyDebug, or null.
+.      @return result of the last reduction, if any.
+.      @throws yyException on irrecoverable parse error.
+.    */
+.    public Object yyparse (yyInput yyLex, Object yydebug) {
+.        return yyparse(yyLex);
+.    }
+.
+.  /** initial size and increment of the state/value stack [default 256].
+.      This is not final so that it can be overwritten outside of invocations
+.      of yyparse().
+.    */
+.  protected int yyMax;
+.
+.
+.  /** the generated parser.
+.      Maintains a state and a value stack, currently with fixed maximum size.
+.      @param yyLex scanner.
+.      @return result of the last reduction, if any.
+.      @throws yyException on irrecoverable parse error.
+.    */
+.   
+.   public Object yyparse2 (yyInput yyLex) {
+.       if (yyMax <= 0) yyMax = 256;			// initial size
+.       int yyState = 0;
+.       int[] yyStates = new int[yyMax];	// state stack
+
+.       Object yyVal = null;
+.       Object[] yyVals = new Object[yyMax];	// value stack
+.       int yyToken = -1;					// current input
+.       int yyErrorFlag = 0;				// #tks to shift
+.
+ local		## %{ ... %} after the first %%
+.
+.
+.	yyLoop: for (int yyTop = 0;; yyTop = yyTop + 1) {
+.	    if (yyTop >= yyStates.length) {			// dynamically increase
+.		throw new System.Exception( "extending token stack: probably broken" );
+.		//int[] i = new int[yyStates.length+yyMax];
+.		//System.Array.copy(yyStates, 0, i, 0, yyStates.length);
+.		//yyStates = i;
+.		//Object[] o = new Object[yyVals.length+yyMax];
+.		//System.Array.copy(yyVals, 0, o, 0, yyVals.length);
+.		//yyVals = o;
+.	    }
+.	    yyStates[yyTop] = yyState;
+.	    yyVals[yyTop] = yyVal;
+.
+.	    yyDiscarded: for (;;) {	// discarding a token does not change stack
+.		int yyN = YyDefRedClass.yyDefRed[yyState];
+.		if (yyN == 0) {	// else [default] reduce (yyN)
+.		    if (yyToken < 0) {
+.			if( yyLex.nextToken() ) {
+.			    yyToken = yyLex.getCurrentToken();
+.			    first_line = yyLex.getLine();
+.			} else {
+.			    yyToken = 0;
+.			}
+.		    }
+.		    yyN = YySindexClass.yySindex[yyState];
+.		    if ( yyN != 0 ) {
+.			yyN = yyN + yyToken;
+.			if( yyN >= 0
+.			    && yyN < YyTableClass.yyTable.length && YyCheckClass.yyCheck[yyN] == yyToken) {
+.			    yyState = YyTableClass.yyTable[yyN];		// shift to yyN
+.                           // IO.Std.err.println( "shift to " + yyState );
+.			    yyVal = yyLex.getValue();
+.			    yyToken = -1;
+.			    if (yyErrorFlag > 0) yyErrorFlag = yyErrorFlag - 1;
+.			    continue yyLoop;
+.			}
+.		    }
+.		    yyN = YyRindexClass.yyRindex[yyState];
+.		    if ( yyN != 0 ) {
+.			yyN = yyN + yyToken;
+.			if( yyN >= 0
+.			    && yyN < YyTableClass.yyTable.length && YyCheckClass.yyCheck[yyN] == yyToken) {
+.			    yyN = YyTableClass.yyTable[yyN];			// reduce (yyN)
+.                           // IO.Std.err.println( "reduce by rule " + yyN + ", " + YyRuleClass.yyRule[yyN] );
+.			} else {
+.			    if( yyErrorFlag == 0 ) {
+.                               if( yyToken >= 0 && yyToken < YyNameClass.yyName.length ) {
+.				  yyerror( yyLex, "syntax error " + YyNameClass.yyName[yyToken], yyExpecting(yyState));
+.                               } else {
+.                                 yyerror( yyLex, "syntax error ", yyExpecting(yyState));
+.                               }
+.			    } else if( yyErrorFlag == 1 || yyErrorFlag == 2 ) {  
+.				yyErrorFlag = 3;
+.				do {
+.				    yyN = YySindexClass.yySindex[yyStates[yyTop]];
+.				    if ( yyN != 0 ) {
+.					yyN = yyN + cast<int>(Token.yyErrorCode);
+.					if( yyN >= 0 && yyN < YyTableClass.yyTable.length
+.					    && YyCheckClass.yyCheck[yyN] == cast<int>(Token.yyErrorCode)) {
+.					    yyState = YyTableClass.yyTable[yyN];
+.					    yyVal = yyLex.getValue();
+.					    continue yyLoop;
+.					}
+.				    }
+.				    yyTop = yyTop - 1;
+.				} while (yyTop >= 0);
+.				throw new ParseException("irrecoverable syntax error");
+.			    } else if( yyErrorFlag == 3 ) {
+.				if (yyToken == 0) {
+.				    throw new ParseException("irrecoverable syntax error at end-of-file");
+.				}
+.				yyToken = -1;
+.				continue yyDiscarded;		// leave stack alone
+.			    }
+.			}
+.		    }
+.		}
+.		int yyV = yyTop + 1-YyLenClass.yyLen[yyN];
+.		if( yyV > yyTop ) {
+.		    yyVal = yyDefault(null);
+.		} else {
+.		    yyVal = yyDefault(yyVals[yyV]);
+.		}
+.               // IO.Std.err.println( "state: " + yyState + ", reduce: " + yyN + ", " + YyRuleClass.yyRule[yyN] );
+.		switch( yyN ) {
+
+ actions		## code from the actions within the grammar
+
+.               }
+.               yyTop = yyTop - YyLenClass.yyLen[yyN];
+.               yyState = yyStates[yyTop];
+.               // IO.Std.err.println( "popped to state: " + yyState );
+.               int yyM = YyLhsClass.yyLhs[yyN];
+.               if (yyState == 0 && yyM == 0) {
+.                   yyState = yyFinal;
+.                   if (yyToken < 0) {
+.                   if( yyLex.nextToken() ) {
+.                       yyToken = yyLex.getCurrentToken();
+.                       first_line = yyLex.getLine();
+.                   } else {
+.                       yyToken = 0;
+.                   }
+.//	            if( yyLex.nextToken() ) {
+.//	                yyToken = yyLex.getCurrentToken();
+.//                 } else {
+.//                     yyToken = 0;
+.//                 }
+.               }
+.               if (yyToken == 0) {
+.                   return yyVal;
+.               }
+.               continue yyLoop;
+.            }
+.	     yyN =YyGindexClass.yyGindex[yyM];
+.            if (yyN != 0 ) {
+.                yyN = yyN + yyState;
+.                if( yyN >= 0
+.                    && yyN < YyTableClass.yyTable.length && YyCheckClass.yyCheck[yyN] == yyState)
+.                    yyState = YyTableClass.yyTable[yyN];
+.                else
+.                    yyState = YyDgotoClass.yyDgoto[yyM];
+.            } else {
+.                yyState = YyDgotoClass.yyDgoto[yyM];
+.            }
+.            // IO.Std.err.println( "goto state: " + yyState );
+.	     continue yyLoop;
+.        }
+.    }
+.}
+.}
+.
+ tables			## tables for rules, default reduction, and action calls
+.
+ debug			## tables for debugging support
+.
+ epilog			## text following second %%
