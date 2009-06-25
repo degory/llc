@@ -1,0 +1,24 @@
+
+pragma NoWarnUnsafe, NoMarkUnsafe;
+
+namespace IO {
+    struct Stat {
+	public int mtime;
+	// public int size;
+	
+	void init() {
+	}
+
+	bool stat( System.String name ) {
+	    if( native.__stat_file( name.toCString(), this ) != null ) {
+		return false;
+	    } else {
+		return true;
+	    }
+	}
+
+	bool after( Stat s ) {
+	    return mtime > s.mtime;
+	}
+    }
+}

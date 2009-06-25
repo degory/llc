@@ -1,0 +1,803 @@
+#K
+import object;
+import integer;
+
+namespace System is
+    pragma NoWarnUnsafe, NoMarkUnsafe;
+
+    class String extends Object is
+	pragma NoWarnHide;
+
+	protected char ptr _buffer;
+	protected int _length;
+
+	static StringBuffer format( String s, Object[] args ) is
+	    StringBuffer result = new StringBuffer(``);
+	    int i = 0;
+	    int p = 0;
+	    int l = s.getLength();
+	    while i < l do
+		char c = s.charAt(i);
+		if c == '%' then
+		    i = i + 1;
+		    result.append( args[p] );
+		    p = p + 1;
+		else
+		    result.append( c );
+		    i = i + 1;
+		fi
+	    od
+	    return result;
+	end
+
+	static StringBuffer format( String s, int[] args ) is
+	    StringBuffer result = new StringBuffer(``);
+	    int i = 0;
+	    int p = 0;
+	    int l = s.getLength();
+	    while i < l do
+		char c = s.charAt(i);
+		if c == '%' then
+		    i = i + 1;
+		    result.append( args[p] );
+		    p = p + 1;
+		else
+		    result.append( c );
+		    i = i + 1;
+		fi
+	    od
+	    return result;
+	end
+
+	static StringBuffer cat( Object[] args ) is
+	    StringBuffer result = new StringBuffer(``);
+	    for int i = 0; i < args.length; i = i + 1 do
+		result.append( args[i] );
+	    od
+	    return result;
+	end
+
+	static StringBuffer format( String s, int i ) is
+	    return format( s, Object { new Int(i) } );
+	end
+
+	static StringBuffer format( String s, int i, int j ) is
+	    return format( s, Object { new Int(i), new Int(i) } );
+	end
+
+	static StringBuffer format( String s, Object i ) is
+	    return format( s, { i } );
+	end
+
+	static StringBuffer format( String s, Object i, Object j ) is
+	    return format( s, { i, j } );
+	end
+
+	void init( char ptr s ) is
+	    super.init();
+
+	    int i = 0;
+
+	    if s == null then
+		_buffer = null;
+		_length = 0;
+		return;
+	    fi
+
+	    _length = _c_getLength( s );
+
+	    _buffer = cast char ptr( native.GC_malloc_atomic( _length + 1) );
+	    // native.printf( `%p len %d string\n`, _buffer, _length+1 );
+	    while i <= _length do
+		[_buffer + i] = [s + i];
+		i = i + 1;
+	    od
+	end
+
+	void init( String s ) is
+	    this.init( s.toCString() );
+	end
+
+	int hash() is
+	    int result, i;
+	    i = 0;
+	    result = 0;
+
+	    while i < _length do
+		result = result * 4 + cast int([_buffer + i]);
+		i = i + 1;
+	    od
+	
+	    return result;
+	end
+
+	char charAt( int i ) is
+	    return opGet(i);
+	end
+
+	get char[int i] is
+	    return [_buffer + i];
+	end
+
+	String toString() is
+	    return this;
+	end
+
+	static bool isSpace( char c ) is
+	    return c == ' ' || c == cast char(9) || c == '\n' || c == cast char(13);
+	end
+
+	String trim() is
+	    int from, to;
+	    System.StringBuffer result = new System.StringBuffer( _length );
+	    
+	    for from = 0; from < _length && isSpace( [_buffer + from] ); from = from + 1 do
+		;
+            od
+
+	    for to = _length - 1; to > from && isSpace( [_buffer + to] ); to = to - 1 do
+		;
+            od
+
+	    return substring( from, to + 1 );
+	end
+
+	String strip( char c ) is
+	    System.StringBuffer result = new System.StringBuffer( _length );
+	    int l = _length;
+
+	    for int i = 0; i < l; i = i + 1 do
+		char d = [_buffer + i];
+		if d != c then
+		    result.append( d );
+		fi
+	    od
+
+	    return result;
+	end
+	    
+	static String oct(int i) is
+	    StringBuffer result = new StringBuffer();
+	    result.append( i, 8 );
+	    return result;
+	end
+
+	static String hex(int i) is
+	    StringBuffer result = new StringBuffer();
+	    result.append( i, 16 );
+	    return result;
+	end
+
+	static String hex(word i) is
+	    StringBuffer result = new StringBuffer();
+	    result.append( i, 16 );
+	    return result;
+	end
+
+	/*
+	static String hex(word w) {
+	    StringBuffer result = new StringBuffer();
+	    int i = cast<int>(w >> 32W);
+	    result.append( i, 16 );
+
+	    result.append(' ');
+	    result.append( cast<int>(w), 16 );
+	    return result;
+	}
+	*/
+
+	public char ptr toCString() is
+	    return _buffer;
+	end
+
+	get int Length is
+	    return _length;
+	end
+
+	bool equals( char ptr s ) is
+	    int i = 0;
+	    while i < _length && [s + i] != cast char(0) do
+		if [_buffer + i] != [s + i] then
+		    return false;
+		fi
+		i = i + 1;
+	    od
+	    return i == _length && [s + i] == cast char(0);
+	end
+
+	bool equals( Object s ) is
+	    if s == null then
+		return false;
+	    elif s == this then
+		return true;
+	    elif "".likeMe(s) then
+		String t;
+		t = cast String(s);
+	    
+		if _length != t._length then
+		    return false;
+		else
+		    int i = 0;
+		    while i < _length do
+			if [_buffer + i] != [t._buffer + i] then
+			    return false;
+			fi
+			i = i + 1;
+		    od
+		    return true;
+		fi
+	    else // not a string - maybe we should compare against s.toString() ?
+		return false;
+	    fi
+	end
+
+	bool startsWith( System.String s ) is
+	    int l = s._length;
+
+	    if _length < l then
+		return false;
+	    else
+		char ptr p = _buffer;
+		char ptr q = s._buffer;
+		while l > 0 do
+		    if [p] != [q] then
+			return false;
+		    fi
+		    p = p + 1w;
+		    q = q + 1w;
+
+		    l = l - 1;
+		od
+
+		return true;
+	    fi
+	end
+
+	bool endsWith( char c ) is
+	    return _length > 0 && [_buffer + _length - 1] == c;
+	end
+
+	bool endsWith( System.String s ) is
+	    int l = s._length;
+	    if _length < l then
+		return false;
+	    else
+		char ptr p = _buffer + _length - 1;
+		char ptr q = s._buffer + s._length - 1;
+		while l > 0 do
+		    if [p] != [q] then
+			return false;
+		    fi
+		    p = p - 1w;
+		    q = q - 1w;
+
+		    l = l - 1;
+		od
+
+		return true;
+	    fi
+	end
+
+	int indexOf( char c ) is
+	    for int i = 0; i < _length; i = i + 1 do
+		if [_buffer+i] == c then
+		    return i;
+		fi
+	    od
+
+	    return -1;
+	end
+
+	int lastIndexOf( char c ) is
+	    for int i = _length-1; i >= 0; i = i - 1 do
+		if [_buffer+i] == c then
+		    return i;
+		fi
+	    od
+
+	    return -1;
+	end
+
+	bool matches( System.String s, int index ) is
+	    int l = s.Length;
+
+	    if index + l > _length then
+		return false;
+	    fi
+
+	    for int i = 0; i < l; i = i + 1 do
+		if [_buffer + index + i] != [s._buffer + i] then
+		    return false;
+		fi
+	    od
+	    return true;
+	end
+
+	int indexOf( System.String s ) is
+	    for int i = 0; i < _length; i = i + 1 do
+		if matches( s, i ) then
+		    return i;
+		fi
+	    od
+	    return -1;
+	end
+
+	bool opEquals( System.String t ) is
+	    int cl = _length;
+	    if cl != t._length then
+		return false;
+	    else
+		for int i = 0; i < cl; i = i + 1 do
+		    if [_buffer+i] != [t._buffer+i] then
+			return false;
+		    fi
+		od
+		return true;
+	    fi
+	end
+
+	bool opEquals( char ptr t ) is
+	    int cl = _length;
+	    int i;
+	    for i = 0; i < cl; i = i + 1 do
+		char c = [t + i];
+
+		if [_buffer+i] != [t + i] then
+		    return false;
+		fi
+	    od
+
+	    return [t + i] == cast char(0);
+	end
+
+	int opCompare( System.String t ) is
+	    // IO.Std.err.println( "compare " + this + " to " + t );
+	    int cl = _length;
+	    int tie = 1;
+	    if t._length < cl then
+		cl = t._length;
+		tie = -1;
+	    elif t._length == cl then
+		tie = 0;
+	    fi
+
+	    for int i = 0; i < cl; i = i + 1 do
+		char c = [_buffer+i];
+		char ct = [t._buffer+i];
+
+		if c != ct then
+		    int d = cast int(ct) - cast int(c);
+		    // IO.Std.err.println( "'" + c + "'-'" + ct + "' mismatch result is: " + cast int(c - ct) );
+		    return d;
+		fi
+	    od
+
+	    // IO.Std.err.println( "tie result is: " + tie );
+	    return tie;
+	end
+
+	static bool equals( System.String s, System.String t ) is
+	    if s == t then
+		return true;
+	    elif s == null || t == null then
+		return false;
+	    elif s._length != t._length then
+		return false;
+	    else
+		int i = 0;
+		while i < s._length do
+		    if [s._buffer + i] != [t._buffer + i] then
+			return false;
+		    fi
+		    i = i + 1;
+		od
+		return true;
+	    fi
+	end
+
+	int toInt() is
+	    if _length >= 2 && ([_buffer + 1] == 'x' || [_buffer + 1] == 'X') then
+	        return parseInt(16);
+            else
+  	        return parseInt(10);
+            fi
+	end
+
+	int parseInt() is
+	    return toInt();
+	end
+
+	int parseInt( int base ) is
+            bool negative = false;
+	    int i;
+	    if _length >= 1 && [_buffer] == '-' then
+		negative = true;
+		i = 1;
+	    fi
+	    int result = 0;
+
+	    char c;
+	    if base <= 10 then
+		for ; i < _length; i = i + 1 do
+		    int n = cast int([_buffer + i] - '0');
+		    if n >= 0 && n < base then
+			result = result * base + n;
+		    elif i == 0 then
+		        // IO.Std.err.println( "about to throw cannot parse: '" + this + " as base " + base );
+			throw new Exception( "cannot parse: '" + this + "' as base " + base + " integer" );
+		    else
+			break;
+		    fi
+		od
+	    else
+		for ; i < _length; i = i + 1 do
+		    c = [_buffer + i];
+		    if c >= '0' && c <= '9' then
+			result = result * base + cast int(c - '0');
+		    elif c >= 'A' && c < 'A' + cast char(base-10) then
+			result = result * base + 10 + cast int(c - 'A');
+		    elif c >= 'a' && c < 'a' + cast char(base-10) then
+			result = result * base + 10 + cast int(c - 'a');
+		    elif i == 0 then
+		        // IO.Std.err.println( "about to throw cannot parse: '" + this + " as base " + base );
+			throw new Exception( "cannot parse: '" + this + "' as base " + base + " integer" );
+	            else
+		        break;
+		    fi
+		od
+	    fi
+
+	    if negative then
+		return -result;
+	    else
+		return result;
+	    fi
+	end
+
+	int _c_getLength( char ptr s ) is
+	    for int i = 0; [s + i] != cast char(0); i = i + 1 do
+	        ;
+	    od
+
+	    return i;
+	end
+
+	String copy() is
+	    return new String(_buffer);
+	end
+
+	StringBuffer substring( int from ) is
+	    return substring( from, _length );
+	end
+
+	StringBuffer substring( int from, int to ) is
+	    StringBuffer result = new StringBuffer();
+	    for int i = from; i < to && i < _length; i = i + 1 do
+		result.append( charAt(i) );
+	    od
+	    return result;
+	end
+
+	String[] split( char delim ) is
+	    int i;
+	    int parts = 1;
+	    for i = 0; i < _length; i = i + 1 do
+		if [_buffer + i] == delim then
+		    parts = parts + 1;
+		fi
+	    od
+
+	    StringBuffer t = new StringBuffer(_length);
+	    String[] result = new String[parts];
+	    result[0] = t;
+
+	    int j = 0;
+
+	    for i = 0; i < _length; i = i + 1 do
+		char c = [_buffer + i];
+		if c == delim then
+		    result[j] = t;
+		    j = j + 1;
+		    if j < parts then
+			t = new StringBuffer(_length);
+			result[j] = t;
+		    else
+			break;
+		    fi
+		else
+		    t.append( c );
+		fi
+	    od
+
+	    return result;
+	end
+
+	StringBuffer opAdd( String s ) is
+	    return new StringBuffer( toCString() ).append( s );
+	end
+
+	StringBuffer opAdd( int i ) is
+	    return new StringBuffer( toCString() ).append( i );
+	end
+
+	StringBuffer opAdd( word w ) is
+	    return new StringBuffer( toCString() ).append( w );
+	end
+
+	StringBuffer opAdd( char c ) is
+	    return new StringBuffer( toCString() ).append( c );
+	end
+
+	StringBuffer opAdd( bool b ) is
+	    if b then
+		return new StringBuffer( toCString() ).append( `true` );
+	    else
+		return new StringBuffer( toCString() ).append( `false` );
+	    fi
+	end
+
+	StringBuffer opAdd( char ptr s ) is
+	    return new StringBuffer( toCString() ).append( s );
+	end
+
+	StringBuffer opAdd( Object o ) is
+	    return new StringBuffer( toCString() ).append( o );
+	end
+
+	get StringBuffer LowerCase is
+	    StringBuffer result = new StringBuffer(_length);
+	    for int i = 0; i < _length; i = i + 1 do
+		char c = [_buffer + i];
+		if c >= 'A' && c <= 'Z' then
+		    result.append( c + ('a' - 'A') );
+		else
+		    result.append( c );
+		fi
+	    od
+	    return result;
+	end
+
+	get StringBuffer UpperCase is
+	    StringBuffer result = new StringBuffer(_length);
+	    for int i = 0; i < _length; i = i + 1 do
+		char c = [_buffer + i];
+		if c >= 'a' && c <= 'a' then
+		    result.append( c + ('A' - 'a') );
+		else
+		    result.append( c );
+		fi
+	    od
+	    return result;
+	end
+    end
+
+    class StringBuffer extends String is
+	private int _allocated_length;
+
+	void init( char ptr s ) is
+	    super.init(s);
+	    _allocated_length = _length;
+	end
+
+	void init( String s ) is
+	    if s != null then
+		init( s.toCString() );
+	    else
+		init( 16 );
+	    fi
+	end
+
+	void init( int l ) is
+	    super.init(cast char ptr(null));
+	    _reserve(l);
+	end
+
+	void init() is
+	    init( 16 );
+	end
+
+	void _copy_from( char ptr s, int l ) is
+	    if s == null then
+		return;
+	    fi
+
+	    int i;
+	    i = 0;
+
+	    while i < l do
+		[_buffer + i] = [s + i];
+	    
+		i = i + 1;
+	    od
+	end
+
+	void _reserve( int l ) is
+	    char ptr new_buffer, old_buffer;
+
+	    if l > _allocated_length then
+		old_buffer = _buffer;
+
+		// allocation is slow and memory is cheap.
+		// FIXME: may be worth constraining to powers of two to make allocation
+		// faster:
+		_allocated_length = l * 2;
+
+		_buffer = cast char ptr( native.GC_malloc_atomic( _allocated_length ) );
+		// native.printf( `%p len %d stringbuffer\n`, _buffer, _length );
+		if old_buffer != null then
+		    _copy_from( old_buffer, _length );
+		fi
+	    fi
+	end
+
+	void putCharAt( int i, char c ) is
+	    opSet( i, c );
+	end
+
+	set char[int i] = c is
+	    _reserve( i + 1 );
+
+	    [_buffer + i] = c;
+	    if i >= _length then
+		_length = i + 1;
+	    fi
+	end
+    
+	char ptr toCString() is
+	    _reserve( _length + 1 );
+
+	    [_buffer + _length] = cast char( 0 );
+
+	    return _buffer;
+	end
+
+	StringBuffer append( char c ) is
+	    _reserve( _length + 1 );
+
+	    [_buffer + _length] = c;
+	    _length = _length + 1;
+
+	    return this;
+	end
+
+	StringBuffer append( char ptr s ) is
+	    _reserve( _length + _c_getLength( s ) );
+
+	    while [s] != cast char(0) do
+		[_buffer + _length] = [s];
+		_length = _length + 1;
+		s = s + 1;
+	    od
+
+	    return this;
+	end
+
+	set int Length = new_length is
+	    if new_length >= 0 then
+		_reserve( new_length + 1 );
+		_length = new_length;
+	    fi
+	end
+
+	StringBuffer append( int v, int b, int l, char pad ) is
+	    StringBuffer t = new StringBuffer( l );
+	    bool negative = false;
+	    if v < 0 then
+		negative = true;
+		v = -v;
+		t.append( '-' ); // FIXME: not really right
+	    fi
+
+	    t.append( v, b );
+
+	    int nl = l - t.Length;
+
+	    while nl > 0 do
+		append( pad );
+		nl = nl - 1;
+	    od
+	    return append( t );
+	end
+
+	StringBuffer append( int v, int b ) is
+	    int m, n, i;
+	    char c;
+	    char ptr digit = `0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ`;
+
+	    // native.printf( `entry v is %d...\n`, v );
+                
+	    if b > 36 then
+		append( "#base>36#" );
+	    fi
+
+	    i = 0;
+
+	    if v < 0 then
+		putCharAt( _length, cast char(45) );
+		v = 0-v;
+		i = 1;
+	    elif v == 0 then
+		putCharAt( _length, cast char(48) );
+		return this;
+	    fi
+
+	    // native.printf( `before v is %d, b is %d...\n`, v, b );
+
+	    i = 0;
+	    m = v;
+	    while m > 0 do
+		// native.printf( `before m is %d...\n`, m );
+		m = m / b;
+		// native.printf( `after m is %d...\n`, m );
+		i = i + 1;
+	    od
+
+	    // native.printf( `number %d length is %d chars\n`, v, i );
+
+	    _reserve( i + _length ); // avoid repeated mallocs
+
+	
+	    i = i + _length;
+	    while v > 0 do
+		i = i - 1;
+	    
+		c = [digit + v % b];
+		v = v / b;
+	    
+		putCharAt( i, c );
+	    
+	    od
+
+	    return this;
+	end
+
+	StringBuffer append( word v, int b ) is
+	    append( "<word>" );
+
+	    return this;
+	end
+
+	StringBuffer append( int n ) is
+	    return append( n, 10 );
+	end
+	
+
+	StringBuffer append( word n ) is
+	    return append( n, 10 );
+	end
+
+	StringBuffer append( String s ) is
+	    if s != null then
+		return append( s.toCString() );
+	    else
+		return append( `<null>` );
+	    fi
+	end
+
+	
+	StringBuffer append( Object o ) is
+	    if o != null then
+		return append( o.toString() );
+	    else
+		return append( `<null>` );
+	    fi
+	end
+
+
+	StringBuffer copy() is
+	    StringBuffer result;
+	    result = new StringBuffer( toCString() );
+	    return result;
+	end
+    end
+
+    class ConstString extends String is
+	void init( char ptr s ) is
+	    super.init( null );
+	    if s != null then
+		_buffer = s;
+		_length = _c_getLength(s);
+	    fi
+	end
+    end
+end

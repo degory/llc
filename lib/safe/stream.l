@@ -1,0 +1,657 @@
+import string;
+import thread;
+
+pragma NoWarnUnsafe, NoMarkUnsafe;
+
+namespace IO {
+    class Std extends System.Object {
+	static FileStream in_stream = new FileStream(0);
+	static FileStream out_stream = new FileStream(1);
+	static FileStream err_stream = new FileStream(2);
+
+	public static Reader in = new Reader(in_stream);
+	public static Writer out = new Writer(out_stream);
+	public static Writer err = new Writer(err_stream);
+
+	public static void makeThreadSafe() {
+	    out.flush();
+	    err.flush();
+	    
+	    // FIXME: anything buffered here is lost:
+	    in = new LockedReader( in_stream );
+	    
+	    out = new LockedWriter( out_stream );
+	    err = new LockedWriter( err_stream );
+	}
+    }
+
+    class IOException extends System.Exception {
+	int os_error;
+    
+	void init( int os_error, System.String message ) {
+	    super.init( message );
+	    this.os_error = os_error;
+	}
+
+	void init( int os_error, char ptr message ) {
+	    super.init( message );
+	    this.os_error = os_error;
+	}
+    }
+
+    class LockedReader extends Reader {
+	const int DEFAULT_CAPACITY = 1024;
+	System.Lock lock;
+
+	void init( CharStream s, int c ) {
+	    super.init( s, c );
+	    lock = new System.Lock();
+	}
+
+	void init( CharStream s ) {
+	    init( s, DEFAULT_CAPACITY );
+	}
+
+	int read() {
+	    try {
+		lock.lock();
+
+		return _readUnlocked();
+	    } finally {
+		lock.unlock();
+	    }
+	}
+
+	/*
+	int read() {
+	    int result = -1;
+	    // native.printf( `ReadBuffer.lock() this = %lp\n`, this );
+	    try {
+		lock.lock();
+		result = _read();
+	    } finally {
+		lock.unlock();
+	    }
+
+	    return result;
+	}
+	*/
+
+	void unRead( int c ) {
+	    try {
+	    	lock.lock();
+		_unReadUnlocked(c);
+	    } finally {
+		lock.unlock();
+	    }
+	}
+
+	void readAll( System.StringBuffer b ) {
+	    try {
+		lock.lock();
+		_readAllUnlocked( b );
+	    } finally {
+		lock.unlock();
+	    }
+	}
+
+	int readInt() {
+	    try {
+		lock.lock();
+		return _readIntUnlocked();
+	    } finally {
+		lock.unlock();
+	    }
+	}
+
+	void close() {
+	    try {
+		lock.lock();
+		_closeUnlocked();
+	    } finally {
+		lock.unlock();
+	    }
+	}
+    }
+
+    class LockedWriter extends Writer {
+	private System.Lock lock;
+
+	void init( CharStream s, int c ) {
+	    super.init( s, c );
+	    lock = new System.Lock();
+	}
+
+	void init( CharStream s ) {
+	    init( s, 1024 );
+	}
+
+	void flush() {
+	    try {
+		lock.lock();
+		_flushUnlocked();
+	    } finally {
+		lock.unlock();
+	    }
+	}
+
+	void close() {
+	    try {
+		lock.lock();
+		_closeUnlocked();
+	    } finally {
+		lock.unlock();
+	    }
+	}
+
+	void write( int i ) {
+	    try {
+		lock.lock();
+		_writeUnlocked( i );
+	    } finally {
+		lock.unlock();
+	    }
+	}
+	
+	void write( char b ) {
+	    try {
+		lock.lock();
+		_writeUnlocked( b );
+	    } finally {
+		lock.unlock();
+	    }
+	}
+
+	void write( char ptr b, int len ) {
+	    try {
+		lock.lock();
+		_writeUnlocked( b, len );
+	    } finally {
+		lock.unlock();
+	    }
+	}
+    }
+
+    class Reader extends System.Object {
+	const int DEFAULT_CAPACITY = 1024;
+
+	CharStream stream;
+	char[] buffer;
+	int capacity;
+	int position;
+	int size;
+	bool is_at_end;
+
+	void init( CharStream s, int c ) {
+	    super.init();
+	    stream = s;
+	    buffer = new char[c];
+	    capacity = c;
+	    position = 0;
+	    size = 0;
+	}
+
+	void init( CharStream s ) {
+	    init( s, DEFAULT_CAPACITY );
+	}
+
+	bool isAtEnd() {
+	    return is_at_end;
+	}
+
+	int _readUnlocked() {
+	    if( position >= size ) {
+		position = 0;
+		size = stream.read(buffer.address, capacity);
+		if( size <= 0 ) {
+		    is_at_end = true;
+		    return -1;
+		}
+	    }
+	    int result = cast<int>(buffer[position]);
+	    position = position + 1;
+	    return result;
+	}
+
+	int read() {
+	    return _readUnlocked();
+	}
+
+	void _unReadUnlocked( int c ) {
+	    //try {
+	    //	lock.lock();
+		position = position -1;
+		if( position >= 0 && position < size ) {
+		    buffer[position] = cast<char>(c);
+		} else {
+		    throw new IOException(0, "no space in buffer to unRead" );
+		}
+		//} finally {
+		//	lock.unlock();
+		// }
+	}
+
+	void unRead( int c ) {
+	    _unReadUnlocked( c );
+	}
+
+	void _readAllUnlocked( System.StringBuffer b ) {
+	    while( true ) {
+		int c = _readUnlocked();
+		if( c == -1 ) {
+		    return;
+		}
+		b.append( cast<char>(c) );
+	    }
+	}
+
+	void readAll( System.StringBuffer b ) {
+	    _readAllUnlocked( b );
+	}
+
+	System.StringBuffer readAll() {
+	    System.StringBuffer result = new System.StringBuffer();
+	    readAll(result);
+	    return result;
+	}
+
+	int _readIntUnlocked() {
+	    int r = 0;
+	    bool negative;
+
+	    // first non-numeric char delimits number, including end-of-file, but insist on at least one genuine digit
+
+	    int c = read();
+	    if( isAtEnd() ) {
+		// throw new IOException( 0, "end of file" );
+		return 0;
+	    }
+	    
+	    if( c == cast<int>('-') ) {
+		negative = true;
+		c = _readUnlocked();
+	    }
+
+	    if( c < cast<int>('0') || c > cast<int>('9') ) {
+		throw new IOException( 0, "not a number" );
+	    }
+
+	    while(true) {
+		if( c >= cast<int>('0') && c <= cast<int>('9') ) {
+		    r = r * 10 + c - cast<int>('0');
+		} else {
+		    if( c != -1 ) {
+			_unReadUnlocked(c);
+		    }
+
+		    if( negative ) {
+			r = -r;
+		    }
+		    // IO.Std.err.println( "read integer: " + result );
+		    return r;
+		}
+		c = _readUnlocked();
+	    }
+	}
+
+	int readInt() {
+	    return _readIntUnlocked();
+	}
+
+	bool readInt(int ref result) {
+	    try {
+		result = readInt();
+		return true;
+	    } catch( IOException ie ) {
+		result = 0;
+		return false;
+	    }
+
+	}
+
+
+	void _closeUnlocked() {
+	    stream.close();
+	}
+
+	void close() {
+	    _closeUnlocked();
+	}
+    }
+
+    class Writer extends System.Object {
+	private CharStream stream;
+	private char[] buffer;
+	private int capacity;
+	private int position;
+	private bool seen_newline;
+
+	void init( CharStream s, int c ) {
+	    super.init();
+	    stream = s;
+	    buffer = new char[c];
+
+	    capacity = c;
+	    position = 0;
+	    seen_newline = false;
+	}
+
+	get bool IsTTY {
+	    return stream.IsTTY;
+	}
+
+	void init( CharStream s ) {
+	    this.init( s, 1024 );
+	}
+
+	void _flushUnlocked() {
+	    if( position > 0 ) {
+		stream.write( buffer.address, position );
+
+		position = 0;
+	    }
+	}
+
+	void flush() {
+	    _flushUnlocked();
+	}
+
+	void _closeUnlocked() {
+	    _flushUnlocked();
+	    stream.close();
+	}
+
+	void close() {
+	    _closeUnlocked();
+	}
+
+	void _writeUnlocked( int i ) {
+	    _writeUnlocked( cast<char>(i) );
+	}
+
+	void write( int i ) {
+	    _writeUnlocked( i );
+	}
+	
+	void _writeUnlocked( char b ) {
+	    if( position < capacity ) {
+		buffer[position] = b;
+		position = position + 1;
+	    }
+
+	    if( position >= capacity ) {
+		_flushUnlocked();
+	    }
+	}
+
+	void write( char b ) {
+	    _writeUnlocked( b );
+	}
+
+	void _writeUnlocked( char ptr b, int len ) {
+	    _flushUnlocked();
+	    stream.write( b, len );
+	    /*
+	    if( len > capacity ) {
+
+	    } else {
+		int p = 0;
+
+
+		while( len > 0 ) {
+		    while( position < capacity && len > 0 ) {
+			char c = [b + p];
+			if( c == '\n' ) {
+			    seen_newline = true;
+			}
+
+			buffer[position] = c;
+			position = position + 1;
+			p = p + 1;
+			len = len - 1;
+		    }
+		    if( position >= capacity ) {
+			_flushUnlocked();
+		    }
+		}
+	    }
+	    */
+	}
+
+	void write( char ptr b, int len ) {
+	    _writeUnlocked( b, len );
+	}
+
+	void write( System.String s ) {
+	    write( s.toCString(), s.getLength() );
+	}
+
+	void print( System.Object o ) {
+	    write( o.toString() );
+	    if( seen_newline ) {
+		seen_newline = false;
+		flush();
+	    }
+	}
+
+	void print( System.String s ) {
+	    write( s );
+	    if( seen_newline ) {
+		seen_newline = false;
+		flush();
+	    }
+	}
+
+	void println( System.Object o ) {
+	    if( this == null ) {
+		native.printf( `println: this is null\n` );
+		return;
+	    }
+
+	    if( o != null ) {
+		write( o.toString() );
+	    } else {
+		write( "<null>" );
+	    }
+	    write( '\n' );
+	    flush();
+	}
+
+	void println( System.String s ) {
+	    if( this == null ) {
+		native.printf( `println: this is null\n` );
+		return;
+	    }
+
+	    write( s );
+	    write( '\n' );
+	    flush();
+	}
+
+	void println() {
+	    if( this == null ) {
+		native.printf( `println: this is null\n` );
+	    }
+
+	    write( '\n' );
+	    flush();
+	}
+    }
+
+
+    class CharStream extends System.Object { // abstract
+	void init() { super.init(); }
+	get bool IsTTY { return false; }
+
+	get int LastError { return 0; }
+	int read( char ptr buffer, int count ) {
+	    throw new System.NotImplementedException( "CharStream is abstract" );
+	}
+	int write( char ptr buffer, int count ) {
+	    throw new System.NotImplementedException( "CharStream is abstract" );
+	}
+	void close() {
+	    throw new System.NotImplementedException( "CharStream is abstract" );
+	}
+	bool isAtEnd() {
+	    throw new System.NotImplementedException( "CharStream is abstract" );
+	}
+    }
+
+    class StringStream extends CharStream {
+	protected System.String string;
+	protected int position;
+
+	void init( System.String s ) {
+	    super.init();
+	    string = s;
+	    position = 0;
+	}
+
+	int read( char ptr buffer, int size ) {
+	    int i = 0, l = string.getLength();
+	    while( i < size && position < l ) {
+		[buffer + i] = string.charAt(position);
+		i = i + 1;
+		position = position + 1;
+	    }
+
+	    return i;
+	}
+
+	int write( char ptr buffer, int size ) {
+	    throw new IOException( 0, "cannot write to StringStream" );
+	}
+    }	
+
+    class StringBufferStream extends StringStream {
+	void init( System.StringBuffer s ) {
+	    super.init(s);
+	}
+
+	int write( char ptr buffer, int size ) {
+	    System.StringBuffer s = cast<System.StringBuffer>(string);
+	    for( int i = 0; i < size; i = i + 1 ) {
+		s.append( [buffer + i] );
+	    }
+	    return i;
+	}
+    }
+
+    class FileStream extends CharStream {
+	private int handle;
+	private System.String path;
+	private bool is_at_end;
+
+	static get int LastError {
+	    return cast<int>(native.__geterrno());
+	}
+        
+	static void throwIOException( System.String string, int error, System.String path ) {
+	    System.StringBuffer b = new System.StringBuffer(string);
+	    b.append( ` \"` );
+	    b.append( path );
+	    b.append( '\"' );
+	    if( error >= 0 ) {	
+		b.append( `: ` );
+		b.append( cast<char ptr>(native.strerror(error)) );
+	    }
+
+	    throw new IOException( error, b );
+	}
+
+	void throwIOException( System.String string, int error ) {
+	    throwIOException( string, error, path );
+	}
+
+	void init( System.String path ) {
+	    super.init();
+	    Path = path;
+	}
+
+	get bool IsTTY {
+	    return cast int(native.isatty(handle)) != 0;
+	}
+
+	set System.String Path = path {
+	    this.path = path;
+	}
+
+	get System.String Path {
+	    return path;
+	}
+
+	void init( int handle ) {
+	    super.init();
+	    if( handle < 0 || handle > 2 ) {
+		throw new IOException( 0, "sandboxed IO.FileStream only operates on stdin,stdout and stderr" );
+	    }
+
+	    this.path = "handle #" + handle;
+	    this.handle = handle;
+	}
+
+	System.String toString() {
+	    return "IO.FileStream on " + path;
+	}
+
+	bool isAtEnd() {
+	    return is_at_end;
+	}
+
+	void checkResult( char ptr message, int r ) {
+	    // native.printf( `check result %s %d\n`, message, r );
+	    if( r < 0 ) {
+		throwIOException( new System.String( message ), r );
+	    }
+	}
+
+	void checkOpen( char ptr message ) {
+	    if( handle < 0 ) {
+		throwIOException( new System.String(message), 0 );
+	    }
+	}
+
+	void close() {
+	    checkOpen( `closing closed FileStream` );
+	    int r = cast<int>(native.close( handle ));
+	    if( r != 0 ) {
+		throwIOException( "close", getLastError() );
+	    }
+	}
+
+	int read( char ptr buffer, int size ) {
+	    // native.printf( `read %p %d...\n`, buffer, size );
+	    checkOpen( `read closed FileByteStream` );
+	    int r = cast<int>(native.read( handle, buffer, size ));
+	    // native.printf( `read result %d\n`, r );
+	    if( r < size ) {
+		is_at_end = true;
+	    }
+
+	    /*
+	    for( int i = 0; i < r; i = i + 1 ) {
+		native.printf( `%c`, [buffer + i] );
+	    }
+
+	    if( r == -1 ) {
+		native.printf( `read returned -1 - not an error?\n` );
+		return r;
+	    }
+	    */
+	    checkResult( `read`, r );
+	    return r;
+	}
+
+	int write( char ptr buffer, int size ) {
+	    checkOpen( `write closed FileByteStream` );
+	    int r = cast<int>(native.write( handle, buffer, size ));
+	    checkResult( `write`, r );
+	    return r;
+	}
+
+	get int Handle {
+	    return handle;
+	}
+    }
+}

@@ -1,0 +1,6 @@
+These files are trusted by the compiler. This means that they are allowed to perform unsafe operations even with the safe-mode switch on:
+    pointer arithmetic
+    uncheckable casts
+    calls to native code
+    linker options
+
