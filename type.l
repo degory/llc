@@ -95,6 +95,13 @@ namespace Parse {
             return type_kind == Type.LONG || type_kind == Type.WORD || type_kind == Type.INTEGER;
 	}
 
+	bool isObject() {
+	    if( type_kind != Type.CLASS ) {
+		return false;
+	    }
+	    return c.IsObject;
+	}
+
         bool isInteger() {
 	    return isInteger(type_kind);
         }
@@ -120,7 +127,7 @@ namespace Parse {
             this.sub_type = new_sub_type;
         }
 
-        Container findMethod( System.String name, Util.Vector arguments, bool exact ) {
+        Container findMethod( System.String name, Generic.Vector<Type> arguments, bool exact ) {
             if( c != null ) {
                 return c.findMethod( name, arguments, exact );
             } else {
@@ -128,7 +135,7 @@ namespace Parse {
             }
         }
 
-        Container findBestMethod( System.String name, Util.Vector arguments, Quality quality ) {
+        Container findBestMethod( System.String name, Generic.Vector<Type> arguments, Quality quality ) {
             if( c != null ) {
                 return c.findBestMethod( name, arguments, quality );
             } else {

@@ -886,7 +886,6 @@ namespace Parse {
 
 	    Container.buildInterfaceTables( interfaces_set, master_class_list.SymbolList );
 
-
 	    // symbol table is complete and it is now possible to compile methods in any order
 	    // and we can attempt to prepare intermediate code versions of methods for inlining:
 
@@ -2116,7 +2115,7 @@ namespace Parse {
             return cast<Container>(master_class_list.findQualified( qualified_name ));
         }
 
-        Container findMethod( System.String name, Util.Vector arguments, bool exact ) {
+        Container findMethod( System.String name, Generic.Vector<Type> arguments, bool exact ) {
             // only classes can contain methods so search order is simply:
             //  current class and its superclasses
 
@@ -2130,7 +2129,7 @@ namespace Parse {
             return null;
         }
 
-        Container findBestMethod( System.String name, Util.Vector arguments, Quality quality ) {
+        Container findBestMethod( System.String name, Generic.Vector<Type> arguments, Quality quality ) {
             // only classes can contain methods so search order is simply:
             //  current class and its superclasses
 

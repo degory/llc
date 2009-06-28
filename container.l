@@ -121,7 +121,21 @@ namespace Parse {
 	set bool IsInterface = i {
 	    is_interface = i;
 	}
-        
+
+        get bool IsObject {
+	    if( is_interface ) {
+		return false;
+	    }
+
+	    for( Container c = this; c != null; c = c.parent ) {
+		if( c == ParseTree.ObjectClass ) {
+		    return true;
+		}
+	    }
+
+	    return false;
+	}
+	            
         bool getIsFinal() {
             return is_final;
         }
@@ -333,7 +347,7 @@ namespace Parse {
 	}
 
 	int getTypeArgsRequiredLength() {
-	    if( is_generic && arg_types != null ) {
+	    if( is_generic && arg_names != null ) {
 		// IO.Std.err.println( "" + HumanName + ": is generic: " + is_generic + ", args_length: " + type_formal_args.Length );
 		return arg_names.Length;
 	    } else {
@@ -935,7 +949,7 @@ namespace Parse {
 	    return result;
 	}
 
-	static void buildInterfaceTables( Generic.Set<Container> interfaces_set, Generic.Vector<Container> classes_list ) {
+	static void buildInterfaceTables( Generic.Set<Container> interfaces_set, Generic.Vector<Symbol> symbol_list ) {
 	    int j, size = interfaces_set.Length;
 	    if( size == 0 ) {
 		return;
@@ -976,7 +990,8 @@ namespace Parse {
 
 	    var all_implemented = new Generic.Vector<Container>();
 
-	    foreach( Container ci; classes_list.elements() ) {
+	    foreach( var si; symbol_list.elements() ) {
+		var ci = cast Container(si);
 		if( ci.implements_list == null ) {
 		    continue;
 		}
@@ -1352,7 +1367,7 @@ namespace Parse {
 
 	    if( arg_names != null ) { 
 		b.append( " arg names(" );
-		b.append( arg_names `);
+		b.append( arg_names );
 		b.append (")" );
 	    }
 

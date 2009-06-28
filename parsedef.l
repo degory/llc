@@ -1463,7 +1463,7 @@ namespace Parse {
         }
 
 	int compileArguments( CompileState state, IBlock into, bool include_this ) {
-	    Util.Vector a = m.Arguments;
+	    Generic.Vector<Type> a = m.ArgTypes;
 
 	    int num_args = 0;
 	    int to_pop = 0;
@@ -1493,7 +1493,7 @@ namespace Parse {
 
 	    int i;
 	    
-	    Util.Vector p = new Util.Vector();
+	    var p = new Generic.Vector<ITree>();
 
 	    for( i = 0; i < num_args; i = i + 1 ) {
 		int temp = TempFactory.nextTemp();
@@ -1526,7 +1526,7 @@ namespace Parse {
 
 		    // IO.Std.err.println( "BBBBBB: param " + i + " is " + sy + " at offset " + sy.getAddress() );
 
-		    Type tp = cast<Type>(a[j]);
+		    Type tp = a[j];
 		    size = tp.RegSize;
 		    t = new ITree( line_number, Op.INDIRECT, size,
 				   new ITree( line_number, Op.LOCAL, size, sy.Address )
@@ -1626,7 +1626,7 @@ namespace Parse {
 		    IO.Std.err.println( "method def check inline - m not valid yet" );
 		}
 		
-		Util.Vector a = m.Arguments;
+		Generic.Vector<Type> a = m.ArgTypes;
 		
 		// more args (including 'this' than will fit in parameter registers?)
 		if( a != null && a.Length+1 > Machine.NUM_REG_PARAM ) {

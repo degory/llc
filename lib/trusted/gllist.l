@@ -27,7 +27,13 @@ namespace Generic is
 	end
     end
 
-    class LinkedList<T> extends System.Object /* implements List<T> */ is
+    class ListException extends System.Exception is
+        void init( System.String message ) is
+	    super.init(message);
+	end
+    end 
+
+    class LinkedList<T> extends System.Object implements List<T> is
 	RealList<T> list;
 	void init() is
 	    super.init();
@@ -61,12 +67,24 @@ namespace Generic is
 	end
 
 	void push( T v ) is
+	    add(v);
+	end
+
+	get T[int index] is
 	    if list == null then
-		list = new RealList<T>( v, null );
-	    else
-		list.insert( v );
+	        throw new ListException( "index out of bounds" );
+            else 
+	        return list[index];
 	    fi
 	end
+
+	set T[int index] = v is
+	    if list == null || index < 0 then
+	        throw new ListException( "index out of bounds" );
+            else 
+	        list[index] = v;
+ 	    fi
+	end	 
 
 	bool isEmpty() is
 	    return list == null;
@@ -80,11 +98,25 @@ namespace Generic is
 	    fi
 	end
 
-	T pop() is
+	T pull() is
 	    if list != null then
 		T result = list.Value;
 		list = list.Tail;
 		return result;
+	    else
+		throw new ListException( "pull from empty List" );
+	    fi
+	end
+
+	T pop() is
+	    if list != null then
+		if list.Tail == null then
+  		    T result = list.Value;
+		    list = null;
+		    return result;
+		else
+		    return list.pop();
+		fi
 	    else
 		throw new ListException( "pop from empty List" );
 	    fi
@@ -158,6 +190,26 @@ namespace Generic is
 	    tail = t;
 	end
 
+	get T[int index] is 
+	    if index == 0 then
+	        return value;
+	    elif tail == null then
+	        throw new ListException( "index out of bounds" );
+	    else
+		return tail[index-1];
+	    fi
+	end
+
+	set T[int index] = v is
+	    if index == 0 then
+	        value = v;
+	    elif tail == null then
+	        throw new ListException( "index out of bounds" );
+	    else
+		tail[index-1] = v;
+	    fi
+	end
+
 	RealList<T> append( T v ) is
 	    if tail == null then
 		tail = new RealList<T>(v, null);
@@ -166,6 +218,18 @@ namespace Generic is
 		RealList<T> result = tail.append( v );
 		return result;
 	    fi
+	end
+
+	T pop() is
+	    if tail == null then
+	        throw new ListException( "pop from empty list" );
+	    elif tail.tail == null then
+	        T result = tail.value;
+		tail = null;
+		return result;
+	    else
+	        return tail.pop();
+	    fi	    
 	end
 
 	get int Length is

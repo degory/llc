@@ -302,7 +302,7 @@ namespace Parse {
 		    last_comment = s;
 		}
 	    }
-	}
+	}	
 
 	static System.String getLastComment() {
 	    System.String result = last_comment;
@@ -313,6 +313,10 @@ namespace Parse {
 	    */
 	    last_comment = null;
 	    return result;
+	}
+
+	static get Container ObjectClass {
+	    return object_type.Clazz;
 	}
 
 	/*

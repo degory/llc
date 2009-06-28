@@ -22,10 +22,10 @@ namespace Parse {
     }
 
     class LoopStack {
-        Util.Vector label;
+        Generic.Vector<Loop> label;
         
         void init() {
-            label = new Util.Vector();
+            label = new Generic.Vector<Loop>();
         }
 
         void pushLoop( System.String name, ILabel break_label, ILabel exit_label ) {
@@ -37,14 +37,14 @@ namespace Parse {
         }
 
         Loop getTopLoop() {
-            return cast<Loop>(label.Top);
+            return label.Top;
         }
 
         Loop findLoop( System.String s ) {
             for( int i = label.Length-1; i >= 0; i = i - 1 ) {
                 Loop l = cast<Loop>(label[i]);
                 if( l != null && l.name != null && l.name.equals(s) ) {
-                    return cast<Loop>(label[i]);
+                    return label[i];
                 }
             }
             return null;

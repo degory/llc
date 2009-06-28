@@ -8,7 +8,7 @@ namespace Generic is
     use System.String;
     use System.StringBuffer;
 
-    class Set<T> extends System.Object /* implements Bag<T> */ is
+    class Set<T> extends System.Object implements Bag<T> is
     	Map<T,bool> _map;
 
 	void init( int size ) is

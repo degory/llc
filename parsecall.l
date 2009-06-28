@@ -69,7 +69,7 @@ namespace Parse {
             } else if( type.TypeKind == Type.CLASS ) {
                 Container class_symbol = type.Clazz;
 
-                Util.Vector arg_types = null;
+                Generic.Vector<Type> arg_types = null;
                 if( arguments != null ) {
                     arg_types = arguments.getTypes( state );
                 }
@@ -156,7 +156,7 @@ namespace Parse {
 		    // finalizer with the garbage collector:
 
 		    Quality q = new Quality();
-		    Container m = class_symbol.findBestMethod( "dispose", new Util.Vector(), q );
+		    Container m = class_symbol.findBestMethod( "dispose", new Generic.Vector<Type>(), q );
 
 		    if( m != null && m.Owner != object_type.Clazz ) {
 			// dispose method found and it's not System.Object.dispose() - need to register finalizer
@@ -461,7 +461,7 @@ namespace Parse {
             Symbol symbol = null;
             System.String arg_string = null;
             
-            Util.Vector arg_types = null;
+            Generic.Vector<Type> arg_types = null;
             if( arguments != null ) {
                 arg_types = arguments.getTypes( state );
 		// IO.Std.err.println( "method call arguments: " + arg_types );
