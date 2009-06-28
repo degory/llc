@@ -48,9 +48,13 @@ namespace Parse {
 	}
 
 	void write() {
-	    var f = IO.File.openCreate( file_name );
+	    var f = IO.File.openCreate( file_name + ".hash" );
 	    f.println( "" + hash );
 	    f.close();
+	    
+	    // IO.Std.err.println( "rename depend file: " + file_name + ".tmp to " + file_name + ".depend" );
+	    
+	    IO.File.rename( file_name + ".tmp", file_name + ".depend" );
 	}
 
 	static void write( Generic.Vector<WriteHashFile> hashes ) {
@@ -758,12 +762,17 @@ namespace Parse {
             to_link_set.add( name );
         }
 
-	void addHashFile( System.String file_name, int hash ) {
-	    write_hash_files.add( new WriteHashFile(file_name, hash) );
-	}
+        void addHashFile( System.String file_name, int hash ) {
+            write_hash_files.add( new WriteHashFile(lcache_dir + file_name, hash) );
+        }
 
 	void writeHashFiles() {
-	    WriteHashFile.write( write_hash_files );
+	    /*
+	    foreach( Container c; master_class_list.SymbolList.elements() ) {
+		c.getHash();
+	    }
+	    */
+	    WriteHashFile.write( write_hash_files );	  
 	}
 
         void compilePending() {
@@ -861,7 +870,10 @@ namespace Parse {
 		p.declareSymbols(this);
 	    }
 
-	    IO.Std.err.println( "build interface tables..." );
+	    if( WantVeryVerbose ) {
+		ParseTree.message( "build interface tables..." );
+	    }
+
 	    Container.buildInterfaceTables( interfaces_set, master_class_list.SymbolList );
 
 
@@ -919,6 +931,10 @@ namespace Parse {
                 p = cast<Package>(to_compile_list[i]);
                 p.compile( this );
             }
+
+	    if( WantJobs <= 1 && !InChildProcess ) {
+		writeHashFiles();
+	    }
 
 	    if( InChildProcess ) {
 		writeHashFiles();
@@ -1353,7 +1369,7 @@ namespace Parse {
                 System.StringBuffer buffer = new System.StringBuffer();
                 buffer.append( this.CacheDir );
                 buffer.append( name );
-                buffer.append( ".depend" );
+                buffer.append( ".tmp" );
 
                 wb = IO.File.openCreate( buffer ); 
             }
@@ -1977,7 +1993,6 @@ namespace Parse {
 
 	void registerInterface( Container iface ) {
 	    interfaces_set.add( iface );
-	    IO.Std.err.println( "interfaces set now: " + interfaces_set );
 	}
 
 	void registerGeneric( State[] saved_state, SymbolList[] saved_symbol, Container clazz, ClassDef def ) {

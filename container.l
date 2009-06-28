@@ -48,6 +48,7 @@ namespace Parse {
         bool is_final;
         bool is_struct;
 	bool is_generic;
+	bool is_interface;
 	Gen.IBlock inline_block;
 	int label;
 	bool is_native;
@@ -106,12 +107,18 @@ namespace Parse {
 	    }
 
 	    implements_list.add( c );
-
-	    IO.Std.err.println( HumanName + " implements now: " + implements_list );
 	}
 
 	get Util.Vector ImplementsList {
 	    return implements_list;
+	}
+	
+	get bool IsInterface {
+	    return is_interface;
+	}
+
+	set bool IsInterface = i {
+	    is_interface = i;
 	}
         
         bool getIsFinal() {
@@ -459,17 +466,23 @@ namespace Parse {
 	*/
 
         void calcHash() {
+	    int h;
+
             if( hash == 0 ) {
                 if( getSuper() != null ) {
                     hash = getSuper().getHash();
+
                     hash = Util.Hash.rotate(hash);
+		    // IO.Std.err.println( HumanName + ": super hash " + hash );
                 } else {
                     hash = Machine.NAME.hash();
+		    // IO.Std.err.println( HumanName + ": root hash " + hash );
                 }
 
 		if( implements_list != null ) {
 		    foreach( Container c; implements_list.elements() ) {
 			hash = Util.Hash.rotate(hash) + c.Hash;
+			// IO.Std.err.println( HumanName + ": implements " + c.HumanName + " hash " + h );
 		    }
 		}               
 
@@ -479,6 +492,7 @@ namespace Parse {
                         m = m | 32;
                     }
                     hash = Util.Hash.rotate(hash) + m;
+
                     if( current.getKind() == Symbol.ENUM ) {
 			hash = Util.Hash.rotate(hash) + current.Hash;
 		    } else {
@@ -487,12 +501,15 @@ namespace Parse {
                     
                     System.String s = current.DecoratedName;
                     hash = Util.Hash.rotate(hash) + Util.Hash.hash(s);
+
+		    // IO.Std.err.println( HumanName + ": member " + s + "@" + current.Address + " hash " + hash );
                 }
 
                 if( hash == 0 ) {
                     hash = 1;
                 }
                 
+		// IO.Std.err.println( HumanName + ": result hash " + hash );
                 // fprintf( stderr, "calculated hash %08X for %s\n", hash, getName() );
             }
         }
@@ -500,7 +517,18 @@ namespace Parse {
         int getHash() {
             if( hash == 0 ) {
                 calcHash();
-            }
+            } 
+
+	    /* else {
+		var h = hash;
+		calcHash();
+
+		if( hash != h ) {
+		    IO.Std.err.println( "hash changed for " + HumanName + ": " + h + "->" + hash + " from " + new System.Backtrace() );
+		} else {
+		    IO.Std.err.println( "hash unchanged for " + HumanName + ": " + hash );
+		}
+   	    } */
             
             return hash;
         }
@@ -867,6 +895,44 @@ namespace Parse {
             }
         }
 
+	void populateAllImplementedInterfaces( Generic.Vector<Container> all_implemented ) {
+	    all_implemented.clear();
+
+	    // IO.Std.err.println( "find all implemented interfaces for " + HumanName + "..." );
+
+	    Container p = this;
+	    do {
+		// IO.Std.err.println( "interfaces in " + p.HumanName + "..." );
+
+		if( p.implements_list != null ) {
+		    foreach( Container ik; p.implements_list.elements() ) {
+			Container q = ik;
+			do {
+			    if( !q.IsInterface ) {
+				IO.Std.err.println( "oops: not an interface: " + p.HumanName );
+				continue;
+			    }
+
+			    all_implemented.add( q );
+			    // IO.Std.err.println( "implements: " + q.HumanName );
+			    q = q.Super;
+			} while( q != null );
+		    }
+
+		}
+		 
+		p = p.Super;
+	    } while( p != null );
+	}
+
+	get Generic.Vector<Container> AllImplementedInterfaces {
+	    var result = new Generic.Vector<Container>();
+
+	    populateAllImplementedInterfaces( result );
+
+	    return result;
+	}
+
 	static void buildInterfaceTables( Generic.Set<Container> interfaces_set, Util.Vector classes_list ) {
 	    int j, size = interfaces_set.Length;
 	    if( size == 0 ) {
@@ -875,49 +941,68 @@ namespace Parse {
 
 	    var interfaces = new Generic.Vector<Container>(size);
 
-	    IO.Std.err.println( "build interface tables for " + size + " interfaces: " + interfaces_set );
+	    // IO.Std.err.println( "build interface tables for " + size + " interfaces: " + interfaces_set );
 
 	    var matrix = new Gen.MBitSet[size];
 
+
+	    foreach( var js; interfaces_set.elements() ) {
+		// IO.Std.err.println( "interface " + is.HumanName + " interface #" + j + " out of " + matrix.length );
+
+		interfaces.add( js );
+	    }
+
+	    // sort interfaces list so that compile order does not affect addresses assigned by selector coloring:
+	    Generic.Sort<Container,Generic.Vector<Container>>.sort(interfaces);
+
 	    j = 0;
-	    foreach( var is; interfaces_set.elements() ) {
-		IO.Std.err.println( "interface " + is.HumanName + " interface #" + j + " out of " + matrix.length );
+	    foreach( var is; interfaces.elements() ) {
 		is.Address = j;
-		interfaces.add( is );
 		matrix[j] = new Gen.MBitSet(size);
 		j = j + 1;
 	    }
 
+	    /*
 	    foreach( var js; interfaces_set.elements() ) {
-		for( Container p = js.Super; p != null; p = p.Super ) {
-		    matrix[p.Address].mark(js.Address);
-		    matrix[js.Address].mark(p.Address);
-		    IO.Std.err.println( "interface " + p.HumanName + " interferes with " + js.HumanName );
+		for( Container q = js.Super; q != null; q = q.Super ) {
+		    matrix[q.Address].mark(js.Address);
+		    matrix[js.Address].mark(q.Address);
+		    IO.Std.err.println( "interface " + q.HumanName + " interferes with " + js.HumanName );
 		}
 	    }
+	    */
+
+	    var all_implemented = new Generic.Vector<Container>();
 
 	    foreach( Container ci; classes_list.elements() ) {
 		if( ci.implements_list == null ) {
 		    continue;
 		}
 
-		IO.Std.err.println( "check interference for " + ci + ": " + ci.implements_list );
+		all_implemented.clear();
 
-	        foreach( Container ii; ci.implements_list.elements() ) {
+		// IO.Std.err.println( "calculate interference for interface " + ci.HumanName + "..." );
+
+		Container p = ci;
+
+		ci.populateAllImplementedInterfaces( all_implemented );
+
+	        foreach( Container ii; all_implemented.elements() ) {
 		    var ai = ii.Address;
-
-		    foreach( Container ij; ci.implements_list.elements() ) {
+		    
+		    foreach( Container ij; all_implemented.elements() ) {
 			if( ii == ij ) {
 			    continue;
 			}
-
-			IO.Std.err.println( "interface " + ii.HumanName + " interferes with " + ij.HumanName );
+			
+			// IO.Std.err.println( "interface " + ii.HumanName + " interferes with " + ij.HumanName );
 			
 			var aj = ij.Address;
 			
 			matrix[ai].mark(aj);
 			matrix[aj].mark(ai);
 		    }
+		    ii = ii.Super;
 		}
 	    }
 
@@ -925,22 +1010,28 @@ namespace Parse {
 	}
 
 	static void allocateInterfaceSlots( Generic.Vector<Container> interfaces, Gen.MBitSet[] matrix ) {
+	    var slots = new Generic.Vector<Generic.Vector<Container>>();
 	    foreach( var ii; interfaces.elements() ) {
-		allocateInterfaceSlots( interfaces, ii, matrix );
+		allocateInterfaceSlots( interfaces, ii, slots, matrix );
 	    }
 	}
 
-	static void allocateInterfaceSlots( Generic.Vector<Container> interfaces, Container ii, Gen.MBitSet[] matrix ) {
-	    int slot_index = 0;
+	static void allocateInterfaceSlots(
+	    Generic.Vector<Container> interfaces,
+	    Container ii,
+	    Generic.Vector<Generic.Vector<Container>> slots,
+	    Gen.MBitSet[] matrix
+	) {
+	    int slot_index = -1;
 	    var i = interfaces.elements();
-	    int slots_remaining = 0;
 
-	    var m = matrix[ii.Address];
+	    var address = ii.Address;
+	    var m = matrix[address];
 
 	    foreach( Symbol s; ii.members.SymbolList.elements() ) {
 		if( !s.IsMethod ) {
 		    if( !s.IsType && !s.IsAccessor ) { 
-			IO.Std.err.println( "weird: interface member '" + s.HumanName + "' is not a method" );
+			IO.Std.err.println( "weird: interface member '" + s.Owner.HumanName + " " + s.HumanName + "' is not a method" );
 		    }
 		    continue;
 		}
@@ -951,45 +1042,54 @@ namespace Parse {
 		    continue;
 		}		
 
-		while( slots_remaining == 0 ) {
-		    if( !i.hasMoreElements() ) {
-			throw new System.Exception( "oops: ran out of methods allocating interface table slots for " + c.HumanName );		   
-		    }	
+		bool found_free;
+		do {
+		    found_free = true;
 
-		    Container d = i.nextElement();
-		    if( m[d.Address] ) {
-			IO.Std.err.println( "cannot share slots with " + d.HumanName );
-			slot_index = slot_index + d.members.SymbolList.Length;
-		    } else {
-			slots_remaining = d.members.SymbolList.Length;
+		    slot_index = slot_index + 1;
 
-			if( ii == d ) {
-			    IO.Std.err.println( ii.HumanName + " using my own slots starting with slot #" + slot_index );
-			} else {
-			    IO.Std.err.println( ii.HumanName + " sharing up to " + slots_remaining + " slots with " + d.HumanName + " starting with slot #" + slot_index );
-			    
-			    matrix[d.Address].or(m);
-			    matrix[d.Address].mark(ii.Address);
+		    // IO.Std.err.println( "trying slot #" + slot_index + " for " + c.HumanName + "..." );
+
+		    if( slot_index >= slots.Length ) {
+			slots.lengthen(slot_index+1);
+		    }
+
+		    if( slots[slot_index] == null ) {
+			// IO.Std.err.println( "nothing yet in slot #" + slot_index );
+
+			slots[slot_index] = new Generic.Vector<Container>();
+			break;
+		    }
+
+		    foreach( var j; slots[slot_index].elements() ) {
+			if( j == ii ) {
+			    IO.Std.err.println( "weird slot is already occupied by " + ii.HumanName );
+			    continue;
+			}
+
+			if( m[j.Address] ) {
+			    // IO.Std.err.println( "cannot use slot #" + slot_index + " for " + s.HumanName + " interferes with (at least) " + j.HumanName );
+			    found_free = false;
+			    break;
 			}
 		    }
-		}			   
+		} while( !found_free );
+
+		slots[slot_index].add( c.Owner );
 
 		c.clearAddressValid();
 		c.IsFinal = false;
 
-		IO.Std.err.println( "final now: " + c.IsFinal + " for " + c.HumanName );
+		// IO.Std.err.println( "final now: " + c.IsFinal + " for " + c.HumanName );
 
 		c.Address = -(Machine.INTERFACE_OFFSET + Machine.WORD * slot_index);
-		IO.Std.err.println( "using slot #" + slot_index + " for " + c.HumanName + ", address: " + c.Address );
+		// IO.Std.err.println( "interface slot #" + slot_index + ": " + c.HumanName + " @ " + c.Address );
 
 		Container o = c.Override;
 		if( o != null ) {
 		    o.clearAddressValid();
 		    o.Address = c.Address;
 		}
-
-		slot_index = slot_index + 1;
-		slots_remaining = slots_remaining - 1;
 	    }
 	}
 
@@ -1094,58 +1194,69 @@ namespace Parse {
 		return;
 	    }
 
+	    var slots = new Generic.Vector<Container>();
 	    var implemented = new Generic.Vector<Container>();
+	    populateAllImplementedInterfaces( implemented );
+
 	    Container i;
 
-	    foreach( Container c; implements_list.elements() ) {
-		do {
-		    foreach( Symbol s; c.members.SymbolList.elements() ) {
-			if( !s.IsMethod ) {
-			    if( !s.IsType && !s.IsAccessor ) { 
-				from.error( "interface member " + s.HumanName + " is not a method" );
-			    }
-			    continue;
-			}
+	    // IO.Std.err.println( "emit interface dispatch table for: " + HumanName + "..." );
 
-			Container e = cast Container(s);
-			
-			if( e.IsFinal ) {
-			    IO.Std.err.println( "weird: interface member '" + e.HumanName + "' is final" );			
-			} 
-			
-			i = findImplementedMethod(e);
-			if( i == null ) { 
-			    from.error( HumanName + " must implement " + e.HumanName );
-			    continue;
-			}
-			
-			if( i.IsStatic ) {
-			    from.error( "static " + i.HumanName + " cannot implement " + e.HumanName );
-			}
-			
-			if( !e.Type.isAssignableFrom( i.Type ) ) {
-			    from.error(
-				       "" + i.Type + " " + i.HumanName + " cannot implement "
-				       + e.Type + " " + e.HumanName + " with incompatible return type" );		    
-			}
-			
-			var slot = (-e.Address - Machine.INTERFACE_OFFSET) / Machine.WORD;
-			
-			implemented.lengthen(slot+1);
+	    foreach( Container c; implemented.elements() ) {
+		// IO.Std.err.println( "find methods implementing interface: " + c.HumanName + "..." );
 
-			if( implemented[slot] != null ) {
-			    IO.Std.err.println( "weird: already implemented: " + implemented[slot].HumanName );
+		foreach( Symbol s; c.members.SymbolList.elements() ) {
+		    if( !s.IsMethod ) {
+			if( !s.IsType && !s.IsAccessor ) { 
+			    from.error( "interface member " + s.Owner.HumanName + " " + s.HumanName + " is not a method" );
 			}
-			implemented[slot] = i;
+			continue;
 		    }
-		    c = c.Super;
-		} while( c != null );
+
+		    Container e = cast Container(s);
+
+		    // IO.Std.err.println( "looking for method: " + s.HumanName + "..." );
+			
+		    if( e.IsFinal ) {
+			IO.Std.err.println( "weird: interface member '" + e.HumanName + "' is final" );			
+		    } 
+		    
+		    i = findImplementedMethod(e);
+		    if( i == null ) { 
+			from.error( HumanName + " must implement " + e.HumanName );
+			continue;
+		    }
+		    
+		    if( i.IsStatic ) {
+			from.error( "static " + i.HumanName + " cannot implement " + e.HumanName );
+			continue;
+		    }
+		    
+		    if( !e.Type.isAssignableFrom( i.Type ) ) {
+			from.error(
+				   "" + i.Type + " " + i.HumanName + " cannot implement "
+				   + e.Type + " " + e.HumanName + " with incompatible return type" );
+			continue;
+		    }
+		    
+		    var slot = (-e.Address - Machine.INTERFACE_OFFSET) / Machine.WORD;
+		    
+		    slots.lengthen(slot+1);
+		    
+		    if( slots[slot] != null ) {
+			IO.Std.err.println( "weird: already implemented: " + slots[slot].HumanName + " versus " + i.HumanName );
+		    }
+
+		    // IO.Std.err.println( "implement slot #" + slot + ": " + i.HumanName );
+		    slots[slot] = i;
+		}
 	    }
 
-	    foreach( Container d; implemented.reverseElements() ) {
+	    foreach( Container d; slots.reverseElements() ) {
 		if( d == null ) {
 		    Machine.emitDefPointer( state.Output, "0" );
 		} else {
+		    // IO.Std.err.println( "" + d.HumanName + " @ " + d.Address );
 		    /*
 		    if( d.owner != this ) {
 			Machine.emitExtern( state.Output,
@@ -1159,7 +1270,14 @@ namespace Parse {
 	}
 
 	Container findImplementedMethod( Container interface_method ) {
-	    return members.findMethod( interface_method.Name, interface_method.Arguments, true );
+	    Container result = members.findMethod( interface_method.Name, interface_method.Arguments, true );
+	    if( result != null ) {
+		return result;
+	    } else if( parent != null ) {
+		return parent.findImplementedMethod( interface_method );
+	    } else {
+		return null;
+	    }
 	}
 
         void emitClassTables( CompileState state, Container for_class ) {

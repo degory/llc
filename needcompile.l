@@ -29,14 +29,19 @@ namespace Parse {
                 list.readFrom(f);
                 return list.check( state.CacheDir, this_class );
             } catch( IO.IOException ie ) {
-                // IO.Std.err.println( "compile " + this_class + ": no or bad dependancy file" );
+                // IO.Std.err.println( "CCCCCC: compile " + this_class + ": no or bad dependancy file" );
                 return true;
             }
         }
 
         bool needCompile( System.String source_name, System.String class_name, int hash ) {
 	    var result = needCompile2( source_name, class_name, hash );
-	    // IO.Std.err.println( "need compile: " + source_name + "," + class_name + "," + hash + ": " + result );
+	    /*
+	    if( result ) { 
+		IO.Std.err.println( "CCCCCC: need compile: " + source_name + "," + class_name + "," + hash + ": " + result );
+	    } 
+	    */
+
 	    return result;
 	}
 
@@ -76,29 +81,36 @@ namespace Parse {
 			    // object file without recompiling
 
 			    // IO.Std.err.println( "hash list is OK for " + class_name );
-                            state.addLinkFile( output_name );
+                            // state.addLinkFile( output_name );
 			    // IO.Std.err.println( "hashes OK, adding link file: " + output_name );
                             return false;
-			    // } else {
-			    // IO.Std.err.println( "hash list is bad" );
+			    /*
+			} else {
+			    IO.Std.err.println( "CCCCCC: hash list is bad" );
+			    */
 			}
-			// } else {
-			// IO.Std.err.println( "definition has changed" );
+			/*
+		    } else {
+			IO.Std.err.println( "CCCCCC: definition has changed" );
+			*/
 		    }
                 } catch( IO.IOException ie ) {
-		    IO.Std.err.println( "problem checking dependancies for: " + class_name + ": " + ie );
+		    IO.Std.err.println( "CCCCCC: problem checking dependancies for: " + class_name + ": " + ie );
 		    // could not check dependency hashes - need to compile
                 }
-		//} else {
-	     	// IO.Std.err.println( "CCCCCC: no object file or object file out of date: " + class_name );
+		/*
+	    } else {
+	     	IO.Std.err.println( "CCCCCC: no object file or object file out of date: " + class_name );
+		*/
 	    }
 
 	    // source file changed since object file was last written - need to recompile.
 	    // write out the current class defition hash:
+	    /*
             IO.Writer g = IO.File.openCreate( state.CacheDir + class_name + ".hash" );
             g.write( "" + hash + "\n" );
             g.close();
-
+	    */
 	    // IO.Std.err.println( "CCCCCC: will compile: " + class_name );
             return true;
         }
@@ -217,7 +229,7 @@ namespace Parse {
                     return true;
                 }
                 if( cast<Container>(s).getHash() != e.h ) {
-                    // IO.Std.err.println( "CCCCCC: hash in depend file does not match scanned hash for " + e.name );
+                    // IO.Std.err.println( "CCCCCC: " + this_class + ": hash in depend file " + e.name + "/" + e.h + " doesn't match " + s.HumanName + "/" + cast Container(s).Hash);
                     return true;
                 }
 

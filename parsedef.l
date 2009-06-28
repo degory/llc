@@ -436,6 +436,7 @@ namespace Parse {
             c = state.declareClass( this, null, state.CurrentNameSpace, name.Name, a, is_internal_definition );
 	    // IO.Std.err.println( "declared class: " + c );
             c.IsStruct = IsStruct;
+	    c.IsInterface = IsInterface;
 
             state.addClass( c );                
 
@@ -528,6 +529,8 @@ namespace Parse {
 	    Container concrete = state.declareClass( this, null, state.CurrentNameSpace, n, a, false );
             c.IsStruct = IsStruct;
 	    concrete.Template = c;
+
+	    concrete.IsInterface = IsInterface;
 
 	    // generic_count = generic_count + 1;
 
@@ -630,7 +633,8 @@ namespace Parse {
 		state.declareClass( this, super_class, null, name.Name, Access, false );
 	    }
 
-	    state.addLinkFile( state.getObjectFileName( c.QualifiedName, ".o" ) );
+	    // FIXME: why is this called from more than one place?
+	    // state.addLinkFile( state.getObjectFileName( c.QualifiedName, ".o" ) );
 	}
 
 
@@ -642,6 +646,18 @@ namespace Parse {
 		if( super_symbol != null && super_symbol.Kind == Symbol.CLASS ) {
 		    Container super_class = cast Container(super_symbol);
 		    TypeExpr.checkTypeArgsLength( this, super_class, super_arguments );
+
+		    if( IsInterface ) {
+			if( !super_class.IsInterface ) {
+			    error( "super interface " + super_class.HumanName + " is a class" );
+			    return null;
+			}
+		    } else {
+			if( super_class.IsInterface ) {
+			    error( "super class " + super_class.HumanName + " is an interface" );
+			    return null;
+			}
+		    }
 		    
 		    return cast<Container>(super_symbol);
 		} else {
@@ -730,9 +746,16 @@ namespace Parse {
 			error( "cannot implement non-class type: " + t );
 		    } else {		      
 			Container p = t.Clazz;
+
+			if( !p.IsInterface ) {
+			    error( "cannot implement non-interface: " + t );
+			    continue;
+			}
+
 			c.addImplements( p );
+
 			do {			    
-			    IO.Std.err.println( "interface: " + p.HumanName );
+			    // IO.Std.err.println( "interface: " + p.HumanName );
 			    state.registerInterface( p );
 			    p = p.Super;
 			} while( p != null );
@@ -835,12 +858,15 @@ namespace Parse {
 	}
 
         void compile2( CompileState state, Container c ) {
+	    if( IsInterface ) {
+		// IO.Std.err.println( "not compiling interface: " + c.HumanName );
+		return;
+	    }
+
 	    c.resetMethodIndex();
             if( body != null ) {
 		resetTemporary();
-		if( state.WantVerbose ) {
-		    message( "compile class: " + c.HumanName );
-		}
+
                 state.beginCompileClass( this, c, name.Name );
                 c.buildClassTables( state );
 
@@ -850,6 +876,9 @@ namespace Parse {
                 int hash = c.Hash;
                 
                 if( state.needCompile( state.CurrentSourceFileName, c.FileName, hash ) ) {
+		    if( state.WantVerbose ) {
+			message( "compile class: " + c.HumanName );
+		    }
 		    // IO.Std.err.println( "compiling: "+ c.getQualifiedName() );
                     state.openOutput( c.FileName, false );
                     
@@ -990,6 +1019,8 @@ namespace Parse {
 		    // } else {
 		    // IO.Std.err.println( "did not need to compile: " + c.getQualifiedName() );
 		}
+
+		state.addLinkFile( state.getObjectFileName( c.QualifiedName, ".o" ) );
 		// IO.Std.err.println( "compilation complete: " + c.getQualifiedName() );
 
                 state.endCompileClass( c );

@@ -217,6 +217,10 @@ namespace Generic is
 	    _length = l;
 	end
 
+        void clear() is
+	    Length = 0;
+	end
+
 	void lengthen( int l ) is
 	    reserve(l);
 	    if l > _length then
