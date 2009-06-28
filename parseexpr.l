@@ -86,7 +86,7 @@ namespace Parse {
         
         ITree compileValue( CompileState state, IBlock into ) {
             int t = TempFactory.nextTemp();
-            Util.Vector l = list.List;
+            Generic.Vector<Expression> l = list.List;
 
             int kind = getType(state).SubType.TypeKind;
             int size = getType(state).SubType.Size;
@@ -1683,7 +1683,7 @@ namespace Parse {
 	    }
 	}
 
-        ITree compileLoad( CompileState state, IBlock into, Symbol symbol, ExpressionList arguments, Util.Vector argument_types, ITree from, int size, int flags, Symbol super_class ) {
+        ITree compileLoad( CompileState state, IBlock into, Symbol symbol, ExpressionList arguments, Generic.Vector<Type> argument_types, ITree from, int size, int flags, Symbol super_class ) {
             System.String buffer;
             ITree t;
             int o, a, u;
@@ -2042,11 +2042,11 @@ namespace Parse {
     }
 
     class ExpressionList extends Expression {
-        Util.Vector list;
+        Generic.Vector<Expression> list;
 
         void init( int line_number ) {
             super.init( line_number );
-            list = new Util.Vector();
+            list = new Generic.Vector<Expression>();
         }
 
 	void init( int line_number, Expression first ) {
@@ -2084,12 +2084,12 @@ namespace Parse {
             return result;
         }
 
-        Util.Vector getList() {
+        Generic.Vector<Expression> getList() {
             return list;
         }
 
 	Expression opGet( int index ) {
-	    return cast<Expression>(list[index]);
+	    return list[index];
 	}
 
 	void opSet( int index, Expression e ) {
@@ -2097,14 +2097,14 @@ namespace Parse {
 	}
 
         void dump( CompileState state, System.StringBuffer buffer ) {
-            for( Util.Iterator i = list.elements(); i.hasMoreElements(); ) {
-                Expression e = cast<Expression>(i.nextElement());
+            for( var i = list.elements(); i.hasMoreElements(); ) {
+                Expression e = i.nextElement();
                 e.dump( state, buffer );
                 
                 if( i.hasMoreElements() ) {
                     buffer.append( ',' );
                 }
-            }
+	    }
         }
 
 	static int compilePush( ExpressionList l, CompileState state, ITree thiz, Util.Vector arg_types, IBlock into, bool skip_this, bool native_call, Util.IntVector inline_args ) {

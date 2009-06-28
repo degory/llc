@@ -34,8 +34,9 @@ namespace Parse {
 	// bool is_leaf;
 	bool cannot_inline;
         Container override;
-        Util.Vector arguments;
-	Util.Vector type_args;
+
+	Generic.Vector<Identifier> arg_names;
+	Generic.Vector<Type> arg_types;
 	Util.Vector implements_list;
         int vtable_offset;
         int itable_offset;
@@ -66,7 +67,7 @@ namespace Parse {
             this.stack_offset = Machine.WORD;      // FIXME: machine dependant
 	    this.local_offset = -Machine.WORD;
 
-            this.arguments = null;
+            // this.arguments = null;
             this.hash = 0;
             this.is_final = true;
 	    // this.is_leaf = true;
@@ -93,7 +94,7 @@ namespace Parse {
             
             itable_offset = 0;
             vtable_offset = 0;
-            this.arguments = arguments;
+            // this.arguments = arguments;
         }
 
         void init() {
@@ -306,20 +307,21 @@ namespace Parse {
 	    this.label = label;
 	}
 
-        void setArguments( Util.Vector arguments ) {
-            this.arguments = arguments;
-        }
 
-        Util.Vector getArguments() {
-            return arguments;
-        }
-
-	void setTypeArgs( Util.Vector type_args ) {
-	    this.type_args = type_args;
+	void setArgNames( Generic.Vector<Identifier> arg_names ) {
+	    this.arg_names = arg_names;
 	}
 
-	Util.Vector getTypeArgs() {
-	    return type_args;
+	Generic.Vector<Identifier> getArgNames() {
+	    return arg_names;
+	}
+
+	void setArgTypes( Generic.Vector<Type> arg_types ) {
+	    this.arg_types = arg_types;
+	}
+
+	Generic.Vector<Type> getArgTypes() {
+	    return arg_types;
 	}
 
 	Container getTemplate() {
@@ -331,24 +333,24 @@ namespace Parse {
 	}
 
 	int getTypeArgsRequiredLength() {
-	    if( is_generic && type_args != null ) {
-		// IO.Std.err.println( "" + HumanName + ": is generic: " + is_generic + ", args_length: " + type_args.Length );
-		return type_args.Length;
+	    if( is_generic && arg_types != null ) {
+		// IO.Std.err.println( "" + HumanName + ": is generic: " + is_generic + ", args_length: " + type_formal_args.Length );
+		return arg_names.Length;
 	    } else {
 		// IO.Std.err.println( "" + HumanName + ": is generic: " + is_generic );
 		return 0;
 	    }
 	}
 
-	bool checkTypeArgs( Util.Vector ta ) {
-	    if( type_args.Length != ta.Length ) {
+	bool checkTypeArgs( Generic.Vector<Type> ta ) {
+	    if( arg_types.Length != ta.Length ) {
 		// IO.Std.err.println( "argument lists differ in length" );
 		return false;
 	    }
 
 	    for( int i = 0; i < ta.Length; i = i + 1 ) {
-		Type tt = cast<Type>(type_args[i]);
-		Type to = cast<Type>(ta[i]);
+		Type tt = arg_types[i];
+		Type to = ta[i];
 
 		// IO.Std.err.println( "compare instance type: " + tt );
 		// IO.Std.err.println( "to required type:      " + to );
@@ -578,7 +580,7 @@ namespace Parse {
 	    return false;
         }
 
-        bool matches( Util.Vector arguments, Quality result ) {
+        bool matches( Generic.Vector<Type> arg_types, Quality result ) {
             result.quality = 0;
             result.score = -1;
 
@@ -589,8 +591,8 @@ namespace Parse {
 
             bool this_no_args, that_no_args;
             
-            this_no_args = this.arguments == null || this.arguments.getLength() == 0;
-            that_no_args = arguments == null || arguments.getLength() == 0;
+            this_no_args = this.arg_types == null || this.arg_types.getLength() == 0;
+            that_no_args = arg_types == null || arg_types.getLength() == 0;
             
             if( this_no_args || that_no_args ) {
                 if( this_no_args && that_no_args ) {
@@ -604,11 +606,11 @@ namespace Parse {
                 }
             }
             
-            if( this.arguments.getLength() == arguments.getLength() ) {
+            if( this.arg_types.getLength() == arg_types.getLength() ) {
                 result.quality = Type.QUALITY_EXACT;
 
-                Util.Iterator i = this.arguments.elements();
-                Util.Iterator j = arguments.elements();
+                var i = this.arg_types.elements();
+                var j = arg_types.elements();
                 
                 while( i.hasMoreElements() && j.hasMoreElements() ) {
                     Type tl = cast<Type>(i.nextElement());
@@ -648,19 +650,19 @@ namespace Parse {
             return false;
         }
         
-        bool matches( Util.Vector arguments, bool exact ) {
+        bool matches( Generic.Vector<Type> arg_types, bool exact ) {
             bool this_no_args, that_no_args;
             
-            this_no_args = this.arguments == null || this.arguments.getLength() == 0;
-            that_no_args = arguments == null || arguments.getLength() == 0;
+            this_no_args = this.arg_types == null || this.arg_types.getLength() == 0;
+            that_no_args = arg_types == null || arg_types.getLength() == 0;
             
             if( this_no_args || that_no_args ) {
                 return this_no_args && that_no_args;
             }
             
-            if( this.arguments.getLength() == arguments.getLength() ) {
-                Util.Iterator i = this.arguments.elements();
-                Util.Iterator j = arguments.elements();
+            if( this.arg_types.getLength() == arg_types.getLength() ) {
+                var i = this.arg_types.elements();
+                var j = arg_types.elements();
                 
                 while( i.hasMoreElements() && j.hasMoreElements() ) {
                     Type tl = cast<Type>(i.nextElement());
@@ -688,17 +690,17 @@ namespace Parse {
         }
 
 
-        Container findBestMethod( System.String name, Util.Vector arguments, Quality quality ) {
+        Container findBestMethod( System.String name, Generic.Vector<Type> arg_types, Quality quality ) {
             quality.score = -1;
-            return findBestMethod( name, arguments, quality, true );
+            return findBestMethod( name, arg_types, quality, true );
         }
     
-        Container findBestMethod( System.String name, Util.Vector arguments, Quality quality, bool recurse ) {
+        Container findBestMethod( System.String name, Generic.Vector<Type> arg_types, Quality quality, bool recurse ) {
             Container result = null;
             
             if( members != null ) {
 		// IO.Std.err.println( "about to search: " + members + " (" + System.String.hex(cast<int>(members)) + ") for: " + name );
-                result = members.findMethod( name, arguments, quality );
+                result = members.findMethod( name, arg_types, quality );
                 if( result != null ) {
                     // fprintf( stderr, "found %s with score %d\n", result.getDecoratedName(), score );
                 }
@@ -706,7 +708,7 @@ namespace Parse {
             
             if( recurse && parent != null ) {
                 int s = quality.score;
-                Container r = parent.findBestMethod( name, arguments, quality, true );
+                Container r = parent.findBestMethod( name, arg_types, quality, true );
                 if( result != null ) {
                     if( r != null && s > quality.score ) {
                         IO.Std.err.println( "found better match in parent: " + r.getDecoratedName() + " (" + s + ") versus " + result.getDecoratedName() + " (" + quality.score + ")" );
@@ -724,25 +726,25 @@ namespace Parse {
 	}
 
         Container findMethod( Container method ) {
-            return findMethod( method.Name, method.Arguments, true );
+            return findMethod( method.Name, method.ArgTypes, true );
         }
 
-        Container findMethod( System.String name, Util.Vector arguments, bool exact ) {
+        Container findMethod( System.String name, Generic.Vector<Type> arg_types, bool exact ) {
             Container result = null;
 
             if( members != null ) {
-                result = members.findMethod( name, arguments, exact );
+                result = members.findMethod( name, arg_types, exact );
             }
 
             if( result == null && parent != null ) {
-                result = parent.findMethod( name, arguments, exact );
+                result = parent.findMethod( name, arg_types, exact );
             }
             
             return result;
         }
 
         bool matches( Container method, bool exact ) {
-            return matches( method.arguments, exact );
+            return matches( method.arg_types, exact );
         }
         
         void setSymbolList( SymbolList members ) {
@@ -933,7 +935,7 @@ namespace Parse {
 	    return result;
 	}
 
-	static void buildInterfaceTables( Generic.Set<Container> interfaces_set, Util.Vector classes_list ) {
+	static void buildInterfaceTables( Generic.Set<Container> interfaces_set, Generic.Vector<Container> classes_list ) {
 	    int j, size = interfaces_set.Length;
 	    if( size == 0 ) {
 		return;
@@ -1270,7 +1272,7 @@ namespace Parse {
 	}
 
 	Container findImplementedMethod( Container interface_method ) {
-	    Container result = members.findMethod( interface_method.Name, interface_method.Arguments, true );
+	    Container result = members.findMethod( interface_method.Name, interface_method.ArgTypes, true );
 	    if( result != null ) {
 		return result;
 	    } else if( parent != null ) {
@@ -1348,15 +1350,15 @@ namespace Parse {
 		b.append( this.Type );
 	    }
 
-	    if( arguments != null ) { 
-		b.append( " args(" );
-		b.append( arguments );
+	    if( arg_names != null ) { 
+		b.append( " arg names(" );
+		b.append( arg_names `);
 		b.append (")" );
 	    }
 
-	    if( type_args != null ) {
-		b.append( " type_args(" );
-		b.append( type_args );
+	    if( arg_types != null ) {
+		b.append( " args types(" );
+		b.append( arg_types );
 		b.append (")" );
 	    }
 

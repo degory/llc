@@ -1517,8 +1517,15 @@ namespace Parse {
 	    return symbol;
 	}
 
-        Symbol declareMethod( ParseTree from, System.String name, int flags, int access, Type type, Util.Vector arguments, System.String decorate ) {
-
+        Symbol declareMethod(
+	    ParseTree from,
+	    System.String name,
+	    int flags, 
+	    int access, 
+	    Type type, 
+	    Generic.Vector<Type> arguments,
+	    System.String decorate )
+	{
             flags = flags | Symbol.FLAG_METHOD | Symbol.FLAG_CLASS;
 
             if( this.State != STATE_INSIDE_CLASS ) {
@@ -1534,7 +1541,7 @@ namespace Parse {
             if( override != null ) {
                 if( !override.matches( arguments, true ) ) {
                     System.String this_args = ParseTree.dumpArguments( arguments );
-                    System.String that_args = ParseTree.dumpArguments( override.Arguments );
+                    System.String that_args = ParseTree.dumpArguments( override.ArgTypes );
 		    if( WantWarnHide ) {
 			if( override.Owner == current_class.Owner) {
 			    from.warn( "method " + name + "(" + this_args + ") could hide " + override.Owner.HumanName + "." + name + "(" + that_args + ")" );                        
@@ -1553,7 +1560,7 @@ namespace Parse {
 
             Container symbol = cast<Container>( declareSymbol( from, current_class, name, flags, access, 1, type ) );
             symbol.setDecoratedName( decorate );
-            symbol.setArguments( arguments );
+            symbol.setArgTypes( arguments );
 	    CurrentClass.setLastMethodIndex();
             
             return symbol;
@@ -2009,7 +2016,7 @@ namespace Parse {
 	    generic_templates.add( new Template( saved_state, saved_symbol, clazz, def ) );
 	}
 
-	Type findGeneric( Container c, Util.Vector arguments, bool find_only ) {
+	Type findGeneric( Container c, Generic.Vector<Type> arguments, bool find_only ) {
 	    // IO.Std.err.println( "searching for instance of template " + c + " with arguments: " + arguments );
 
 	    if( c.Template != null ) {
@@ -2041,7 +2048,7 @@ namespace Parse {
 	    return generic_instances.Length;
 	}
 
-	Container makeConcrete( Container c, Util.Vector arguments ) {
+	Container makeConcrete( Container c, Generic.Vector<Type> arguments ) {
 	    foreach( Template t; generic_templates.elements() ) {
 		if( t.clazz == c ) {
 		    State[] saved_state = this.SaveState;

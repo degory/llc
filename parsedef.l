@@ -9,11 +9,11 @@ namespace Parse {
     use Gen.MBitSet;
 
     class ArgumentsDef extends Statement {
-        Util.Vector list;
+        Generic.Vector<VariableDef> list;
         
         void init( int line_number ) {
             super.init( line_number );
-	    list = new Util.Vector();
+	    list = new Generic.Vector<VariableDef>();
         }
 
 	void init( int line_number, VariableDef first ) {
@@ -36,8 +36,8 @@ namespace Parse {
 	}
         
         void dump( CompileState state, System.StringBuffer  human, System.StringBuffer decorate ) {
-            for( Util.Iterator i = list.elements(); i.hasMoreElements(); ) {
-                VariableDef v = cast<VariableDef>(i.nextElement());
+            for( var i = list.elements(); i.hasMoreElements(); ) {
+                VariableDef v = i.nextElement();
                 v.getType( state ).dump( human, decorate );
                 
                 if( i.hasMoreElements() ) {
@@ -47,7 +47,7 @@ namespace Parse {
         }
         
         void dump( System.StringBuffer human, System.StringBuffer decorate ) {
-            for( Util.Iterator i = list.elements(); i.hasMoreElements(); ) {
+            for( var i = list.elements(); i.hasMoreElements(); ) {
                 VariableDef v = cast<VariableDef>(i.nextElement());
                 v.dump( human, decorate );
                 
@@ -62,8 +62,8 @@ namespace Parse {
             list.add( next );
         }
         
-        Util.Vector getTypes( CompileState state ) {
-            Util.Vector result = new Util.Vector();
+        Generic.Vector<Type> getTypes( CompileState state ) {
+            var result = new Generic.Vector<Type>();
             foreach( VariableDef v; list.elements() ) {
                 result.add( v.getType( state ) );
             }
@@ -285,7 +285,7 @@ namespace Parse {
             if( members != null ) {
                 int next_enum_value = 0;
                 state.beginParseEnum( this, e );
-                Util.Vector list = members.List;
+                var list = members.List;
                 foreach( Identifier m; list.elements() ) {
                     Expression ex = m.Initializer;
                     int address = 0;
@@ -345,7 +345,7 @@ namespace Parse {
 	bool is_super_class_concrete;
 
 	bool is_generic;
-	Util.Vector generic_instances;
+	Generic.Vector<Container> generic_instances;
 	static int generic_count;
 	
 	bool getIsStruct() {
@@ -397,7 +397,7 @@ namespace Parse {
 	    if( super_arguments != null && super_arguments.List.Length > 0 ) {
 		this.super_arguments = super_arguments;
 	    }
-	    generic_instances = new Util.Vector();
+	    generic_instances = new Generic.Vector<Container>();
             body = null;
             c = null;
         }
@@ -419,7 +419,7 @@ namespace Parse {
 	    }
 	    this.implements_list = implements_list;
             this.body = body;
-	    generic_instances = new Util.Vector();
+	    generic_instances = new Generic.Vector<Container>();
 
 	    if( body == null ) {
 		throw new System.Exception( "cannot declare class " + name + " with null body" );
@@ -468,15 +468,15 @@ namespace Parse {
 	    // like System.Object.
 	    // c.NeedsBody = false;
 
-	    Util.Vector type_args = new Util.Vector();
+	    var arg_names = new Generic.Vector<Identifier>();
 	    foreach( Identifier i; arguments.List.elements() ) {
-		type_args.add( i );
+		arg_names.add( i );
 	    }
 
-	    c.TypeArgs = type_args;
+	    c.ArgNames = arg_names;
 	}
         
-	Container makeConcrete( CompileState state, Util.Vector args ) {
+	Container makeConcrete( CompileState state, Generic.Vector<Type> args ) {
 	    if( !is_generic ) {
 		throw new System.Exception( "cannot make concrete version of non template class " + c );
 	    }
@@ -583,11 +583,11 @@ namespace Parse {
 	    }
 	}
 
-	void addConcreteArguments( CompileState state, Container c, Util.Vector args ) {
-	    c.TypeArgs = args;
+	void addConcreteArguments( CompileState state, Container c, Generic.Vector<Type> args ) {
+	    c.ArgTypes = args;
 
 	    for( int i = 0; i < args.Length; i = i + 1 ) {
-		Type t = cast<Type>(args[i]);
+		Type t = args[i];
 		System.String n = arguments[i].Name;
 
 		state.declareType( this, n, Symbol.ACCESS_PRIVATE, t );
@@ -1185,7 +1185,7 @@ namespace Parse {
 		actual_access = Symbol.ACCESS_PRIVATE;
 	    }
 
-            Util.Vector v = list.List;
+            var v = list.List;
 
             Type parsed_type = type_expr.parseType( state );
 
@@ -1243,7 +1243,7 @@ namespace Parse {
 
 	    // IO.Std.err.println( "compile variable def, symbol table: " + state.symbol_table );
             
-            Util.Vector v = list.List;
+            var v = list.List;
             foreach( Identifier ident; v.elements() ) {
                 System.String name = ident.Name;
                                 
@@ -1287,10 +1287,10 @@ namespace Parse {
         }
 
         System.String getFirstName() {
-            Util.Vector v = list.List;
+            var v = list.List;
             
             if( v.Length >= 1 ) {
-                return cast<Identifier>(v[0]).Name;
+                return v[0].Name;
             } else {
                 return null;
             }
@@ -1422,7 +1422,7 @@ namespace Parse {
                 }
             }
             
-            Util.Vector arg_types = null;
+            Generic.Vector<Type> arg_types = null;
             if( args != null ) {
                 arg_types = args.getTypes( state );
             }
@@ -2066,7 +2066,7 @@ namespace Parse {
                 }
             }
             
-            Util.Vector arg_types = null;
+            Generic.Vector<Type> arg_types = null;
             if( args != null ) {
                 arg_types = args.getTypes( state );
             }

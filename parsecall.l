@@ -194,7 +194,7 @@ namespace Parse {
 		size = ExpressionList.compilePush( arguments,
 						   state,
 						   thiz,
-						   method.Arguments,
+						   method.ArgTypes,
 						   into,
 						   true,
 						   false,
@@ -584,7 +584,7 @@ namespace Parse {
                 
                 if( quality.quality < Type.QUALITY_GOOD ) {
                     arg_string = dumpArguments( arg_types );
-                    System.String resolve_string = dumpArguments( method.Arguments );
+                    System.String resolve_string = dumpArguments( method.ArgTypes );
                     
 		    if( !quiet && state.WantWarnResolve ) {
 			warn( "call to " + name.Name + "(" + arg_string +
@@ -721,7 +721,7 @@ namespace Parse {
 		IO.Std.err.println( "IIIIII: kind is " + method.Kind + " versus " + Symbol.STATIC_METHOD );
 		*/
 
-                t = compileLoad( state, into, method, arguments, method.Arguments, t, Machine.WORD, flags, super_class );
+                t = compileLoad( state, into, method, arguments, method.ArgTypes, t, Machine.WORD, flags, super_class );
 
 		if( compare_operation ) {
 		    into.add( makeStoreTemporary( tr, 1, t ) );
@@ -735,14 +735,14 @@ namespace Parse {
                     flags = flags | LOAD_FLAG_STATIC;
 		}
 
-                t = compileLoad( state, into, method, arguments, method.Arguments, null, Machine.WORD, flags, null );
+                t = compileLoad( state, into, method, arguments, method.ArgTypes, null, Machine.WORD, flags, null );
             } else {
 		// Std.err.println( "call C..." );
                 if( state.CurrentMethod.IsStatic ) {
                     flags = flags | LOAD_FLAG_STATIC;
 		}
 
-                t = compileLoad( state, into, method, arguments, method.Arguments, t, Machine.WORD, flags, null );
+                t = compileLoad( state, into, method, arguments, method.ArgTypes, t, Machine.WORD, flags, null );
             }
             
             int temp = 0;

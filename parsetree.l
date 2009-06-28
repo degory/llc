@@ -519,13 +519,13 @@ namespace Parse {
 	    // IO.Std.err.println( "defined string-type: " + string_type );
         }
         
-        static System.String dumpArguments( Util.Vector arguments ) {
+        static System.String dumpArguments( Generic.Vector<Type> arguments ) {
             System.StringBuffer buffer = new System.StringBuffer();
             System.StringBuffer dummy = new System.StringBuffer();
             
             if( arguments != null ) {
-                for( Util.Iterator i = arguments.elements(); i.hasMoreElements(); ) {
-                    cast<Type>(i.nextElement()).dump( buffer, dummy );
+                for( var i = arguments.elements(); i.hasMoreElements(); ) {
+                    i.nextElement().dump( buffer, dummy );
                     if( i.hasMoreElements() ) {
                         buffer.append(',');
                     }
@@ -1105,12 +1105,12 @@ namespace Parse {
 
 
     class BlockStatement extends Statement {
-        Util.Vector list;
+        Generic.Vector<Statement> list;
 	bool last_return;
         
         void init( int line_number ) {
             super.init( line_number );
-            list = new Util.Vector();
+            list = new Generic.Vector<Statement>();
         }
 
 	void init( int line_number, Statement first ) {
@@ -1384,8 +1384,10 @@ namespace Parse {
 		left_value.compileValue( state, into );
 	    } else {
 		if( !tl.isAssignableFrom( tr ) && tl.TypeKind != Type.ERROR ) {
+		    /*
 		    IO.Std.err.println( "assign left value:  " + left_value + " type: " + tl );
 		    IO.Std.err.println( "assign right value: " + right_value + " type: " + tr );
+		    */
 		    error( tl.dump() + " is not assignable from " + tr.dump() );
 		}
 

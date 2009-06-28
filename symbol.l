@@ -461,13 +461,13 @@ namespace Parse {
     class SymbolList extends System.Object {
 	const int MAX_LEN = 31;
         SymbolList parent;
-	Util.Vector list;
-        Util.Vector[] by_length; // one list per possible length of symbol upto maximum length, longer lengths stored in last bucket
+	Generic.Vector<Symbol> list;
+        Generic.Vector<Symbol>[] by_length; // one list per possible length of symbol upto maximum length, longer lengths stored in last bucket
 
         void init() {
             super.init();
-	    list = new Util.Vector();
-            by_length = new Util.Vector[MAX_LEN+1];
+	    list = new Generic.Vector<Symbol>();
+            by_length = new Generic.Vector<Symbol>[MAX_LEN+1];
         }
 
         void dump() {
@@ -493,7 +493,7 @@ namespace Parse {
 	    }
 
 	    if( by_length[l] == null ) {
-		by_length[l] = new Util.Vector();
+		by_length[l] = new Generic.Vector<Symbol>();
 	    }
     
             by_length[l].add( symbol );
@@ -537,7 +537,7 @@ namespace Parse {
 		l = MAX_LEN;
 	    }
 
-	    Util.Vector v = by_length[l];
+	    var v = by_length[l];
 
 	    if( v != null ) {
 		// IO.Std.err.println( "search symbol '" + name + "' in length " + l + " bucket..." );
@@ -604,7 +604,7 @@ namespace Parse {
         }
 
 
-        Container findMethod( System.String name, Util.Vector arguments, Quality result ) {
+        Container findMethod( System.String name, Generic.Vector<Type> arguments, Quality result ) {
             if( name == null ) {
                 throw new System.Exception( "oops: can't search for a null method name in symbol list" );
             }
@@ -630,7 +630,7 @@ namespace Parse {
 		l = MAX_LEN;
 	    }
 
-	    Util.Vector v = by_length[l];
+	    var v = by_length[l];
             
 	    if( v != null ) {
 		foreach( Symbol s; v.elements() ) {
@@ -666,7 +666,7 @@ namespace Parse {
 	    return null;
         }
 
-        Container findMethod( System.String name, Util.Vector arguments, bool exact ) {
+        Container findMethod( System.String name, Generic.Vector<Type> arguments, bool exact ) {
             if( name == null ) {
                 throw new System.Exception( "oops: can't search for a null method name in symbol list" );
             }
@@ -675,7 +675,7 @@ namespace Parse {
 	    if( l > MAX_LEN ) {
 		l = MAX_LEN;
 	    }
-	    Util.Vector v = by_length[l];
+	    var v = by_length[l];
             
 	    if( v != null ) {
 		foreach( Symbol s; v.elements() ) {
@@ -724,7 +724,7 @@ namespace Parse {
             this.parent = parent;
         }
         
-        Util.Vector getSymbolList() {
+        Generic.Vector<Symbol> getSymbolList() {
             return list;
         }
 
