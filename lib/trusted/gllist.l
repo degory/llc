@@ -160,7 +160,10 @@ namespace Generic is
 	    if value == v then
 		return tail;
 	    else
-		tail = tail.remove( v );
+		if tail != null then
+		    tail = tail.remove( v );
+                fi
+		return this;
 	    fi
 	end
 

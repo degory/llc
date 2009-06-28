@@ -592,6 +592,9 @@ namespace Parse {
             // IO.Std.err.println( "parsing: " + this );
         }
 
+	void useTypes( CompileState state ) {
+	}
+
 	void prepareInline( CompileState state ) {
 	}
 
@@ -808,6 +811,10 @@ namespace Parse {
 	    apply( state );
         }
 
+	void useTypes( CompileState state ) {
+	    apply( state );
+	}
+
 	void declareClassSymbols( CompileState state ) {
 	    apply( state );
 	}
@@ -865,7 +872,7 @@ namespace Parse {
         }
 
         void declareGlobalSymbols( CompileState state ) {
-        }
+        }	
 
 	void declareClassSymbols( CompileState state ) {
 	}
@@ -1176,6 +1183,16 @@ namespace Parse {
                 }
             }
         }
+
+	void useTypes( CompileState state ) {
+            foreach( Statement s; list.elements() ) {
+                if( s != null ) {
+                    s.useTypes( state );
+                } else {
+                    throw new System.Exception( "null statement\n" );
+                }
+            }
+	}
 
         void declareClassSymbols( CompileState state ) {
             foreach( Statement s; list.elements() ) {

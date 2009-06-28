@@ -41,6 +41,16 @@ namespace Parse {
             state.endPackage();
         }
 
+	void useTypes( CompileState state ) {
+            state.beginPackage( file_name, null );
+	    setFileName();
+	    state.setTrusted( is_trusted );
+
+	    body.useTypes( state );
+
+	    state.endPackage();
+	}
+
 	void checkTemplates( CompileState state ) {
 	    // IO.Std.err.println( "check templates for source file: " + file_name );
 	    state.beginPackage( file_name, null );
@@ -155,6 +165,17 @@ namespace Parse {
             state.exitNameSpace( n );
         }
 
+	void useTypes( CompileState state ) {
+            this.qualified_name = name.getQualifiedName( state );
+            n = state.declareNameSpace( name, name.Name );
+            state.enterNameSpace( n );
+	    state.UseList = use_list;
+            if( body != null ) {
+                body.useTypes( state );
+            }
+            state.exitNameSpace( n );
+	}
+
 	void checkTemplates( CompileState state ) {
             state.enterNameSpace( n );
 	    state.UseList = use_list;
@@ -244,8 +265,7 @@ namespace Parse {
         void declareGlobalSymbols( CompileState state ) {
         }
 
-	// FIXME: why is this here
-	void checkTemplates( CompileState state ) {
+	void useTypes( CompileState state ) {
             // Symbol symbol = state.findSymbol( name.getName() );
             //  fprintf( stderr, "USING %s\n", symbol ? symbol.getQualifiedName() : "undefined namespace" );
 	    // do not report errors, search only for types:
@@ -257,6 +277,9 @@ namespace Parse {
             } else {
                 state.useNameSpace( this, cast<Container>(symbol) );
             }
+	}
+
+	void checkTemplates( CompileState state ) {
 	}
 
         void declareSymbols( CompileState state ) {

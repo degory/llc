@@ -532,29 +532,33 @@ namespace Parse {
                 throw new System.Exception( "oops: can't lookup null name in symbol list" );
             }
 
-	    int l = name.Length;
-	    if( l > MAX_LEN ) {
-		l = MAX_LEN;
+	    Generic.Vector<Symbol> v;
+	    if( use_list ) {
+		v = list;
+	    } else {
+		int l = name.Length;
+		if( l > MAX_LEN ) {
+		    l = MAX_LEN;
+		}
+		v = by_length[l];
 	    }
-
-	    var v = by_length[l];
 
 	    if( v != null ) {
 		// IO.Std.err.println( "search symbol '" + name + "' in length " + l + " bucket..." );
-	    
+
 		foreach( Symbol s; v.elements() ) {
 		    if( s == null ) {
 			throw new System.Exception( "null symbol in list\n" );
 		    }
 		    int k = s.Kind;
 		    if( use_list && k == Symbol.NAMESPACE ) {
-			IO.Std.err.println( "searching within used name space " + s.HumanName + " for " + name );
+			// IO.Std.err.println( "searching within used name space " + s.HumanName + " for " + name );
 			Symbol t = cast Container(s).findSymbol( name, find_what );
 			if( t != null && t.matchFind(find_what) ) {
-			    IO.Std.err.println( "found: " + t.HumanName );
+			    // IO.Std.err.println( "found: " + t.HumanName );
 			    return t;
 			}
-			IO.Std.err.println( "nothing found" );
+			// IO.Std.err.println( "nothing found" );
 		    } else if( name.equals( s.Name ) ) {
 			/*
 			if( k == Symbol.CLASS ) {
@@ -566,6 +570,7 @@ namespace Parse {
 			    return s;
 			}
 		    }
+
 		}
 	    } else {
 		// IO.Std.err.println( "symbol '" + name + "': no length " + l + " bucket" );

@@ -6,7 +6,13 @@ import giterator;
 import glist;
 
 namespace Generic is
-    class VectorIterator<T> extends System.Object implements Iterator<T> is
+    use System.String;
+    use System.StringBuffer;
+    use System.Object;
+    use System.Exception;
+    use System.Backtrace;
+
+    class VectorIterator<T> extends Object implements Iterator<T> is
 	private Vector<T> _v;
 	private int _i;
  
@@ -32,7 +38,7 @@ namespace Generic is
 	end
     end
 
-    class VectorReverseIterator<T> extends System.Object implements Iterator<T> is
+    class VectorReverseIterator<T> extends Object implements Iterator<T> is
 	private Vector<T> _v;
 	private int _i;
 
@@ -56,13 +62,13 @@ namespace Generic is
 	end
     end
 
-    class VectorException extends System.Exception is
-	void init( System.String message ) is
+    class VectorException extends Exception is
+	void init( String message ) is
 	    super.init( message );
 	end
     end
 
-    class Vector<T> extends System.Object implements List<T> is
+    class Vector<T> extends Object implements List<T> is
 	private int _length;
 	private int _allocated_length;
 	private T ptr _values;
@@ -233,7 +239,7 @@ namespace Generic is
 	    T ptr new_values;
 	    if l > _allocated_length then
 		if l > 1000000 then
-		    native.printf( `very long vector allocation %d %s\n`, l, new System.Backtrace().toCString() );
+		    native.printf( `very long vector allocation %d %s\n`, l, new Backtrace().toCString() );
 		    native.__flush_stdout();
 		fi
 
@@ -279,10 +285,10 @@ namespace Generic is
 	    _values = v;
 	end
 
-	System.String toString() is
-	    System.StringBuffer result;
+	String toString() is
+	    StringBuffer result;
 	    if _length > 0 then
-		result = new System.StringBuffer( "[Vector: " );
+		result = new StringBuffer( "[Vector: " );
 	    else
 		return "[Vector]";
 	    fi

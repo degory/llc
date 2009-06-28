@@ -821,6 +821,11 @@ namespace Parse {
 	    // create specific instances of all template classes:
 	    Pass = CompilePass.CHECK_TEMPLATES;
 
+            for( i = 0; i < to_compile_list.Length; i = i + 1 ) {
+                p = cast<Package>(to_compile_list[i]);
+                p.useTypes(this);
+	    }
+
 	    if( WantVeryVerbose ) {
 		ParseTree.message( "declaring templace instances..." );
 	    }

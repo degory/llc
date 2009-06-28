@@ -9,6 +9,7 @@ namespace PrintTerm {
     use System.String;
     use System.StringBuffer;
     use Generic.Vector;
+    use Generic.List;
 
     class Terminal extends Object {
         public int size;
@@ -30,7 +31,7 @@ namespace PrintTerm {
     }
 
     class Main {
-        Vector<Terminal> list;
+        List<Terminal> list;
         Reader f;
         int next_terminal;
 
@@ -352,7 +353,7 @@ namespace PrintTerm {
 	    printInterp(list);
         }
 
-	void printInterp(Vector<Terminal> list) {
+	void printInterp(List<Terminal> list) {
 	    var o = IO.File.openCreate( "interp.l" );
 	    o.println( "#K" );
 	    o.println( "namespace Gen is" );
