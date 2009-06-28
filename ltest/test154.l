@@ -4,6 +4,8 @@ import gllist;
 import gvector;
 
 namespace Test154 {
+    // test Generic.List<T> interface
+
     use Generic.Vector;
     use Generic.List;
     use Generic.LinkedList;
