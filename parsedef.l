@@ -633,8 +633,9 @@ namespace Parse {
 		state.declareClass( this, super_class, null, name.Name, Access, false );
 	    }
 
-	    // FIXME: why is this called from more than one place?
-	    // state.addLinkFile( state.getObjectFileName( c.QualifiedName, ".o" ) );
+	    if( !IsInterface ) {
+		state.addLinkFile( state.getObjectFileName( c.QualifiedName, ".o" ) );
+	    }
 	}
 
 
@@ -1020,7 +1021,7 @@ namespace Parse {
 		    // IO.Std.err.println( "did not need to compile: " + c.getQualifiedName() );
 		}
 
-		state.addLinkFile( state.getObjectFileName( c.QualifiedName, ".o" ) );
+		// state.addLinkFile( state.getObjectFileName( c.QualifiedName, ".o" ) );
 		// IO.Std.err.println( "compilation complete: " + c.getQualifiedName() );
 
                 state.endCompileClass( c );

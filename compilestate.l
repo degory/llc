@@ -159,6 +159,7 @@ namespace Parse {
 
 
     class ProcessPool extends System.Object {
+	CompileState state;
 	int count;
 	int job_count;
 	int job_number;
@@ -171,15 +172,18 @@ namespace Parse {
 	int[] b;
 
 
-	void init( int size, int job_count ) {
+	void init( CompileState state, int size, int job_count ) {
+	    this.state = state;
+
 	    this.size = size;                 // how many worker processes to create (<2 implies don't create any
 	                                      // but instead process work in main thread)
 	    this.job_count = job_count;       // how many pieces of work will be submitted to the worker processes
 	                                      // in this pool?
 
 	    if( size > 1 ) {
-		IO.Std.err.println( "creating process pool" );
-
+		if( state.WantVeryVerbose ) {
+		    ParseTree.message( "creating process pool" );
+		}
 		pid = new int[size];              // process ids of worker processes
 		b = new int[1];                   // buffer for reading or writing a single ticket number
 		var fd = new int[2];              // pipe for passing ticket numbers to worker processes
@@ -301,13 +305,17 @@ namespace Parse {
 
 	void wait() {	
 	    if( count > 0 ) {
-		IO.Std.err.println( "waiting for " + count + " processes to finish" );
+		if( state.WantVeryVerbose ) {
+		    ParseTree.message( "waiting for " + count + " processes to finish" );
+		}
 		var r = new Util.Pointer();
 	    
 		while( count > 0 ) {
 		    if( cast int(native.wait( r )) >= 0) {
 			if( r.value != 0w ) {
-			    IO.Std.err.println( "child reports errors occurred" );
+			    if( state.WantVeryVerbose ) {
+				ParseTree.message( "child reports errors occurred" );
+			    }
 			    ParseTree.markError();
 			}
 			count = count - 1;
@@ -316,7 +324,9 @@ namespace Parse {
 		    }
 		}	   
 		
-		IO.Std.err.println( "all children exited" );
+		if( state.WantVeryVerbose ) {
+		    ParseTree.message( "all children exited" );
+		}
 	    }
 	}
     }
@@ -527,7 +537,7 @@ namespace Parse {
 
 	void submit( Util.Work w ) {
 	    if( pool == null ) {
-		pool = new ProcessPool(WantJobs,master_class_list.Length);
+		pool = new ProcessPool(this,WantJobs,master_class_list.Length);
 		pool.start();
 	    }
 
@@ -945,7 +955,7 @@ namespace Parse {
 		    native.exit(0);
 		}
 	    } else if( ParseTree.didErrorsOccur() ) {
-		IO.Std.err.println( "*** errors occurred ***" );
+		ParseTree.message( "*** errors occurred ***" );
 		return;
 	    }
 
@@ -960,7 +970,7 @@ namespace Parse {
 		assembleFile( "entry" );
 		addLinkFile( getObjectFileName("entry", ".o") );
 	    } else {
-		IO.Std.err.println( "*** no main class ***" );
+		ParseTree.message( "*** no main class ***" );
 		return;
 	    }
 
@@ -968,11 +978,11 @@ namespace Parse {
 	    pool.wait();
 
 	    if( WantVerbose ) {
-		IO.Std.err.println( "linking objects..." );
+		ParseTree.message( "linking objects..." );
 	    }
 	    linkObjectFiles();
 
-	    IO.Std.err.println( "done" );
+	    ParseTree.message( "done" );
         }
 
 	void linkObjectFiles() {
