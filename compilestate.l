@@ -1128,6 +1128,9 @@ namespace Parse {
         }
 
         void parseFile( System.String file_name, IO.Reader f ) {
+	    if( WantVeryVerbose ) {
+		ParseTree.message( "parse file: " + file_name );
+	    }
             Parser p = new Parser(file_name, f, this);
         }
 
