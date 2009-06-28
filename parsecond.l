@@ -10,13 +10,13 @@ namespace Parse {
 
     class CaseStatement extends LoopStatement {
         Expression expression;
-        Util.Vector cases;
+        Generic.Vector<Case> cases;
         BlockStatement default_block;
 
         void init( int line_number ) {
             super.init( line_number );
             this.expression = null;
-	    cases = new Util.Vector();
+	    cases = new Generic.Vector<Case>();
         }
 
         void add( Case c ) {
@@ -147,11 +147,11 @@ namespace Parse {
 	}
         
         void compile( CompileState state, IBlock into, ITree temp, Type type, ILabel exit ) {
-            Util.Vector list = expression_list.List;
+            Generic.Vector<Expression> list = expression_list.List;
             ILabel next = TempFactory.nextLabel();
 
             if( list.Length == 1 ) {
-                Expression expression = cast<Expression>(list[0]);
+                Expression expression = list[0];
                 if( !type.isAssignableFrom(expression.getType(state)) ) {
                     error( "AA: case expression " + expression.dump(state) + " of type " + expression.getType(state).dump() + " not compatible with switch expression of type " + type.dump() );
                 } else {

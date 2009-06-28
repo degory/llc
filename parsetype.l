@@ -207,14 +207,14 @@ namespace Parse {
     }
 
     class TypeExprList extends ParseTree {
-	Util.Vector list;
+	Generic.Vector<TypeExpr> list;
 
 	void init( int line_number ) {
 	    super.init( line_number );
-	    list = new Util.Vector();
+	    list = new Generic.Vector<TypeExpr>();
 	}
 
-	Util.Vector getList() {
+	Generic.Vector<TypeExpr> getList() {
 	    return list;
 	}
 
@@ -451,7 +451,7 @@ namespace Parse {
 	    } 
 	    Container c = t.Clazz;
 	    
-	    Util.Vector a = new Util.Vector();
+	    var a = new Generic.Vector<Type>();
 	    foreach( TypeExpr e; arguments.List.elements() ) {
 		t = e.parseType( state );
 		// IO.Std.err.println( "type argument: " + t + " from " + e );

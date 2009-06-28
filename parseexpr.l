@@ -86,7 +86,7 @@ namespace Parse {
         
         ITree compileValue( CompileState state, IBlock into ) {
             int t = TempFactory.nextTemp();
-            Util.Vector l = list.List;
+            Generic.Vector<Expression> l = list.List;
 
             int kind = getType(state).SubType.TypeKind;
             int size = getType(state).SubType.Size;
@@ -190,15 +190,23 @@ namespace Parse {
         void calcType( CompileState state ) {
             type = left.parseType( state );
             Type from = right.getType(state);
-
+	    bool warn = false;
+	    
             if( type.isAssignableFrom( from ) ) {
                 // fprintf( stderr, "redundant cast from %s -> %s. no run time check required\n", from.dump(), type.dump() );
-            } else if( from.isAssignableFrom( type ) ) {
-                requires_runtime_check = true;
-                //fprintf( stderr, "upcast from %s -> %s. requires run time check\n", from.dump(), type.dump() );
             } else {
                 int k = type.TypeKind;
-                if( k == Type.CLASS || k == Type.POINTER ) {
+		if( k == Type.CLASS ) {
+		    if( type.isObject() ) {
+			requires_runtime_check = true;
+		    } else {
+			warn = true;
+		    }
+		} else if( k == Type.POINTER ) {
+		    warn = true;
+		}
+
+		if( warn ) {
 		    if( state.WantMarkUnsafe ) {
 			state.markCodeUnsafe( CompileState.UNSAFE_CAST );
 		    }
@@ -1683,7 +1691,7 @@ namespace Parse {
 	    }
 	}
 
-        ITree compileLoad( CompileState state, IBlock into, Symbol symbol, ExpressionList arguments, Util.Vector argument_types, ITree from, int size, int flags, Symbol super_class ) {
+        ITree compileLoad( CompileState state, IBlock into, Symbol symbol, ExpressionList arguments, Generic.Vector<Type> argument_types, ITree from, int size, int flags, Symbol super_class ) {
             System.String buffer;
             ITree t;
             int o, a, u;
@@ -2042,11 +2050,11 @@ namespace Parse {
     }
 
     class ExpressionList extends Expression {
-        Util.Vector list;
+        Generic.Vector<Expression> list;
 
         void init( int line_number ) {
             super.init( line_number );
-            list = new Util.Vector();
+            list = new Generic.Vector<Expression>();
         }
 
 	void init( int line_number, Expression first ) {
@@ -2076,20 +2084,20 @@ namespace Parse {
             list.add( next );
         }
 
-        Util.Vector getTypes( CompileState state ) {
-            Util.Vector result = new Util.Vector( list.Length );
+        Generic.Vector<Type> getTypes( CompileState state ) {
+            var result = new Generic.Vector<Type>( list.Length );
             foreach( Expression e; list.elements() ) {
                 result.add( e.getType(state) );
             }
             return result;
         }
 
-        Util.Vector getList() {
+        Generic.Vector<Expression> getList() {
             return list;
         }
 
 	Expression opGet( int index ) {
-	    return cast<Expression>(list[index]);
+	    return list[index];
 	}
 
 	void opSet( int index, Expression e ) {
@@ -2097,17 +2105,26 @@ namespace Parse {
 	}
 
         void dump( CompileState state, System.StringBuffer buffer ) {
-            for( Util.Iterator i = list.elements(); i.hasMoreElements(); ) {
-                Expression e = cast<Expression>(i.nextElement());
+            for( var i = list.elements(); i.hasMoreElements(); ) {
+                Expression e = i.nextElement();
                 e.dump( state, buffer );
                 
                 if( i.hasMoreElements() ) {
                     buffer.append( ',' );
                 }
-            }
+	    }
         }
 
-	static int compilePush( ExpressionList l, CompileState state, ITree thiz, Util.Vector arg_types, IBlock into, bool skip_this, bool native_call, Util.IntVector inline_args ) {
+	static int compilePush(
+            ExpressionList l, 
+	    CompileState state,
+	    ITree thiz,
+	    Generic.Vector<Type> arg_types,
+	    IBlock into,
+	    bool skip_this,
+	    bool native_call,
+	    Util.IntVector inline_args )
+	{
 	    if( l == null ) {
 		l = new ExpressionList( 0 );
 	    }
@@ -2122,7 +2139,15 @@ namespace Parse {
 	    return size;
 	}
 
-        int compilePush( CompileState state, ITree thiz, Util.Vector arg_types, IBlock into, bool skip_this, bool native_call, Util.IntVector inline_args ) {
+        int compilePush(
+            CompileState state,
+	    ITree thiz,
+	    Generic.Vector<Type> arg_types,
+	    IBlock into,
+	    bool skip_this,
+	    bool native_call,
+	    Util.IntVector inline_args
+	) {
 	    // IO.Std.err.println( "AAAAAA: compilePush: " + this );
             int size = 0;
             ITree result;
@@ -2164,7 +2189,7 @@ namespace Parse {
 		*/
 	    }
 
-	    Util.Iterator j = null;
+	    Generic.Iterator<Type> j = null;
 
             if( arg_types != null ) {
 		// IO.Std.err.println( "have argument types: support reference parameters" );

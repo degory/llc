@@ -278,6 +278,10 @@ namespace Parse {
 	    initSymbolTokens();
 	}
 
+	void error( System.String msg ) {
+            IO.Std.err.println( current_file + ": " + current_line + ": error: " + msg );
+	}
+
 	get bool WantNewSyntax {
 	    return want_new_syntax;
 	}
@@ -303,7 +307,7 @@ namespace Parse {
             int c0 = input.read();
 
             if( c0 == -1 ) {
-                // IO.Std.out.println( "next char: returning eof" );
+                // IO.Std.out.println( "next char: returning eof from: " + new System.Backtrace() );
                 end_of_file = true;
                 return ' ';
             }
@@ -473,6 +477,7 @@ namespace Parse {
                 return Token.EOF;
             }
 
+	    int open_line = current_line;
 
             System.StringBuffer buffer = null;
             token_string = null; // new System.StringBuffer("");
@@ -539,6 +544,10 @@ namespace Parse {
                         buffer.append(c);
                         c = nextChar();
                     }
+		    if( end_of_file ) {
+			error( "end of file in string literal at line " + open_line );
+			break;
+		    }
                 }
                 token_string = buffer;
                 return Token.CONST_STRING;
@@ -555,7 +564,14 @@ namespace Parse {
                         buffer.append(c);
                         c = nextChar();
                     }
+		    if( end_of_file ) {
+			error( "end of file in character literal at line " + open_line );
+			break;
+		    }
                 }
+		if( buffer.Length < 1 ) {
+		    error( "zero length character literal" );
+		}
                 token_string = buffer;
 		// IO.Std.err.println( "const char: '" + token_string + "'" );
                 return Token.CONST_CHAR;
@@ -571,6 +587,10 @@ namespace Parse {
 		    } else {
 			buffer.append(c);
 			c = nextChar();
+		    }
+		    if( end_of_file ) {
+			error( "end of file in char ptr literal at line " + open_line );
+			break;
 		    }
 		}
 		token_string = buffer;
@@ -729,7 +749,7 @@ namespace Parse {
 		    buffer = new System.StringBuffer();
                     do {
                         c = nextChar();
-			if( c != '\n;' ) {
+			if( c != '\n' ) {
 			    buffer.append( c );
 			}
                     } while( !end_of_file && c != '\n' );

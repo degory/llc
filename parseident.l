@@ -683,12 +683,12 @@ namespace Parse {
 
     
     class IdentifierList extends ParseTree {
-        Util.Vector list;
+        Generic.Vector<Identifier> list;
         
         void init( int ln ) {
             super.init( ln );
 	    // IO.Std.err.println( "IdentifierList.init()..." );
-            list = new Util.Vector();
+            list = new Generic.Vector<Identifier>();
         }
 
 	void init( int ln, Identifier first ) {
@@ -718,8 +718,8 @@ namespace Parse {
         }
         
         void dump( CompileState state, System.StringBuffer human ) {
-            for( Util.Iterator i = list.elements(); i.hasMoreElements(); ) {
-                Identifier e = cast<Identifier>(i.nextElement());
+            for( var i = list.elements(); i.hasMoreElements(); ) {
+                Identifier e = i.nextElement();
                 e.dump( state, human );
                 if( i.hasMoreElements() ) {
                     human.append(',');
@@ -731,8 +731,8 @@ namespace Parse {
 	    // IO.Std.err.println( "IdentifierList.toString()..." );
             System.StringBuffer result = new System.StringBuffer();
 
-            for( Util.Iterator i = list.elements(); i.hasMoreElements(); ) {
-                Identifier e = cast<Identifier>(i.nextElement());
+            for( var i = list.elements(); i.hasMoreElements(); ) {
+                Identifier e = i.nextElement();
                 result.append( e );
                 if( i.hasMoreElements() ) {
                     result.append(',');
@@ -746,12 +746,12 @@ namespace Parse {
 	    return list.Length;
 	}
 
-        Util.Vector getList() {
+        Generic.Vector<Identifier> getList() {
             return list;
         }
 
 	Identifier opGet( int i ) {
-	    return cast<Identifier>(list[i]);
+	    return list[i];
 	}
 
 	void print( CompileState state, Printer p ) {

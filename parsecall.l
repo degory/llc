@@ -69,7 +69,7 @@ namespace Parse {
             } else if( type.TypeKind == Type.CLASS ) {
                 Container class_symbol = type.Clazz;
 
-                Util.Vector arg_types = null;
+                Generic.Vector<Type> arg_types = null;
                 if( arguments != null ) {
                     arg_types = arguments.getTypes( state );
                 }
@@ -156,7 +156,7 @@ namespace Parse {
 		    // finalizer with the garbage collector:
 
 		    Quality q = new Quality();
-		    Container m = class_symbol.findBestMethod( "dispose", new Util.Vector(), q );
+		    Container m = class_symbol.findBestMethod( "dispose", new Generic.Vector<Type>(), q );
 
 		    if( m != null && m.Owner != object_type.Clazz ) {
 			// dispose method found and it's not System.Object.dispose() - need to register finalizer
@@ -194,7 +194,7 @@ namespace Parse {
 		size = ExpressionList.compilePush( arguments,
 						   state,
 						   thiz,
-						   method.Arguments,
+						   method.ArgTypes,
 						   into,
 						   true,
 						   false,
@@ -461,7 +461,7 @@ namespace Parse {
             Symbol symbol = null;
             System.String arg_string = null;
             
-            Util.Vector arg_types = null;
+            Generic.Vector<Type> arg_types = null;
             if( arguments != null ) {
                 arg_types = arguments.getTypes( state );
 		// IO.Std.err.println( "method call arguments: " + arg_types );
@@ -584,7 +584,7 @@ namespace Parse {
                 
                 if( quality.quality < Type.QUALITY_GOOD ) {
                     arg_string = dumpArguments( arg_types );
-                    System.String resolve_string = dumpArguments( method.Arguments );
+                    System.String resolve_string = dumpArguments( method.ArgTypes );
                     
 		    if( !quiet && state.WantWarnResolve ) {
 			warn( "call to " + name.Name + "(" + arg_string +
@@ -721,7 +721,7 @@ namespace Parse {
 		IO.Std.err.println( "IIIIII: kind is " + method.Kind + " versus " + Symbol.STATIC_METHOD );
 		*/
 
-                t = compileLoad( state, into, method, arguments, method.Arguments, t, Machine.WORD, flags, super_class );
+                t = compileLoad( state, into, method, arguments, method.ArgTypes, t, Machine.WORD, flags, super_class );
 
 		if( compare_operation ) {
 		    into.add( makeStoreTemporary( tr, 1, t ) );
@@ -735,14 +735,14 @@ namespace Parse {
                     flags = flags | LOAD_FLAG_STATIC;
 		}
 
-                t = compileLoad( state, into, method, arguments, method.Arguments, null, Machine.WORD, flags, null );
+                t = compileLoad( state, into, method, arguments, method.ArgTypes, null, Machine.WORD, flags, null );
             } else {
 		// Std.err.println( "call C..." );
                 if( state.CurrentMethod.IsStatic ) {
                     flags = flags | LOAD_FLAG_STATIC;
 		}
 
-                t = compileLoad( state, into, method, arguments, method.Arguments, t, Machine.WORD, flags, null );
+                t = compileLoad( state, into, method, arguments, method.ArgTypes, t, Machine.WORD, flags, null );
             }
             
             int temp = 0;

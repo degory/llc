@@ -320,16 +320,16 @@ namespace Parse {
 
 
     class Catches extends Statement {
-        Util.Vector catches;
+        Generic.Vector<Catch> catches;
 
         void init( int line_number ) {
             super.init( line_number );
-            catches = new Util.Vector();
+            catches = new Generic.Vector<Catch>();
         }
 
         void init( int line_number, Catch first ) {
             super.init( line_number );
-            catches = new Util.Vector();
+            catches = new Generic.Vector<Catch>();
             add( first );
         }
 

@@ -8,7 +8,7 @@ import mtree;
 
 namespace Parse { 
     class Main {
-	const int BUILD = 1137;
+	const int BUILD = 1138;
 
 	CompileState state;
 
@@ -49,7 +49,7 @@ namespace Parse {
 	    bool first_file = true;
 	    int i, j;
 	    System.String name;
-	    Util.Vector input_files = new Util.Vector();
+	    var input_files = new Generic.Vector<System.String>();
 
 	    Gen.Machine.initOpNames();
             
