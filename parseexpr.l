@@ -1,5 +1,11 @@
 
 namespace Parse {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+    use Generic.Vector;
+
     use Gen.ITree;
     use Gen.IBlock;
     use Gen.ILabel;
@@ -86,7 +92,7 @@ namespace Parse {
         
         ITree compileValue( CompileState state, IBlock into ) {
             int t = TempFactory.nextTemp();
-            Generic.Vector<Expression> l = list.List;
+            Vector<Expression> l = list.List;
 
             int kind = getType(state).SubType.TypeKind;
             int size = getType(state).SubType.Size;
@@ -156,7 +162,7 @@ namespace Parse {
             return makeLoadTemporary( t, Machine.WORD );
         }
 
-	int getDepth() {
+	get int Depth {
 	    int result = 0;
 	    return list.Depth + 1;
 	}
@@ -238,7 +244,7 @@ namespace Parse {
             
             if( requires_runtime_check ) {
 
-                System.String vtable = "vtable$__" + type.Clazz.DecoratedName;
+                String vtable = "vtable$__" + type.Clazz.DecoratedName;
                 
                 if( type.Clazz != state.CurrentClass ) {
                     into.add( new ITree(line_number, Op.EXTERN, 0, new IString(vtable) ) ); 
@@ -267,13 +273,13 @@ namespace Parse {
                                       getType( state ).RegSize,
                                       right.compileValue( state, into ) );
                 } else {
-                    throw new System.Exception( "oops: cast from unexpected size: " + r.RegSize );
+                    throw new Exception( "oops: cast from unexpected size: " + r.RegSize );
                     return right.compileValue( state, into );
                 }
             }
         }
 	
-	int getDepth() {
+	get int Depth {
 	    return right.Depth + 1;
 	}
 
@@ -313,7 +319,7 @@ namespace Parse {
             return makeLoadTemporary( temporary, type.Size );
         }
 
-        void dump( CompileState state, System.StringBuffer buffer ) {
+        void dump( CompileState state, StringBuffer buffer ) {
             buffer.append( "LoadTemporary #" + temporary );   
         }
     }
@@ -347,7 +353,7 @@ namespace Parse {
             return true;
         }
 
-	int getDepth() {
+	get int Depth {
 	    return 1;
 	}
 
@@ -389,10 +395,10 @@ namespace Parse {
 	}
 
         ITree compileValue( CompileState  state, IBlock into ) {
-	    throw new System.Exception( "cannot compile class<>" );
+	    throw new Exception( "cannot compile class<>" );
 	}
 
-	int getDepth() {
+	get int Depth {
 	    return 1;
 	}
 
@@ -432,7 +438,7 @@ namespace Parse {
             return true;
         }
 
-	int getDepth() {
+	get int Depth {
 	    return 1;
 	}
 
@@ -444,10 +450,10 @@ namespace Parse {
     }
 
     class Constant extends Expression {
-        System.String value;
-	System.String print_value;
+        String value;
+	String print_value;
 
-        void init( int line_number, int type, System.String value ) {
+        void init( int line_number, int type, String value ) {
             super.init( line_number );
             if( type == Type.STRING ) {
                 this.type = string_type;
@@ -518,9 +524,9 @@ namespace Parse {
 	    // do nothing - leave type intact
 	}
 
-	static System.String escape( System.String s, char quote ) {
+	static String escape( String s, char quote ) {
 	    int l = s.Length;
-	    System.StringBuffer result = new System.StringBuffer(l);
+	    StringBuffer result = new StringBuffer(l);
 
 	    for( int i = 0; i < l; i = i + 1 ) {
 		char c = s[i];
@@ -551,7 +557,7 @@ namespace Parse {
             }
         }
 
-        void dump( CompileState state, System.StringBuffer buffer ) {
+        void dump( CompileState state, StringBuffer buffer ) {
             buffer.append( value );
         }
         
@@ -583,11 +589,11 @@ namespace Parse {
             return new ITree( line_number, Op.ERROR, 0 );
         }
 
-        System.String toString() {
+        String toString() {
             return "Constant(" + value + "," + type + ")";
         }
 
-	int getDepth() {
+	get int Depth {
 	    return 1;
 	}
 
@@ -640,7 +646,7 @@ namespace Parse {
 	    }
 	}
 
-	public int getOperation() {
+	get int Operation {
 	    return operation;
 	}
 
@@ -697,8 +703,8 @@ namespace Parse {
 
 		    reverse = false;
 
-		    System.String op_string = null; // for error reporting
-                    System.String n;                // operator method name
+		    String op_string = null; // for error reporting
+                    String n;                // operator method name
 		    
 		    do {
 			/*
@@ -1093,8 +1099,8 @@ namespace Parse {
 
         }
 
-        System.String toString() {
-            System.StringBuffer result = new System.StringBuffer();
+        String toString() {
+            StringBuffer result = new StringBuffer();
             if( right == null ) {
                 result.append( "op" );
                 result.append( cast<int>(operation) );
@@ -1110,7 +1116,7 @@ namespace Parse {
             return result;
         }
 
-	System.String getOpString() {
+	get String OpString {
 	    switch( operation ) {
 	    case Op.NEG:
 		return "-";
@@ -1192,10 +1198,10 @@ namespace Parse {
 	    }
 	}
 
-	int getDepth() {
-	    int result = left.getDepth();
+	get int Depth {
+	    int result = left.Depth;
 	    if( right != null ) {
-		int d = right.getDepth();
+		int d = right.Depth;
 		if( d > result ) {
 		    result = d;
 		}
@@ -1545,7 +1551,7 @@ namespace Parse {
             if( type == null ) {
                 calcType( state );
                 if( type == null ) {
-                    throw new System.Exception( "shouldn't happen: calcType() didn't assign this parse node a type" );
+                    throw new Exception( "shouldn't happen: calcType() didn't assign this parse node a type" );
                     type = undefined_type;
                 }
             }
@@ -1555,11 +1561,11 @@ namespace Parse {
         }
 
         void calcType( CompileState state ) {
-            throw new System.Exception( "can't calcType for: " + this );
+            throw new Exception( "can't calcType for: " + this );
         }
 
         ITree compileAddress( CompileState state, IBlock into ) {
-            throw new System.Exception( "expression has no address" );
+            throw new Exception( "expression has no address" );
             return new ITree( line_number, Op.ERROR, 0 );
         }
 
@@ -1596,7 +1602,7 @@ namespace Parse {
                               );
         }
 
-	ITree compileCall( CompileState state, IBlock into, int o, Symbol symbol, System.String name, int offset, int pop_size, Util.IntVector inline_args ) {
+	ITree compileCall( CompileState state, IBlock into, int o, Symbol symbol, String name, int offset, int pop_size, Util.IntVector inline_args ) {
 	    int t;
 
 	    if( inline_args != null ) {
@@ -1608,7 +1614,7 @@ namespace Parse {
 		IBlock b = method.InlineBlock;
 
 		if( b != null ) {
-		    System.String s = "";
+		    String s = "";
 		    if( state.IsInline ) {
 			s = " nested";
 		    }
@@ -1691,8 +1697,8 @@ namespace Parse {
 	    }
 	}
 
-        ITree compileLoad( CompileState state, IBlock into, Symbol symbol, ExpressionList arguments, Generic.Vector<Type> argument_types, ITree from, int size, int flags, Symbol super_class ) {
-            System.String buffer;
+        ITree compileLoad( CompileState state, IBlock into, Symbol symbol, ExpressionList arguments, Vector<Type> argument_types, ITree from, int size, int flags, Symbol super_class ) {
+            String buffer;
             ITree t;
             int o, a, u;
     
@@ -1723,7 +1729,7 @@ namespace Parse {
 		    /*
                     buffer = "vtable$__" + symbol.DecoratedName;
                     if( address ) {
-                        throw new System.Exception( "oops: cannot load address of class " + symbol.QualifiedName );
+                        throw new Exception( "oops: cannot load address of class " + symbol.QualifiedName );
                         return new ITree( line_number, Op.ERROR, 0 );
                     } else {
 			IO.Std.err.println( "compiling class " + symbol.QualifiedName + " value here: " + new System.Backtrace() );
@@ -1844,7 +1850,7 @@ namespace Parse {
                     }
                     
                     if( super_class != null ) {
-                        throw new System.Exception( "oops: calling method in super with no from address" );
+                        throw new Exception( "oops: calling method in super with no from address" );
                         return new ITree( line_number, Op.ERROR, 0 );
                     } else if( cast<Container>(symbol).IsFinal ) {
                         if( symbol.Owner != state.CurrentClass ) {
@@ -1872,7 +1878,7 @@ namespace Parse {
 		        a = symbol.Address;
 			// IO.Std.err.println( "dynamic call to non-final method " + symbol.getDecoratedName() + " at offset " + a );
 			if( a / Machine.WORD * Machine.WORD != a ) {
-			    throw new System.Exception( "vtable is not "+ Machine.WORD + "-byte aligned" );
+			    throw new Exception( "vtable is not "+ Machine.WORD + "-byte aligned" );
 			}
 
 			return compileCall( state, into, o, symbol, null, symbol.Address, size, null );
@@ -1945,7 +1951,7 @@ namespace Parse {
                     return t;
                     
                 case Symbol.LOCAL_VARIABLE:
-                    throw new System.Exception( "oops: accessing local variable: '" + symbol.Name + "' from incorrect context" );
+                    throw new Exception( "oops: accessing local variable: '" + symbol.Name + "' from incorrect context" );
                     return new ITree( line_number, Op.ERROR, 0 );
                     
                 case Symbol.STATIC_METHOD:
@@ -1967,7 +1973,7 @@ namespace Parse {
                     IO.Std.err.println( "calling static method " + symbol.HumanName + " dynamically" );
                     
                     // else fall through
-                    throw new System.Exception( "need to fall through here" );
+                    throw new Exception( "need to fall through here" );
                     
                 case Symbol.INSTANCE_METHOD:
                     if( !address ) {
@@ -2011,7 +2017,7 @@ namespace Parse {
 		        a = symbol.Address;
 			// IO.Std.err.println( "dynamic call to non-final method " + symbol.getDecoratedName() + " at offset " + a );
 			if( a / Machine.WORD * Machine.WORD != a ) {
-			    throw new System.Exception( "vtable is not " + Machine.WORD + "-byte aligned" );
+			    throw new Exception( "vtable is not " + Machine.WORD + "-byte aligned" );
 			}
 
                         if( no_discard ) {
@@ -2028,9 +2034,9 @@ namespace Parse {
                 default:
                     if( symbol.Kind == Symbol.CLASS ) {
                         error( "cannot use class " + symbol.HumanName + " here" );
-                    } else if( symbol.getKind() == Symbol.NAMESPACE ) {
+                    } else if( symbol.Kind == Symbol.NAMESPACE ) {
                         error( "cannot use namespace " + symbol.HumanName + " here" );
-                    } else if( symbol.getKind() == Symbol.ENUM ) {
+                    } else if( symbol.Kind == Symbol.ENUM ) {
                         error( "cannot use enum " + symbol.HumanName + " here" );
                     } else {
                         error( "cannot use symbol " + symbol.HumanName + " here" );
@@ -2040,21 +2046,21 @@ namespace Parse {
             }
         }
 
-	int getDepth() {
+	get int Depth {
 	    return 0;
 	}
 
-	int getOperation() {
+	get int Operation {
 	    return Op.ERROR;
 	}
     }
 
     class ExpressionList extends Expression {
-        Generic.Vector<Expression> list;
+        Vector<Expression> list;
 
         void init( int line_number ) {
             super.init( line_number );
-            list = new Generic.Vector<Expression>();
+            list = new Vector<Expression>();
         }
 
 	void init( int line_number, Expression first ) {
@@ -2084,15 +2090,15 @@ namespace Parse {
             list.add( next );
         }
 
-        Generic.Vector<Type> getTypes( CompileState state ) {
-            var result = new Generic.Vector<Type>( list.Length );
+        Vector<Type> getTypes( CompileState state ) {
+            var result = new Vector<Type>( list.Length );
             foreach( Expression e; list.elements() ) {
                 result.add( e.getType(state) );
             }
             return result;
         }
 
-        Generic.Vector<Expression> getList() {
+        get Vector<Expression> List {
             return list;
         }
 
@@ -2104,7 +2110,7 @@ namespace Parse {
 	    list[index] = e;
 	}
 
-        void dump( CompileState state, System.StringBuffer buffer ) {
+        void dump( CompileState state, StringBuffer buffer ) {
             for( var i = list.elements(); i.hasMoreElements(); ) {
                 Expression e = i.nextElement();
                 e.dump( state, buffer );
@@ -2119,7 +2125,7 @@ namespace Parse {
             ExpressionList l, 
 	    CompileState state,
 	    ITree thiz,
-	    Generic.Vector<Type> arg_types,
+	    Vector<Type> arg_types,
 	    IBlock into,
 	    bool skip_this,
 	    bool native_call,
@@ -2132,7 +2138,7 @@ namespace Parse {
 	    int size = l.compilePush( state, thiz, arg_types, into, skip_this, native_call, inline_args );
 	    /*
 	    if( size > Machine.NUM_REG_PARAM ) {
-		throw new System.Exception( "need to adjust stack to remove pushed arguments" );
+		throw new Exception( "need to adjust stack to remove pushed arguments" );
 	    }
 	    */
 
@@ -2142,7 +2148,7 @@ namespace Parse {
         int compilePush(
             CompileState state,
 	    ITree thiz,
-	    Generic.Vector<Type> arg_types,
+	    Vector<Type> arg_types,
 	    IBlock into,
 	    bool skip_this,
 	    bool native_call,
@@ -2230,7 +2236,7 @@ namespace Parse {
 		
 		if( n > num_reg_param ) {
 		    if( inline_args != null ) {
-			throw new System.Exception( "cannot inline call with stack arguments" );
+			throw new Exception( "cannot inline call with stack arguments" );
 		    }
 		    // IO.Std.err.println( "compiling stack parameter" );
 		    into.add( new ITree( line_number, Op.PUSH, Machine.WORD, result ) );
@@ -2306,10 +2312,10 @@ namespace Parse {
 	    }
         }
 
-	int getDepth() {
+	get int Depth {
 	    int result = 0;
             foreach( Expression e; list.elements() ) {
-		int d = e.getDepth();
+		int d = e.Depth;
 		if( d > result ) {
 		    result = d;
 		}

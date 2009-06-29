@@ -22,7 +22,7 @@ namespace Gen {
 
 	    // IO.Std.err.println( "walk non-terminal #" + goal + " from " + t );
 
-            int ern = selector.rule( t.getGenState(), goal );
+            int ern = selector.rule( t.GenState, goal );
             // IO.Std.err.println( "matched ern " + ern + ", getting nts[]..." );
 
 	    if( ern == 0 ) {
@@ -90,7 +90,7 @@ namespace Gen {
 	    list.setLength(0);
 
 	    if( tryGenInstruction(t, list, true, false) ) {
-		if( list.getLength() == 1 ) {
+		if( list.Length == 1 ) {
 		    return cast<MInst>(list[0]);
 		}
 	    }

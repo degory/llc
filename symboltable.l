@@ -1,7 +1,13 @@
 // copyright (C) 2009 degs <junk@giantblob.com> all rights reserved
 
 namespace Parse { 
-    class SymbolTable extends System.Object {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+    use Generic.Vector;
+
+    class SymbolTable extends Object {
         const int MAX_LEVEL = 25;
         int level;
         SymbolList[] scope;
@@ -63,11 +69,11 @@ namespace Parse {
             return current_scope;
         }
         
-        Symbol findGlobal( System.String name, int find_what ) {
+        Symbol findGlobal( String name, int find_what ) {
             return scope[0].find( name, find_what );
         }
         
-        Symbol findInCurrentScope( System.String name, int find_what ) {
+        Symbol findInCurrentScope( String name, int find_what ) {
             return current_scope.find( name, find_what );
         }
         
@@ -76,7 +82,7 @@ namespace Parse {
         }
         
         void addAll( SymbolList list ) {
-            throw new System.Exception( "don't use: unsafe" );
+            throw new Exception( "don't use: unsafe" );
             current_scope.addAll( list );
         }
 
@@ -100,8 +106,8 @@ namespace Parse {
 	}
         
 
-	System.String toString() {
-	    System.StringBuffer result = new System.StringBuffer();
+	String toString() {
+	    StringBuffer result = new StringBuffer();
 
 	    for( int i = level; i >= 0; i = i - 1 ) {
 		result.append( "level " + i + ": " + scope[i] + "\n" );
@@ -111,7 +117,7 @@ namespace Parse {
 	}
 	/*
         void useAll( SymbolList list ) {
-            throw new System.Exception( "is this safe?" );
+            throw new Exception( "is this safe?" );
             current_scope.useAll( list );
         }
 	*/

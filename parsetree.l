@@ -16,6 +16,12 @@ import parsetry;
 import parsetype;
 
 namespace Parse {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+    use Generic.Vector;
+
     use Gen.ITree;
     use Gen.IBlock;
     use Gen.ILabel;
@@ -23,7 +29,7 @@ namespace Parse {
     use Gen.Machine;
     use Gen.TempFactory;
     use Gen.MBitSet;
-
+    
     enum EDType {
 	CATCH_RETURN = 0,
         CATCH_FINALLY = 1,
@@ -34,8 +40,8 @@ namespace Parse {
 	THROW_STOP = 6
     }
 
-    class Printer extends System.Object {
-	static System.String INDENT = "    ";
+    class Printer extends Object {
+	static String INDENT = "    ";
 
 	IO.Writer out;
 	int indent_level;
@@ -65,31 +71,31 @@ namespace Parse {
 	    }
 	}
 
-	bool getInArgs() {
+	get bool InArgs {
 	    return in_args;
 	}
 
-	void setInArgs( bool v ) {
+	set bool InArgs = v {
 	    in_args = v;
 	}
 
-	bool getInElif() {
+	get bool InElif {
 	    return in_elif;
 	}
 
-	void setInElif( bool v ) {
+	set bool InElif = v {
 	    in_elif = v;
 	}
 
-	bool getOneLine() {
+	get bool OneLine {
 	    return one_line;
 	}
 
-	void setOneLine( bool v ) {
+	set bool OneLine = v {
 	    one_line = v;
 	}
 
-	bool getNoSemiColon() {
+	get bool NoSemiColon {
 	    return no_semi_colon;
 	}
 
@@ -97,12 +103,12 @@ namespace Parse {
 	    no_semi_colon = v;
 	}
 
-	void print( System.Object o ) {
+	void print( Object o ) {
 	    printIndent();
 	    out.print( o );
 	}
 
-	void println( System.Object o ) {
+	void println( Object o ) {
 	    printIndent();
 	    if( !one_line ) {
 		out.println( o );
@@ -141,7 +147,7 @@ namespace Parse {
 	    }
 	}
 
-	void line( int line_number, System.String comment ) {
+	void line( int line_number, String comment ) {
 	    if( line_number > last_line || comment != null ) {
 		if( comment != null ) {
 		    // IO.Std.out.println( "CCCCCC: output comment: " + comment );
@@ -203,21 +209,21 @@ namespace Parse {
 	}
     }
 
-    class CannotInlineException extends System.Exception {
+    class CannotInlineException extends Exception {
 	void init() {
 	    // IO.Std.err.println( "creating cannot inline exception" );
 	    super.init("cannot inline this construct");
 	}
     }
 
-    class NotLeafInlineException extends System.Exception {
+    class NotLeafInlineException extends Exception {
 	void init() {
 	    // IO.Std.err.println( "creating not leaf inline exception" );
 	    super.init();
 	}
     }
 
-    class ExceptionDescriptor extends System.Object {
+    class ExceptionDescriptor extends Object {
 	public EDType type;
 	public ILabel descriptor_label;
 	public ILabel code_label;
@@ -229,9 +235,9 @@ namespace Parse {
 	}
     }
 
-    class ParseTree extends System.Object {
-	protected System.String comment;
-        protected System.String file_name;
+    class ParseTree extends Object {
+	protected String comment;
+        protected String file_name;
         protected int line_number;
 
         protected const int
@@ -243,9 +249,9 @@ namespace Parse {
             EX_FRAME_SIZE = 24,
             EX_RETURN_OFFSET = 12;
 
-	protected static System.String last_comment;
+	protected static String last_comment;
 
-        protected static System.String current_file_name;
+        protected static String current_file_name;
         // protected static bool in_finally = false;
         protected static bool public_fields = false;
 
@@ -285,14 +291,14 @@ namespace Parse {
 
         protected static Container undefined_class = new Container( null, null, "#undefined class#" );
 
-        protected static void parseFile( System.String file ) {
+        protected static void parseFile( String file ) {
         }
 
-        protected static void addAdditionalFile( System.String file ) {
-            throw new System.Exception( "implement me" );
+        protected static void addAdditionalFile( String file ) {
+            throw new Exception( "implement me" );
         }
 
-	static void setLastComment( System.String s ) {
+	static set String LastComment = s {
 	    if( s != null ) {
 		// IO.Std.out.println( "CCCCCC: seen comment: " + s );
 
@@ -304,8 +310,8 @@ namespace Parse {
 	    }
 	}	
 
-	static System.String getLastComment() {
-	    System.String result = last_comment;
+	static get String LastComment {
+	    String result = last_comment;
 	    /*
 	    if( result != null ) {
 		IO.Std.out.println( "CCCCCC: last comment: " + result );
@@ -398,7 +404,7 @@ namespace Parse {
             // IO.Std.err.println( "implement ParseTree.resetTemporary" );
         }
 
-        static void setCurrentFileName( System.String cfn ) {
+        static set String CurrentFileName = cfn {
             current_file_name = cfn;
         }
 
@@ -426,7 +432,7 @@ namespace Parse {
                 case Op.LE:return Op.GT;
                 }
             }
-            throw new System.Exception( "unexpected jump operation: " + op );
+            throw new Exception( "unexpected jump operation: " + op );
         }
 
         static int getReverseJumpOp( int op, bool jump ) {
@@ -449,7 +455,7 @@ namespace Parse {
                 case Op.LE: return Op.LE;
                 }
             }
-            throw new System.Exception( "unexpected jump operation: " + op );
+            throw new Exception( "unexpected jump operation: " + op );
         }
 
 	static Type getBoxType( Type type ) {
@@ -472,7 +478,7 @@ namespace Parse {
 	    return null;
 	}
  
-        static Type defineStandardClassType( CompileState state, System.String name, System.String super_name ) {
+        static Type defineStandardClassType( CompileState state, String name, String super_name ) {
             Identifier super_ident = null;
             if( super_name != null ) {
                 super_ident = new Identifier( 0, super_name );
@@ -523,9 +529,9 @@ namespace Parse {
 	    // IO.Std.err.println( "defined string-type: " + string_type );
         }
         
-        static System.String dumpArguments( Generic.Vector<Type> arguments ) {
-            System.StringBuffer buffer = new System.StringBuffer();
-            System.StringBuffer dummy = new System.StringBuffer();
+        static String dumpArguments( Vector<Type> arguments ) {
+            StringBuffer buffer = new StringBuffer();
+            StringBuffer dummy = new StringBuffer();
             
             if( arguments != null ) {
                 for( var i = arguments.elements(); i.hasMoreElements(); ) {
@@ -576,7 +582,7 @@ namespace Parse {
 	    */
         }
 
-        int getLineNumber() {
+        get int LineNumber {
             return line_number;
         }
 
@@ -615,14 +621,14 @@ namespace Parse {
 	void wantIndexer( CompileState state, Expression value ) {
 	}
 
-	MethodCall getMethodCall() {
-	    throw new System.Exception( "does not have a method call: " + this.Class.Name );
+	get MethodCall MethodCall {
+	    throw new Exception( "does not have a method call: " + this.Class.Name );
 	}
 
 	/*
 	void compileSetProperty( CompileState state, IBlock into, Expression value ) {
             error( "oops: can't compile set property: " + this );
-	    throw new System.Exception("here");
+	    throw new Exception("here");
 	}
 	*/
 
@@ -653,14 +659,14 @@ namespace Parse {
             return new ITree( line_number, Op.ERROR, 0 );
         }
 
-        System.String dump( CompileState state ) {
-            System.StringBuffer buffer = new System.StringBuffer();
+        String dump( CompileState state ) {
+            StringBuffer buffer = new StringBuffer();
             dump( state, buffer );
             return buffer;
         }
 
-        void dump( CompileState state, System.StringBuffer buffer ) {
-            buffer.append( "<unknown: " + getClassName() + ">" );
+        void dump( CompileState state, StringBuffer buffer ) {
+            buffer.append( "<unknown: " + ClassName + ">" );
         }
 
         void checkAccess( Symbol s, CompileState state ) {
@@ -674,7 +680,7 @@ namespace Parse {
                 return;
             }
     
-            System.String access;
+            String access;
             if( s.IsLocal ) {
                 access = "local";
             } else if( s.IsPrivate ) {
@@ -685,7 +691,7 @@ namespace Parse {
                 access = "unexpected";
             }
 
-            System.String c = "global context";
+            String c = "global context";
             if( context != null ) {
                 c = context.HumanName;
             }
@@ -702,8 +708,8 @@ namespace Parse {
 	static bool err_is_tty = false;
 	static bool need_newline = true;
 	static int progress_state;
-	static System.String progress_wheel = "|/-\\";
-	static System.String backspace = "" + cast<char>(13);
+	static String progress_wheel = "|/-\\";
+	static String backspace = "" + cast<char>(13);
 
 	static void newline() {
 	    if( !checked_is_tty ) {
@@ -740,7 +746,7 @@ namespace Parse {
 	    }
 	}
 
-	static void message( System.String msg ) {
+	static void message( String msg ) {
 	    newline();
             IO.Std.err.println( msg );
 	}
@@ -749,15 +755,24 @@ namespace Parse {
 	    errors_occurred = true;
 	}
 
-        void error( System.String msg ) {
+	get String TemplateErrorString {
+	    Container c = CompileState.Instance.CurrentClass;
+	    if( c.Template != null ) {
+		return " (in template " + c.HumanName + ")";
+	    } else {
+		return "";
+	    }
+	}
+
+        void error( String msg ) {
 	    newline();
-            IO.Std.err.println( file_name + ": " + line_number + ": error: " + msg );
+            IO.Std.err.println( file_name + ": " + line_number + ": error: " + msg + TemplateErrorString );
             errors_occurred = true;
         }
 
-        void warn( System.String msg ) {
+        void warn( String msg ) {
 	    newline();
-            IO.Std.err.println( file_name + ": " + line_number + ": warn: " + msg );
+            IO.Std.err.println( file_name + ": " + line_number + ": warn: " + msg + TemplateErrorString );
         }
 
 	ITree castTo( int to_size, int from_size, ITree t ) {
@@ -856,7 +871,7 @@ namespace Parse {
             this.flags = this.flags | flags;
         }
         
-        int getAccess() {
+        get int Access {
             return flags;
         }
     }
@@ -880,22 +895,22 @@ namespace Parse {
         void parseImports( CompileState state ) {
         }
 
-        System.String getLoopName() {
+        get String LoopName {
             return null;
         }
 
-        void setLoopName( Identifier l ) {
-	    throw new System.Exception( "this Statement (" + this + ") cannot have a loop label" );
+        set Identifier LoopName = l {
+	    throw new Exception( "this Statement (" + this + ") cannot have a loop label" );
 	}
 
-	bool getIsLastReturn() {
+	get bool IsLastReturn {
 	    return false;
 	}
 
 	void markLastReturns() {
 	}
 
-	bool getIsIf() {
+	get bool IsIf {
 	    return false;
 	}
     }
@@ -991,7 +1006,7 @@ namespace Parse {
 	    }
 	}
 
-	bool getIsLastReturn() {
+	get bool IsLastReturn {
 	    // IO.Std.err.println( "return statement: last is return" );
 	    return true;
 	}
@@ -1012,7 +1027,7 @@ namespace Parse {
                 Type expr_type = expression.getType( state );
 
 		if( expr_type == null ) {
-		    throw new System.Exception( "weird: return expression: " + expression + " has null type" );
+		    throw new Exception( "weird: return expression: " + expression + " has null type" );
 		}
                 
                 if( !method_type.isAssignableFrom( expr_type ) ) {
@@ -1050,7 +1065,7 @@ namespace Parse {
 		ExceptionDescriptor ed = state.TopFinallyOrReturn;
 
 		if( ed == null ) {
-		    throw new System.Exception( "no finally or return handler found on exception handler stack" );
+		    throw new Exception( "no finally or return handler found on exception handler stack" );
 		}
 
 		return_label = ed.code_label;
@@ -1116,12 +1131,12 @@ namespace Parse {
 
 
     class BlockStatement extends Statement {
-        Generic.Vector<Statement> list;
+        Vector<Statement> list;
 	bool last_return;
         
         void init( int line_number ) {
             super.init( line_number );
-            list = new Generic.Vector<Statement>();
+            list = new Vector<Statement>();
         }
 
 	void init( int line_number, Statement first ) {
@@ -1146,7 +1161,7 @@ namespace Parse {
 
         void add( Statement next ) {
 	    if( next == null ) {
-		throw new System.Exception( "adding null statement to: " + this );
+		throw new Exception( "adding null statement to: " + this );
 	    }
             list.add( next );
         }
@@ -1155,7 +1170,7 @@ namespace Parse {
             return list.Length >= 1 && cast<Statement>(list[0]).isFirstStatementSuperConstructorCall( state );
         }
 
-        void dump( CompileState state, System.StringBuffer  buffer ) {
+        void dump( CompileState state, StringBuffer  buffer ) {
             buffer.append( "{\n" );
             foreach( Statement s; list.elements() ) {
                 s.dump( state, buffer );
@@ -1169,7 +1184,7 @@ namespace Parse {
                 if( s != null ) {
                     s.parseImports( state );
                 } else {
-                    throw new System.Exception( "null statement\n" );
+                    throw new Exception( "null statement\n" );
                 }
             }
         }
@@ -1179,7 +1194,7 @@ namespace Parse {
                 if( s != null ) {
                     s.declareGlobalSymbols( state );
                 } else {
-                    throw new System.Exception( "null statement\n" );
+                    throw new Exception( "null statement\n" );
                 }
             }
         }
@@ -1189,7 +1204,7 @@ namespace Parse {
                 if( s != null ) {
                     s.useTypes( state );
                 } else {
-                    throw new System.Exception( "null statement\n" );
+                    throw new Exception( "null statement\n" );
                 }
             }
 	}
@@ -1199,7 +1214,7 @@ namespace Parse {
                 if( s != null ) {
                     s.declareClassSymbols( state );
                 } else {
-                    throw new System.Exception( "null statement\n" );
+                    throw new Exception( "null statement\n" );
                 }
             }
         }
@@ -1209,7 +1224,7 @@ namespace Parse {
                 if( s != null ) {
                     s.declareSymbols( state );
                 } else {
-                    throw new System.Exception( "null statement\n" );
+                    throw new Exception( "null statement\n" );
                 }
             }
         }
@@ -1220,7 +1235,7 @@ namespace Parse {
                 if( s != null ) {
                     s.prepareInline( state );
                 } else {
-                    throw new System.Exception( "null statement\n" );
+                    throw new Exception( "null statement\n" );
                 }
             }
 	}
@@ -1236,17 +1251,17 @@ namespace Parse {
                 if( s != null ) {
                     s.checkInline( state );
                 } else {
-                    throw new System.Exception( "null statement\n" );
+                    throw new Exception( "null statement\n" );
                 }
             }
 
 	    state.exitBlock();
 	}
 
-	bool getIsLastReturn() {
+	get bool IsLastReturn {
 	    last_return = false;
 	    if( list != null && list.Length > 0 ) {
-		Statement s = cast<Statement>(list[list.Length-1]);
+		Statement s = list[list.Length-1];
 		last_return = s.IsLastReturn;
 		/*
 		if( last_return ) {
@@ -1261,7 +1276,7 @@ namespace Parse {
 	    if( last_return ) {
 		// IO.Std.err.println( "block statement: mark last return" );
 	    
-		cast<Statement>(list[list.Length-1]).markLastReturns();
+		list[list.Length-1].markLastReturns();
 	    }
 	}
 
@@ -1273,7 +1288,7 @@ namespace Parse {
                 if( s != null ) {
                     s.compile( state, into );
                 } else {
-                    throw new System.Exception( "null statement\n" );
+                    throw new Exception( "null statement\n" );
                 }
             }
    
@@ -1290,7 +1305,7 @@ namespace Parse {
                 if( s != null ) {
                     s.compile( state );
                 } else {
-                    throw new System.Exception( "null statement\n" );
+                    throw new Exception( "null statement\n" );
                 }
             }
         }
@@ -1299,8 +1314,8 @@ namespace Parse {
 	    return false;
 	}
 
-        System.String toString() {
-            System.StringBuffer result = new System.StringBuffer();
+        String toString() {
+            StringBuffer result = new StringBuffer();
 
             result.append( "{" );
             foreach( Statement s; list.elements() ) {
@@ -1341,21 +1356,21 @@ namespace Parse {
             this.right_value = right_value;
 
 	    if( left_value == null ) {
-		throw new System.Exception( "assignment: left value is null" );
+		throw new Exception( "assignment: left value is null" );
 	    }
 	    if( right_value == null ) {
-		throw new System.Exception( "assignment: right value is null" );
+		throw new Exception( "assignment: right value is null" );
 	    }
         }
 
-        void dump( CompileState state, System.StringBuffer buffer ) {
+        void dump( CompileState state, StringBuffer buffer ) {
             left_value.dump( state, buffer );
             buffer.append( '=' );
             right_value.dump( state, buffer );
         }
 
-        System.String toString() {
-            System.StringBuffer result = new System.StringBuffer();
+        String toString() {
+            StringBuffer result = new StringBuffer();
             result.append( left_value );
             result.append( '=' );
             result.append( right_value );
@@ -1502,7 +1517,7 @@ namespace Parse {
 	    } else if( type.TypeKind == Type.CLASS ) {
 		// IO.Std.err.println( "left type is class: " + left_value + ", " + type );
 
-		System.String n;
+		String n;
 
 		if( want_set_value ) {
 		    n = "opSet";
@@ -1531,7 +1546,7 @@ namespace Parse {
 	    // IO.Std.err.println( "vector access type is " + type + " element size is " + type.getRegSize() );
         }
 
-        void dump( CompileState state, System.StringBuffer buffer ) {
+        void dump( CompileState state, StringBuffer buffer ) {
             left_value.dump( state, buffer );
             buffer.append('[');
             right_value.dump( state, buffer );

@@ -5,7 +5,12 @@ import generic;
 pragma NoWarnUnsafe;
 
 namespace Gen {
-    class MBitSet extends System.Object {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+
+    class MBitSet extends Object {
         public int size;
         public int original_size;
         word[] bits;
@@ -19,7 +24,7 @@ namespace Gen {
 	int next_result;
     
         void init() {
-            init( TempFactory.getCurrentTemp() );
+            init( TempFactory.CurrentTemp );
         }
 
         static int calcStorageSize( int size ) {
@@ -379,12 +384,12 @@ namespace Gen {
 	    }
 	}
 
-	System.String toString() {
+	String toString() {
 	    return toString(null);
 	}
 
-	System.String toString(int[] regs) {
-	    System.StringBuffer b = new System.StringBuffer();
+	String toString(int[] regs) {
+	    StringBuffer b = new StringBuffer();
 	    // b.append( "len " + getLength() + "/" + original_size + " " );
 
 	    for( int i = 0; i < original_size; i = i + 1 ) {
@@ -419,11 +424,11 @@ namespace Gen {
 
 	    for( j = nextSet(); j != -1; j = nextSet() ) {
 		if( !t[j] ) {
-		    throw new System.Exception( "not set but returned T" + k );
+		    throw new Exception( "not set but returned T" + k );
 		}
 		for( k = last+1; k < j; k = k + 1 ) {
 		    if( t[k] ) {
-			throw new System.Exception( "AA failed to return T" + k );
+			throw new Exception( "AA failed to return T" + k );
 		    }
 		}
 		last = j;
@@ -431,7 +436,7 @@ namespace Gen {
 
 	    for( k = last+1; k < original_size; k = k + 1 ) {
 		if( t[k] ) {
-		    throw new System.Exception( "BB failed to return T" + k );
+		    throw new Exception( "BB failed to return T" + k );
 		}
 	    }
 	}

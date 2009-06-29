@@ -15,15 +15,22 @@ import exec;
 import threadpool;
 
 namespace Parse {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+
+    use Generic.Vector;
+
     use Gen.ILabel;
     use Gen.IString;
     use Gen.ITree;
     use Gen.Machine;
     use Gen.MBitSet;
     use Gen.TempFactory;
-    use Util.ThreadPool;
+    // use Util.ThreadPool;
 
-    class Template extends System.Object {
+    class Template extends Object {
 	public State[] saved_state;
 	public SymbolList[] saved_symbol;
 
@@ -38,11 +45,11 @@ namespace Parse {
 	}
     }
 
-    class WriteHashFile extends System.Object {
-	System.String file_name;
+    class WriteHashFile extends Object {
+	String file_name;
 	int hash;
 
-	void init( System.String file_name, int hash ) {
+	void init( String file_name, int hash ) {
 	    this.file_name = file_name;
 	    this.hash = hash;
 	}
@@ -57,7 +64,7 @@ namespace Parse {
 	    IO.File.rename( file_name + ".tmp", file_name + ".depend" );
 	}
 
-	static void write( Generic.Vector<WriteHashFile> hashes ) {
+	static void write( Vector<WriteHashFile> hashes ) {
 	    foreach( var f; hashes.elements() ) {
 		f.write();
 	    }
@@ -131,7 +138,7 @@ namespace Parse {
 	    class_def.compile2( state, c );
 	}
 
-	System.String toString() {
+	String toString() {
 	    return c.HumanName;
 	}
     }
@@ -158,7 +165,7 @@ namespace Parse {
     */
 
 
-    class ProcessPool extends System.Object {
+    class ProcessPool extends Object {
 	CompileState state;
 	int count;
 	int job_count;
@@ -190,7 +197,7 @@ namespace Parse {
 	   
 		// create the ticket number pipe:
 		if( cast int(native.pipe(fd.address)) != 0 ) {
-		    throw new System.Exception( "could not create pipe (" + cast int(native.__geterrno()) + ")" );		
+		    throw new Exception( "could not create pipe (" + cast int(native.__geterrno()) + ")" );		
 		}
 
 		// break the reade/write handles out of the newly created pipe:
@@ -225,7 +232,7 @@ namespace Parse {
 			return;
 		    } else if( r < 0w ) { 
 			// oops: fork failed:
-			throw new System.Exception( "fork failed" );
+			throw new Exception( "fork failed" );
 		    } else {
 			// save the worker process pid for debugging purposes:
 
@@ -283,7 +290,7 @@ namespace Parse {
 	    } else if( r == 0 ) {
 		return -1;
 	    } else {
-		throw new System.Exception( "unexpected result (" + r + ") reading pipe (" + cast int(native.__geterrno()) + ")" );		
+		throw new Exception( "unexpected result (" + r + ") reading pipe (" + cast int(native.__geterrno()) + ")" );		
 	    }		
 	}
 
@@ -320,7 +327,7 @@ namespace Parse {
 			}
 			count = count - 1;
 		    } else {
-			throw new System.Exception( "wait for child process failed: " + cast int(native.__geterrno()) );
+			throw new Exception( "wait for child process failed: " + cast int(native.__geterrno()) );
 		    }
 		}	   
 		
@@ -331,7 +338,7 @@ namespace Parse {
 	}
     }
 
-    class CompileState extends System.Object {
+    class CompileState extends Object {
         public const int
             UNSAFE_POINTER = 1,
             UNSAFE_CAST = 2,
@@ -352,23 +359,23 @@ namespace Parse {
         SymbolList master_class_list;
         SymbolTable symbol_table;
 
-	Generic.Vector<Template> generic_templates;
-	Generic.Vector<Container> generic_instances;
+	Vector<Template> generic_templates;
+	Vector<Container> generic_instances;
 
 	Generic.Set<Container> interfaces_set;
 
         NeedCompile need_compile;
 
-	Generic.Vector<WriteHashFile> write_hash_files;
+	Vector<WriteHashFile> write_hash_files;
 
-        Generic.Vector<Package> to_compile_list;
-        Generic.Vector<Container> to_build_tables_list;
+        Vector<Package> to_compile_list;
+        Vector<Container> to_build_tables_list;
 
-	Generic.Vector<System.String> libraries;
-        Generic.Set<System.String> to_link_set;
+	Vector<String> libraries;
+        Generic.Set<String> to_link_set;
 
-        Generic.Vector<System.String> search_path;
-        Generic.Vector<System.String> visited_files;
+        Vector<String> search_path;
+        Vector<String> visited_files;
 
 	int active_processes;
 
@@ -420,17 +427,17 @@ namespace Parse {
         
         int unsafe_flags;
 
-        System.String main_class_name;
-        System.String main_class_decorated;
-	System.String executable_name;
-	System.String project_name;
+        String main_class_name;
+        String main_class_decorated;
+	String executable_name;
+	String project_name;
 
         int exception_level;
 	ExceptionDescriptor[] exception;
 
-        System.String lcache_dir;
-        static System.String LIBRARY_DIR = "/usr/lang/lib/";
-        static System.String label_prefix = ".L";
+        String lcache_dir;
+        static String LIBRARY_DIR = "/usr/lang/lib/";
+        static String label_prefix = ".L";
         static bool one_file = false;
 
 	// ThreadPool pool;
@@ -491,19 +498,19 @@ namespace Parse {
             master_class_list = new SymbolList();
 
             need_compile = new NeedCompile(this);
-	    write_hash_files = new Generic.Vector<WriteHashFile>();
+	    write_hash_files = new Vector<WriteHashFile>();
 
-            to_build_tables_list = new Generic.Vector<Container>();
+            to_build_tables_list = new Vector<Container>();
 
-            to_compile_list = new Generic.Vector<Package>();
-	    libraries = new Generic.Vector<System.String>();
-            to_link_set = new Generic.Set<System.String>();
+            to_compile_list = new Vector<Package>();
+	    libraries = new Vector<String>();
+            to_link_set = new Generic.Set<String>();
 
-            visited_files = new Generic.Vector<System.String>();
-            search_path = new Generic.Vector<System.String>();
+            visited_files = new Vector<String>();
+            search_path = new Vector<String>();
 
-	    generic_templates = new Generic.Vector<Template>();
-	    generic_instances = new Generic.Vector<Container>();
+	    generic_templates = new Vector<Template>();
+	    generic_instances = new Vector<Container>();
 	 
 	    interfaces_set = new Generic.Set<Container>();
  
@@ -511,7 +518,7 @@ namespace Parse {
 	    if( instance == null ) {
 		instance = this;
 	    } else {
-		throw new System.Exception( "attempting to create second CompileState instance" );
+		throw new Exception( "attempting to create second CompileState instance" );
 	    }
 
 	    // pool = new ThreadPool(2);
@@ -530,7 +537,7 @@ namespace Parse {
 		    }			
 		    active_processes = active_processes - 1;
 		} else {
-		    throw new System.Exception( "oops: wait failed" );
+		    throw new Exception( "oops: wait failed" );
 		}
 	    }
 	}
@@ -559,27 +566,27 @@ namespace Parse {
 	    }
 	}
 
-	bool isSourceFileTrusted( System.String name ) {
+	bool isSourceFileTrusted( String name ) {
 	    return
 		name.startsWith( LIBRARY_DIR + "trusted/" ) ||
 		name.startsWith( LIBRARY_DIR + "safe/" );
 	}
 
-	static CompileState getInstance() {
-	    // IO.Std.err.println( "get instance is not thread safe, expect trouble: " + new System.Backtrace() );
+	static get CompileState Instance {
+	    // IO.Std.err.println( "get instance is not thread safe, expect trouble: " + new Backtrace() );
 	    return instance;
 	}
 
-	LoopStack getLoops() {
+	get LoopStack Loops {
 	    return loop_stack;
 	}
 
 	// FIXME: this is mad - stack top is level - 1
-	int getExceptionLevel() {
+	get int ExceptionLevel {
 	    return exception_level;
 	}
 
-	void setExceptionLevel( int l ) {
+	set int ExceptionLevel = l {
 	    exception_level = l;
 	}
 
@@ -587,11 +594,11 @@ namespace Parse {
 	    exception_level = 0;
 	}
 
-	ExceptionDescriptor getException(int n) {
+	get ExceptionDescriptor Exception[int n] {
 	    return exception[n];
 	}
 
-	void setException(int n, ExceptionDescriptor e) {
+	set ExceptionDescriptor Exception[int n] = e {
 	    exception[n] = e;
 	}
 
@@ -605,15 +612,15 @@ namespace Parse {
 	    return exception[exception_level];
 	}
 
-	ExceptionDescriptor getTopException() {
+	get ExceptionDescriptor TopException {
 	    return exception[exception_level-1];
 	}
 
-	bool getInExceptionHandler() {
+	get bool InExceptionHandler {
 	    return exception_level > 0;
 	}
 
-	ExceptionDescriptor getTopFinallyOrReturn() {
+	get ExceptionDescriptor TopFinallyOrReturn {
 	    for( int i = exception_level-1; i >= 0; i = i - 1 ) {
 		if( exception[i].type == EDType.CATCH_FINALLY ||
 		    exception[i].type == EDType.CATCH_RETURN ) {
@@ -624,15 +631,15 @@ namespace Parse {
 	    return null;
 	}
 
-	bool getInStaticInitializer() {
+	get bool InStaticInitializer {
 	    return in_static_initializer;
 	}
 
-	static bool getInChildProcess() {
+	static get bool InChildProcess {
 	    return in_child_process;
 	}
 
-	static void setInChildProcess( bool v ) {
+	static set bool InChildProcess = v {
 	    in_child_process = v;
 	}
 
@@ -644,11 +651,11 @@ namespace Parse {
 	    block_level = block_level - 1;
 	}
 
-	int getBlockLevel() {
+	get int BlockLevel {
 	    return block_level;
 	}
 
-	System.String getCacheDir() {
+	get String CacheDir {
 	    if( lcache_dir == null ) {
 		if( project_name != null ) {
 		    lcache_dir = "/tmp/lcache-" + project_name + "/";
@@ -661,11 +668,11 @@ namespace Parse {
 	}
 
 	// for debugging:
-	SymbolTable getSymbolTable() {
+	get SymbolTable SymbolTable {
 	    return symbol_table;
 	}
 	
-        void pushState( int s, System.String source_file_name ) {
+        void pushState( int s, String source_file_name ) {
             Container current_class, current_method;
 	    int warn_flags = WarnFlags;
             if( sp < 0 ) {
@@ -681,7 +688,7 @@ namespace Parse {
         }
 
         void pushState( int s, Container current_class, Container current_method ) {
-            System.String source_file_name;
+            String source_file_name;
 	    int warn_flags = WarnFlags;
             if( sp < 0 ) {
                 source_file_name = null;
@@ -694,23 +701,23 @@ namespace Parse {
             state[sp] = new State( s, current_class, current_method, source_file_name, warn_flags );
         }
 
-	CompilePass getPass() {
+	get CompilePass Pass {
 	    return pass;
 	}
 
-	void setPass( CompilePass p ) {
+	set CompilePass Pass = p {
 	    pass = p;
 	}
 
-	SymbolList[] getSymbolState() {
+	get SymbolList[] SymbolState {
 	    return symbol_table.SymbolState;
 	}
 
-	void setSymbolState( SymbolList[] s ) {
+	set SymbolList[] SymbolState = s {
 	    symbol_table.SymbolState = s;
 	}
 
-	State[] getSaveState() {
+	get State[] SaveState {
 	    // IO.Std.err.println( "get save state..." );
 
 	    state[sp].Output = output;
@@ -725,7 +732,7 @@ namespace Parse {
 	    return result;
 	}
 
-	void setSaveState( State[] s ) {
+	set State[] SaveState = s {
 	    state = new State[30];
 
 	    for( sp = 0; sp < s.length; sp = sp + 1 ) {
@@ -741,7 +748,7 @@ namespace Parse {
             sp = sp - 1;
         }
 
-        void addSearchPath( System.String p ) {
+        void addSearchPath( String p ) {
             if( p[ p.Length-1 ] != '/' ) {
                 p = p + '/';
             }
@@ -757,14 +764,14 @@ namespace Parse {
             to_compile_list.add( p );
         }
 
-	void addLibrary( System.String name ) {
+	void addLibrary( String name ) {
 	    if( WantVerbose ) {
 		ParseTree.message( "adding library: " + name );
 	    }
 	    libraries.add( name );
 	}
 
-        void addLinkFile( System.String name ) {
+        void addLinkFile( String name ) {
 	    // not sure why this is called repeatedly but avoid linking the same object file more than once:
 	    if( to_link_set.contains(name) ) {
       		return;
@@ -772,7 +779,7 @@ namespace Parse {
             to_link_set.add( name );
         }
 
-        void addHashFile( System.String file_name, int hash ) {
+        void addHashFile( String file_name, int hash ) {
             write_hash_files.add( new WriteHashFile(lcache_dir + file_name, hash) );
         }
 
@@ -941,7 +948,7 @@ namespace Parse {
 		ParseTree.message( "compiling methods..." );
 	    }
 
-            for( i = 0; i < to_compile_list.getLength(); i = i + 1 ) {
+            for( i = 0; i < to_compile_list.Length; i = i + 1 ) {
                 p = cast<Package>(to_compile_list[i]);
                 p.compile( this );
             }
@@ -990,10 +997,10 @@ namespace Parse {
         }
 
 	void linkObjectFiles() {
-	    System.StringBuffer b = new System.StringBuffer();
+	    StringBuffer b = new StringBuffer();
 
 	    var p = new Util.Process();
-	    var v = new Generic.Vector<System.String>();
+	    var v = new Vector<String>();
 	    // IO.Std.err.println( "going to link. output: '" + executable_name + "'" );
 	    v.add( "gcc" );
 	    v.add( Machine.GCC_SWITCH );
@@ -1005,7 +1012,7 @@ namespace Parse {
 	    v.add( "-o" );
 	    v.add( executable_name );
 	    v.add( LIBRARY_DIR + "lrt-" + Machine.NAME + ".o" );
-	    foreach( System.String s; to_link_set.elements() ) {
+	    foreach( String s; to_link_set.elements() ) {
 		v.add( s );
 	    }
 	    // v.add( "-nostartfiles" );
@@ -1013,31 +1020,31 @@ namespace Parse {
 	    v.add( "-lgc" );
 	    v.add( "-ldl" );
 
-	    foreach( System.String t; libraries.elements() ) {
+	    foreach( String t; libraries.elements() ) {
 		if( t.endsWith(".o") ) {
 		    v.add( t ); 
 		} else {
 		    v.add( "-l" + t );
 		}
 	    }
-	    System.String[] args = new System.String[v.Length];
+	    String[] args = new String[v.Length];
 	    for( int i = 0; i < v.Length; i = i + 1 ) {
 		b.append( v[i] );
 		b.append( ' ' );
-		args[i] = cast<System.String>(v[i]);
+		args[i] = cast<String>(v[i]);
 	    }
 
 	    // IO.Std.err.println( "linking: " + b );
 		
 	    int result = p.run( "gcc", args );
 	    if( result != 0 ) {
-		throw new System.Exception( "link failed with exit status " + result );
+		throw new Exception( "link failed with exit status " + result );
 	    }
 	}
 
-        bool haveVisitedFile( System.String name ) {
+        bool haveVisitedFile( String name ) {
 	    // IO.Std.err.println( "have visited file " + name + "?" );
-            foreach( System.String s; visited_files.elements() ) {
+            foreach( String s; visited_files.elements() ) {
 		// IO.Std.err.println( "checking: " + s );
                 if( name.equals(s) ) {
 		    // IO.Std.err.println( "yes" );
@@ -1048,9 +1055,9 @@ namespace Parse {
             return false;
         }
 
-	IO.Reader tryOpen( System.String dir, System.String ref file_name, System.String extension ) {
+	IO.Reader tryOpen( String dir, String ref file_name, String extension ) {
 	    try {
-		System.String open_file_name = dir + file_name + extension;
+		String open_file_name = dir + file_name + extension;
 
 		// IO.Std.err.println( "try open: " + open_file_name );
 		IO.Reader in = IO.File.openRead( open_file_name );
@@ -1065,7 +1072,7 @@ namespace Parse {
 	    }
 	}
 
-        bool visitFile( System.String name ) {
+        bool visitFile( String name ) {
             if( haveVisitedFile( name ) ) {
                 return false;
             }
@@ -1075,16 +1082,16 @@ namespace Parse {
 
             visited_files.add( name );
 
-            System.String file_name;
+            String file_name;
             IO.Reader in = null;
-	    Generic.Vector<System.String> search = search_path;
+	    Vector<String> search = search_path;
 
 	    if( name[0] == '/' ) {
-		search = new Generic.Vector<System.String>();
+		search = new Vector<String>();
 		search.add( "" );
 	    }
 
-            foreach( System.String s; search.elements() ) {
+            foreach( String s; search.elements() ) {
 		if( !s.endsWith('/') ) {
 		    s = s + '/';
 		}
@@ -1105,33 +1112,33 @@ namespace Parse {
             }
 
             if( in == null ) {
-                throw new System.Exception( "could not open input file " + name + " in any of " + search + " lcache: " + this.CacheDir );
+                throw new Exception( "could not open input file " + name + " in any of " + search + " lcache: " + this.CacheDir );
             }
 
             parseFile( file_name, in );
             return true;
         }
 
-	void setExecutableName( System.String s ) {
+	set String ExecutableName = s {
 	    executable_name = s;
 	}
 
-	System.String getExecutableName() {
+	get String ExecutableName {
 	    return executable_name;
 	}
 
-	void setProjectName( System.String s ) {
+	set String ProjectName = s {
 	    project_name = s;
 	}
 
-        bool needCompile( System.String source_name, System.String class_name, int hash ) {
+        bool needCompile( String source_name, String class_name, int hash ) {
             bool result = need_compile.needCompile( source_name, class_name, hash );
 
 	    // IO.Std.err.println( "need compile " + source_name + ": " + class_name + ": " + result );
 	    return result;
         }
 
-        void parseFile( System.String file_name, IO.Reader f ) {
+        void parseFile( String file_name, IO.Reader f ) {
 	    if( WantVeryVerbose ) {
 		ParseTree.message( "parse file: " + file_name );
 	    }
@@ -1140,13 +1147,13 @@ namespace Parse {
 
 
 	/*
-        void addAssemblerFile( System.String s ) {
+        void addAssemblerFile( String s ) {
             to_assemble_list.add( s );
         }
 	*/
 
-        void catAssemblerFile( System.String f ) {
-            throw new System.Exception( "implement me!" );
+        void catAssemblerFile( String f ) {
+            throw new Exception( "implement me!" );
         }
 
 	void markAddressTaken( int offset ) {
@@ -1155,18 +1162,18 @@ namespace Parse {
 	    } else if( State == STATE_INSIDE_METHOD ) {
 		CurrentMethod.markAddressTaken( offset );
 	    } else {
-		throw new System.Exception( "mark address taken " + offset + " from unexpected state " + State );
+		throw new Exception( "mark address taken " + offset + " from unexpected state " + State );
 	    }
 	}
 
-	Gen.MBitSet getAddressesTaken() {
+	get Gen.MBitSet AddressesTaken {
 	    Gen.MBitSet result;
 	    if( State == STATE_INSIDE_CLASS ) { 
 		result = CurrentClass.AddressesTaken;
 	    } else if( State == STATE_INSIDE_METHOD ) {
 		result = CurrentMethod.AddressesTaken;
 	    } else {
-		throw new System.Exception( "get addresses taken from unexpected state " + State );
+		throw new Exception( "get addresses taken from unexpected state " + State );
 	    }
 	    /*
 	    if( result != null ) {
@@ -1176,7 +1183,7 @@ namespace Parse {
 	    return result;
 	}
 
-        void beginPackage( System.String source_file_name, SymbolList n ) {
+        void beginPackage( String source_file_name, SymbolList n ) {
 	    // IO.Std.err.println( "begin package: " + source_file_name + ", " + this );
             pushState( STATE_OUTSIDE_CLASS, source_file_name );
             
@@ -1196,7 +1203,7 @@ namespace Parse {
         }
 
 
-	Container nextMethodByIndex(System.String name) {
+	Container nextMethodByIndex(String name) {
 	    Container c = this.CurrentClass;
 	    // IO.Std.err.println( "next method by index " + name + " from " + c );
 	    if( c == null ) {
@@ -1206,7 +1213,7 @@ namespace Parse {
 	    return c.nextMethodByIndex(name);
 	}
 
-        Container declareNameSpace( ParseTree from, System.String name ) {
+        Container declareNameSpace( ParseTree from, String name ) {
             Symbol symbol = findSymbol( name, Symbol.FIND_TYPE );
             Container class_symbol = null;
             
@@ -1239,13 +1246,13 @@ namespace Parse {
 	    // int ignore = State;
 
             if( this.State > STATE_INSIDE_NAMESPACE ) {
-                throw new System.Exception( "oops: beginParseNameSpace from state " + getState );
+                throw new Exception( "oops: beginParseNameSpace from state " + State );
             }
             
             // alloc_direction = 1;
             
             if( n.Kind != Symbol.NAMESPACE ) {
-                throw new System.Exception( "oops: redefining symbol " + n.Name + " as namespace" );
+                throw new Exception( "oops: redefining symbol " + n.Name + " as namespace" );
             }
             
             
@@ -1257,7 +1264,7 @@ namespace Parse {
 
         void exitNameSpace( Container n ) {
             if( n != CurrentClass ) {
-                throw new System.Exception( "oops: misnested namespace " + n.Name + " != " + CurrentClass.Name );
+                throw new Exception( "oops: misnested namespace " + n.Name + " != " + CurrentClass.Name );
             }
             
             CurrentClass.SymbolList = symbol_table.CurrentScope;
@@ -1267,14 +1274,14 @@ namespace Parse {
         
         void enterClass( Container c ) {
             if( this.State > STATE_INSIDE_CLASS ) {
-                throw new System.Exception( "oops: beginParseNameSpace from state " + this.State );
+                throw new Exception( "oops: beginParseNameSpace from state " + this.State );
                 return;
             }
             
             // alloc_direction = 1;
 
             if( c.Kind != Symbol.CLASS ) {
-                throw new System.Exception( "oops: redefining symbol " + c.Name + " as class" );
+                throw new Exception( "oops: redefining symbol " + c.Name + " as class" );
                 return;
             }
 
@@ -1287,7 +1294,7 @@ namespace Parse {
 
         void exitClass( Container c ) {
             if( c != CurrentClass ) {
-                throw new System.Exception( "oops: mis-nested classes\n" );
+                throw new Exception( "oops: mis-nested classes\n" );
             }
             
             // fprintf( stderr, "exit class %s scope %p/%p\n", c.getQualifiedName(), c.getScope(), symbol_table.getCurrentScope() );
@@ -1306,8 +1313,8 @@ namespace Parse {
 	    }
         }
 
-        void openOutput( System.String name, bool append ) {
-            System.StringBuffer buffer = new System.StringBuffer();
+        void openOutput( String name, bool append ) {
+            StringBuffer buffer = new StringBuffer();
 
             int hash = Util.Hash.hash( name );
             label_prefix = "" + hash;
@@ -1336,9 +1343,10 @@ namespace Parse {
             }
         }
 
-        void removeOutput( System.String name ) {
+        void removeOutput( String name ) {
+	    // FIXME: what are we trying to do here?
             if( one_file ) {
-                System.StringBuffer buffer = new System.StringBuffer();
+                StringBuffer buffer = new StringBuffer();
                 
                 buffer.append( this.CacheDir );
                 buffer.append( name );
@@ -1351,8 +1359,8 @@ namespace Parse {
             }
         }
 
-	System.String getObjectFileName( System.String name, System.String extension ) {
-            System.StringBuffer file = new System.StringBuffer();
+	String getObjectFileName( String name, String extension ) {
+            StringBuffer file = new StringBuffer();
 	    
 	    file.append( CacheDir );
 	    file.append( name );
@@ -1362,9 +1370,9 @@ namespace Parse {
 	}
 
         
-        void assembleFile( System.String name ) {
-            System.String assembler_file = getObjectFileName( name, ".s" );
-	    System.String object_file = getObjectFileName( name, ".o" );
+        void assembleFile( String name ) {
+            String assembler_file = getObjectFileName( name, ".s" );
+	    String object_file = getObjectFileName( name, ".o" );
             
 	    if( WantVeryVerbose ) {
 		ParseTree.message( "assemble file: " + name );
@@ -1373,17 +1381,17 @@ namespace Parse {
             closeOutput();
             
 	    Util.Process assembler = new Util.Process();
-	    int result = assembler.run( "/usr/bin/as", System.String { "/usr/bin/as", Machine.AS_SWITCH, cast<System.String>(assembler_file), "-o", object_file }, null);
+	    int result = assembler.run( "/usr/bin/as", String { "/usr/bin/as", Machine.AS_SWITCH, cast<String>(assembler_file), "-o", object_file }, null);
 	    if( result != 0 ) {
-		throw new System.Exception( "assembly of file " + assembler_file + " failed with exit status " + result );
+		throw new Exception( "assembly of file " + assembler_file + " failed with exit status " + result );
 	    }
         }
 
-        void dumpActiveClasses( System.String name ) {
+        void dumpActiveClasses( String name ) {
             IO.Writer wb = null;
             
             if( name != null ) {
-                System.StringBuffer buffer = new System.StringBuffer();
+                StringBuffer buffer = new StringBuffer();
                 buffer.append( this.CacheDir );
                 buffer.append( name );
                 buffer.append( ".tmp" );
@@ -1400,7 +1408,7 @@ namespace Parse {
 	    return interfaces_set;
 	}
 
-	System.String getMainClassNameDecorated() {
+	get String MainClassNameDecorated {
 	    return main_class_decorated;
 	}
 
@@ -1411,7 +1419,7 @@ namespace Parse {
             }
         }
 
-        IO.Writer getOutput() {
+        get IO.Writer Output {
             if( output != null ) {
                 return output;
             } else {
@@ -1420,7 +1428,7 @@ namespace Parse {
         }
 
 	
-        Symbol declareSymbol( ParseTree from, Container owner, System.String name, int kind, int access, int defined, Type type ) {
+        Symbol declareSymbol( ParseTree from, Container owner, String name, int kind, int access, int defined, Type type ) {
             Symbol existing = symbol_table.findInCurrentScope( name, Symbol.FIND_ANY );
             
             if( existing != null && kind & Symbol.FLAG_METHOD == 0 ) {
@@ -1445,7 +1453,7 @@ namespace Parse {
                 if( this.State == STATE_INSIDE_METHOD ) {
                     Container current_method = CurrentMethod;
                     if( current_method == null ) {
-                        throw new System.Exception( "oops: current method is null" );
+                        throw new Exception( "oops: current method is null" );
                     }
 		    
 		    int k = kind;
@@ -1457,14 +1465,14 @@ namespace Parse {
                     symbol.setAddress( address );
                     // IO.Std.err.println( "allocated symbol: " + symbol + ", address: " + symbol.getAddress() );
                 } else if( this.State != STATE_INSIDE_CLASS ) {
-                    throw new System.Exception( "oops: unexpected compile state (" + this.State + ") when declaring symbol" );
+                    throw new Exception( "oops: unexpected compile state (" + this.State + ") when declaring symbol" );
                 }
                 
                 return symbol;
             }
         }
 
-        Symbol declareVariable( ParseTree from, System.String name, int flags, int access, Type type ) {
+        Symbol declareVariable( ParseTree from, String name, int flags, int access, Type type ) {
             flags = flags & ~Symbol.FLAG_METHOD;
             if( flags != Symbol.CONST ) {
                 flags = flags | Symbol.FLAG_VARIABLE;
@@ -1492,12 +1500,12 @@ namespace Parse {
 
                 return declareSymbol( from, CurrentMethod, name, flags, access, d, type );
             } else {
-                throw new System.Exception( "oops: cannot declare symbol " + name + " of kind K" + flags + " in state " + this.State );
+                throw new Exception( "oops: cannot declare symbol " + name + " of kind K" + flags + " in state " + this.State );
                 return null;
             }   
         }
 
-	Symbol declareAccessor( ParseTree from, System.String name, System.String because ) {
+	Symbol declareAccessor( ParseTree from, String name, String because ) {
 	    Symbol symbol = null;
 	    if( this.State != STATE_INSIDE_CLASS ) {
 		from.error( "cannot define accessor " + name + " here" );
@@ -1526,12 +1534,12 @@ namespace Parse {
 
         Symbol declareMethod(
 	    ParseTree from,
-	    System.String name,
+	    String name,
 	    int flags, 
 	    int access, 
 	    Type type, 
-	    Generic.Vector<Type> arguments,
-	    System.String decorate )
+	    Vector<Type> arguments,
+	    String decorate )
 	{
             flags = flags | Symbol.FLAG_METHOD | Symbol.FLAG_CLASS;
 
@@ -1547,8 +1555,8 @@ namespace Parse {
             Container override = current_class.findMethod( name, arguments, false );
             if( override != null ) {
                 if( !override.matches( arguments, true ) ) {
-                    System.String this_args = ParseTree.dumpArguments( arguments );
-                    System.String that_args = ParseTree.dumpArguments( override.ArgTypes );
+                    String this_args = ParseTree.dumpArguments( arguments );
+                    String that_args = ParseTree.dumpArguments( override.ArgTypes );
 		    if( WantWarnHide ) {
 			if( override.Owner == current_class.Owner) {
 			    from.warn( "method " + name + "(" + this_args + ") could hide " + override.Owner.HumanName + "." + name + "(" + that_args + ")" );                        
@@ -1573,8 +1581,8 @@ namespace Parse {
             return symbol;
         }
 
-        System.String getNameSpaceQualifiers( System.String class_name ) {
-            System.StringBuffer b = new System.StringBuffer();
+        String getNameSpaceQualifiers( String class_name ) {
+            StringBuffer b = new StringBuffer();
             
             for( int i = 0; i <= sp; i = i + 1 ) {
                 if( state[i].State == STATE_INSIDE_NAMESPACE ) {
@@ -1589,8 +1597,8 @@ namespace Parse {
         }
 
 
-        System.String getNameSpaceDecorated( System.String class_name ) {
-            System.StringBuffer b = new System.StringBuffer();
+        String getNameSpaceDecorated( String class_name ) {
+            StringBuffer b = new StringBuffer();
             
             int qualifier_count = 0;
             int i;
@@ -1619,8 +1627,8 @@ namespace Parse {
             
             for( i = 0; i <= sp; i = i + 1 ) {
                 if( state[i].State == STATE_INSIDE_NAMESPACE ) {
-                    System.String s = state[i].CurrentClass.Name;
-                    b.append( s.getLength() );
+                    String s = state[i].CurrentClass.Name;
+                    b.append( s.Length );
                     b.append( s );
                 }
             }
@@ -1631,7 +1639,7 @@ namespace Parse {
             return b;
         }
         
-        Container declareClass( ParseTree from, Container parent, Container owner, System.String name, int access, bool allow_redefine ) {
+        Container declareClass( ParseTree from, Container parent, Container owner, String name, int access, bool allow_redefine ) {
             Container class_symbol = null;
             Symbol symbol = symbol_table.findInCurrentScope( name, Symbol.FIND_ANY );
             
@@ -1690,16 +1698,16 @@ namespace Parse {
 
         void middleParseClass( Container c ) {
             if( this.State != STATE_INSIDE_CLASS ) {
-                throw new System.Exception( "oops: middleParseClass but not STATE_INSIDE_CLASS" );
+                throw new Exception( "oops: middleParseClass but not STATE_INSIDE_CLASS" );
             }
             
             if( CurrentClass != c ) {
-                throw new System.Exception( "oops: middleParseClass but current class doesn't match" );
+                throw new Exception( "oops: middleParseClass but current class doesn't match" );
                 return;
             }
             
             if( c == null ) {
-                throw new System.Exception( "oops: middleParseClass but current class is null" );
+                throw new Exception( "oops: middleParseClass but current class is null" );
             }
             
             
@@ -1728,13 +1736,13 @@ namespace Parse {
 
         void beginParseEnum( ParseTree from, Container enum_symbol ) {
             if( this.State > STATE_INSIDE_CLASS ) {
-                throw new System.Exception( "oops: beginParseEnum from state " + this.State );
+                throw new Exception( "oops: beginParseEnum from state " + this.State );
             }
             
             alloc_direction = 1;
             
             if( enum_symbol == null ) {
-                throw new System.Exception( "oops: missing enum" );
+                throw new Exception( "oops: missing enum" );
             }
             
             if( !enum_symbol.NeedsBody ) {
@@ -1750,7 +1758,7 @@ namespace Parse {
         
         void endParseEnum() {
             if( this.State != STATE_INSIDE_CLASS ) {
-                throw new System.Exception( "oops: endParseEnum but not STATE_INSIDE_CLASS" );
+                throw new Exception( "oops: endParseEnum but not STATE_INSIDE_CLASS" );
             }
             
             symbol_table.exitScope();
@@ -1758,12 +1766,12 @@ namespace Parse {
             closeOutput();
         }
 
-        void declareEnumMember( ParseTree from, System.String name, int value ) {
+        void declareEnumMember( ParseTree from, String name, int value ) {
             Container enum_symbol = CurrentClass;
             Symbol symbol = symbol_table.findInCurrentScope( name, Symbol.FIND_ANY );
             
             if( enum_symbol == null ) {
-                throw new System.Exception( "oops: declaring enum member " + name + " outside any enum" );
+                throw new Exception( "oops: declaring enum member " + name + " outside any enum" );
             }
             
             if( symbol != null ) {
@@ -1776,7 +1784,7 @@ namespace Parse {
             symbol.setAddress( value );
         }
 
-        Container declareEnum( ParseTree from, System.String name, int access ) {
+        Container declareEnum( ParseTree from, String name, int access ) {
             Container enum_symbol = null;
             Symbol symbol = symbol_table.findInCurrentScope( name, Symbol.FIND_ANY );
             
@@ -1810,7 +1818,7 @@ namespace Parse {
         }
 
 
-        Container declareType( ParseTree from, System.String name, int access, Type type ) {
+        Container declareType( ParseTree from, String name, int access, Type type ) {
             Container type_symbol = null;
             Symbol symbol = symbol_table.findInCurrentScope( name, Symbol.FIND_ANY );
             
@@ -1827,7 +1835,7 @@ namespace Parse {
                
                 type_symbol = new Container( null, owner, name, Symbol.TYPE, access, null );
 
-		// IO.Std.err.println( "defined type, kind is: " + type_symbol.Kind + " (0x" + System.String.hex(type_symbol.Kind) + ")" );
+		// IO.Std.err.println( "defined type, kind is: " + type_symbol.Kind + " (0x" + String.hex(type_symbol.Kind) + ")" );
                 
                 type_symbol.setType( type );
                 type_symbol.setDefined( 1 );
@@ -1849,15 +1857,15 @@ namespace Parse {
             }
         }
   
-        void beginParseClass( ParseTree from, Container parent, Container class_symbol, System.String name ) {
+        void beginParseClass( ParseTree from, Container parent, Container class_symbol, String name ) {
             if( this.State > STATE_INSIDE_NAMESPACE ) {
-                throw new System.Exception( "oops: beginParseClass from state " + this.State );
+                throw new Exception( "oops: beginParseClass from state " + this.State );
             }
             
             alloc_direction = 1;
             
             if( class_symbol == null ) {
-                throw new System.Exception( "missing class " + name );
+                throw new Exception( "missing class " + name );
             }
             
             if( !class_symbol.NeedsBody ) {
@@ -1883,16 +1891,16 @@ namespace Parse {
 
         void endParseClass( Container c ) {
             if( this.State != STATE_INSIDE_CLASS ) {
-                throw new System.Exception( "oops: endParseClass but not STATE_INSIDE_CLASS" );
+                throw new Exception( "oops: endParseClass but not STATE_INSIDE_CLASS" );
             }
             
             popState();
             closeOutput();
         }
         
-        void beginCompileClass( ParseTree from, Container class_symbol, System.String name ) {
+        void beginCompileClass( ParseTree from, Container class_symbol, String name ) {
             if( class_symbol == null ) {
-                throw new System.Exception( "oops: cannot compile body for undefined class " + name );
+                throw new Exception( "oops: cannot compile body for undefined class " + name );
             }
             
             if( class_symbol.Kind == Symbol.CLASS ) {
@@ -1902,7 +1910,7 @@ namespace Parse {
                 
                 pushState( STATE_INSIDE_CLASS, current_class, null );
             } else {
-                throw new System.Exception( "oops: cannot compile body for non-class symbol " + name );
+                throw new Exception( "oops: cannot compile body for non-class symbol " + name );
             }
             
             unsafe_flags = 0;
@@ -1921,7 +1929,7 @@ namespace Parse {
 	}
 	*/
 
-        int getUnsafeFlags() {
+        get int UnsafeFlags {
             return unsafe_flags;
         }
         
@@ -1931,15 +1939,15 @@ namespace Parse {
             closeOutput();
         }
         
-        void beginCompileMethod( ParseTree from, Container method_class, System.String decorated_name ) {
+        void beginCompileMethod( ParseTree from, Container method_class, String decorated_name ) {
             if( this.State > STATE_INSIDE_CLASS ) {
-                throw new System.Exception( "oops: trying to beginCompileMethod: " + decorated_name + " from compile state " + this.State );
+                throw new Exception( "oops: trying to beginCompileMethod: " + decorated_name + " from compile state " + this.State );
             }
             
             if( method_class == null ) {
-                throw new System.Exception( "oops: cannot compile body for undefined method " + decorated_name );
+                throw new Exception( "oops: cannot compile body for undefined method " + decorated_name );
             } else if( method_class.Kind & Symbol.FLAG_METHOD == 0 ) {
-                throw new System.Exception( "oops: redefining symbol " + decorated_name + " as method" );
+                throw new Exception( "oops: redefining symbol " + decorated_name + " as method" );
             }
             
             alloc_direction = 1;
@@ -1976,7 +1984,7 @@ namespace Parse {
     
         void beginParseMethodArgs( ParseTree from, Container method ) {
             if( this.State != STATE_INSIDE_CLASS ) {
-                throw new System.Exception( "oops: trying to beginParseMethodArgs from compile state " + this.State );
+                throw new Exception( "oops: trying to beginParseMethodArgs from compile state " + this.State );
             }
             symbol_table.enterScope();
             
@@ -1993,7 +2001,7 @@ namespace Parse {
 
         void endParseMethodArgs( Container method ) {
             if( this.State != STATE_INSIDE_METHOD ) {
-                throw new System.Exception( "oops: trying to endParseMethodArgs from compile state " + this.State );
+                throw new Exception( "oops: trying to endParseMethodArgs from compile state " + this.State );
             }
             
             alloc_direction = 1;
@@ -2023,7 +2031,7 @@ namespace Parse {
 	    generic_templates.add( new Template( saved_state, saved_symbol, clazz, def ) );
 	}
 
-	Type findGeneric( Container c, Generic.Vector<Type> arguments, bool find_only ) {
+	Type findGeneric( Container c, Vector<Type> arguments, bool find_only ) {
 	    // IO.Std.err.println( "searching for instance of template " + c + " with arguments: " + arguments );
 
 	    if( c.Template != null ) {
@@ -2047,15 +2055,15 @@ namespace Parse {
 	    generic_instances.add( e );
 	    return new Type( Type.CLASS, e );
 	    //	    } else {
-	    //	throw new System.Exception( "cannot make new generic class " + c + " here" );
+	    //	throw new Exception( "cannot make new generic class " + c + " here" );
 	    //}
 	}
 
-	int getGenericInstanceCount() {
+	get int GenericInstanceCount {
 	    return generic_instances.Length;
 	}
 
-	Container makeConcrete( Container c, Generic.Vector<Type> arguments ) {
+	Container makeConcrete( Container c, Vector<Type> arguments ) {
 	    foreach( Template t; generic_templates.elements() ) {
 		if( t.clazz == c ) {
 		    State[] saved_state = this.SaveState;
@@ -2074,7 +2082,7 @@ namespace Parse {
 	    }
 	}
 
-        Symbol findSymbol( System.String name, int find_what ) {
+        Symbol findSymbol( String name, int find_what ) {
             Symbol result = null;
             
             // search order:
@@ -2119,11 +2127,11 @@ namespace Parse {
             // return result;
         }
 
-        Container findClass( System.String qualified_name ) {
+        Container findClass( String qualified_name ) {
             return cast<Container>(master_class_list.findQualified( qualified_name ));
         }
 
-        Container findMethod( System.String name, Generic.Vector<Type> arguments, bool exact ) {
+        Container findMethod( String name, Vector<Type> arguments, bool exact ) {
             // only classes can contain methods so search order is simply:
             //  current class and its superclasses
 
@@ -2137,7 +2145,7 @@ namespace Parse {
             return null;
         }
 
-        Container findBestMethod( System.String name, Generic.Vector<Type> arguments, Quality quality ) {
+        Container findBestMethod( String name, Vector<Type> arguments, Quality quality ) {
             // only classes can contain methods so search order is simply:
             //  current class and its superclasses
 
@@ -2150,7 +2158,7 @@ namespace Parse {
             return null;
         }
     
-        Symbol findDecoratedSymbol( System.String name ) {
+        Symbol findDecoratedSymbol( String name ) {
             Container current_class = CurrentClass;
             if( current_class != null ) {
                 return current_class.findDecoratedSymbol( name );
@@ -2160,55 +2168,55 @@ namespace Parse {
         }
         
 
-        Symbol findInCurrentScope( System.String name, int find_what ) {
+        Symbol findInCurrentScope( String name, int find_what ) {
             return symbol_table.findInCurrentScope( name, find_what );
         }
 
 
-        int getState() {
+        get int State {
             return state[sp].State;
         }
 
-	int getMaxInlineCount() {
+	get int MaxInlineCount {
 	    return max_inline_count;
 	}
 
-	void setMaxInlineCount( int m ) {
+	set int MaxInlineCount = m {
 	    max_inline_count = m;
 	}
 
-	static int getWantJobs() {
+	static get int WantJobs {
 	    return want_jobs;
 	}
 
-	static void setWantJobs( int j ) {
+	static set int WantJobs = j {
 	    this.want_jobs = j;
 	}
 
-	bool getWantSafe() {
+	get bool WantSafe {
 	    return want_safe;
 	}
 
-	void setWantSafe( bool v ) {
+	set bool WantSafe = v {
 	    want_safe = v;
 	}
 
-	bool getWantVerbose() {
+	get bool WantVerbose {
 	    return want_verbose;
 	}
 
-	void setWantVerbose( bool v ) {
+	set bool WantVerbose = v {
 	    if( !v ) {
 		want_very_verbose = false;
 	    }
 	    want_verbose = v;
 	}
 
-	bool getWantVeryVerbose() {
+	get bool WantVeryVerbose {
 	    return want_very_verbose;
 	}
 
-	void setWantVeryVerbose( bool v ) {
+	set bool WantVeryVerbose = v {
 	    if( v ) {
 		want_verbose = true;
 	    }
@@ -2216,15 +2224,15 @@ namespace Parse {
 	}
 
 
-	bool getWantPrint() {
+	get bool WantPrint {
 	    return want_print;
 	}
 
-	void setWantPrint( bool p ) {
+	set bool WantPrint = p {
 	    want_print = p;
 	}
 
-	void setWarnFlags( int bits ) {
+	set int WarnFlags = bits {
 	    if( sp < 0 ) {
 		default_warn_flags = bits;
 	    } else {
@@ -2232,7 +2240,7 @@ namespace Parse {
 	    }
 	}
 
-	int getWarnFlags() {
+	get int WarnFlags {
 	    if( sp < 0 ) {
 		return default_warn_flags;
 	    } else {
@@ -2240,8 +2248,7 @@ namespace Parse {
 	    }
 	}	    
 
-
-	void setWarnFlag( int number, bool v ) {
+	set bool WarnFlag[int number] = v {
 	    int warn_flags = WarnFlags;
 
 	    if( v ) {
@@ -2253,126 +2260,126 @@ namespace Parse {
 	    WarnFlags = warn_flags;
 	}
 
-	bool getWarnFlag( int number ) {
+	get bool WarnFlag[int number] {
 	    int warn_flags = WarnFlags;
 
 	    return warn_flags & (1 << number) != 0;
 	}
 
-	bool getWantWarnUnsafe() {
-	    return getWarnFlag(0);
+	get bool WantWarnUnsafe {
+	    return WarnFlag[0];
 	}
 
-	void setWantWarnUnsafe( bool w ) {
-	    setWarnFlag(0,w);
+	set bool WantWarnUnsafe = w {
+	    WarnFlag[0] = w;
 	}
 
-	bool getWantWarnHide() {
-	    return getWarnFlag(1);
+	get bool WantWarnHide {
+	    return WarnFlag[1];
 	}
 
-	void setWantWarnHide( bool w ) {
-	    setWarnFlag(1,w);
+	set bool WantWarnHide = w {
+	    WarnFlag[1] = w;
 	}
 
-	bool getWantWarnResolve() {
-	    return getWarnFlag(2);
+	get bool WantWarnResolve {
+	    return WarnFlag[2];
 	}
 
-	void setWantWarnResolve( bool w ) {
-	    setWarnFlag(2,w);
+	set bool WantWarnResolve = w {
+	    WarnFlag[2] = w;
 	}
 
-	bool getWantMarkUnsafe() {
+	get bool WantMarkUnsafe {
 	    // !trusted || want mark unsafe:
-	    return !getWarnFlag(4) || getWarnFlag(3);
+	    return !WarnFlag[4] || WarnFlag[3];
 	}
 
-	void setWantMarkUnsafe( bool w ) {
-	    setWarnFlag(3,w);
+	set bool WantMarkUnsafe = w {
+	    WarnFlag[3] = w;
 	}
 
-	bool getTrusted() {
-	    return getWarnFlag(4);
+	get bool Trusted {
+	    return WarnFlag[4];
 	}
 
-	void setTrusted( bool w ) {
-	    setWarnFlag(4,w);
+	set bool Trusted = w {
+	    WarnFlag[4] = w;
 	}
 
-	bool getWantLineNumbers() {
-	    return getWarnFlag(5);
+	get bool WantLineNumbers {
+	    return WarnFlag[5];
 	}
 
-	void setWantLineNumbers( bool v ) {
-	    setWarnFlag(5,v);
+	set bool WantLineNumbers = v {
+	    WarnFlag[5] = v;
 	}
 
-	bool getWantInline() {
+	get bool WantInline {
 	    // IO.Std.err.println( "want inline: " + want_inline );
 	    return want_inline;
 	}
 	
-	void setWantInline(bool i) {
+	set bool WantInline = i {
 	    want_inline = i;
 	}
 
-	bool getWantCoalesce() {
+	get bool WantCoalesce {
 	    // IO.Std.err.println( "want coalesce: " + want_coalesce );
 	    return want_coalesce;
 	}
 
-	void setWantCoalesce(bool c) {
+	set bool WantCoalesce = c {
 	    want_coalesce = c;
 	}
 
-	bool getWantRegVars() {
+	get bool WantRegVars {
 	    // IO.Std.err.println( "want reg vars: " + want_regvars );
 	    return want_regvars;
 	}
 
-	void setWantRegVars(bool v) {
+	set bool WantRegVars = v {
 	    want_regvars = v;
 	}
 
-	bool getWantReturnJumpElim() {
+	get bool WantReturnJumpElim {
 	    // IO.Std.err.println( "want return jump elimination: " + want_return_jump_elim );
 	    return want_return_jump_elim;
 	}
 
-	void setWantReturnJumpElim(bool r) {
+	set bool WantReturnJumpElim = r {
 	    want_return_jump_elim = r;
 	}
 	    
-	bool getWantSplitBounds() {
+	get bool WantSplitBounds {
 	    return want_split_bounds;
 	}
 
-	void setWantSplitBounds(bool b) {
+	set bool WantSplitBounds = b {
 	    want_split_bounds = b;
 	}
 
-	bool getWantCSE() {
+	get bool WantCSE {
 	    return want_cse;
 	}
 
-	void setWantCSE(bool c) {
+	set bool WantCSE = c {
 	    want_cse = c;
 	}
  
-	bool getIsInline() {
+	get bool IsInline {
 	    return state[sp].IsInline;
 	}
 
-	void setIsInline(bool b) {
+	set bool IsInline = b {
 	    state[sp].IsInline = b;
 	}
 
-	bool getInlineOK() {
+	get bool InlineOK {
 	    return state[sp].InlineOK;
 	}
 
-	void setInlineOK(bool b) {
+	set bool InlineOK = b {
 	    state[sp].InlineOK = b;
 	}
 
@@ -2382,32 +2389,32 @@ namespace Parse {
 	    }
 	}
 
-        System.String getCurrentClassName() {
+        get String CurrentClassName {
             return state[sp].CurrentClass.Name;
         }
 
-        System.String getCurrentSourceFileName() {
+        get String CurrentSourceFileName {
             // IO.Std.err.println( "current source file name: " + state[sp].getSourceFileName() );
             return state[sp].SourceFileName;
         }
 
-	SymbolList getUseList() {
+	get SymbolList UseList {
 	    return state[sp].UseList;
 	}
 
-	void setUseList( SymbolList u ) { 
+	set SymbolList UseList = u { 
 	    state[sp].UseList = u;
 	}
 
-        Container getCurrentClass() {
+        get Container CurrentClass {
             return state[sp].CurrentClass;
         }
 
-        Container getCurrentMethod() {
+        get Container CurrentMethod {
             return state[sp].CurrentMethod;
         }
     
-        Container getCurrentContext() {
+        get Container CurrentContext {
             Container context = CurrentMethod;
             if( context != null ) {
                 return context;
@@ -2421,7 +2428,7 @@ namespace Parse {
             return CurrentNameSpace;
         }
     
-        Container getCurrentNameSpace() {
+        get Container CurrentNameSpace {
             for( int i = sp; i >= 0; i = i - 1 ) {
                 if( state[i].State == STATE_INSIDE_NAMESPACE ) {
                     return state[i].CurrentClass;
@@ -2431,7 +2438,7 @@ namespace Parse {
             return null;
         }
 
-        ILabel getReturnLabel() {
+        get ILabel ReturnLabel {
 	    // IO.Std.err.println( "return label now: " + return_label );
             return return_label;
         }
@@ -2444,11 +2451,11 @@ namespace Parse {
         Container current_class;
         Container current_method;
 	SymbolList use_list; // saved symbol use list for template expansions
-        System.String source_file_name;
+        String source_file_name;
 	IO.Writer output;
 	int warn_flags;
 
-        void init( int s, Container c, Container m, System.String sfn, int wf ) {
+        void init( int s, Container c, Container m, String sfn, int wf ) {
             super.init();
             state = s;
             current_class = c;
@@ -2497,7 +2504,7 @@ namespace Parse {
             return current_method;
         }
 
-        System.String getSourceFileName() {
+        String getSourceFileName() {
             return source_file_name;
         }
 
@@ -2517,11 +2524,11 @@ namespace Parse {
 	    this.inline_ok = inline_ok;
 	}
 
-	void setWarnFlags( int wf ) {
+	set int WarnFlags = wf {
 	    warn_flags = wf;
 	}
 
-	int getWarnFlags() {
+	get int WarnFlags {
 	    return warn_flags;
 	}
     }

@@ -8,28 +8,32 @@ import machine;
 import mbitset;
 
 namespace Gen {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
 
     // Thrown if back end cannot compile intermediate code - usually because register allocation
     // failed. Front end can catch this and retry with less complex code:
-    class RegisterException extends System.Exception {
+    class RegisterException extends Exception {
 	int temp;
 	bool in_memory;
 
-	void init( System.String s, int t, bool m ) {
+	void init( String s, int t, bool m ) {
 	    super.init( s );
 	    temp = t;
 	    in_memory = m;
 	}
 
-	void init( System.String s ) {
+	void init( String s ) {
 	    init( s, 0, false );
 	}
 
-	public int getTemp() {
+	public get int Temp {
 	    return temp;
 	}
 
-	public bool getInMemory() {
+	public get bool InMemory {
 	    return in_memory;
 	}
     }
@@ -47,7 +51,7 @@ namespace Gen {
     }
 
     // table of available values for common sub-expression elimination - not currently used:
-    class MExpressionTable extends System.Object {
+    class MExpressionTable extends Object {
 	Util.Vector expressions;
 
 	void init() {
@@ -189,8 +193,8 @@ namespace Gen {
 		    i.Left.Dest.Temp != l || i.Left.Left.Temp != r ) {
 				
 		    i.makeCopy( into, i.Left.Size, l, r );
-		    System.String s = i.toString();
-		    i.makeComment( " SS CSE " + s.substring(0,s.getLength()-1) );		
+		    String s = i.toString();
+		    i.makeComment( " SS CSE " + s.substring(0,s.Length-1) );		
 		    
 		    // cache the copy:
 		    i = new MInst( new MMove( Op.COPY | ITree.getSizeMask(Machine.WORD), new MReg( l, MSet.General ), new MReg( r, MSet.General ) ) );
@@ -214,7 +218,7 @@ namespace Gen {
     }
 
     // represents a temporary referenced by a particular instruction
-    class MOperand extends System.Object {
+    class MOperand extends Object {
 	public int mode;    // how is this temporary used?
 	public int reg;     // what register is this temporary in for this instruction (0 == not yet assigned)
 	public int ssa_write;  // SSA number for temporary if written 
@@ -245,10 +249,10 @@ namespace Gen {
 		}
 	    }
 
-	    throw new System.Exception( "too many references (" + i + ") to operand: " + this );
+	    throw new Exception( "too many references (" + i + ") to operand: " + this );
 	}
 
-	static System.String setString(MSet s) {	    
+	static String setString(MSet s) {	    
 	    return Machine.getSetName(s);
 	}
 
@@ -318,7 +322,7 @@ namespace Gen {
 
 		// IO.Std.err.println( "mark live: " + this );
 
-                if( t != 0 && t < live.getLength() ) {
+                if( t != 0 && t < live.Length ) {
 
 		    // is this a definition of t and is t not currently live?
 		    if( mode & Mode.WRITE != 0 && !live[t] ) {
@@ -397,8 +401,8 @@ namespace Gen {
 	    }
 	}
 
-	System.String toString() {
-	    System.StringBuffer b = new System.StringBuffer();
+	String toString() {
+	    StringBuffer b = new StringBuffer();
 	    b.append( "[" );
 	    if( temp != 0 ) {
 		b.append( "T" + temp );
@@ -438,7 +442,7 @@ namespace Gen {
 
     // this describes a temporary that is a node in the temporary interference
     // graph during register allocation
-    class MCandidate extends System.Object {
+    class MCandidate extends Object {
         public int refs;           // weighted number of references to this temporary
 	public int cost;           // weighted number of clobbers by method calls of this temporary
         public int temp;           // temporary number
@@ -474,7 +478,7 @@ namespace Gen {
 	    // IO.Std.err.println( "T" + temp + " R" + reg + " set: " + cast<int>(s) + " mask: " + mask );
 	}
 
-	public int getMask() {
+	public get int Mask {
 	    return mask;
 	}
 
@@ -535,8 +539,8 @@ namespace Gen {
 			    " interferes with adjacent T" + d.temp + " in R" + d.reg );
 		    /*
 		      not an error on x86 - ebx interferes with callee preserve register set
-		    assert( d.rset != MSet.Preserve, "T" + temp + " in fixed R" + reg + " mask: " + System.String.hex(m) +
-			    " interferes with adjacent to T" + d.temp + " in preserve mask: " + System.String.hex(n) + " intersect: " + System.String.hex(n & m) );
+		    assert( d.rset != MSet.Preserve, "T" + temp + " in fixed R" + reg + " mask: " + String.hex(m) +
+			    " interferes with adjacent to T" + d.temp + " in preserve mask: " + String.hex(n) + " intersect: " + String.hex(n & m) );
 		    */
 		    // IO.Std.err.println( "count adjacent T" + d.temp );
 
@@ -607,14 +611,14 @@ namespace Gen {
 
 	    // FIXME: assuming no single registers overlap preserve class here - not case for i386 32-bit (ebx)
 	    if( count_mask != 0 ) {
-		// IO.Std.err.println( "at least one adjacent single reg " + System.String.hex(count_mask) + " counting them..." );
+		// IO.Std.err.println( "at least one adjacent single reg " + String.hex(count_mask) + " counting them..." );
 		m = 1;
 		l = 1 << Machine.LAST_MACHINE_REG;
 		
 		while( m <= l ) {
-		    //IO.Std.err.println( "count " + System.String.hex(m) );
+		    //IO.Std.err.println( "count " + String.hex(m) );
 		    if( count_mask & m != 0 ) {
-			// IO.Std.err.println( "counting mask: " + System.String.hex(m) );
+			// IO.Std.err.println( "counting mask: " + String.hex(m) );
 			cg = cg + 1;
 		    }
 		    m = m + m;
@@ -762,7 +766,7 @@ namespace Gen {
 	    */
 	}
 
-	MSet getSet() {
+	get MSet Set {
 	    return rset;
 	}
 
@@ -778,12 +782,12 @@ namespace Gen {
 	    clobber = 0;
 	}
 
-	int getClobber() {
+	get int Clobber {
 	    return clobber;
 	}
 
-	System.String toString( MBitSet removed ) {
-	    System.StringBuffer result = new System.StringBuffer( "T" );
+	String toString( MBitSet removed ) {
+	    StringBuffer result = new StringBuffer( "T" );
 	    result.append( temp );
 	    result.append( ':' );
 	    result.append(Machine.getSetName(rset));
@@ -805,7 +809,7 @@ namespace Gen {
 	}
 
 
-	System.String toString() {
+	String toString() {
 	    return toString(null);
 
 	    // return "[Candidate T" + temp + ":" + Machine.getSetName(set) + "\n  with refs " + refs + ", clobber cost " + cost + ", clobber " + clobber + ", range size: " + range + "]\n";
@@ -818,7 +822,7 @@ namespace Gen {
     class CompareCandidates extends Util.Compare {
 	public static CompareCandidates f = new CompareCandidates();
 
-        int compare( System.Object a, System.Object b ) {
+        int compare( Object a, Object b ) {
 	    MCandidate ma = cast<MCandidate>(a);
 	    MCandidate mb = cast<MCandidate>(b);
 
@@ -848,7 +852,7 @@ namespace Gen {
 
 
     // an edge in the control flow graph:
-    class MEdge extends System.Object {
+    class MEdge extends Object {
         int n;
         public MNode from;
         public MNode to;
@@ -861,13 +865,13 @@ namespace Gen {
         }
 
 
-	System.String toString() {
+	String toString() {
 	    return "MEdge(" + from.name[0] + "->" + to.name[0] + ")";
 	}
     }
 
     // holds the control flow graph used for register allocation:
-    class MFlow extends System.Object {
+    class MFlow extends Object {
         Util.Vector node;  // program order nodes
         Util.Vector edge;  // edges connecting basic blocks to their successors
 
@@ -939,7 +943,7 @@ namespace Gen {
 		foreach( MNode o; node.elements() ) {
 		    IO.Std.err.println( "node: " + o );
 		}
-		throw new System.Exception( "too many temporaries: " + size );
+		throw new Exception( "too many temporaries: " + size );
 	    }
 
 	    matrix = new MBitSet[size];
@@ -1160,12 +1164,12 @@ namespace Gen {
 	    MNode p, w, u, v;
 	    int i, k;
 
-	    if( node.getLength() == 0 ) {
+	    if( node.Length == 0 ) {
 		return null;
 	    }
 
 	    int number = 0;
-	    int count = node.getLength();
+	    int count = node.Length;
 
 	    MNode[] n = new MNode[count];
 
@@ -1196,12 +1200,12 @@ namespace Gen {
 	    MNode p, w, u, v;
 	    int i, k;
 
-	    if( node.getLength() == 0 ) {
+	    if( node.Length == 0 ) {
 		return;
 	    }
 
 	    int number = 0;
-	    int count = node.getLength();
+	    int count = node.Length;
 
 	    MNode[] n = new MNode[count];
 
@@ -1340,7 +1344,7 @@ namespace Gen {
 	    for( i = 0; i < count; i = i + 1 ) {
 		w = n[i];
 
-		w.children = new MNode[w.s.getLength()];
+		w.children = new MNode[w.s.Length];
 		k = 0;
 		foreach( MNode m; w.s.elements() ) {
 		    w.children[k] = m;
@@ -1356,7 +1360,7 @@ namespace Gen {
 	    int i, j, k;
 	    MNode x, y, z;
 
-	    if( node.getLength() == 0 ) {
+	    if( node.Length == 0 ) {
 		return;
 	    }
 
@@ -1412,7 +1416,7 @@ namespace Gen {
 		    }
 		}
 
-		x.domf = new MNode[x.s.getLength()];
+		x.domf = new MNode[x.s.Length];
 
 		j = 0;
 		foreach( MNode m; x.s.elements() ) {
@@ -1429,7 +1433,7 @@ namespace Gen {
 	    MNode x;
 	    int i, j;
 
-	    if( node.getLength() == 0 ) {
+	    if( node.Length == 0 ) {
 		IO.Std.err.println( "method is empty: no phi's to insert?" );
 		return;
 	    }
@@ -1472,7 +1476,7 @@ namespace Gen {
 		}
 
 
-		while( work.getLength() > 0 ) {
+		while( work.Length > 0 ) {
 		    x = cast<MNode>(work.pop());
 		    w.clear(x.dfn);
 
@@ -1517,7 +1521,7 @@ namespace Gen {
 	// set the SSA names for all temporaries (not currently used):
 	void calcSSANames() {
 	    // IO.Std.err.println( "calc SSA names..." );
-	    if( node.getLength() == 0 ) {
+	    if( node.Length == 0 ) {
 		// IO.Std.err.println( "empty method" );
 		return;
 	    }
@@ -1543,8 +1547,8 @@ namespace Gen {
 	// comment out phis that don't appear to be useful (not currently used):
 	void clearIneffectivePhis() {
 	    foreach( MNode n; node.elements() ) {
-		MInst next = n.getHead().next;
-		for( MInst i = n.getHead(); i != null; i = next ) {
+		MInst next = n.Head.next;
+		for( MInst i = n.Head; i != null; i = next ) {
 		    next = i.next;
 
 		    i.clearIneffectivePhi(n.bs_in);
@@ -1555,8 +1559,8 @@ namespace Gen {
 	// comment out all phis (not currently used):
 	void clearAllPhis() {
 	    foreach( MNode n; node.elements() ) {
-		MInst next = n.getHead().next;
-		for( MInst i = n.getHead(); i != null; i = next ) {
+		MInst next = n.Head.next;
+		for( MInst i = n.Head; i != null; i = next ) {
 		    next = i.next;
 		    i.clearPhi();
 		}
@@ -1683,7 +1687,7 @@ namespace Gen {
 			matrix[j].mark(i);
 		    } /* else if( !matrix[j][i] ) {
 			 IO.Std.err.println( "reflect arg!" );
-			 throw new System.Exception( "reflect arg!" );		    
+			 throw new Exception( "reflect arg!" );		    
 			 } */
 
 		}
@@ -1797,8 +1801,8 @@ namespace Gen {
 	    // IO.Std.err.println( "JJJJJJ: adjacent temporaries calculated" );
         }
 
-	System.String toString() {
-	    System.StringBuffer b = new System.StringBuffer();
+	String toString() {
+	    StringBuffer b = new StringBuffer();
 	    b.append( "MFlow: " );
 	    
 	    foreach( MEdge e; edge.elements() ) {
@@ -1956,7 +1960,7 @@ namespace Gen {
 			    
 			    // IO.Std.err.println( "coalesce T" + i + "<-T" + j );
 			    if( rename[j] != 0 ) {
-				throw new System.Exception( "oops: already intending rename: T" + rename[j] + "<-T" + j );
+				throw new Exception( "oops: already intending rename: T" + rename[j] + "<-T" + j );
 			    }
 
 			    // for debugging - stop after a specified number of copies coalesced:
@@ -2045,7 +2049,7 @@ namespace Gen {
 	    return 0;
 	}
 
-	void renameTemps( int[] t, int[] u, System.String why ) {
+	void renameTemps( int[] t, int[] u, String why ) {
 	    foreach( MNode n; node.elements() ) {
 		// IO.Std.err.println( "flow rename temp " + from + "->" + to );
 		n.renameTemps( t, u, why );
@@ -2190,7 +2194,7 @@ namespace Gen {
 	    }
 
 	    IO.Std.err.println( "failed to color: " + this );
-	    // throw new System.Exception( "failed to color" );
+	    // throw new Exception( "failed to color" );
 
 	    // return failure - caller can try again with less complex code:
 	    return false;
@@ -2200,6 +2204,8 @@ namespace Gen {
 	// convert 3-address instructions to machine instructions. Not currently used
 	// as input is machine code:
 	bool regen() {
+	    throw new Exception( "three address code broken" );
+	    /*
 	    bool result = false;
 	    ITree.AllowThreeAddress = false;
 	    Util.Vector list = new Util.Vector();
@@ -2210,6 +2216,7 @@ namespace Gen {
 	    }
 
 	    return result;
+	    */
 	}
 
 	void countInstructions(int cc) {
@@ -2225,16 +2232,16 @@ namespace Gen {
 
 	void dumpTemps() {
 
-	    if( node.getLength() == 0 ) {
+	    if( node.Length == 0 ) {
 		return;
 	    }
 	    MNode n = cast<MNode>(node[0]);
 
 	    for( int j = reg_cost.length - 1; j >= 0; j = j - 1 ) {
 		MCandidate c = reg_cost[j];
-		System.String s;
+		String s;
 		if( c != null && c.temp != 0 ) {
-		    System.String where = "";
+		    String where = "";
 		    int r = regs[c.temp];
 		    if( r != 0 ) {
 			where = "R" + r + " " + Machine.getRegName(r,Machine.WORD);
@@ -2245,7 +2252,7 @@ namespace Gen {
 		    s = "T" + c.temp + " in " + where + "," + cast<char>(9) + " refs: " + c.refs + ", clobbers: " + c.cost + ", range: " + c.range;
 
 		    MInst i = new MInst( new MData( Op.COMMENT, new MConst( s ) ) );
-		    n.getHead().insertAfter( n, i );
+		    n.Head.insertAfter( n, i );
 		}
 	    }
 	}
@@ -2283,10 +2290,10 @@ namespace Gen {
 		}
 
 		if( i.isJump() ) {
-		    current.name[1] = i.getLabel();
+		    current.name[1] = i.Label;
 		    // IO.Std.err.println( "jump: exit name 1 is " + current.name[1] );
 		} else if( i.isLabel() ) {
-		    current.name[0] = i.getLabel();
+		    current.name[0] = i.Label;
 		    // IO.Std.err.println( "label: exit name 0 is " + current.name[0] );
 		}
 		
@@ -2412,7 +2419,7 @@ namespace Gen {
 		    w.add( d );
 		}
 
-		c.adjacent = new MCandidate[w.getLength()];
+		c.adjacent = new MCandidate[w.Length];
 		j = 0;
 		foreach( MCandidate f; w.elements() ) {
 		    c.adjacent[j] = f;
@@ -2420,7 +2427,7 @@ namespace Gen {
 		}
 	    }
 
-	    MCandidate[] result = new MCandidate[v.getLength()];
+	    MCandidate[] result = new MCandidate[v.Length];
 	    MBitSet rr = new MBitSet(size);
 
 	    i = 0;
@@ -2471,7 +2478,7 @@ namespace Gen {
 
 	    /*
 		if( s == MSet.None ) {
-		throw new System.Exception( "register set change requires split: T" + d.temp );
+		throw new Exception( "register set change requires split: T" + d.temp );
 	    */
 		    /*
 		    // no one register can hold for entire lifetime - split at all single reg references
@@ -2562,7 +2569,7 @@ namespace Gen {
 				// IO.Std.err.println( "split now T" + t + ": " + split_now[t] );
 				// IO.Std.err.println( "split now T" + u + ": " + split_now[u] );
 
-				throw new System.Exception( "single reg temporaries interfere and both already splilled" );
+				throw new Exception( "single reg temporaries interfere and both already splilled" );
 			    }
 
 
@@ -2836,7 +2843,7 @@ namespace Gen {
 	    // remove colorable and then spilled nodes from their stacks and put into the 
 	    // assignment list in reverse of order removed from the graph:
 
-	    MCandidate[] result = new MCandidate[stack_reg.getLength() + stack_spill.getLength()];
+	    MCandidate[] result = new MCandidate[stack_reg.Length + stack_spill.Length];
 
 	    k = 0;
 	    foreach( MCandidate f; stack_reg.reverseElements() ) {
@@ -2871,10 +2878,10 @@ namespace Gen {
 		r = regs[d.temp];
 		
 		if( r > 0 ) {
-		    // IO.Std.err.println( "AAAAAA: full initially: " + System.String.hex(full) );
+		    // IO.Std.err.println( "AAAAAA: full initially: " + String.hex(full) );
 		    // IO.Std.err.println( "AAAAAA: adjacent R" + r + " is full" );
 		    full = full | (1 << r);
-		    // IO.Std.err.println( "AAAAAA: full now: " + System.String.hex(full) );
+		    // IO.Std.err.println( "AAAAAA: full now: " + String.hex(full) );
 		}
 	    }
 
@@ -2885,8 +2892,8 @@ namespace Gen {
 	int findFree( int free ) {
 	    int m = 1 << Machine.FIRST_MACHINE_REG;
 	    for( int j = Machine.FIRST_MACHINE_REG; j <= Machine.LAST_MACHINE_REG; j = j + 1 ) {
-		// IO.Std.err.println( "full R" + j + ": " + System.String.hex(full & m) );
-		// IO.Std.err.println( "mask R" + j + ": " + System.String.hex(s & m) );
+		// IO.Std.err.println( "full R" + j + ": " + String.hex(full & m) );
+		// IO.Std.err.println( "mask R" + j + ": " + String.hex(s & m) );
 			    
 		if( free & m != 0 ) {
 		    return j;
@@ -2968,7 +2975,7 @@ namespace Gen {
 		}
 		*/
 
-		// IO.Std.err.println( "available and suitable registers: " + System.String.hex(avail) );
+		// IO.Std.err.println( "available and suitable registers: " + String.hex(avail) );
 
 		// if at least one suitible register is available:
 		if( avail != 0 ) {
@@ -3015,8 +3022,8 @@ namespace Gen {
 
 				m = 1 << Machine.FIRST_MACHINE_REG;					
 				for( j = Machine.FIRST_MACHINE_REG; j <= Machine.LAST_MACHINE_REG; j = j + 1 ) {
-				    // IO.Std.err.println( "full R" + j + ": " + System.String.hex(full & m) );
-				    // IO.Std.err.println( "mask R" + j + ": " + System.String.hex(s & m) );
+				    // IO.Std.err.println( "full R" + j + ": " + String.hex(full & m) );
+				    // IO.Std.err.println( "mask R" + j + ": " + String.hex(s & m) );
 				    
 				    if( ml & m != 0 && full & m == 0 ) {
 					// IO.Std.err.println( "R" + j + " is free" );
@@ -3046,20 +3053,20 @@ namespace Gen {
 			// couldn't eliminate a copy. any available register from required set will do:
 			/*
 			IO.Std.err.println( "looking for a free register..." );
-			IO.Std.err.println( "full:     " + System.String.hex(full) );
+			IO.Std.err.println( "full:     " + String.hex(full) );
 			*/
 			m = 1 << Machine.FIRST_MACHINE_REG;			
 			for( j = Machine.FIRST_MACHINE_REG; j <= Machine.LAST_MACHINE_REG; j = j + 1 ) {
-			    // IO.Std.err.println( "full R" + j + ": " + System.String.hex(full & m) );
-			    // IO.Std.err.println( "mask R" + j + ": " + System.String.hex(s & m) );
+			    // IO.Std.err.println( "full R" + j + ": " + String.hex(full & m) );
+			    // IO.Std.err.println( "mask R" + j + ": " + String.hex(s & m) );
 			    
 			    if( avail & m != 0 ) {
 				// IO.Std.err.println( "R" + j + " is free" );
 				
 				// IO.Std.err.println( "" + c + "\nis in R" + j + " refs " + c.refs + "\n" );
 				// if( c.set != MSet.Param1 && j == Machine.R_ESI ) {
-				// IO.Std.err.println( "rsi because free. full: " + System.String.hex(full) + " versus ecx: " + Machine.M_ECX + "->" + System.String.hex(full & Machine.M_ECX) );
-				// IO.Std.err.println( "s: " + System.String.hex(s) + " versus ecx ->" + System.String.hex(m & Machine.M_ECX) ); 
+				// IO.Std.err.println( "rsi because free. full: " + String.hex(full) + " versus ecx: " + Machine.M_ECX + "->" + String.hex(full & Machine.M_ECX) );
+				// IO.Std.err.println( "s: " + String.hex(s) + " versus ecx ->" + String.hex(m & Machine.M_ECX) ); 
 				// }
 				reg = j;
 				break;
@@ -3081,7 +3088,7 @@ namespace Gen {
 			for( i = 0; i < c.adjacent.length; i = i + 1 ) {
 			    d = c.adjacent[i];
 			    u = d.temp;
-			    System.String rr = "";
+			    String rr = "";
 			    if( regs[u] > 0 ) {
 				full = full | (1 << regs[u]);
 				rr = "/R" + regs[u];
@@ -3091,10 +3098,10 @@ namespace Gen {
 			}
 			m = Machine.getMaskForSet(c.Set);
 
-			IO.Std.err.println( "mask:  " + System.String.hex(m));
-			IO.Std.err.println( "full:  " + System.String.hex(full) );
-			IO.Std.err.println( "free:  " + System.String.hex(m & ~full) );
-			IO.Std.err.println( "avail: " + System.String.hex(avail) ); 
+			IO.Std.err.println( "mask:  " + String.hex(m));
+			IO.Std.err.println( "full:  " + String.hex(full) );
+			IO.Std.err.println( "free:  " + String.hex(m & ~full) );
+			IO.Std.err.println( "avail: " + String.hex(avail) ); 
 
 			// IO.Std.err.println( "XXXXXX: expected to be able to color T" + t + " but no register free" );
 		    }
@@ -3387,7 +3394,7 @@ namespace Gen {
         public int weight;
         // int n;
         // int last_temp;
-        public System.String[] name;
+        public String[] name;
 
 	public Util.Vector s;
 	public MNode[] source; 
@@ -3429,7 +3436,7 @@ namespace Gen {
             is_visited = false;
             is_removed = false;
 
-            name = new System.String[MAX_NODE_TARGET];
+            name = new String[MAX_NODE_TARGET];
             target = new MNode[MAX_NODE_TARGET];
 
 	    initialize( size );
@@ -3488,7 +3495,7 @@ namespace Gen {
 		    return j;
 		}
 	    }
-	    throw new System.Exception( "node #" + y.dfn + " not source #" + this.dfn );
+	    throw new Exception( "node #" + y.dfn + " not source #" + this.dfn );
 	}
 
 
@@ -3520,13 +3527,13 @@ namespace Gen {
 		    // IO.Std.err.print( "try: " + i ); 
 		    if( i.isPhi() ) {
 			IO.Std.err.print( "fixup phi: " + i );
-			int t = i.getTemp();
+			int t = i.Temp;
 			if( !y.bs_in[t] ) {
 			    IO.Std.err.println( "target phi T" + t + " is probably pointless" );
 			}
 
 			if( s[t].Length > 0 ) {
-			    i.setTempName(v, s[t].getTop());
+			    i.TempName[v] = s[t].Top;
 			} else {
 			    IO.Std.err.println( "oops: empty stack for T" + t + ": may not be live here?" );
 			}
@@ -3561,7 +3568,7 @@ namespace Gen {
 			MInst s = new MInst(
 					    new MMove( Op.COPY_8,
 						       new MReg( i.getOperand(0).temp, MSet.General ),
-						       new MReg( i.getOperand(0).temp, MSet.General )  // i.Left.getTempName(j), MSet.General )
+						       new MReg( i.getOperand(0).temp, MSet.General )  // i.Left.TempName[j], MSet.General )
 						       )
 					    );
 			s.initOperands();
@@ -3574,12 +3581,12 @@ namespace Gen {
 	void depthFirstSearch( int ref number, MNode[] nodes ) {
 	    if( this == null ) {
 		IO.Std.err.println( "oops: dfs, this is null" );
-		throw new System.Exception( "oops: dfs, this is null" );
+		throw new Exception( "oops: dfs, this is null" );
 	    }
 
 	    if( semi != null ) {
 		IO.Std.err.println( "oops: been here before: " + this );
-		throw new System.Exception( "oops: been here before: " + this );
+		throw new Exception( "oops: been here before: " + this );
 	    }
 
 	    dfn = number;
@@ -3648,13 +3655,13 @@ namespace Gen {
 		return;
 	    }
 
-	    source = new MNode[s.getLength()];
+	    source = new MNode[s.Length];
 
 	    i = 0;
 	    foreach( MNode n; s.elements() ) {
 		if( n == null ) {
 		    IO.Std.err.println( "oops: init null source: " + this );
-		    throw new System.Exception( "oops: init null source: " + this );
+		    throw new Exception( "oops: init null source: " + this );
 		}
 		IO.Std.err.println( "node " + dfn + ", setting source #" + i + " to dfn " + n.dfn );
 		source[i] = n;
@@ -3737,7 +3744,7 @@ namespace Gen {
 	    }
 	}
 
-	void renameTemps( int[] t, int[] u, System.String why ) {
+	void renameTemps( int[] t, int[] u, String why ) {
             MInst prev, i, next;
 
             for( i = inst; i != null; i = next ) {
@@ -3805,7 +3812,7 @@ namespace Gen {
         void removeTail(MInst i) {
 	    tail = i;
 	    if( tail == null ) {
-		throw new System.Exception( "null tail" );
+		throw new Exception( "null tail" );
 	    }
 	    if( tail != null ) {
 		// IO.Std.err.println( "remove tail: " + tail );
@@ -3849,7 +3856,7 @@ namespace Gen {
 	    }	    
 	}
 
-	void dumpTargets( System.StringBuffer b, MNode[] target, System.String name ) {
+	void dumpTargets( StringBuffer b, MNode[] target, String name ) {
 	    if( target != null ) {
 		bool seen_any = false;
 		for( int j = 0; j < target.length; j = j + 1 ) {
@@ -3871,10 +3878,10 @@ namespace Gen {
 	    }
 	}
 
-	System.String toString() {
-	    System.StringBuffer b = new System.StringBuffer();
+	String toString() {
+	    StringBuffer b = new StringBuffer();
 
-	    // throw new System.Exception( "arse" );
+	    // throw new Exception( "arse" );
 
 	    b.append( "node #" + dfn + "\n" );
 
@@ -4116,14 +4123,14 @@ namespace Gen {
 	MSet clobber;
 	MOperand[] operands;
 	public MInst prev, next;
-	System.String pattern;
-	System.String comment;
+	String pattern;
+	String comment;
 	
 	void init( MTree left ) {
 	    init(null,left,MSet.None);
 	}
 
-	void init( System.String pattern, MTree left ) {
+	void init( String pattern, MTree left ) {
 	    init(pattern,left,MSet.None);
 	}
 
@@ -4131,7 +4138,7 @@ namespace Gen {
 	    init(null,left,clobber);
 	}
 	
-	void init( System.String pattern, MTree left, MSet clobber ) {
+	void init( String pattern, MTree left, MSet clobber ) {
 	    super.init(0,null,left,null);
 	    prev = null;
 	    next = null;
@@ -4152,7 +4159,7 @@ namespace Gen {
 	    // IO.Std.err.println( "inst now: " + this );
 	}
 
-	void addComment( System.String c ) {
+	void addComment( String c ) {
 	    if( comment == null ) {
 		comment = c;
 	    } else {
@@ -4253,7 +4260,7 @@ namespace Gen {
 
 	void clearPhi() {
 	    if( left.isPhi() ) {
-		System.String s = toString();
+		String s = toString();
 		makeComment( "SS phi " + s.substring(0,s.Length-1) );
 	    }
 	}
@@ -4275,8 +4282,8 @@ namespace Gen {
 		    }
 		    if( t >= Machine.FIRST_SOFT_REG ) {
 			// IO.Std.err.println( "read from T" + t );
-			if( temp_stacks[t].getLength() > 0 ) {
-			    int i = temp_stacks[t].getTop();
+			if( temp_stacks[t].Length > 0 ) {
+			    int i = temp_stacks[t].Top;
 			    // IO.Std.err.println( "last assign was to number " + i );
 			    operands[j].ssa_read = i;
 			} else {
@@ -4328,9 +4335,9 @@ namespace Gen {
 	    }
 	}
 
-	void setTempName( int j, int n ) {
+	set int TempName[int j] = n {
 	    // IO.Std.err.println( "MINst set temp name " + j + "," + n );
-	    left.setTempName( j, n );
+	    left.TempName[j] = n;
 	}
 
 	void popTempNames( Util.IntVector[] s ) {
@@ -4338,7 +4345,7 @@ namespace Gen {
 		if( operands[i].mode & Mode.WRITE != 0 ) {
 		    int t = operands[i].temp;
 		    if( t >= Machine.FIRST_SOFT_REG && t < s.length ) {
-			if( s[t].getLength() > 0 ) {
+			if( s[t].Length > 0 ) {
 			    s[t].pop();
 			} else {
 			    IO.Std.err.println( "oops: popping empty stack for T" + t );
@@ -4378,8 +4385,8 @@ namespace Gen {
 	    return left.isCSE();
 	}
 
-	System.String getLabel() {
-	    return left.getLabel();
+	get String Label {
+	    return left.Label;
 	}
 
 	void setITree( ITree t ) {
@@ -4392,7 +4399,7 @@ namespace Gen {
 
 	    MFindOperands fo = new MFindOperands();
 	    this.process(fo);
-	    operands = new MOperand[fo.result.getLength()];
+	    operands = new MOperand[fo.result.Length];
 	    for( int i = 0; i < operands.length; i = i + 1 ) {
 		operands[i] = cast<MOperand>(fo.result[i]);
 		// IO.Std.err.println( "operand " + i + ": " + operands[i] );
@@ -4409,7 +4416,7 @@ namespace Gen {
 	    return false;
 	}
 
-	int getWrittenTemp() {
+	get int WrittenTemp {
 	    int result;
 
 	    for( int i = 0; i < operands.length; i = i + 1 ) {
@@ -4448,12 +4455,12 @@ namespace Gen {
 	//     left.findOperands(v);
 	// }
 
-	int getTemp() {
-	    return left.getTemp();
+	get int Temp {
+	    return left.Temp;
 	}
     
-	int getReg() {
-	    return left.getReg();
+	get int Reg {
+	    return left.Reg;
 	}
 
 	MTree flatten( MFlatten f ) {
@@ -4463,13 +4470,13 @@ namespace Gen {
 	    return null;
 	}
 
-	System.String toString() {
+	String toString() {
 	    int i;
 	    if( left == null ) {
 		return "# null instruction";
 	    }
 
-	    System.StringBuffer b = new System.StringBuffer();
+	    StringBuffer b = new StringBuffer();
 
 	    if( !is_effective ) {
 		b.append( "                                 " );
@@ -4477,7 +4484,7 @@ namespace Gen {
 	    }
 
 	    if( pattern == null ) {
-		System.String s = left.toString();
+		String s = left.toString();
 
 		if( s == null ) {
 		    IO.Std.err.println( "non null instruction has null representation" );
@@ -4485,7 +4492,7 @@ namespace Gen {
 		}
 
 		bool seen_comment = false;
-		for( i = 0; i < 2 && i < s.getLength(); i = i + 1 ) {
+		for( i = 0; i < 2 && i < s.Length; i = i + 1 ) {
 		    if( s.charAt(i) == '#' ) {
 			b.append( "                                 " );
 			seen_comment = true;
@@ -4493,14 +4500,14 @@ namespace Gen {
 		    }
 		}
 
-		if( !seen_comment && s.charAt(0) != '.' ) {
+		if( !seen_comment && s[0] != '.' ) {
 		    b.append( "        " );
 		}
 
 		b.append( s );
 
 	    } else {
-		for( int j = 0; j < pattern.getLength(); j = j + 1 ) {
+		for( int j = 0; j < pattern.Length; j = j + 1 ) {
 		    if( pattern.charAt(j) == '?' ) {
 			j = j + 1;
 			if( pattern.charAt(j) == 'l' ) {
@@ -4521,7 +4528,7 @@ namespace Gen {
 
 
 	    if( (operands != null && operands.length > 0) || clobber != MSet.None || comment != null ) {
-		while( b.getLength() < 32 ) {
+		while( b.Length < 32 ) {
 		    b.append( ' ' );
 		}
 		b.append( " # " );
@@ -4547,7 +4554,7 @@ namespace Gen {
 	    return b;
 	}
     
-	System.String dump() {
+	String dump() {
 	    return "MInst(" + left.dump() + ")";
 	}
 
@@ -4577,7 +4584,7 @@ namespace Gen {
 		int m = Machine.getMaskForSet( clobber, Machine.clobber_mask );
 
 		// IO.Std.err.println( "clobber set is " + cast<int>(clobber) );
-		// IO.Std.err.print( "clobbers " + System.String.hex(m) + ": " + this );
+		// IO.Std.err.print( "clobbers " + String.hex(m) + ": " + this );
 		
 		for( i = Machine.FIRST_SOFT_REG; i < reg_cost.length; i = i + 1 ) {
 		    if( live[i] && reg_cost[i] != null  ) {
@@ -4621,7 +4628,7 @@ namespace Gen {
         }
 	*/
 
-	void makeComment(System.String text) {
+	void makeComment(String text) {
 	    left = new MData( Op.COMMENT, new MConst( text ) );
 	    initOperands();
 	}
@@ -4747,7 +4754,7 @@ namespace Gen {
 	}
 
 
-	void splitTemp( MNode into, MOperand o, int t, int u, bool replace, System.String why ) {
+	void splitTemp( MNode into, MOperand o, int t, int u, bool replace, String why ) {
 	    MInst s;
 	    MReplaceTemp rt;
 
@@ -4852,7 +4859,7 @@ namespace Gen {
 	}
 	
 	// temporarily save a temporary to memory that would otherwise be clobbered by this instruction:
-	void saveTemp( MNode into, int t, int offset, System.String reason ) {
+	void saveTemp( MNode into, int t, int offset, String reason ) {
 	    MInst s;
 
 	    int size = 8; // left.Size; // FIXME: may not be correct?
@@ -4960,7 +4967,7 @@ namespace Gen {
 	    }
 	}
 
-	void renameTemp( MNode into, MOperand o, int t, int u, System.String why ) {
+	void renameTemp( MNode into, MOperand o, int t, int u, String why ) {
 	    MInst s;
 	    MReplaceTemp rt;
 	    // int offset = 72;
@@ -4994,7 +5001,7 @@ namespace Gen {
 		return;
 	    }
 	    if( left.dest.isReg() && left.left.isReg() &&
-		left.dest.getTemp() == left.left.getTemp() ) {
+		left.dest.Temp == left.left.Temp ) {
 		MInst.copy_number = MInst.copy_number + 1;
 
 		makeComment( "SS removed redundant copy T" + t );
@@ -5003,7 +5010,7 @@ namespace Gen {
 	    // IO.Std.err.println( "JJJJJJ: problem register set change - need to split live range here: T" + t + "->T" + u );
 	}
 
-	void renameTemp( MNode into, int[] t, int[] u, System.String why ) {
+	void renameTemp( MNode into, int[] t, int[] u, String why ) {
 	    
 	    for( int i = 0; i < operands.length; i = i + 1 ) {
 		MOperand o = operands[i];
@@ -5066,15 +5073,15 @@ namespace Gen {
 	    }
 
 	    if( left.dest == null || left.left == null ) {
-		throw new System.Exception( "OOOOOO: oops: oddly shaped copy instruction: " + this );
+		throw new Exception( "OOOOOO: oops: oddly shaped copy instruction: " + this );
 	    }
 
 	    // IO.Std.err.println( "copy: " + this );
 
 	    if( left.dest.isReg() && left.left.isReg() ) {
 		int t, u;
-		t = left.dest.getTemp();
-		u = left.left.getTemp();
+		t = left.dest.Temp;
+		u = left.left.Temp;
 		// IO.Std.err.println( "SSSSSS: register-to-register copy" );
 
 		if( t > 0 && u > 0 ) {
@@ -5528,7 +5535,7 @@ namespace Gen {
 		    r = reg[t];
 		    if( r != 0 && live[t] ) {
 		        m = 1 << r;
-			// IO.Std.err.println( "checking masks " + System.String.hex(m) + " & "+  System.String.hex(clobber_mask) + " = " + System.String.hex(m & clobber_mask) );
+			// IO.Std.err.println( "checking masks " + String.hex(m) + " & "+  String.hex(clobber_mask) + " = " + String.hex(m & clobber_mask) );
 			if( clobber_mask & m != 0 ) {
 			    if( local_offset == 0 ) {
 				local_offset = local_offset + Machine.WORD;
@@ -5585,9 +5592,9 @@ namespace Gen {
 
 			    IO.Std.err.println( "set is          " + Machine.getSetName(rset) );
 			    IO.Std.err.println( "r is            " + r );
-			    IO.Std.err.println( "n is            " + System.String.hex(m) );
-			    IO.Std.err.println( "m is            " + System.String.hex(n) );
-			    IO.Std.err.println( "intersection is " + System.String.hex(m & n) );
+			    IO.Std.err.println( "n is            " + String.hex(m) );
+			    IO.Std.err.println( "m is            " + String.hex(n) );
+			    IO.Std.err.println( "intersection is " + String.hex(m & n) );
 			    */
 
 			    u = TempFactory.nextTemp();
@@ -5679,7 +5686,7 @@ for each operand
 
 		int mask = Machine.getMaskForSet( operands[i].rset, Machine.reg_mask );
 		if( operands[i].mode & Mode.WRITE != 0 && operands[i].reg != 0 && clobber_mask & (1 << operands[i].reg) != 0 ) {
-		    throw new System.Exception( "instruction " + this + "\nclobbers output T" + operands[i].temp + " in R" + operands[i].reg );
+		    throw new Exception( "instruction " + this + "\nclobbers output T" + operands[i].temp + " in R" + operands[i].reg );
 		}
 		
 		// if no register assigned, or assigned register not acceptable
@@ -5713,7 +5720,7 @@ for each operand
 		return false;
 	    }
 	    if( left.dest.isReg() && left.left.isReg() &&
-		left.dest.getReg() == left.left.getReg() ) {
+		left.dest.Reg == left.left.Reg ) {
 		// IO.Std.err.println( "IIIIII: redundant copy: " + this );
 		is_effective = false;
 	    }
@@ -5728,7 +5735,7 @@ for each operand
 	bool regen( MNode into, Util.Vector list ) {
 	    if( needRegen() ) {
 		ITree i = itree;
-		System.String os = this.toString();
+		String os = this.toString();
 
 		/*
 		IO.Std.err.print( "regen needed: " + this );

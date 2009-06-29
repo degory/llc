@@ -102,7 +102,7 @@ namespace LGen {
             return name;
         }
 
-	int getSize() {
+	get int Size {
 	    int t = esn & 3;
 	    if( t == 0 ) {
 		return 0;

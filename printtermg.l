@@ -4,6 +4,7 @@ import stream;
 import generic;
 
 namespace PrintTerm {
+   
     use IO.Reader;
     use System.Object;
     use System.String;

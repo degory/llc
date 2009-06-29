@@ -3,6 +3,13 @@ import stream;
 import generator;
 
 namespace Gen {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+    use Generic.Vector;
+    use Generic.SortList;
+
     // non-thread-safe version:
     class TempFactory {
 	static int next_temporary = Machine.FIRST_SOFT_REG;
@@ -31,7 +38,7 @@ namespace Gen {
 	    resetTemp(Machine.FIRST_SOFT_REG);
 	}
 
-	static int getCurrentTemp() {
+	static get int CurrentTemp {
 	    return next_temporary;
 	}
 
@@ -52,7 +59,7 @@ namespace Gen {
 	    }
 	}
 
-	static int getCurrentLabel() {
+	static get int CurrentLabel {
 	    // IO.Std.err.println( "current label: " + next_label );
 	    return next_label;
 	}
@@ -70,7 +77,7 @@ namespace Gen {
 
     /*
     // thread safe version - keep one instance per thread in thread local storage:
-    class TempFactory extends System.Object {
+    class TempFactory extends Object {
 	int next_temporary;
 	int next_label;
 
@@ -84,7 +91,7 @@ namespace Gen {
 	}
 
 	static TempFactory getInstance() {
-	    System.Object o = System.Thread.getTLS1();
+	    Object o = System.Thread.getTLS1();
 	    // IO.Std.err.println( "get instance: " + cast int(o) );
 	    return cast TempFactory(o);
 	}
@@ -183,7 +190,7 @@ namespace Gen {
 	}
     }
     */
-    class ILocalUseCount extends System.Object {
+    class ILocalUseCount extends Object {
 	int offset;
 	int temp;
 	public int use_count;
@@ -200,21 +207,27 @@ namespace Gen {
 	    // IO.Std.err.println( "LLLLL: T" + temp + " += " + amount + "->" + use_count );
 	}
 
-	int getOffset() {
+	get int Offset {
 	    return offset;
 	}
 
-	void setTemp( int temp ) {
+	set int Temp = temp {
 	    this.temp = temp;
 	}
 
-	int getTemp() {
+	get int Temp {
 	    return temp;
 	}
 
-	int getCount() {
+	get int Count {
 	    return use_count;
 	}
+
+
+	int opCompare( ILocalUseCount cb ) {
+	    return cb.Count - Count;
+	}
+
 
 	System.String toString() {
 	    System.StringBuffer result =
@@ -230,16 +243,16 @@ namespace Gen {
 	}
     }
 
-    class ILocalUseCounter extends System.Object {
+    class ILocalUseCounter extends Object {
 	bool inline;
 	MBitSet address_taken;
-	Util.Vector use_count;
+	Generic.Vector<ILocalUseCount> use_count;
 
 	void init(bool inline, MBitSet address_taken) {
 	    super.init();
 	    this.inline = inline;
 	    this.address_taken = address_taken;
-	    use_count = new Util.Vector();
+	    use_count = new Generic.Vector<ILocalUseCount>();
 	}
 
 	void count( int offset, int factor ) {
@@ -273,18 +286,18 @@ namespace Gen {
 		return;
 	    }
 
-	    int i = use_count.getLength();
+	    int i = use_count.Length;
 	    if( i < n + 1 ) {
-		use_count.setLength(n + 1);
+		use_count.Length = n + 1;
 	    }
 
 	    // IO.Std.err.println( "LLLLL count " + i + " versus " + n + "..." );
 
-	    ILocalUseCount u = cast<ILocalUseCount>(use_count[n]);
+	    ILocalUseCount u = use_count[n];
 
 	    if( u == null ) {
 		u = new ILocalUseCount( offset, 0 );
-		use_count.put(n, u);
+		use_count[n] = u;
 	    } else {
 		if( u.Offset != offset ) {
 		    IO.Std.err.println( "oops: mung slot #" + n + " aliases offsets " + offset + " and " + u.Offset );
@@ -298,7 +311,15 @@ namespace Gen {
 	void sort() {
 	    // IO.Std.err.println( "sorting: " + use_count );
 
-	    Util.Sort.sort( new ICompareLocalUseCount(), use_count );
+	    var v = new Generic.Vector<ILocalUseCount>();
+	    foreach( ILocalUseCount k; use_count.elements() ) {
+		if( k != null ) {
+		    v.add(k);
+		}
+	    }
+
+	    Generic.SortList<ILocalUseCount>.sort( v );
+	    use_count = v;
 
 	    // IO.Std.err.println( "sorted: " + use_count );
 
@@ -322,15 +343,15 @@ namespace Gen {
 	    use_count.setLength(j);
 	}
 
-	int getLength() {
+	get int Length {
 	    return use_count.Length;
 	}
 
 	ILocalUseCount opGet( int i ) {
-	    return cast<ILocalUseCount>(use_count[i]);
+	    return use_count[i];
 	}
 
-	Util.Iterator elements() {
+	Generic.Iterator<ILocalUseCount> elements() {
 	    return use_count.elements();
 	}
     }
@@ -340,7 +361,7 @@ namespace Gen {
 	    super.init();
 	}
 
-	public int compare( System.Object a, System.Object b ) {
+	public int compare( Object a, Object b ) {
 	    // IO.Std.err.println( "compare a: " + a + ", b: " + b );
 	    if( a == null ) {
 		if( b == null ) {
@@ -355,11 +376,11 @@ namespace Gen {
 	    ILocalUseCount ca = cast<ILocalUseCount>(a);
 	    ILocalUseCount cb = cast<ILocalUseCount>(b);
 
-	    return cb.getCount() - ca.getCount();
+	    return cb.Count - ca.Count;
 	}
     }
 
-    class IValue extends System.Object {
+    class IValue extends Object {
         void init() {
             super.init();
         }
@@ -368,11 +389,11 @@ namespace Gen {
             f.write(toString());
         }
         
-        void cat( System.StringBuffer s ) {
+        void cat( StringBuffer s ) {
             s.append(toString());
         }
         
-        int valueIs( System.String compare, int t, int f ) {
+        int valueIs( String compare, int t, int f ) {
             if( compare.equals( toString() ) ) {
                 return t;
             } else {
@@ -380,28 +401,28 @@ namespace Gen {
             }
         }
 
-	bool getIsLabel() {
+	get bool IsLabel {
 	    return false;
 	}
         
-        int getInt() {
+        get int Int {
             return getString().parseInt();
         }
 
         int calcHash() {
-            throw new System.Exception( "implement me!" );
+            throw new Exception( "implement me!" );
         }
         
-        System.String toString() {
+        String toString() {
             return getString();
         }
 
-        System.String getString() {
-            throw new System.Exception( "implement me!" );
+        String getString() {
+            throw new Exception( "implement me!" );
         }
         
-        void catBytes( System.StringBuffer s ) {
-            throw new System.Exception( "implement me!" );
+        void catBytes( StringBuffer s ) {
+            throw new Exception( "implement me!" );
         }
     }
     
@@ -413,11 +434,11 @@ namespace Gen {
 	    this.n = n;
 	}
 
-        int getInt() {
+        get int Int {
             return n;
         }
 
-	System.String getString() {
+	get String String {
 	    return "" + n;
 	}
     }
@@ -428,37 +449,37 @@ namespace Gen {
 	    assert( n < 10000000, "crazy label number" );
         }
         
-        System.String getString() {
+        get String String {
             return ".L" + n;
         }
 
-	bool getIsLabel() {
+	get bool IsLabel {
 	    return true;
 	}
     }
     
     class IString extends IValue {
-        System.String string;
+        String string;
         
         void init( int n ) {
             super.init();
             string = "" + n;
         }
         
-        void init( System.String s ) {
+        void init( String s ) {
             super.init();
             string = s;
         }
 
-        System.String getString() {
+        get String String {
             return string;
         }
     }
 
 
-    class ITree extends System.Object {
+    class ITree extends Object {
 	static int next_id = 0;
-	static bool allow_three_address = false;
+	// static bool allow_three_address = false;
 
         int id;
         int op;
@@ -473,21 +494,18 @@ namespace Gen {
         IValue value;
         ITree left, right;
 
-        System.Object state;
+        Object state;
 
-        State getGenState() {
+        get State GenState {
             return cast<State>(state);
 
         }
 
-	int getLineNumber() {
+	get int LineNumber {
 	    return line_number;
 	}
 
-        ReWrite.State getReWriteState() {
-	    if( this == null ) {
-		IO.Std.err.println( "getReWriteState for null ITree" );
-	    }
+        get ReWrite.State ReWriteState {
             return cast<ReWrite.State>(state);
         }
 
@@ -506,27 +524,29 @@ namespace Gen {
 	    } else if( size == 8 ) {
 		return 3;
 	    } else {
-		throw new System.Exception( "bad operation size: " + size );
+		throw new Exception( "bad operation size: " + size );
 	    }
 	}	    
 
-	static void setAllowThreeAddress( bool allow_three_address ) {
+	/*
+	static set bool AllowThreeAddress = allow_three_address {
 	    this.allow_three_address = allow_three_address;
 	}
+	*/
 
-	int getRawOp() {
+	get int RawOp {
 	    return rawOp( getOperator() );
 	}
 
 
-	int getSize() {
+	get int Size {
 	    return size;
 	}
 
 	ITree rewrite() {
 	    int goal = ReWrite.Selector.getReWriteGoal(op);
 	    if( goal == 0 ) {
-		throw new System.Exception( "cannot rewrite this without a goal: " + this );
+		throw new Exception( "cannot rewrite this without a goal: " + this );
 	    }
 	    // IO.Std.err.println( "internal rewrite goal: " + goal + ": " + this );
 	    return rewrite(goal);
@@ -540,30 +560,30 @@ namespace Gen {
 	    CodeGenerator.genInstructionInto( this, list );
 	}
 
-        void setState( Gen.State state ) {
+        set Gen.State State = state {
             this.state = state;
         }
 
-        void setState( ReWrite.State state ) {
+        set ReWrite.State State = state {
             this.state = state;
         }
 
-        int getOperator() {
+        get int Operator {
 	    // IO.Std.err.println( "get operator: " + op );
             return op;
         }
 
-	int getHighestTempUsed() {
+	get int HighestTempUsed {
 	    int lt, rt;
 	    if( op == Op.TEMP_4 || op == Op.TEMP_1 ) {
-		return value.getInt();
+		return value.Int;
 	    }
 
 	    if( left != null ) {
-		lt = left.getHighestTempUsed();
+		lt = left.HighestTempUsed;
 	    }
 	    if( right != null ) {
-		rt = right.getHighestTempUsed();
+		rt = right.HighestTempUsed;
 	    }
 	    if( lt > rt ) {
 		return lt;
@@ -591,29 +611,29 @@ namespace Gen {
         }
             
         void dump( IO.Writer out, int indent ) {
-            throw new System.Exception( "Implement me!");
+            throw new Exception( "Implement me!");
         }
 
-        ITree getLeft() {
+        get ITree Left {
             return left;
         }
 
-        ITree getRight() {
+        get ITree Right {
             return right;
         }
 
-	void setLeft( ITree t ) {
+	set ITree Left = t {
 	    left = t;
 	}
 
-	void setRight( ITree t ) {
+	set ITree Right = t {
 	    right = t;
 	    check(right);
 	}
 
         ITree clone() {
 	    return new ITree(this);
-            // throw new System.Exception( "implement me!" );
+            // throw new Exception( "implement me!" );
         }
 
 	ITree copy() {
@@ -629,7 +649,7 @@ namespace Gen {
 	}
 
 	void replaceTempsWithRegVars() {
-	    if( getRawOp() == Op.TEMP ) {
+	    if( RawOp == Op.TEMP ) {
 		op = op - Op.TEMP + Op.REG_VAR;
 	    }
 
@@ -663,7 +683,7 @@ namespace Gen {
 		(o >= Op.CALL && op <= Op.STATIC_DYNAMIC_CALL_DISCARD) ||
 		(o >= Op.TRY && op <= Op.END_TRY) || 
 		(o >= Op.ARG0 && op <= Op.ARG5) ){
-		throw new System.Exception( "cannot inline: " + this );
+		throw new Exception( "cannot inline: " + this );
 	    }
 
 
@@ -671,7 +691,7 @@ namespace Gen {
 	    if( o == Op.TEMP || o == Op.REG_VAR ) {
 		int t = value.getInt();
 		if( temp_offset < 0 ) {
-		    throw new System.Exception( "reference to temporary in block epilog" );
+		    throw new Exception( "reference to temporary in block epilog" );
 		}
 
 		/*
@@ -767,7 +787,7 @@ namespace Gen {
 	    return this;
 	}
 
-	MSet getSet() {
+	get MSet Set {
 	    return rset;
 	}
 
@@ -790,12 +810,12 @@ namespace Gen {
 
 	    /*
 	    if( this.op == 1 ) {
-		throw new System.Exception( "creating ITree op " + this.op );
+		throw new Exception( "creating ITree op " + this.op );
 	    }	
 	    */	
 
 	    if( size > Machine.WORD ) {
-		throw new System.Exception( "creating ITree op " + op + " of size " + size + " > " + Machine.WORD );
+		throw new Exception( "creating ITree op " + op + " of size " + size + " > " + Machine.WORD );
 	    }
 	    
 	    if( (op == Op.BRANCHZ || op == Op.BRANCHNZ) && left != null && left.RawOp == Op.CONST && left.value == null ) {
@@ -810,7 +830,7 @@ namespace Gen {
 	    this.id = next_id;
 	    /*
 	    if( id >= 125 && id < 130 ) {
-		IO.Std.err.println( "from: " + new System.Exception("DDDDD: " + this ) );
+		IO.Std.err.println( "from: " + new Exception("DDDDD: " + this ) );
 	    }
 	    */
 	    next_id = next_id + 1;
@@ -821,7 +841,7 @@ namespace Gen {
             this.init( line_number, op, size, null, null, null );
         }
 
-        void init( int line_number, int op, int size, System.String s ) {
+        void init( int line_number, int op, int size, String s ) {
             this.init( line_number, op, size, null, null, new IString(s) );
         }
 
@@ -845,7 +865,7 @@ namespace Gen {
             this.init( line_number, op, size, l, null, new INumber(v) );
         }
 
-        void init( int line_number, int op, int size, ITree l, System.String v ) {
+        void init( int line_number, int op, int size, ITree l, String v ) {
             this.init( line_number, op, size, l, null, new IString(v) );
         }
 
@@ -857,7 +877,7 @@ namespace Gen {
             this.init( line_number, op, size, l, r, new INumber(v) );
         }
 
-        void init( int line_number, int op, int size, ITree l, ITree r, System.String v ) {
+        void init( int line_number, int op, int size, ITree l, ITree r, String v ) {
             this.init( line_number, op, size, l, r, new IString(v) );
         }
 
@@ -904,11 +924,11 @@ namespace Gen {
 	    return TempFactory.nextLabelNumber();
 	}
 
-        IValue getValue() {
+        get IValue Value {
             return value;
         }
 
-        int valueIs( System.String compare, int t, int f ) {
+        int valueIs( String compare, int t, int f ) {
 	    if( value == null ) {
 		return f;
 	    } else {
@@ -916,62 +936,63 @@ namespace Gen {
 	    }
 	}
 
-        System.String getString() {
-            return value.getString();
+        get String String {
+            return value.String;
         }
 
-        int getInt() {
-            return value.getInt();
+        get int Int {
+            return value.Int;
         }
 
-	int getTempNumber() {
-	    if( getRawOp() == Op.TEMP ) {
-		return getInt();
-	    } else if( getRawOp() == Op.SEQ ) {
-		return right.getTempNumber();
+	get int TempNumber {
+	    if( RawOp == Op.TEMP ) {
+		return Int;
+	    } else if( RawOp == Op.SEQ ) {
+		return right.TempNumber;
 	    } else {
-		throw new System.Exception( "no temp value: " + this );
+		throw new Exception( "no temp value: " + this );
 	    }
 	}
 
-	ITree getTemp() {
-	    if( getRawOp() == Op.TEMP ) {
-		ITree result = new ITree(0,op,size,getInt());
+	get ITree Temp {
+	    if( RawOp == Op.TEMP ) {
+		ITree result = new ITree(0,op,size,Int);
 		result.rset = rset;
 		return result;
-	    } else if( getRawOp() == Op.SEQ ) {
-		return right.getTemp();
+	    } else if( RawOp == Op.SEQ ) {
+		return right.Temp;
 	    } else {
-		throw new System.Exception( "no temp value: " + this );
+		throw new Exception( "no temp value: " + this );
 	    }
 	}
 
-	ITree getSeqRight() {
-	    if( getRawOp() == Op.SEQ ) {
-		return right.getSeqRight();
+	get ITree SeqRight {
+	    if( RawOp == Op.SEQ ) {
+		return right.SeqRight;
 	    } else {
 		return this.copy();
 	    }
 	}
 
 
-	System.String toString() {
+	String toString() {
 	    return toString(0);
 	}
 
-	void makeIndent( System.StringBuffer b, int n ) {
+	void makeIndent( StringBuffer b, int n ) {
 	    for( int i = 0; i < n; i = i + 1 ) {
 		b.append( "  " );		
 	    }
 	}
 
-        System.String toString(int indent) {
+        String toString(int indent) {
+	    /*
 	    if( this == null || cast<word>(this) < 8192W ) {
 		IO.Std.err.println( "ITree - this is corrupt" );
-		return "<null: " + System.String.hex(cast<int>(this)) + ">";
+		return "<null: " + String.hex(cast<int>(this)) + ">";
 	    }
-	    
-            System.StringBuffer result = new System.StringBuffer();
+	    */
+            StringBuffer result = new StringBuffer();
 	    makeIndent( result, indent );
             result.append( Op.getOpName(op) );
             if( value != null ) {
@@ -1054,7 +1075,7 @@ namespace Gen {
 	bool isConst1() {
 	    if( value == null ) {
 		return false;
-	    } else if( value.getInt() == 1 ) {
+	    } else if( value.Int == 1 ) {
 		return true;
 	    } else {
 		return false;
@@ -1064,7 +1085,7 @@ namespace Gen {
 	bool isConst0() {
 	    if( value == null ) {
 		return false;
-	    } else if( value.getInt() == 0 ) {
+	    } else if( value.Int == 0 ) {
 		return true;
 	    } else {
 		return false;
@@ -1076,7 +1097,7 @@ namespace Gen {
 	    if( value == null ) {
 		return false;
 	    }
-	    int v = value.getInt();
+	    int v = value.Int;
 	    if( v == 1 || v == 2 || v == 4 || v == 8 ) {
 		return true;
 	    } else {
@@ -1085,12 +1106,12 @@ namespace Gen {
 	}
 
 	bool isIndirect() {
-	    return getRawOp() == Op.INDIRECT;
+	    return RawOp == Op.INDIRECT;
 
 	}
 
 	bool isRegVar() {
-	    return getRawOp() == Op.REG_VAR;
+	    return RawOp == Op.REG_VAR;
 	}
 
 	bool isLValue() {
@@ -1109,7 +1130,7 @@ namespace Gen {
 	bool mem2mem() {
 	    // IO.Std.err.println( "mem2mem: " + this );
 
-	    if( getRawOp() != Op.COPY ) {
+	    if( RawOp != Op.COPY ) {
 		// IO.Std.err.println( "not copy: FALSE" );
 		return false;
 	    }
@@ -1186,13 +1207,13 @@ namespace Gen {
 	    }
 	}
 
-	/*static*/ int a3( int t) {
+	/*static*/ /* int a3( int t) {
 	    if( allow_three_address ) {
 		return t;
 	    } else {
 		return 32768;
 	    }
-	}
+        } */
 
 	int const0( int t, int f ) {
 	    if( isConst0() ) {
@@ -1280,7 +1301,7 @@ namespace Gen {
 	}
 
 	// get approximate number of temporaries needed to evaluate 
-	int getWeight() {
+	get int Weight {
 	    if( isSimple() ) {
 		return 0;
 	    } else if( isPrettySimple() ) {
@@ -1288,10 +1309,10 @@ namespace Gen {
 	    } else {
 		int w = 1;
 		if( left != null ) {
-		    w = w + left.getWeight();
+		    w = w + left.Weight;
 		}
 		if( right != null ) {
-		    w = w + right.getWeight();
+		    w = w + right.Weight;
 		}
 		return w;
 	    }
@@ -1299,7 +1320,7 @@ namespace Gen {
 
 
         bool isConstant() {
-            return getRawOp() == Op.CONST;
+            return RawOp == Op.CONST;
         }
 
         ITree makeConstant( int size, int value ) {
@@ -1485,13 +1506,13 @@ namespace Gen {
 
 	void check( ITree t ) {
 	    if( cast<word>(t) > 0W && cast<word>(t) < 8192W ) {
-		throw new System.Exception( "here" );
+		throw new Exception( "here" );
 	    }
 	}
     }
 
 
-    class IBlock extends System.Object {
+    class IBlock extends Object {
         Util.Vector list;
 	Util.Vector epilog;
 
@@ -1516,7 +1537,7 @@ namespace Gen {
 	    } else {
 		list.add( t );
 	    }
-	    // t.from = new System.Exception("treecode").toString();
+	    // t.from = new Exception("treecode").toString();
         }
 
 	void addEpilog( ITree t ) {
@@ -1539,28 +1560,28 @@ namespace Gen {
 	    }
 	}
 
-	Util.Vector getList() {
+	get Util.Vector List {
 	    mergeEpilog();
 	    return list;
 	}
 
 	/*
         void insert( int i, ITree t ) {
-            throw new System.Exception( "Implement me!" );
+            throw new Exception( "Implement me!" );
         }
 
         void replace( int i, ITree t ) {
-            throw new System.Exception( "Implement me!" );
+            throw new Exception( "Implement me!" );
         }
 
         ITree toTree() {
-            throw new System.Exception( "Implement me!" );
+            throw new Exception( "Implement me!" );
         }
 	*/
 
 
-        int getLength() {
-            return list.getLength();
+        get int Length {
+            return list.Length;
         } 
 
 	void prepareForInline() {
@@ -1612,10 +1633,10 @@ namespace Gen {
 
 	    foreach( ITree t; v.elements() ) {
 		// IO.Std.err.println( "LLLLL count locals: " + t );
-		if( t.getRawOp() == Op.ENTER_LOOP ) {
+		if( t.RawOp == Op.ENTER_LOOP ) {
 		    // IO.Std.err.println( "enter loop" );
 		    factor = factor * 8;
-		} else if( t.getRawOp() == Op.LEAVE_LOOP ) {
+		} else if( t.RawOp == Op.LEAVE_LOOP ) {
 		    // IO.Std.err.println( "leave loop" );
 		    factor = factor / 8;
 		} else {
@@ -1624,7 +1645,7 @@ namespace Gen {
 		}
 	    }
 
-	    // IO.Std.err.println( "LLLLL sorting" );
+	    // IO.Std.err.println( "LLLLL sorting" );	    
 
 	    c.sort();
 
@@ -1636,10 +1657,10 @@ namespace Gen {
 	ITree replaceLocalWithTemp( ITree t, int offset, int temp ) {
 	    // IO.Std.err.println( "LLLLL replace local " + offset + "," + temp + ": " + t );
 
-	    if( t.getRawOp() == Op.INDIRECT ) {
+	    if( t.RawOp == Op.INDIRECT ) {
 		// IO.Std.err.println( "indirect" );
-		if( t.getLeft() != null && t.getLeft().getRawOp() == Op.LOCAL ) {
-		    int n = t.getLeft().getInt();
+		if( t.Left != null && t.Left.RawOp == Op.LOCAL ) {
+		    int n = t.Left.Int;
 
 		    // IO.Std.err.println( "local" );
 
@@ -1655,16 +1676,16 @@ namespace Gen {
 
 	    // IO.Std.err.println( "no match" );
 
-	    ITree l = t.getLeft();
-	    ITree r = t.getRight();
+	    ITree l = t.Left;
+	    ITree r = t.Right;
 
 	    t = t.copy();
 
 	    if( l != null ) {
-		t.setLeft( replaceLocalWithTemp( l, offset, temp ) );
+		t.Left = replaceLocalWithTemp( l, offset, temp );
 	    }
 	    if( r != null ) {
-		t.setRight( replaceLocalWithTemp( r, offset, temp ) );
+		t.Right = replaceLocalWithTemp( r, offset, temp );
 	    }
 	    
 	    // IO.Std.err.println( "result: " + t );
@@ -1700,11 +1721,11 @@ namespace Gen {
 		if( t.Operator == Op.ENTER ) {
 		    foreach( ILocalUseCount k; c.elements() ) {
 			// stack parameter rather than local or register param
-			if( k.getOffset() > 0 ) {
+			if( k.Offset > 0 ) {
 			    r.add( new ITree( 0, Op.COPY, Machine.WORD,
-					      new ITree( 0, Op.REG_VAR, Machine.WORD, k.getTemp() ),
+					      new ITree( 0, Op.REG_VAR, Machine.WORD, k.Temp ),
 					      new ITree( 0, Op.INDIRECT, Machine.WORD,
-							 new ITree( 0, Op.LOCAL, Machine.WORD, k.getOffset() )
+							 new ITree( 0, Op.LOCAL, Machine.WORD, k.Offset )
 							 )
 					      )
 				   );
@@ -1723,7 +1744,7 @@ namespace Gen {
         static ITree flattenTree( ITree t, Util.Vector v ) {
 	    // IO.Std.err.println( "flatten: " + t );
             t = flattenTree2( t, v );
-            if( t != null && t.getRawOp() != Op.TEMP ) {
+            if( t != null && t.RawOp != Op.TEMP ) {
 		// IO.Std.err.println( "flatten result: " + t );
                 v.add( t );
             }
@@ -1731,11 +1752,11 @@ namespace Gen {
 
 	static ITree flattenTree2( ITree t, Util.Vector v ) {
             // IO.Std.err.println( "flatten tree: " + t );
-            int o = t.getRawOp();
+            int o = t.RawOp;
             // IO.Std.err.println( "op: " + o );
-            ITree l = t.getLeft();
+            ITree l = t.Left;
             // IO.Std.err.println( "left: " + l );
-            ITree r = t.getRight();
+            ITree r = t.Right;
             // IO.Std.err.println( "right: " + r );
 
             if( o == Op.LIST ) {
@@ -1789,12 +1810,12 @@ namespace Gen {
         }   
 
 	private void countLocals( ITree t, ILocalUseCounter use_count, int factor ) {
-	    if( t.getRawOp() == Op.LOCAL ) {
-		int offset = t.getInt();
+	    if( t.RawOp == Op.LOCAL ) {
+		int offset = t.Int;
 		use_count.count( offset, factor);		
 	    } else {
-		ITree l = t.getLeft();
-		ITree r = t.getRight();
+		ITree l = t.Left;
+		ITree r = t.Right;
 
 		if( l != null ) {
 		    countLocals( l, use_count, factor );
@@ -1857,12 +1878,12 @@ namespace Gen {
 
 
  	static ITree replaceTempWithMemory( ITree t, int spilled_reg, int offset ) {
- 	    if( t.getRawOp() == Op.TEMP ) {
- 		int n = t.getInt();
+ 	    if( t.RawOp == Op.TEMP ) {
+ 		int n = t.Int;
 
  	        if( n == spilled_reg ) {
  		    // IO.Std.err.println( "QQQQQ substitute spilled" );
- 		    return new ITree( 0, Op.INDIRECT, t.getSize(), 
+ 		    return new ITree( 0, Op.INDIRECT, t.Size, 
  				      new ITree( 0, Op.ADD, Machine.WORD,
  						 new ITree( 0, Op.CONST, Machine.WORD, offset ),
  						 new ITree( 0, Op.REGISTER, Machine.WORD, Machine.R_FRAME ) ) );
@@ -1870,16 +1891,16 @@ namespace Gen {
  		    return t;
  		}
  	    } else {
- 		ITree l = t.getLeft();
- 		ITree r = t.getRight();
+ 		ITree l = t.Left;
+ 		ITree r = t.Right;
 
  		t = t.copy();
 
  		if( l != null ) {
- 		    t.setLeft( replaceTempWithMemory( l, spilled_reg, offset ) );
+ 		    t.Left = replaceTempWithMemory( l, spilled_reg, offset );
  		}
  		if( r != null ) {
- 		    t.setRight( replaceTempWithMemory( r, spilled_reg, offset ) );
+ 		    t.Right = replaceTempWithMemory( r, spilled_reg, offset );
  		}
 
  		return t;
@@ -1920,26 +1941,26 @@ namespace Gen {
  	static ITree replaceSplitTemp( ITree t, int split_temp, int new_temp ) {
  	    // IO.Std.err.println( "replace split " + t );
  	    // IO.Std.err.println( "substitute T" + split_temp + " for T" + new_temp );
- 	    if( t.getRawOp() == Op.TEMP ) {
- 		int n = t.getInt();
+ 	    if( t.RawOp == Op.TEMP ) {
+ 		int n = t.Int;
 
  	        if( n == split_temp ) {
  		    // IO.Std.err.println( "QQQQQ substitute split T" + split_temp + " with T" + new_temp );
- 		    return new ITree( 0, t.getRawOp(), t.getSize(), new_temp );
+ 		    return new ITree( 0, t.RawOp, t.Size, new_temp );
  		} else {
  		    return t;
  		}
  	    } else {
- 		ITree l = t.getLeft();
- 		ITree r = t.getRight();
+ 		ITree l = t.Left;
+ 		ITree r = t.Right;
 
  		t = t.copy();
 
  		if( l != null ) {
- 		    t.setLeft( replaceSplitTemp( l, split_temp, new_temp ) );
+ 		    t.Left = replaceSplitTemp( l, split_temp, new_temp );
  		}
  		if( r != null ) {
- 		    t.setRight( replaceSplitTemp( r, split_temp, new_temp ) );
+ 		    t.Right = replaceSplitTemp( r, split_temp, new_temp );
  		}
 
  		return t;
@@ -1961,7 +1982,7 @@ namespace Gen {
 // 	    } else if( split.get(temp) ) {
 // 		result = new ITree( 0, Op.TEMP, 8, temp );
 // 	    } else {
-// 		throw new System.Exception( "no spill source for T" + temp + ": not spilled or split" );
+// 		throw new Exception( "no spill source for T" + temp + ": not spilled or split" );
 // 	    }
 
 // 	    IO.Std.err.println( "MMMM source is: " + result );
@@ -1988,12 +2009,12 @@ namespace Gen {
 
 // 	void markSplit( int original_temp, int split_temp, Util.Map map, MBitSet mark_all ) {
 // 	    System.Integer k = new System.Integer( split_temp );
-// 	    System.Object o = map.get( k );
+// 	    Object o = map.get( k );
 
 // 	    if( o != null ) {
 // 		int t = cast<System.Integer>(o).getValue();
 // 		if( t != original_temp ) {
-// 		    throw new System.Exception( "split register has changed from T" + t + " to T" + original_temp );
+// 		    throw new Exception( "split register has changed from T" + t + " to T" + original_temp );
 // 		}
 // 	    } else {
 // 		map.put( k, new System.Integer(original_temp) );
@@ -2139,7 +2160,7 @@ namespace Gen {
 		// line number instruction for debugging purposes:
 
 		if( want_line_numbers ) {
-		    int ln = t.getLineNumber();
+		    int ln = t.LineNumber;
 		    if( ln > 0 && ln != last_line ) {
 			last_line = ln;
 			ITree l = new ITree( last_line, Op.LINE, 0, ln );
@@ -2152,7 +2173,7 @@ namespace Gen {
 		    }
 		}
 
-		// System.String f = t.from;
+		// String f = t.from;
 		// IO.Std.out.println( "fold constants: " + t );
 		
 		// reduce wholly constant sub expression trees to single constants:
@@ -2175,7 +2196,7 @@ namespace Gen {
 		    // extract sub trees corresponding to whole machine instructions and add them to the
 		    // working list of intermediate code instruction trees:
 		    flattenTree( t, v );
-		} catch( System.Exception er ) {
+		} catch( Exception er ) {
 		    IO.Std.err.println( "caught: " + er + " rewrite: " + original );
 		    throw er;
 		}
@@ -2185,8 +2206,8 @@ namespace Gen {
 	bool genMethod(
 		       int attempt,
 		       IO.Writer out, 
-		       System.String decorated_name, 
-		       System.String method_name, 
+		       String decorated_name, 
+		       String method_name, 
 		       int local_depth,
 		       MBitSet address_taken,
 		       int ref frame_flags
@@ -2267,9 +2288,9 @@ namespace Gen {
 	    // transform intermediate code tree instruction representation to machine tree representation and
 	    // perform register allocation.
 	    
-	    // FIXME: foreach over w here doesn't terminate - why?
+	    // FIXME: foreach over v here doesn't terminate - why?
 	    i = 0;
-	    len = v.getLength();
+	    len = v.Length;
 	    
 	    // for each intermediate representation machine instruction:
 	    while( i < len ) {
@@ -2290,8 +2311,8 @@ namespace Gen {
 	}
 
 
-	System.String toString() {
-	    System.StringBuffer result = new System.StringBuffer();
+	String toString() {
+	    StringBuffer result = new StringBuffer();
 
 	    foreach( ITree t; list.elements() ) {
 		result.append( t );
@@ -2305,11 +2326,11 @@ namespace Gen {
         static ReWrite.Selector is = new ReWrite.Selector();
 
         static ITree walk( int goal, ITree t ) {
-            int ern = is.rule( t.getReWriteState(), goal );
+            int ern = is.rule( t.ReWriteState, goal );
 	    // IO.Std.err.println( "walk goal " + goal + " for " + t + " gives rule: " + ern );
 
             if( ern == 0 ) {
-		throw new System.Exception( "no rewrite for: " + t );
+		throw new Exception( "no rewrite for: " + t );
             }
 
             int[] nts = is.getNTS( ern );

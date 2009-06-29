@@ -1,4 +1,10 @@
 namespace Parse {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+    use Generic.Vector;
+
     use Gen.ITree;
     use Gen.IBlock;
     use Gen.ILabel;
@@ -29,7 +35,7 @@ namespace Parse {
 	}
 
 	ITree compileValue( CompileState state, IBlock into ) {
-	    throw new System.Exception( "type " + type_expr + " has no value" );
+	    throw new Exception( "type " + type_expr + " has no value" );
 	}
 
 	bool isClass( CompileState state ) {
@@ -69,7 +75,7 @@ namespace Parse {
 	}
 
 	ITree compileValue( CompileState state, IBlock into ) {
-	    throw new System.Exception( "type " + type + " has no value" );
+	    throw new Exception( "type " + type + " has no value" );
 	}
 
 	bool isClass( CompileState state ) {
@@ -107,7 +113,7 @@ namespace Parse {
 	    // do nothing
 	}
 
-	System.String toString() {
+	String toString() {
 	    return type.toString();
 	}
 
@@ -137,7 +143,7 @@ namespace Parse {
 	    if( arguments == null ) {
 		arguments = a;
 	    } else {
-		throw new System.Exception( "type already has arguments: " + this );
+		throw new Exception( "type already has arguments: " + this );
 	    }
 	}
 
@@ -146,21 +152,21 @@ namespace Parse {
 	    }*/
 
 	void checkTemplates( CompileState state ) {
-	    throw new System.Exception( "not checking templates: " + this.Class.Name );
+	    throw new Exception( "not checking templates: " + this.Class.Name );
 	}
 
-        void dump( CompileState  state, System.StringBuffer  buffer ) {
+        void dump( CompileState  state, StringBuffer  buffer ) {
             buffer.append("<unknown type>");
         }
 
-        void dump( System.StringBuffer  human, System.StringBuffer  decorate ) {
+        void dump( StringBuffer  human, StringBuffer  decorate ) {
             human.append("<unknown type>");
             decorate.append('v');
         }
 
-	System.String toString() {
-	    System.StringBuffer b = new System.StringBuffer();
-	    System.StringBuffer d = new System.StringBuffer();
+	String toString() {
+	    StringBuffer b = new StringBuffer();
+	    StringBuffer d = new StringBuffer();
 
 	    dump( b, d );
 	    return b;
@@ -207,14 +213,14 @@ namespace Parse {
     }
 
     class TypeExprList extends ParseTree {
-	Generic.Vector<TypeExpr> list;
+	Vector<TypeExpr> list;
 
 	void init( int line_number ) {
 	    super.init( line_number );
-	    list = new Generic.Vector<TypeExpr>();
+	    list = new Vector<TypeExpr>();
 	}
 
-	Generic.Vector<TypeExpr> getList() {
+	Vector<TypeExpr> getList() {
 	    return list;
 	}
 
@@ -272,7 +278,7 @@ namespace Parse {
 
         Type parseType( CompileState state, TypeExprList type_arguments ) {
 	    if( name == null ) {
-		throw new System.Exception( "parse named type: identifier is null" );
+		throw new Exception( "parse named type: identifier is null" );
 	    }
 
 	    // IO.Std.err.println( "before parsing type: " + name.getQualifiedName(state) );
@@ -309,8 +315,8 @@ namespace Parse {
 	    }
         }
         
-        void dump( System.StringBuffer  human, System.StringBuffer decorate ) {
-            System.String n = name.Name;
+        void dump( StringBuffer  human, StringBuffer decorate ) {
+            String n = name.Name;
             human.append( n );
             decorate.append( n.Length );
             decorate.append( n );
@@ -344,14 +350,14 @@ namespace Parse {
 	void clear( CompileState state ) {
 	}
 
-        void dump( System.StringBuffer human, System.StringBuffer decorate ) {
+        void dump( StringBuffer human, StringBuffer decorate ) {
             Type t = new Type( type );
             t.dump( human, decorate );
         }
 
-        System.String toString() {
-            System.StringBuffer h = new System.StringBuffer();
-            System.StringBuffer d = new System.StringBuffer();
+        String toString() {
+            StringBuffer h = new StringBuffer();
+            StringBuffer d = new StringBuffer();
             dump( h, d );
             return h;
         }
@@ -451,7 +457,7 @@ namespace Parse {
 	    } 
 	    Container c = t.Clazz;
 	    
-	    var a = new Generic.Vector<Type>();
+	    var a = new Vector<Type>();
 	    foreach( TypeExpr e; arguments.List.elements() ) {
 		t = e.parseType( state );
 		// IO.Std.err.println( "type argument: " + t + " from " + e );
@@ -482,8 +488,8 @@ namespace Parse {
 	    }
 	}
 
-	System.String toString() {
-	    System.StringBuffer b = new System.StringBuffer();
+	String toString() {
+	    StringBuffer b = new StringBuffer();
 	    if( type_expr != null ) {
 		b.append( type_expr );
 	    } else {
@@ -553,7 +559,7 @@ namespace Parse {
 	    type.checkTemplates( state );
 	}
 
-        void dump( System.StringBuffer human, System.StringBuffer decorate ) {
+        void dump( StringBuffer human, StringBuffer decorate ) {
             decorate.append('P');
             type.dump( human, decorate );
             human.append("[]");
@@ -588,7 +594,7 @@ namespace Parse {
 	    type.clear( state );
 	}
         
-        void dump( System.StringBuffer  human, System.StringBuffer  decorate ) {
+        void dump( StringBuffer  human, StringBuffer  decorate ) {
             decorate.append( 'R' );
             type.dump( human, decorate );
             human.append( " ref" );
@@ -623,7 +629,7 @@ namespace Parse {
 	    type.clear( state );
 	}
 
-        void dump( System.StringBuffer  human, System.StringBuffer  decorate ) {
+        void dump( StringBuffer  human, StringBuffer  decorate ) {
             decorate.append( 'P' );
             type.dump( human, decorate );
             human.append( " ptr" );

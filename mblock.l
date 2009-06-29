@@ -46,9 +46,9 @@ namespace Gen {
 
 	MInst findForward( int op ) {
 	    // IO.Std.err.println( "findForward(" + Op.getOpName(op) + ")" );
-	    for( MInst i = getHead(); i != null; i = i.next ) {
+	    for( MInst i = Head; i != null; i = i.next ) {
 		// IO.Std.err.print( "findForward: " + i );
-		if( i.getLeft() != null && i.Left.Operation == op ) {
+		if( i.Left != null && i.Left.Operation == op ) {
 		    // IO.Std.err.println( "matched" );
 		    return i;
 		}
@@ -57,8 +57,8 @@ namespace Gen {
 	}
 
 	MInst findBackward( int op ) {
-	    for( MInst i = getTail(); i != null; i = i.prev ) {
-		if( i.getLeft() != null && i.Left.Operation == op ) {
+	    for( MInst i = Tail; i != null; i = i.prev ) {
+		if( i.Left != null && i.Left.Operation == op ) {
 		    return i;
 		}
 	    }
@@ -76,7 +76,7 @@ namespace Gen {
 	    }
 	}
 
-	MInst getHead() {
+	get MInst Head {
 	    return inst;
 	}
 
@@ -130,11 +130,11 @@ namespace Gen {
 	}
 
 
-	MInst getTail() {
+	get MInst Tail {
 	    return tail;
 	}
 
-	void setTail(MInst i) {
+	set MInst Tail = i {
 	    tail = i;
 	}
 

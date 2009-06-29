@@ -1,5 +1,10 @@
 
 namespace Parse {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+
     use Gen.ITree;
     use Gen.IBlock;
     use Gen.ILabel;
@@ -124,7 +129,7 @@ namespace Parse {
 
 	void print( CompileState state ) {
 	    if( state.WantPrint ) {
-		System.String s = file_name.substring( 0, file_name.Length-2 ) + ".p";
+		String s = file_name.substring( 0, file_name.Length-2 ) + ".p";
 		IO.Std.out.println( "would output to: '" + s + "'" );
 		
 		IO.Writer o = IO.File.openCreate( s );
@@ -140,7 +145,7 @@ namespace Parse {
     }
 
     class NameSpace extends Statement {
-        System.String qualified_name;
+        String qualified_name;
         Identifier name;
         Statement body;
         Container n;
@@ -244,8 +249,8 @@ namespace Parse {
 	    p.println( "end" );
 	}
 
-        System.String toString() {
-            System.StringBuffer result = new System.StringBuffer();
+        String toString() {
+            StringBuffer result = new StringBuffer();
             result.append( "namespace " );
             result.append( name );
             result.append( body );

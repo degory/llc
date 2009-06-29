@@ -8,6 +8,11 @@ import symbol;
 import compilestate;
 
 namespace Parse {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+    
     class NeedCompile {
         CompileState state;
 
@@ -17,8 +22,8 @@ namespace Parse {
 
         // check classes that this_class depends on against the stored hashes in this_class's .depend file
         // return true if this_class needs to be compiled, false otherwise
-        bool checkHashList( System.String this_class ) {
-            System.StringBuffer buffer = new System.StringBuffer( state.CacheDir );
+        bool checkHashList( String this_class ) {
+            StringBuffer buffer = new StringBuffer( state.CacheDir );
             buffer.append( this_class );
             buffer.append( ".depend" );
 	    // IO.Std.err.println( "checkHashList: " + buffer );
@@ -34,7 +39,7 @@ namespace Parse {
             }
         }
 
-        bool needCompile( System.String source_name, System.String class_name, int hash ) {
+        bool needCompile( String source_name, String class_name, int hash ) {
 	    var result = needCompile2( source_name, class_name, hash );
 	    /*
 	    if( result ) { 
@@ -45,11 +50,11 @@ namespace Parse {
 	    return result;
 	}
 
-        bool needCompile2( System.String source_name, System.String class_name, int hash ) {
-	    // IO.Std.err.println( "CCCCCC: need to compile '" + source_name + "' for class " + class_name + ", hash " + System.String.hex(hash) + "?" );
+        bool needCompile2( String source_name, String class_name, int hash ) {
+	    // IO.Std.err.println( "CCCCCC: need to compile '" + source_name + "' for class " + class_name + ", hash " + String.hex(hash) + "?" );
 
             IO.Stat s = new IO.Stat(), t = new IO.Stat();
-            System.StringBuffer output_name = state.CacheDir + class_name + ".o";
+            StringBuffer output_name = state.CacheDir + class_name + ".o";
             int compiled_hash;
 
             if( !s.stat( source_name ) ) {
@@ -116,11 +121,11 @@ namespace Parse {
         }
     }
 
-    class HashEntry extends System.Object {
+    class HashEntry extends Object {
         public int h;
-        public System.String name;
+        public String name;
 
-        void init( int h, System.String name ) {
+        void init( int h, String name ) {
             super.init();
             this.h = h;
             this.name = name;
@@ -130,8 +135,8 @@ namespace Parse {
             return name.hash();
         }
 
-        public System.String toString() {
-            System.StringBuffer result = new System.StringBuffer();
+        public String toString() {
+            StringBuffer result = new StringBuffer();
             result.append( h );
             result.append( ' ' );
             result.append( name );
@@ -142,25 +147,25 @@ namespace Parse {
 
     class HashList {
         CompileState state;
-        Util.Map map;
+        Generic.Map<String,HashEntry> map;
         
         void init( CompileState state ) {
             this.state = state;
-            map = new Util.Map();
+            map = new Generic.Map<String,HashEntry>();
         }
 
-        void add( int h, System.String n ) {
-	    // IO.Std.err.println( "add: " + n + "->" + System.String.hex(h) );
-            map.put( n, new HashEntry( h, n ) );
+        void add( int h, String n ) {
+	    // IO.Std.err.println( "add: " + n + "->" + String.hex(h) );
+            map[n] = new HashEntry( h, n );
         }
 
-        void forceAdd( int h, System.String n ) {
-	    // IO.Std.err.println( "add: " + n + "->" + System.String.hex(h) );
-            map.put( n, new HashEntry( h, n ) );
+        void forceAdd( int h, String n ) {
+	    // IO.Std.err.println( "add: " + n + "->" + String.hex(h) );
+            map[n] = new HashEntry( h, n );
         }
 
-        int find( System.String n ) {
-            HashEntry e = cast<HashEntry>(map[n]);
+        int find( String n ) {
+            HashEntry e = map[n];
             if( e != null ) {
                 return e.h;
             } else {
@@ -187,7 +192,7 @@ namespace Parse {
                 int c = f.read(); // skip single space
 	        // IO.Std.err.println( "read hash: " + h );
 
-                System.StringBuffer name = new System.StringBuffer();
+                StringBuffer name = new StringBuffer();
 		
                 do {
 		    c = f.read();
@@ -198,11 +203,11 @@ namespace Parse {
                     name.append( cast<char>(c) );
                 } while( true );
 
-		if( name.getLength() == 0 ) {
+		if( name.Length == 0 ) {
 		    break;
 		}
                 
-		// IO.Std.err.println( System.String.hex(h) + " " + name );
+		// IO.Std.err.println( String.hex(h) + " " + name );
                 add( h, name );
             }
 	    // IO.Std.err.println( "done readFrom" );
@@ -211,7 +216,7 @@ namespace Parse {
         }
 
 	// check this_class against the hashes of classes it is dependent on. return true if any do not match (true=>compile required)
-        bool check( System.String prefix, System.String this_class ) {
+        bool check( String prefix, String this_class ) {
 	    // IO.Std.err.println( "check " + prefix + ": " + this_class + "..." );
 
             foreach( HashEntry e; map.elements() ) {
@@ -224,11 +229,11 @@ namespace Parse {
                 if( s == null ) {
                     // IO.Std.err.println( this_class + " depends on " + e.name + " but not in symbol table: rebuilding" );
                     return true;
-                } else if( s.getKind() != Symbol.CLASS ) {
+                } else if( s.Kind != Symbol.CLASS ) {
                     // IO.Std.err.println( this_class + " depends on " + e.name + " but its not a class (" + s.getKind() + "): rebuilding" );
                     return true;
                 }
-                if( cast<Container>(s).getHash() != e.h ) {
+                if( cast<Container>(s).Hash != e.h ) {
                     // IO.Std.err.println( "CCCCCC: " + this_class + ": hash in depend file " + e.name + "/" + e.h + " doesn't match " + s.HumanName + "/" + cast Container(s).Hash);
                     return true;
                 }

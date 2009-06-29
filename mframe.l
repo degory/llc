@@ -7,7 +7,7 @@ namespace Gen {
 	bool seen_local;
 	int flags;
 
-	int getFlags() {
+	get int Flags {
 	    return flags;
 	}
 
@@ -88,7 +88,7 @@ namespace Gen {
 	    // getTail().insertAfter( this, new MInst( new MAny( ".cfi_endproc" ) ) );
 
 	    if( t == null ) {
-		t = getTail();
+		t = Tail;
 	    }
 
 	    bool need_frame;   // need to save and setup RBP?
@@ -258,7 +258,7 @@ namespace Gen {
 	}
 
 	void adjustFrameOffset( MTree m ) {
-	    int original_offset = m.getInt();
+	    int original_offset = m.Int;
 	    // IO.Std.err.println( "BBBBBB: adjust " + original_offset + " by " + frame_offset + "?" );
 
 	    if( original_offset < 0 ) {

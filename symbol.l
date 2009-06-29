@@ -5,7 +5,13 @@ import container;
 import type;
 
 namespace Parse {
-    class Quality extends System.Object {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+    use Generic.Vector;
+
+    class Quality extends Object {
 	public int score;
 	public int quality;
 
@@ -28,7 +34,7 @@ namespace Parse {
 	}
     }
 
-    class Symbol extends System.Object {
+    class Symbol extends Object {
         public const int
             FLAG_METHOD = 1,
             FLAG_CLASS = 2,
@@ -87,7 +93,7 @@ namespace Parse {
         int access;
         int address;
         int defined;
-        System.String name;
+        String name;
         Type type;
 
         
@@ -95,59 +101,59 @@ namespace Parse {
             return false;
         }
         
-        bool getIsStatic() {
+        get bool IsStatic {
             return kind == Symbol.CLASS || (kind & Symbol.FLAG_STATIC) != 0;
         }
         
-        bool getIsInstance() {
+        get bool IsInstance {
             return (kind & Symbol.FLAG_CLASS) != 0 && (kind & Symbol.FLAG_STATIC) == 0;
         }
 
-	bool getIsType() {
+	get bool IsType {
 	    return kind == Symbol.CLASS || kind == Symbol.NAMESPACE || kind == Symbol.ENUM || kind == Symbol.TYPE;
 	}
         
-        bool getIsLocal() {
+        get bool IsLocal {
             return (access & Symbol.ACCESS_LOCAL) != 0;
         }
         
-        bool getIsPrivate() {
+        get bool IsPrivate {
             return (access & Symbol.ACCESS_PRIVATE) != 0;
         }
         
-        bool getIsPublic() {
+        get bool IsPublic {
             return (access & Symbol.ACCESS_PUBLIC) != 0;
         }
         
-        bool getIsProtected() {
+        get bool IsProtected {
             return (access & Symbol.ACCESS_PROTECTED) != 0;
         }
 
-	bool getIsAccessor() {
+	get bool IsAccessor {
 	    return kind & FLAG_ACCESSOR != 0;
 	}
         
-        bool getIsFinal() {
+        get bool IsFinal {
             return true;
         }
 
-	bool getIsInline() {
+	get bool IsInline {
 	    return false;
 	}
 
-	bool getIsMethod() {
+	get bool IsMethod {
 	    return kind & FLAG_METHOD != 0;
 	}
 
-	bool getIsNative() {
+	get bool IsNative {
 	    return false;
 	}
 
-	bool getNeedsBody() {
+	get bool NeedsBody {
 	    return false;
 	}
 
-	bool getIsValueValid() {
+	get bool IsValueValid {
 	    return true;
 	
 	    /*    
@@ -176,30 +182,29 @@ namespace Parse {
             return result;
         }
         
-        int getAccess() {
+        get int Access {
             return access;
         }
 
-        void setAccess( int a ) {
+        set int Access = a {
             access = a;
         }
         
-        void setDefined(int level) {
+        set int Defined = level {
             defined = level;
 	    // IO.Std.err.println( "set defined " + name + ": " + defined );
         }
         
-        int getDefined() {
+        get int Defined {
 	    // IO.Std.err.println( "get defined " + name + ": " + defined );
             return defined;
         }
-
        
-        Container getOverride() {
+        get Container Override {
             return null;
         }
 
-        void init( Container owner, System.String name, int kind, int access, Type type ) {
+        void init( Container owner, String name, int kind, int access, Type type ) {
             super.init();
             this.owner = owner;
             this.name = name;
@@ -210,48 +215,48 @@ namespace Parse {
             is_referenced = false;
             
             if( name == null ) {
-                throw new System.Exception( "oops: symbol has null name\n" );
+                throw new Exception( "oops: symbol has null name\n" );
                 name = "#unknown#";
             }
         }
 
-        System.String getName() {
+        get String Name {
             return name;
         }
 
-        void setOwner( Container owner ) {
+        set Container Owner = owner {
             this.owner = owner;
         }
 
-        void setType( Type type ) {
+        set Type Type = type {
             this.type = type;
         }
 
-        Type getType() {
+        get Type Type {
             return type;
         }
 
-        Container getOwner() {
+        get Container Owner {
             return owner;
         }
 
-        void setOverride( Container s ) {
-            throw new System.Exception( "overriding non-container: " + this + " with: " + s );
+        set Container Override = s {
+            throw new Exception( "overriding non-container: " + this + " with: " + s );
         }
 
-        System.String getDecoratedName() {
-            return getName();
+        get String DecoratedName {
+            return Name;
         }
 
-        System.String getQualifiedName() {
-            return getName();
+        get String QualifiedName {
+            return Name;
         }
 
-	System.String getHumanName() {
+	get String HumanName {
 	    return Name;
 	}
 
-	System.String getOwnerHumanName() {
+	get String OwnerHumanName {
 	    if( owner == null ) {
 		return "global";
 	    } else {
@@ -260,30 +265,30 @@ namespace Parse {
 	}
 		
 
-        Parse.SymbolList getScope() {
-            if( type != null && type.getTypeKind() == Type.CLASS ) {
-                return type.getScope();
+        get Parse.SymbolList Scope {
+            if( type != null && type.TypeKind == Type.CLASS ) {
+                return type.Scope;
             } else {
                 return null;
             }
         }
 
-        int getKind() {
+        get int Kind {
             return kind;
         }
 
-        int getSize() {
-            throw new System.Exception( "oops: getSize() called for non class: " + getName() );
+        get int Size {
+            throw new Exception( "oops: getSize() called for non class: " + Name );
             return 0;
         }
 
-        bool getIsAddressValid() {
+        get bool IsAddressValid {
             return is_address_valid;
         }
 
-        void setAddress( int address ) {
+        set int Address = address {
             if( is_address_valid ) {
-                throw new System.Exception( "overwriting valid address for symbol: " + getName() + " from " + this.address + " to " + address );
+                throw new Exception( "overwriting valid address for symbol: " + getName() + " from " + this.address + " to " + address );
             }
             this.address = address;
             is_address_valid = true;
@@ -293,19 +298,19 @@ namespace Parse {
 	    is_address_valid = false;
 	}
 
-        int getAddress() {
+        get int Address {
             if( !is_address_valid ) {
-                throw new System.Exception( "taking address of symbol: " + getName() + ": address is not valid" );
+                throw new Exception( "taking address of symbol: " + getName() + ": address is not valid" );
             }
             return address;
         }
 
-	int getHash() {
-	    return getAddress();
+	get int Hash {
+	    return Address;
 	}
 
-        Symbol findSymbol( System.String name, bool want_type ) {
-            throw new System.Exception( "oops: looking for symbol " + name + " in non-container symbol " + getQualifiedName() );
+        Symbol findSymbol( String name, bool want_type ) {
+            throw new Exception( "oops: looking for symbol " + name + " in non-container symbol " + getQualifiedName() );
             return null;
         }
 
@@ -324,12 +329,12 @@ namespace Parse {
 		return Kind != ACCESSOR;
 
 	    default:
-		throw new System.Exception( "unexpected symbol table search type " + find_what );
+		throw new Exception( "unexpected symbol table search type " + find_what );
 	    }
 	}
 
-        void setDecoratedName( System.String name ) {
-            throw new System.Exception( "oops: shouldn't be trying to set decorated name for non method symbol: " + getName() );
+        set String DecoratedName = name {
+            throw new Exception( "oops: shouldn't be trying to set decorated name for non method symbol: " + Name );
         }
 
         int compareAccess( Symbol c ) {
@@ -366,55 +371,55 @@ namespace Parse {
                 }
                 
                 // what class or namespace owns this object?
-                o = getOwner();
+                o = Owner;
                 if( o == null ) {
-                    throw new System.Exception( "weird: private " + o.getQualifiedName() + " has no owner\n" );
+                    throw new Exception( "weird: private " + o.QualifiedName + " has no owner\n" );
                     return false;
                 }
                 
                 // access to private symbols from a method is equivilent to accessing from owning class
-                if( from.getKind() & Symbol.FLAG_METHOD != null ) {
-                    from = from.getOwner();
+                if( from.Kind & Symbol.FLAG_METHOD != null ) {
+                    from = from.Owner;
                 }
                 
-                owner_kind = o.getKind();
+                owner_kind = o.Kind;
                 if( owner_kind == Symbol.NAMESPACE ) {
                     // object owned by a namespace
                     // if context accessed from is same namespace
-                    if( from.getKind() == Symbol.CLASS ) {
+                    if( from.Kind == Symbol.CLASS ) {
                         // if context is a class, equivilent here to accessing from that class's enclosing namespace
-                        from = from.getOwner();
+                        from = from.Owner;
                     }
                     return from == o; // namespaces must match
                 } else if( owner_kind == Symbol.CLASS ) {
                     // context must be same class
                     return from == o;
                 }
-                throw new System.Exception( "unexpected owner: " + o.getQualifiedName() );
+                throw new Exception( "unexpected owner: " + o.QualifiedName );
                 return false;
             } else if( access & Symbol.ACCESS_PROTECTED != 0 ) {
                 if( from == null ) {
                     return false;
                 }
                 
-                o = getOwner();
+                o = Owner;
                 if( o == null ) {
-                    throw new System.Exception( "weird: private symbol " + o.getQualifiedName() + " has no owner" );
+                    throw new Exception( "weird: private symbol " + o.getQualifiedName() + " has no owner" );
                     return false;
                 }
                 
                 // access to protected symbols from a method is equivilent to accessing from owning class
-                if( (from.getKind() & Symbol.FLAG_METHOD) != 0 ) {
-                    from = from.getOwner();
+                if( (from.Kind & Symbol.FLAG_METHOD) != 0 ) {
+                    from = from.Owner;
                 }
                 
-                owner_kind = o.getKind();
+                owner_kind = o.Kind;
                 if( owner_kind == Symbol.NAMESPACE ) {
                     // symbol is owned by a namespace. can be accessed from this namespace or from namespaces nested within it.
                     
-                    if( from.getKind() == Symbol.CLASS ) {
+                    if( from.Kind == Symbol.CLASS ) {
                         // access context is within a class, equivilent to accessing from that classes enclosing namespace
-                        from = from.getOwner();
+                        from = from.Owner;
                     }
                     
                     // see if the accessing context's or any enclosing namespace matches this object's owning namespace
@@ -424,21 +429,21 @@ namespace Parse {
                             return true;
                         }
                         // or it's owners...
-                        from = from.getOwner();
+                        from = from.Owner;
                     }
                     return false;
                 } else if( owner_kind == Symbol.CLASS ) {
                     return o.isParentOf( from );
                 }
-                throw new System.Exception( "unexpected owner: " + o.getQualifiedName() );
+                throw new Exception( "unexpected owner: " + o.QualifiedName );
             } else {
-                throw new System.Exception( "oops: symbol " + getName() + " has no access from any context" );
+                throw new Exception( "oops: symbol " + Name + " has no access from any context" );
                 return false;
             }
         }
 
-	System.String toString() {
-	    System.StringBuffer b = new System.StringBuffer("Symbol(");
+	String toString() {
+	    StringBuffer b = new StringBuffer("Symbol(");
 	    b.append( this.QualifiedName );
 	    
 	    if( type != null ) {
@@ -458,16 +463,16 @@ namespace Parse {
     }
 
 
-    class SymbolList extends System.Object {
+    class SymbolList extends Object {
 	const int MAX_LEN = 31;
         SymbolList parent;
-	Generic.Vector<Symbol> list;
-        Generic.Vector<Symbol>[] by_length; // one list per possible length of symbol upto maximum length, longer lengths stored in last bucket
+	Vector<Symbol> list;
+        Vector<Symbol>[] by_length; // one list per possible length of symbol upto maximum length, longer lengths stored in last bucket
 
         void init() {
             super.init();
-	    list = new Generic.Vector<Symbol>();
-            by_length = new Generic.Vector<Symbol>[MAX_LEN+1];
+	    list = new Vector<Symbol>();
+            by_length = new Vector<Symbol>[MAX_LEN+1];
         }
 
         void dump() {
@@ -486,14 +491,14 @@ namespace Parse {
         }
         
         void add( Symbol symbol ) {
-	    System.String s = symbol.Name;
+	    String s = symbol.Name;
 	    int l = s.Length;
 	    if( l > MAX_LEN ) {
 		l = MAX_LEN;
 	    }
 
 	    if( by_length[l] == null ) {
-		by_length[l] = new Generic.Vector<Symbol>();
+		by_length[l] = new Vector<Symbol>();
 	    }
     
             by_length[l].add( symbol );
@@ -505,7 +510,7 @@ namespace Parse {
 	    IO.Std.err.println( "fixme: SymbolList.addAll may be broken" );
 	    foreach( Symbol s; l.list.elements() ) {
 		if( s == null ) {
-		    throw new System.Exception( "adding null symbol\n" );
+		    throw new Exception( "adding null symbol\n" );
 		}
 		add( s );
 	    }
@@ -515,7 +520,7 @@ namespace Parse {
         void useAll( SymbolList l ) {
             foreach( Symbol s; list.elements() ) {
                 if( s == null ) {
-                    throw new System.Exception( "adding null symbol\n" );
+                    throw new Exception( "adding null symbol\n" );
                 }
             }
             IO.Std.err.print( "used all. list now: " );
@@ -523,16 +528,16 @@ namespace Parse {
         }
 	*/
 
-	Symbol find( System.String name, int find_what ) {
+	Symbol find( String name, int find_what ) {
 	    return find(name, find_what, false);
 	}
 
-        Symbol find( System.String name, int find_what, bool use_list ) {
+        Symbol find( String name, int find_what, bool use_list ) {
             if( name == null ) {
-                throw new System.Exception( "oops: can't lookup null name in symbol list" );
+                throw new Exception( "oops: can't lookup null name in symbol list" );
             }
 
-	    Generic.Vector<Symbol> v;
+	    Vector<Symbol> v;
 	    if( use_list ) {
 		v = list;
 	    } else {
@@ -548,7 +553,7 @@ namespace Parse {
 
 		foreach( Symbol s; v.elements() ) {
 		    if( s == null ) {
-			throw new System.Exception( "null symbol in list\n" );
+			throw new Exception( "null symbol in list\n" );
 		    }
 		    int k = s.Kind;
 		    if( use_list && k == Symbol.NAMESPACE ) {
@@ -579,9 +584,9 @@ namespace Parse {
             return null;
         }
 
-        Symbol findDecorated( System.String name ) {
+        Symbol findDecorated( String name ) {
             if( name == null ) {
-                throw new System.Exception( "oops: can't lookup null name in symbol list" );
+                throw new Exception( "oops: can't lookup null name in symbol list" );
             }
 
 	    foreach( Symbol s; list.elements() ) {
@@ -593,9 +598,9 @@ namespace Parse {
             return null;
         }
         
-        Symbol findQualified( System.String name ) {
+        Symbol findQualified( String name ) {
             if( name == null ) {
-                throw new System.Exception( "oops: can't lookup null name in symbol list" );
+                throw new Exception( "oops: can't lookup null name in symbol list" );
                 return null;
             }
 
@@ -609,9 +614,9 @@ namespace Parse {
         }
 
 
-        Container findMethod( System.String name, Generic.Vector<Type> arguments, Quality result ) {
+        Container findMethod( String name, Vector<Type> arguments, Quality result ) {
             if( name == null ) {
-                throw new System.Exception( "oops: can't search for a null method name in symbol list" );
+                throw new Exception( "oops: can't search for a null method name in symbol list" );
             }
             
             int best_score = -1;
@@ -621,12 +626,12 @@ namespace Parse {
 
 	    if( this == null ) {
 		IO.Std.err.println( "can't find '" + name + "' in null symbol list" );
-		throw new System.Exception( "can't find '" + name + "' in null symbol list" );
+		throw new Exception( "can't find '" + name + "' in null symbol list" );
 	    }
 
 	    if( list == null ) {
 		IO.Std.err.println( "can't find '" + name + "' in empty symbol list" );
-		throw new System.Exception( "can't find '" + name + "' in empty symbol list" );
+		throw new Exception( "can't find '" + name + "' in empty symbol list" );
 		return null;
 	    }
 
@@ -671,9 +676,9 @@ namespace Parse {
 	    return null;
         }
 
-        Container findMethod( System.String name, Generic.Vector<Type> arguments, bool exact ) {
+        Container findMethod( String name, Vector<Type> arguments, bool exact ) {
             if( name == null ) {
-                throw new System.Exception( "oops: can't search for a null method name in symbol list" );
+                throw new Exception( "oops: can't search for a null method name in symbol list" );
             }
 
 	    int l = name.Length;
@@ -717,11 +722,11 @@ namespace Parse {
 	}
 
 	Symbol opGet( int index ) {
-	    return cast<Symbol>(list[index]);
+	    return list[index];
 	}
 
 
-	int getLength() {
+	get int Length {
 	    return list.Length;
 	}
 
@@ -729,12 +734,12 @@ namespace Parse {
             this.parent = parent;
         }
         
-        Generic.Vector<Symbol> getSymbolList() {
+        get Vector<Symbol> SymbolList {
             return list;
         }
 
-	System.String toString() {
-	    System.StringBuffer b = new System.StringBuffer("\n");
+	String toString() {
+	    StringBuffer b = new StringBuffer("\n");
 	    foreach( Symbol s; list.elements() ) {
 		b.append( s );
 		b.append( "\n" );

@@ -5,8 +5,12 @@ import vector;
 import map;
 
 namespace Parse {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
 
-    class TokenBuffer extends System.Object {
+    class TokenBuffer extends Object {
 	const int MAX = 32;  // maximum lookahead before we assume we're not in a generic type
 
 	int read_pos;
@@ -27,11 +31,11 @@ namespace Parse {
 	    write_pos = 0;
 	}
 
-	bool getAvail() {
+	get bool Avail {
 	    return read_pos < write_pos;
 	}
 
-	bool getIsFull() {
+	get bool IsFull {
 	    return write_pos >= MAX;
 	} 
 
@@ -84,13 +88,13 @@ namespace Parse {
     }
 
 
-    class TokenizerException extends System.Exception {
-        void init( System.String s ) {
+    class TokenizerException extends Exception {
+        void init( String s ) {
             super.init(s);
         }
     }
 
-    class TokenHolder extends System.Object {
+    class TokenHolder extends Object {
         public Token token;
 
         void init( Token token ) {
@@ -99,19 +103,19 @@ namespace Parse {
         }
     }
 
-    class TokenMap extends System.Object {
-        Generic.Map<System.String,TokenHolder> map;
+    class TokenMap extends Object {
+        Generic.Map<String,TokenHolder> map;
 
         void init() {
             super.init();
-            map = new Generic.Map<System.String,TokenHolder>(223);
+            map = new Generic.Map<String,TokenHolder>(223);
         }
 
-        void put( System.String s, Token t ) {
+        set Token[String s] = t {
             map[s] = new TokenHolder(t);
         }
 
-        Token opGet( System.String s ) {
+        get Token[String s] {
             TokenHolder th = map[s];
             if( th != null ) {
                 return th.token;
@@ -121,17 +125,17 @@ namespace Parse {
         }
     }
 
-    class TokenPair extends System.Object {
-        public System.String string;
+    class TokenPair extends Object {
+        public String string;
         public Token token;
 
-        void init( Token token, System.String string ) {
+        void init( Token token, String string ) {
             super.init();
             this.token = token;
             this.string = string;
         }
 
-        System.String getString() {
+        String getString() {
             return string;
         }
 
@@ -146,71 +150,71 @@ namespace Parse {
 	static TokenMap symbol_tokens_k;
 	TokenMap symbol_tokens;
 	TokenBuffer buffer;
-        System.String token_string;
+        String token_string;
         IO.Reader input;
         bool end_of_file;
         char prev_char;
 
-	System.String current_file;
+	String current_file;
 	int current_line;
 
-        System.String[] token_name;
+        String[] token_name;
 
 	bool want_new_syntax;
 
 	static TokenMap initSymbolTokensCommon() {
 	    // IO.Std.err.println( "init tokens for common" );
 	    var symbol_tokens = new TokenMap();
-	    symbol_tokens.put( "import", Token.IMPORT );
-	    symbol_tokens.put( "namespace", Token.NAMESPACE );
-	    symbol_tokens.put( "class", Token.CLASS );
-	    symbol_tokens.put( "struct", Token.STRUCT );
-	    symbol_tokens.put( "enum", Token.ENUM );
-	    symbol_tokens.put( "extends", Token.EXTENDS );
-	    symbol_tokens.put( "public", Token.PUBLIC );
-	    symbol_tokens.put( "protected", Token.PROTECTED );
-	    symbol_tokens.put( "private", Token.PRIVATE );
-	    symbol_tokens.put( "const", Token.CONST );
-	    symbol_tokens.put( "static", Token.STATIC );
-	    symbol_tokens.put( "if", Token.IF );
-	    symbol_tokens.put( "else", Token.ELSE );
-	    symbol_tokens.put( "while", Token.WHILE );
-	    symbol_tokens.put( "do", Token.DO );
-	    symbol_tokens.put( "for", Token.FOR );
-	    symbol_tokens.put( "foreach", Token.FOREACH );
-	    symbol_tokens.put( "case", Token.CASE );
-	    symbol_tokens.put( "default", Token.DEFAULT );
-	    symbol_tokens.put( "break", Token.BREAK );
-	    symbol_tokens.put( "continue", Token.CONTINUE );
-	    symbol_tokens.put( "ref", Token.REFERENCE );
-	    symbol_tokens.put( "ptr", Token.POINTER );
-	    symbol_tokens.put( "int", Token.INT );
-	    symbol_tokens.put( "long", Token.LONG );
-	    symbol_tokens.put( "word", Token.WORD );
-	    symbol_tokens.put( "char", Token.CHAR );
-	    symbol_tokens.put( "bool", Token.BOOL );
-	    symbol_tokens.put( "void", Token.VOID );
-	    symbol_tokens.put( "new", Token.NEW );
-	    symbol_tokens.put( "throw", Token.THROW );
-	    symbol_tokens.put( "return", Token.RETURN );
-	    symbol_tokens.put( "cast", Token.CAST );
-	    symbol_tokens.put( "var", Token.VARIABLE );
-	    symbol_tokens.put( "try", Token.TRY );
-	    symbol_tokens.put( "catch", Token.CATCH );
-	    symbol_tokens.put( "finally", Token.FINALLY );
-	    symbol_tokens.put( "this", Token.THIS );
-	    symbol_tokens.put( "super", Token.SUPER );
-	    symbol_tokens.put( "null", Token.CONST_NULL );
-	    symbol_tokens.put( "true", Token.CONST_TRUE );
-	    symbol_tokens.put( "false", Token.CONST_FALSE );
-	    symbol_tokens.put( "use", Token.USE );
-	    symbol_tokens.put( "native", Token.NATIVE );
-	    symbol_tokens.put( "pragma", Token.PRAGMA );
-	    symbol_tokens.put( "get", Token.GET );
-	    symbol_tokens.put( "set", Token.SET );
-	    symbol_tokens.put( "implements", Token.IMPLEMENTS );
-	    symbol_tokens.put( "interface", Token.INTERFACE );
-	    // symbol_tokens.put( "of", Token.OF );
+	    symbol_tokens["import"] = Token.IMPORT;
+	    symbol_tokens["namespace"] = Token.NAMESPACE;
+	    symbol_tokens["class"] = Token.CLASS;
+	    symbol_tokens["struct"] = Token.STRUCT;
+	    symbol_tokens["enum"] = Token.ENUM;
+	    symbol_tokens["extends"] = Token.EXTENDS;
+	    symbol_tokens["public"] = Token.PUBLIC;
+	    symbol_tokens["protected"] = Token.PROTECTED;
+	    symbol_tokens["private"] = Token.PRIVATE;
+	    symbol_tokens["const"] = Token.CONST;
+	    symbol_tokens["static"] = Token.STATIC;
+	    symbol_tokens["if"] = Token.IF;
+	    symbol_tokens["else"] = Token.ELSE;
+	    symbol_tokens["while"] = Token.WHILE;
+	    symbol_tokens["do"] = Token.DO;
+	    symbol_tokens["for"] = Token.FOR;
+	    symbol_tokens["foreach"] = Token.FOREACH;
+	    symbol_tokens["case"] = Token.CASE;
+	    symbol_tokens["default"] = Token.DEFAULT;
+	    symbol_tokens["break"] = Token.BREAK;
+	    symbol_tokens["continue"] = Token.CONTINUE;
+	    symbol_tokens["ref"] = Token.REFERENCE;
+	    symbol_tokens["ptr"] = Token.POINTER;
+	    symbol_tokens["int"] = Token.INT;
+	    symbol_tokens["long"] = Token.LONG;
+	    symbol_tokens["word"] = Token.WORD;
+	    symbol_tokens["char"] = Token.CHAR;
+	    symbol_tokens["bool"] = Token.BOOL;
+	    symbol_tokens["void"] = Token.VOID;
+	    symbol_tokens["new"] = Token.NEW;
+	    symbol_tokens["throw"] = Token.THROW;
+	    symbol_tokens["return"] = Token.RETURN;
+	    symbol_tokens["cast"] = Token.CAST;
+	    symbol_tokens["var"] = Token.VARIABLE;
+	    symbol_tokens["try"] = Token.TRY;
+	    symbol_tokens["catch"] = Token.CATCH;
+	    symbol_tokens["finally"] = Token.FINALLY;
+	    symbol_tokens["this"] = Token.THIS;
+	    symbol_tokens["super"] = Token.SUPER;
+	    symbol_tokens["null"] = Token.CONST_NULL;
+	    symbol_tokens["true"] = Token.CONST_TRUE;
+	    symbol_tokens["false"] = Token.CONST_FALSE;
+	    symbol_tokens["use"] = Token.USE;
+	    symbol_tokens["native"] = Token.NATIVE;
+	    symbol_tokens["pragma"] = Token.PRAGMA;
+	    symbol_tokens["get"] = Token.GET;
+	    symbol_tokens["set"] = Token.SET;
+	    symbol_tokens["implements"] = Token.IMPLEMENTS;
+	    symbol_tokens["interface"] = Token.INTERFACE;
+
 	    return symbol_tokens;
 	}
 
@@ -220,15 +224,15 @@ namespace Parse {
 		    symbol_tokens_k = initSymbolTokensCommon();
 
 		    // IO.Std.err.println( "init tokens for K syntax" );
-		    symbol_tokens_k.put( "is", Token.IS );
-		    symbol_tokens_k.put( "end", Token.END );
-		    symbol_tokens_k.put( "then", Token.THEN );
-		    symbol_tokens_k.put( "elif", Token.ELIF );
-		    symbol_tokens_k.put( "fi", Token.FI );
-		    symbol_tokens_k.put( "esac", Token.ESAC );
+		    symbol_tokens_k["is"] = Token.IS;
+		    symbol_tokens_k["end"] = Token.END;
+		    symbol_tokens_k["then"] = Token.THEN;
+		    symbol_tokens_k["elif"] = Token.ELIF;
+		    symbol_tokens_k["fi"] = Token.FI;
+		    symbol_tokens_k["esac"] = Token.ESAC;
 		    
-		    symbol_tokens_k.put( "od", Token.OD );
-		    symbol_tokens_k.put( "yrt", Token.YRT );
+		    symbol_tokens_k["od"] = Token.OD;
+		    symbol_tokens_k["yrt"] = Token.YRT;
 		}
 		this.symbol_tokens = symbol_tokens_k;		
 	    } else {
@@ -237,7 +241,7 @@ namespace Parse {
 
 		    // IO.Std.err.println( "init tokens for L syntax" );
 		    
-		    symbol_tokens_l.put( "switch", Token.SWITCH );
+		    symbol_tokens_l["switch"] = Token.SWITCH;
 		    
 		}
 	    	this.symbol_tokens = symbol_tokens_l;
@@ -247,7 +251,7 @@ namespace Parse {
 
 	}
 
-        void init( System.String current_file, IO.Reader i ) {
+        void init( String current_file, IO.Reader i ) {
             super.init();
 	    want_new_syntax = false;
 	    int t = i.read();
@@ -260,7 +264,7 @@ namespace Parse {
 		    // IO.Std.err.println( "new syntax selected" );
 		    want_new_syntax = true;
 		} else {
-		    throw new System.Exception( "unexpected syntax type marker" );
+		    throw new Exception( "unexpected syntax type marker" );
 		}
 	    } else if( t != -1 ) {
 		i.unRead( t );
@@ -278,7 +282,7 @@ namespace Parse {
 	    initSymbolTokens();
 	}
 
-	void error( System.String msg ) {
+	void error( String msg ) {
             IO.Std.err.println( current_file + ": " + current_line + ": error: " + msg );
 	}
 
@@ -324,15 +328,15 @@ namespace Parse {
             prev_char = c;
         }
 
-        System.String getBuffer() {
+        String getBuffer() {
             return token_string;
         }
 
-	System.Object getValue() {
+	Object getValue() {
 	    return getBuffer();
 	}
 
-        System.String getName(Token t) {
+        String getName(Token t) {
             return token_name[cast<int>(t)];
         }
 
@@ -340,7 +344,7 @@ namespace Parse {
 	    return current_line;
 	}
 
-	System.String getFile() {
+	String getFile() {
 	    return current_file;
 	}
 
@@ -479,13 +483,13 @@ namespace Parse {
 
 	    int open_line = current_line;
 
-            System.StringBuffer buffer = null;
-            token_string = null; // new System.StringBuffer("");
+            StringBuffer buffer = null;
+            token_string = null; // new StringBuffer("");
 
             // IO.Std.out.println( "number/letter: '" + c + "'?" );
             if( c >= '0' && c <= '9' ) {
                 // IO.Std.out.println( "number: '" + c + "'" );
-                buffer = new System.StringBuffer();
+                buffer = new StringBuffer();
 		buffer.append( c );
 		c = nextChar();
 		if( c == 'x' || c == 'X' ) {
@@ -511,7 +515,7 @@ namespace Parse {
                 return Token.CONST_INT;
             } else if( (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' ) {
                 // IO.Std.out.println( "letter: '" + c + "'" );
-                buffer = new System.StringBuffer();
+                buffer = new StringBuffer();
                 while( (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' ) {
                     buffer.append(c);
                     c = nextChar();
@@ -533,7 +537,7 @@ namespace Parse {
 
             switch( c ) {
             case cast<char>(34): // double quote
-                buffer = new System.StringBuffer();
+                buffer = new StringBuffer();
                 c = nextChar(); 
                 while( c != cast<char>(34) ) {
                     if( c == cast<char>(92) ) { // backslash
@@ -553,7 +557,7 @@ namespace Parse {
                 return Token.CONST_STRING;
 
             case cast<char>(39): // single quote
-                buffer = new System.StringBuffer();
+                buffer = new StringBuffer();
                 c = nextChar();
                 while( c != cast<char>(39) ) {
                     if( c == cast<char>(92) ) { // backslash
@@ -577,7 +581,7 @@ namespace Parse {
                 return Token.CONST_CHAR;
 
 	    case '`':
-		buffer = new System.StringBuffer();
+		buffer = new StringBuffer();
 		c = nextChar();
 		while( c != '`' ) {
 		    if( c == cast<char>(92) ) { // backslash
@@ -746,7 +750,7 @@ namespace Parse {
             case '/':
                 c = nextChar();
                 if( c == '/' ) {
-		    buffer = new System.StringBuffer();
+		    buffer = new StringBuffer();
                     do {
                         c = nextChar();
 			if( c != '\n' ) {
@@ -757,7 +761,7 @@ namespace Parse {
 
                     return readToken();
                 } else if( c == '*' ) { 
-		    buffer = new System.StringBuffer();
+		    buffer = new StringBuffer();
 		    do {
 			c = nextChar();
 

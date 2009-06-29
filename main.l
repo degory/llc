@@ -7,12 +7,18 @@ import compilestate;
 import mtree;
 
 namespace Parse { 
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+    use Generic.Vector;
+
     class Main {
-	const int BUILD = 1139;
+	const int BUILD = 1140;
 
 	CompileState state;
 
-	void setExecutableName( System.String name ) {
+	set String ExecutableName = name {
 	    int i;
 	    for( i = name.getLength() - 1; i >= 0; i = i - 1 ) {
 		if( name.charAt(i) == '.' ) {
@@ -23,7 +29,7 @@ namespace Parse {
 	    state.ExecutableName = name;
 	}
 
-	void setProjectName( System.String name ) {
+	set String ProjectName = name {
 	    IO.Std.err.println( "project name: '" + name + "'" );
 	    state.ProjectName = name;
 	}
@@ -48,12 +54,12 @@ namespace Parse {
 	    state = new CompileState();
 	    bool first_file = true;
 	    int i, j;
-	    System.String name;
-	    var input_files = new Generic.Vector<System.String>();
+	    String name;
+	    var input_files = new Vector<String>();
 
 	    Gen.Machine.initOpNames();
             
-            System.String[] args = System.Arguments.getProgramArguments();
+            String[] args = System.Arguments.ProgramArguments;
 
 	    state.WantRegVars = true;
 	    state.WantWarnResolve = false;
@@ -63,7 +69,7 @@ namespace Parse {
 
             for( i = 1; i < args.length; i = i + 1 ) {
                 name = args[i];
-                if( name.getLength() >= 2 && name.charAt(0) == '-' ) { 
+                if( name.Length >= 2 && name[0] == '-' ) { 
                     switch( name[1] ) {
 		    case 'h', 'H', '?':
 			usage( args[0] );
@@ -100,7 +106,7 @@ namespace Parse {
 			state.WantLineNumbers = false;
 
 		    case 'p':
-			if( name.getLength() > 2 ) {
+			if( name.Length > 2 ) {
 			    setProjectName( name.substring(2) );
 			} else {
 			    i = i + 1;
@@ -259,7 +265,7 @@ namespace Parse {
 	    }
 
 	    if( state.WantVerbose ) {
-		System.StringBuffer options = new System.StringBuffer();
+		StringBuffer options = new StringBuffer();
 		if( state.WantSafe ) {
 		    options.append( "safe " );
 		}
@@ -289,7 +295,7 @@ namespace Parse {
 		IO.Std.err.println( "output executable: " + state.ExecutableName );
 	    }
 
-	    System.String last_file;
+	    String last_file;
 	    try {
 		last_file = "lang.l";
 
@@ -297,7 +303,7 @@ namespace Parse {
 
 		state.visitFile( "lang.l" );
 		
-		foreach( System.String s; input_files.elements() ) {
+		foreach( String s; input_files.elements() ) {
 		    last_file = s;
 		    state.visitFile( s );
 		}
@@ -340,7 +346,7 @@ namespace Parse {
 		ParseTree.newline();
 		IO.Std.err.println( "*** unrecoverable parse error ***" );
 		native.exit(1);
-	    } catch( System.Exception se ) {
+	    } catch( Exception se ) {
 		ParseTree.newline();
 		IO.Std.err.println( "*** fatal error ***" );
 		IO.Std.err.println( se );
@@ -348,7 +354,7 @@ namespace Parse {
 	    }
         }
 
-	void usage( System.String name ) {
+	void usage( String name ) {
 	    IO.Std.err.println( "L-compiler build " + BUILD + " (C) 2009 <degs@giantblob.com>" );
 	    IO.Std.err.println( "    host: " + System.Environment.NAME );
 	    IO.Std.err.println( "    target: " + Gen.Machine.NAME );
@@ -391,8 +397,8 @@ namespace Parse {
 	    IO.Std.err.println( "    r                do not warn method resolution is poor match" );
 	}
 
-	static System.String fixedPoint( int n ) {
-	    System.StringBuffer result = new System.StringBuffer();
+	static String fixedPoint( int n ) {
+	    StringBuffer result = new StringBuffer();
 	    result.append( n / 100 );
 	    result.append( '.' );
 	    

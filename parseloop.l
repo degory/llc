@@ -1,5 +1,11 @@
 
 namespace Parse {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+    use Generic.Vector;
+
     use Gen.ITree;
     use Gen.IBlock;
     use Gen.ILabel;
@@ -8,12 +14,12 @@ namespace Parse {
     use Gen.TempFactory;
     use Gen.MBitSet;
 
-    class Loop extends System.Object {
+    class Loop extends Object {
         public ILabel break_label;
         public ILabel continue_label;
-        public System.String name;
+        public String name;
         
-        void init( System.String name, ILabel bl, ILabel cl ) {
+        void init( String name, ILabel bl, ILabel cl ) {
             super.init();
             this.name = name;
             break_label = bl;
@@ -22,13 +28,13 @@ namespace Parse {
     }
 
     class LoopStack {
-        Generic.Vector<Loop> label;
+        Vector<Loop> label;
         
         void init() {
-            label = new Generic.Vector<Loop>();
+            label = new Vector<Loop>();
         }
 
-        void pushLoop( System.String name, ILabel break_label, ILabel exit_label ) {
+        void pushLoop( String name, ILabel break_label, ILabel exit_label ) {
             label.add( new Loop(name,break_label,exit_label));
         }
 
@@ -36,11 +42,11 @@ namespace Parse {
             label.pop();
         }
 
-        Loop getTopLoop() {
+        get Loop TopLoop {
             return label.Top;
         }
 
-        Loop findLoop( System.String s ) {
+        Loop findLoop( String s ) {
             for( int i = label.Length-1; i >= 0; i = i - 1 ) {
                 Loop l = cast<Loop>(label[i]);
                 if( l != null && l.name != null && l.name.equals(s) ) {
@@ -52,18 +58,18 @@ namespace Parse {
     }
 
     class LoopStatement extends Statement {
-        System.String loop_name;
+        String loop_name;
 
         void init( int line_number ) {
             super.init( line_number );
             loop_name = null;
         }
         
-        void setLoopName( Identifier l ) {
+        set Identifier LoopName = l {
             loop_name = l.Name;
         }
         
-        System.String getLoopName() {
+        get String LoopName {
             return loop_name;
         }
     }
@@ -75,7 +81,7 @@ namespace Parse {
         }
         
         void compile( CompileState state, IBlock into ) {
-            System.String label = LoopName;
+            String label = LoopName;
             Loop loop;
             if( label == null ) {
                 loop = state.Loops.TopLoop;
@@ -100,14 +106,14 @@ namespace Parse {
             }
         }
 
-        void dump( CompileState state, System.StringBuffer into ) {
+        void dump( CompileState state, StringBuffer into ) {
             into.append( "break;" );
         }
 
 	void print( CompileState state, Printer p ) {
 	    pl(p);
 
-            System.String label = LoopName;
+            String label = LoopName;
 	    p.nl();
 	    if( label != null ) {
 		p.print( "break " );
@@ -125,7 +131,7 @@ namespace Parse {
         }
         
         void compile( CompileState state, IBlock into ) {
-            System.String label = LoopName;
+            String label = LoopName;
             Loop loop;
             if( label == null ) {
                 loop = state.Loops.TopLoop;
@@ -150,13 +156,13 @@ namespace Parse {
             }
         }
         
-        void dump( CompileState state, System.StringBuffer into ) {
+        void dump( CompileState state, StringBuffer into ) {
             into.append( "continue" );
         }
 
 	void print( CompileState state, Printer p ) {
 	    p.nl();
-            System.String label = LoopName;
+            String label = LoopName;
 	    if( label != null ) {
 		p.print( "continue " );
 		p.print( label );
@@ -229,7 +235,7 @@ namespace Parse {
             state.Loops.popLoop();
         }
 
-        void dump( CompileState state, System.StringBuffer into ) {
+        void dump( CompileState state, StringBuffer into ) {
             into.append( "do " );
             block.dump( state, into );
             into.append( "while(" );
@@ -243,7 +249,7 @@ namespace Parse {
 	    pl(p);
 
 	    p.nl();
-            System.String label = LoopName;
+            String label = LoopName;
 	    if( label != null ) {
 		p.print( label );
 		p.print( ": " );
@@ -319,7 +325,7 @@ namespace Parse {
             state.Loops.popLoop();
         }
         
-        void dump( CompileState state, System.StringBuffer  buffer ) {
+        void dump( CompileState state, StringBuffer  buffer ) {
             buffer.append( "while(" );
             expression.dump( state, buffer );
             buffer.append( ") " );;
@@ -330,7 +336,7 @@ namespace Parse {
 	    pl(p);
 
 	    p.nl();
-            System.String label = LoopName;
+            String label = LoopName;
 	    if( label != null ) {
 		p.print( label );
 		p.print( ": " );
@@ -401,7 +407,7 @@ namespace Parse {
             if( t.TypeKind == Type.VECTOR ) {
                 return new WrapTypeAsTypeExpr( line_number, t.SubType ); 
             } else if( iterator_type.isAssignableFrom(t) ) {
-		// may not be useful - cannot infer a more specific type here than System.Object
+		// may not be useful - cannot infer a more specific type here than Object
 		return new WrapTypeAsTypeExpr( line_number, object_type );
 	    } else {
 		MethodCall next_element_call =
@@ -590,7 +596,7 @@ namespace Parse {
             state.Loops.popLoop();
         }
         
-        void dump( CompileState state, System.StringBuffer buffer ) {
+        void dump( CompileState state, StringBuffer buffer ) {
             buffer.append("foreach()");
             statement.dump(state,buffer);
         }
@@ -599,7 +605,7 @@ namespace Parse {
 	    pl(p);
 
 	    p.nl();
-            System.String label = LoopName;
+            String label = LoopName;
 	    if( label != null ) {
 		p.print( label );
 		p.print( ": " );
@@ -720,7 +726,7 @@ namespace Parse {
             state.Loops.popLoop();
         }    
         
-        void dump( CompileState state, System.StringBuffer  buffer ) {
+        void dump( CompileState state, StringBuffer  buffer ) {
             buffer.append( "for(" );
             if( initializer != null ) {
                 initializer.dump( state, buffer );
@@ -741,7 +747,7 @@ namespace Parse {
 	    pl(p);
 
 	    p.nl();
-            System.String label = LoopName;
+            String label = LoopName;
 	    if( label != null ) {
 		p.print( label );
 		p.print( ": " );

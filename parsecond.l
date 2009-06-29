@@ -1,5 +1,11 @@
 
 namespace Parse {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+    use Generic.Vector;
+
     use Gen.ITree;
     use Gen.IBlock;
     use Gen.ILabel;
@@ -10,13 +16,13 @@ namespace Parse {
 
     class CaseStatement extends LoopStatement {
         Expression expression;
-        Generic.Vector<Case> cases;
+        Vector<Case> cases;
         BlockStatement default_block;
 
         void init( int line_number ) {
             super.init( line_number );
             this.expression = null;
-	    cases = new Generic.Vector<Case>();
+	    cases = new Vector<Case>();
         }
 
         void add( Case c ) {
@@ -78,7 +84,7 @@ namespace Parse {
             state.Loops.popLoop();
         }
 
-        void dump( CompileState state, System.StringBuffer into ) {
+        void dump( CompileState state, StringBuffer into ) {
             into.append( "switch(" );
             expression.dump(state,into);
             into.append( ") {\n" );
@@ -97,7 +103,7 @@ namespace Parse {
 	    pl(p);
 
 	    p.nl();
-	    System.String label = LoopName;
+	    String label = LoopName;
 	    if( label != null ) {
 		p.print( label );
 		p.print( ": " );
@@ -147,7 +153,7 @@ namespace Parse {
 	}
         
         void compile( CompileState state, IBlock into, ITree temp, Type type, ILabel exit ) {
-            Generic.Vector<Expression> list = expression_list.List;
+            Vector<Expression> list = expression_list.List;
             ILabel next = TempFactory.nextLabel();
 
             if( list.Length == 1 ) {
@@ -192,7 +198,7 @@ namespace Parse {
             into.add( new ITree( line_number, Op.LABEL, 0, next ) );
         }
 
-        void dump( CompileState state, System.StringBuffer into ) {
+        void dump( CompileState state, StringBuffer into ) {
             into.append( "case " );
             expression_list.dump(state,into);
             into.append( ": " );
@@ -291,7 +297,7 @@ namespace Parse {
             }
         }
 	
-	bool getIsLastReturn() {
+	get bool IsLastReturn {
 	    bool result = true_block.IsLastReturn;
 	    if( false_block != null ) {
 		result = result && false_block.IsLastReturn;
@@ -314,11 +320,11 @@ namespace Parse {
 	    }
 	}
 
-	bool getIsIf() {
+	get bool IsIf {
 	    return true;
 	}
 
-        void dump( CompileState state, System.StringBuffer  buffer ) {
+        void dump( CompileState state, StringBuffer  buffer ) {
             buffer.append( "if(" );
             expression.dump( state, buffer );
             buffer.append( ")" );

@@ -6,7 +6,12 @@ import machine;
 import mflow;
 
 namespace Gen {
-    class MTreeWalker extends System.Object {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+
+    class MTreeWalker extends Object {
         void init() {
             super.init();
         }
@@ -19,7 +24,7 @@ namespace Gen {
         }
     }
 
-    class MTree extends System.Object {
+    class MTree extends Object {
 	protected int op;
 	protected MTree dest, left, right;
 	
@@ -38,23 +43,23 @@ namespace Gen {
 	void initOperands() {
 	}
 	
-	int getReg() {
+	get int Reg {
 	    return 0;
 	}
 	
-	int getTemp() {
+	get int Temp {
 	    return 0;
 	}
 
-	int getInt() {
+	get int Int {
 	    return 0;
 	}
 
-	int getOperation() {
+	get int Operation {
 	    return op;
 	}
 
-        int getRawOp() {
+        get int RawOp {
 	    return ITree.rawOp( Operation );
 	}
 
@@ -78,7 +83,7 @@ namespace Gen {
 	    return result;
 	}
 
-	int getSize() {
+	get int Size {
 	    int s = Operation & 3;
 	    if( s == 0 ) {
 		return 0;
@@ -89,7 +94,7 @@ namespace Gen {
 	    } else if( s == 3 ) {
 		return 8;
 	    } else {
-		throw new System.Exception( "unexpected size operator = " + Operation );
+		throw new Exception( "unexpected size operator = " + Operation );
 	    }
 	}
 
@@ -104,7 +109,8 @@ namespace Gen {
 	}
 	*/
 
-	void setSize( int s ) {
+	set int Size = s {
+	    //	    IO.Std.err.println( "assigning to Size does nothing" );
 	}
 
 	void initSize() {
@@ -129,15 +135,15 @@ namespace Gen {
 	    }
 	}
 
-	MTree getDest() {
+	get MTree Dest {
 	    return dest;
 	}
 
-	MTree getLeft() {
+	get MTree Left {
 	    return left;
 	}
 
-	MTree getRight() {
+	get MTree Right {
 	    return right;
 	}
 
@@ -179,7 +185,7 @@ namespace Gen {
 
 	bool compareValues( MTree t ) {
 	    // return getValue() =~ t.getValue();
-	    bool result = System.String.equals( getValue(), t.getValue() );
+	    bool result = String.equals( getValue(), t.getValue() );
 	    // IO.Std.err.println( "compare values: /" + getValue() + "/ versus /" + t.getValue() + " -> " + result );
 	    return result;
 
@@ -237,19 +243,19 @@ namespace Gen {
 	    return true;
 	}
         
-        void setValue(System.String s) {
+        set String Value = s {
  	   // do nothing
         }
         
-	void setValue(int v) {
+	set int Value = v {
 	    // do nothing
 	}
 
-	System.String getValue() {
+	get String Value {
 	    return null;
 	}
 
-	void setMode( int mode ) {
+	set int Mode = mode {
 	}
 
 	MTree rset( MSet rset ) {
@@ -264,7 +270,7 @@ namespace Gen {
 
 
 	bool clearIneffectivePhi(int s) {
-	    throw new System.Exception( "not a phi: " + this );
+	    throw new Exception( "not a phi: " + this );
 	}
 
 	bool isCSE() {
@@ -278,12 +284,12 @@ namespace Gen {
 	    return result;
 	}
 
-	void setTempName( int j, int n ) {
-	    throw new System.Exception( "not a phi" );
+	set int TempName[int j] = n {
+	    throw new Exception( "not a phi" );
 	}
 
-	int getTempName( int i ) {
-	    throw new System.Exception( "not a phi" );
+	get int TempName[int i] {
+	    throw new Exception( "not a phi" );
 	}
 
 	bool isCall() {
@@ -340,17 +346,17 @@ namespace Gen {
 	    // do nothing - only instructions have an associated intermediate tree
 	}
 
-	System.String getLabel() {
-	    throw new System.Exception("this MTree has no label");
+	String getLabel() {
+	    throw new Exception("this MTree has no label");
 	}
 	
-	System.String toArgString() {
+	String toArgString() {
 	    return "";
 	}
 
-	System.String getByteList() {
-	    System.String s = toString();
-	    System.StringBuffer result = new System.StringBuffer();
+	String getByteList() {
+	    String s = toString();
+	    StringBuffer result = new StringBuffer();
 	    for( int i = 0; i < s.getLength(); i = i + 1 ) {
 		result.append( cast<int>(s.charAt(i)) );
 		if( i < s.getLength() - 1 ) {
@@ -361,9 +367,9 @@ namespace Gen {
 	}
 
     
-	static System.String opString( int op ) {
+	static String opString( int op ) {
 	    // if( op == 0 ) {
-	    //	throw new System.Exception("op is zero");
+	    //	throw new Exception("op is zero");
 	    // }
 	    return Op.getAsName(op);
 	}
@@ -399,7 +405,7 @@ namespace Gen {
             if( left != null ) {
                 left = left.rewrite(tw);
                 // if( left == null ) {
-                //    IO.Std.err.println( new System.Exception( "rewrite has made left null: " + this ) );
+                //    IO.Std.err.println( new Exception( "rewrite has made left null: " + this ) );
                 // }
             }
             if( right != null ) {
@@ -416,7 +422,7 @@ namespace Gen {
 
 	MTree flatten( MFlatten f ) {
 	    if( this == null ) {
-		throw new System.Exception( "flattening null tree" );
+		throw new Exception( "flattening null tree" );
 	    }
 	    return this;
 	}
@@ -429,15 +435,15 @@ namespace Gen {
 	    // do nothing
 	}
 
-	System.String toString() {
+	String toString() {
 	    return dump();
 	}
 
-	System.String toString(MSet rset) {
+	String toString(MSet rset) {
 	    return toString();
 	}
 
-	System.String dump() {
+	String dump() {
 	    return "MTree()";
 	}
 
@@ -454,7 +460,7 @@ namespace Gen {
 			rset = Machine.getRegSetIntersection( o.rset, rset );
 
 			// IO.Std.err.println( "using intersection register set " + Machine.getSetName(rset) );
-			// throw new System.Exception( "register set changes for T" + temp  );
+			// throw new Exception( "register set changes for T" + temp  );
 		    }
 		    /*
 		    if( o.size != size ) {
@@ -486,9 +492,9 @@ namespace Gen {
 	void init( int op, MTree left ) {
 	    super.init( op, null, left, null );
 	    if( op == Op.POP ) {
-		left.setMode(Mode.WRITE);
+		left.Mode = Mode.WRITE;
 	    } else {
-		left.setMode(Mode.READ);
+		left.Mode = Mode.READ;
 	    }
 	}
 
@@ -496,12 +502,12 @@ namespace Gen {
 	    return false;
 	}
 
-	System.String toString() {
+	String toString() {
 	    return opString(op) + ' ' + left;
 	}
     
-	System.String dump() {
-	    System.String sl = "<null>";
+	String dump() {
+	    String sl = "<null>";
 	    if( left != null ) {
 		sl = left.dump();
 	    }
@@ -514,12 +520,12 @@ namespace Gen {
     }
 
     class MAny extends MTree {
-	System.String text;
-	void init( System.String text ) {
+	String text;
+	void init( String text ) {
 	    this.text = text;
 	}
 
-	System.String toString() {
+	String toString() {
 	    return text;
 	}
     }
@@ -531,7 +537,7 @@ namespace Gen {
 
 	void init( int t ) {
 	    super.init( 0, new MReg( t, MSet.General ), null, null );
-	    dest.setMode( Mode.WRITE );
+	    dest.Mode = Mode.WRITE;
 	    temp = t;
 	    names = new Util.IntVector( 10 );
 	}
@@ -565,7 +571,7 @@ namespace Gen {
 	    return true;
 	}
 
-	void setTempName( int j, int n ) {
+	set int TempName[int j] = n {
 	    IO.Std.err.println( "MPhi set temp name #" + j + "," + n );
 	    	   
 	    names.lengthen(j+1);
@@ -573,7 +579,7 @@ namespace Gen {
 	    IO.Std.err.println( "names is now: " + names );
 	}
 
-	int getTempName( int j ) {
+	get int TempName[int j] {
 	    return names[j];
 	}
 	    
@@ -598,8 +604,8 @@ namespace Gen {
 	    return effective;
 	}
 
-	System.String toString() {
-	    System.StringBuffer b = new System.StringBuffer();
+	String toString() {
+	    StringBuffer b = new StringBuffer();
 	    if( effective ) {
 		b.append( "required " );
 	    }
@@ -656,19 +662,19 @@ namespace Gen {
 	    case Op.POPSEG:
 		// IO.Std.err.println( "popseg..." );
 		stack.pop();
-		left = new MConst(cast<System.String>(stack.Top));
+		left = new MConst(cast<String>(stack.Top));
 	    }
 	}
 
-	System.String toString() {
-	    System.StringBuffer result = new System.StringBuffer();
+	String toString() {
+	    StringBuffer result = new StringBuffer();
 	    result.append( opString(op) );
 	    if( left != null ) {
 		result.append( ' ' );
 		if( op == Op.CONST_STR ) {
 		    result.append( left.getByteList() );
 		} else if( op == Op.CONST_CSTR ) {
-		    System.String s = left.getByteList();
+		    String s = left.getByteList();
 		    result.append( s );
 		    if( s.getLength() > 0 ) {
 			result.append(',');
@@ -685,8 +691,8 @@ namespace Gen {
 	    return result;
 	}
 
-	System.String dump() {
-	    System.StringBuffer result = new System.StringBuffer();
+	String dump() {
+	    StringBuffer result = new StringBuffer();
 	    result.append( "MData(" );
 	    result.append( opString(op) );
 	    if( left != null ) {
@@ -712,7 +718,7 @@ namespace Gen {
 	MTree flatten( MFlatten f ) {
 	    // IO.Std.err.println( "flatten: " + this );
 	    if( this == null ) {
-		throw new System.Exception( "flatten null sequence" );
+		throw new Exception( "flatten null sequence" );
 	    }
 
 	    if( left != null ) {
@@ -725,13 +731,13 @@ namespace Gen {
 	    return null;
 	}
 
-	System.String toString() {
+	String toString() {
 	    return "[" + left + "," + right + "]\n";
 	}
     
-	System.String dump() {
-	    System.String sl = "<null>";
-	    System.String sr = "<null>";
+	String dump() {
+	    String sl = "<null>";
+	    String sr = "<null>";
 	    if( left != null ) {
 		sl = left.dump();
 	    }
@@ -747,16 +753,16 @@ namespace Gen {
 	    super.init( Op.SEQ, null, left, right );
 	}
 
-	int getTemp() {
-	    return right.getTemp();
+	get int Temp {
+	    return right.Temp;
 	}
 
-	int getReg() {
-	    return right.getReg();
+	get int Reg {
+	    return right.Reg;
 	}
 
-	void setMode(int mode) {
-	    right.setMode(mode);
+	set int Mode = mode {
+	    right.Mode = mode;
 	}
 
 	MTree rset( MSet rset ) {
@@ -767,7 +773,7 @@ namespace Gen {
 
 	MTree flatten( MFlatten f ) {
 	    if( this == null ) {
-		throw new System.Exception( "flatten null sequence" );
+		throw new Exception( "flatten null sequence" );
 	    }
 
 	    // IO.Std.err.println( "flattening: " + this.dump() + " gives: " + right );
@@ -777,18 +783,18 @@ namespace Gen {
 	    }
 
 //	    if( right == null ) {
-//		throw new System.Exception( "flattening: " + this + " gives null result" );
+//		throw new Exception( "flattening: " + this + " gives null result" );
 //	    }
 	    return right;
 	}
 
-	System.String toString() {
+	String toString() {
 	    return "[" + left + "]" + right + "\n";
 	}
     
-	System.String dump() {
-	    System.String sl = "<null>";
-	    System.String sr = "<null>";
+	String dump() {
+	    String sl = "<null>";
+	    String sr = "<null>";
 	    if( left != null ) {
 		sl = left.dump();
 	    }
@@ -807,7 +813,7 @@ namespace Gen {
 	    this.rset = rset;
 	}
 
-	System.String toString() {
+	String toString() {
 	    return left.toString(rset);
 	}
     }
@@ -827,7 +833,7 @@ namespace Gen {
 	    super.init(0, null, null, null);
 
 	    this.rset = rset;
-	    // IO.Std.err.println( "setting register set to " + Machine.getSetName(rset) + " for " + this + " from: " + new System.Exception("here"));
+	    // IO.Std.err.println( "setting register set to " + Machine.getSetName(rset) + " for " + this + " from: " + new Exception("here"));
 	    this.temp = t;
 	    this.reg = 0;
 	    this.size = Machine.WORD;
@@ -840,30 +846,30 @@ namespace Gen {
 	    this.reg = r;
 	    this.rset = MSet.None;
 	    this.size = Machine.WORD;
-	    // IO.Std.err.println( "setting register set to " + Machine.getSetName(rset) + " for " + this + " from: " + new System.Exception("here"));
+	    // IO.Std.err.println( "setting register set to " + Machine.getSetName(rset) + " for " + this + " from: " + new Exception("here"));
 	    this.mode = Mode.READ;
 	}
 
-	void setMode( int mode ) {
+	set int Mode = mode {
 	    this.mode = mode;
 	}
 
-	void setTemp( int temp ) {
+	set int Temp = temp {
 	    this.temp = temp;
 	}
 
-	void setSize( int size ) {
+	set int Size = size {
 	    if( size == 0 ) {
 		size = Machine.WORD;
 	    }
 	    this.size = size;
 	}
     
-	int getTemp() {
+	get int Temp {
 	    return temp;
 	}
     
-	int getReg() {
+	get int Reg {
 	    return reg;
 	}
 
@@ -872,11 +878,11 @@ namespace Gen {
 	}
 
 	bool compareRHS( MTree t, MExpressionTable expressions ) {
-	    bool result = t != null && getTemp() == t.getTemp();
+	    bool result = t != null && Temp == t.Temp;
 	    if( !result ) {
-		if( getTemp() < Machine.FIRST_SOFT_REG || t.getTemp() < Machine.FIRST_SOFT_REG ) {
+		if( Temp < Machine.FIRST_SOFT_REG || t.Temp < Machine.FIRST_SOFT_REG ) {
 		    result = false;
-		} else if( expressions.matchTemps( getTemp(), t.getTemp() ) ) {
+		} else if( expressions.matchTemps( Temp, t.Temp ) ) {
 		    IO.Std.err.println( "" + this + " does not match " + t + " directly but matches a copy" );
 		    result = true;
 		}
@@ -902,12 +908,12 @@ namespace Gen {
 	    return this;
 	}
 
-	System.String toString() {
+	String toString() {
 	    return toString(size);
 	}
 
-	System.String toString(int as_size) {
-	    System.StringBuffer b = new System.StringBuffer();
+	String toString(int as_size) {
+	    StringBuffer b = new StringBuffer();
 	    if( reg != 0 ) {
 		b.append( Machine.getRegName(reg,as_size) );
 	    } else {
@@ -918,7 +924,7 @@ namespace Gen {
 	    return b;
 	}
 
-	System.String dump() {
+	String dump() {
 	    return "MReg(" + temp + ")";
 	}
 
@@ -955,25 +961,25 @@ namespace Gen {
 	    // IO.Std.err.println( "init arg, left is: " + cast<int>(left) + ", right is " + cast<int>(right) );
 
 	    if( left == null ) {
-		throw new System.Exception( "arg has no left sub-tree" );
+		throw new Exception( "arg has no left sub-tree" );
 	    }
 
 	    if( getRawOp() >= Op.PARAM0 && getRawOp() <= Op.PARAM5 ) {
-		left.setMode( Mode.WRITE );
+		left.Mode = Mode.WRITE;
 	    }
 	}
 
-	int getTemp() {
-	    return left.getTemp();
+	get int Temp {
+	    return left.Temp;
 	}
     
-	int getReg() {
-	    return left.getReg();
+	get int Reg {
+	    return left.Reg;
 	}
 
-	System.String toArgString() {
+	String toArgString() {
 	    // IO.Std.err.println( "to arg string, left is: " + cast<int>(left) + ", right is " + cast<int>(right) );
-	    System.StringBuffer b = new System.StringBuffer();
+	    StringBuffer b = new StringBuffer();
 	    b.append( ' ' );
 	    b.append( left.toString() );
 	    b.append( ',' );
@@ -985,11 +991,11 @@ namespace Gen {
 	    return b;
 	}
 
-	System.String toString() {
+	String toString() {
 	    return opString(op) + toArgString();
 	}
 
-	System.String dump() {
+	String dump() {
 	    return "MArg(" + opString(op) + " " + toArgString() + ")";
 	}
     }
@@ -1009,11 +1015,11 @@ namespace Gen {
 	    return left.getReg();
 	}
 
-	System.String toString() {
+	String toString() {
 	    return opString(op) + " " + left;
 	}
 
-	System.String dump() {
+	String dump() {
 	    return "MParam(" + opString(op) + " " + left.dump() + ")";
 	}
     }
@@ -1023,20 +1029,20 @@ namespace Gen {
 	void init( int op, MTree dest, MTree left, MTree right ) {
 	    super.init( op, dest, left, right );
 
-	    if( getRawOp() == Op.DIV ) {
-		right.setMode( Mode.WRITE );
-		dest.setMode(Mode.READ | Mode.WRITE);
+	    if( RawOp == Op.DIV ) {
+		right.Mode = Mode.WRITE;
+		dest.Mode = Mode.READ | Mode.WRITE;
 	    } else {
-		dest.setMode(Mode.WRITE);
+		dest.Mode = Mode.WRITE;
 	    }
 	}
 
-	int getTemp() {
-	    return left.getTemp();
+	get int Temp {
+	    return left.Temp;
 	}
     
-	int getReg() {
-	    return left.getReg();
+	get int Reg {
+	    return left.Reg;
 	}
 
         void markLive( int u, MBitSet seen, MBitSet[] matrix ) {
@@ -1058,7 +1064,7 @@ namespace Gen {
 	}
 	*/
 
-	System.String toString() {
+	String toString() {
 	    // IO.Std.err.println( "op string " + op + " is " + opString(op) );
 
 	    if( getRawOp() != Op.MOD ) {
@@ -1068,7 +1074,7 @@ namespace Gen {
 	    }
 	}
 
-	System.String dump() {
+	String dump() {
 	    return "MDivide(" + opString(op) + " " + right.dump() + "," + left.dump() + ")";
 	}
     }
@@ -1077,23 +1083,23 @@ namespace Gen {
     class MA2 extends MTree {
 	void init( int op, MTree left, MTree right ) {
 	    super.init( op, null, left, right );
-	    left.setMode(Mode.READ | Mode.WRITE);
+	    left.Mode = Mode.READ | Mode.WRITE;
 	}
     
-	int getTemp() {
-	    return left.getTemp();
+	get int Temp {
+	    return left.Temp;
 	}
     
-	int getReg() {
-	    return left.getReg();
+	get int Reg {
+	    return left.Reg;
 	}
 
 	bool writesMemory() {
 	    return left.isMemory();
 	}
 
-	System.String toString() {
-	    int rop = getRawOp();
+	String toString() {
+	    int rop = RawOp;
 	    // IO.Std.err.println( "rop: " + rop + " versus: " + Op.ADD + "/" + Op.SUB );
 	    // IO.Std.err.println( "==1: " + right.isConstantOne() + ", ==-1: " + right.isConstantMinusOne() );
 
@@ -1110,7 +1116,7 @@ namespace Gen {
 		    suffix = 'q';
 		}
 
-		System.String os;
+		String os;
 		if( rop == Op.ADD2 ) {
 		    if( right.isConstantOne() ) {
 			// IO.Std.err.println( "op add const 1 => inc" );
@@ -1141,7 +1147,7 @@ namespace Gen {
 	    return opString(op) + " " + right + "," + left;
 	}
 
-	System.String dump() {
+	String dump() {
 	    return "MA2(" + opString(op) + " " + right.dump() + "," + left.dump() + ")";
 	}
     }
@@ -1150,22 +1156,22 @@ namespace Gen {
     class MA1 extends MTree {
 	void init( int op, MTree left ) {
 	    super.init( op, null, left, null );
-	    left.setMode(Mode.READ | Mode.WRITE);
+	    left.Mode = Mode.READ | Mode.WRITE;
 	}
     
-	int getTemp() {
-	    return left.getTemp();
+	get int Temp {
+	    return left.Temp;
 	}
     
-	int getReg() {
-	    return left.getReg();
+	get int Reg {
+	    return left.Reg;
 	}
     
-	System.String toString() {	   
+	String toString() {	   
 	    return opString(op) + " " + left;
 	}
 
-	System.String dump() {
+	String dump() {
 	    return "MA1(" + opString(op) + " " + left.dump() + ")";
 	}
     }
@@ -1173,27 +1179,27 @@ namespace Gen {
     class MU2 extends MTree {
         void init( int op, MTree dest, MTree left ) {
 	    super.init( op, dest, left, null );
-	    dest.setMode(Mode.WRITE);
-	    left.setMode(Mode.READ);
+	    dest.Mode = Mode.WRITE;
+	    left.Mode = Mode.READ;
 	}
 
-	int getTemp() {
-	    return dest.getTemp();
+	get int Temp {
+	    return dest.Temp;
 	}
 
-	int getReg() {
-	    return dest.getReg();
+	get int Reg {
+	    return dest.Reg;
 	}
 
 	bool needRegen() {
 	    return true;
 	}
 
-	System.String toString() {
+	String toString() {
 	    return opString(op) + " " + left + "," + dest;
 	}
 
-	System.String dump() {
+	String dump() {
 	    return "MU2(" + opString(op) + " " + left + "," + dest + ")";
 	}
     }
@@ -1211,11 +1217,11 @@ namespace Gen {
 	    return op == Op.LEAVE_LOOP;
 	}
     
-	System.String toString() {
+	String toString() {
 	    return opString(op);
 	}
 
-	System.String dump() {
+	String dump() {
 	    return "M0(" + opString(op) + ")";
 	}
     }
@@ -1225,15 +1231,15 @@ namespace Gen {
 	    super.init(op, null, offset, base);
 	}
 
-	MTree getOffset() {
+	get MTree Offset {
 	    return left;
 	}
 
-	MTree getBase() {
+	get MTree Base {
 	    return right;
 	}
 
-	System.String toString() {
+	String toString() {
 	    if( left != null ) {
 		return "BASE[" + left.toString() + "+" + right + "]";
 	    } else {
@@ -1241,7 +1247,7 @@ namespace Gen {
 	    }
 	}
 
-	System.String dump() {
+	String dump() {
 	    return "MBase(" + left + "+" + right + ")";
 	}
 
@@ -1265,19 +1271,19 @@ namespace Gen {
 	    super.init(op, null, index, scale);
 	}
 
-	MTree getIndex() {
+	get MTree Index {
 	    return left;
 	}
 
-	MTree getScale() {
+	get MTree Scale {
 	    return right;
 	}
 
-	System.String toString() {
+	String toString() {
 	    return "INDEX[" + left + "," + right + "]";
 	}
 
-	System.String dump() {
+	String dump() {
 	    return "MIndex(" + left + "*" + right + ")";
 	}
     }
@@ -1300,7 +1306,7 @@ namespace Gen {
 		if( right != null ) {
 		    IO.Std.err.println( "left is: " + left );
 		    IO.Std.err.println( "left class is: " + left.getClass() );
-		    throw new System.Exception( "cannot have index with non base left hand side in address: " + this.dump() );
+		    throw new Exception( "cannot have index with non base left hand side in address: " + this.dump() );
 		} else {
 		    return;
 		}
@@ -1308,11 +1314,11 @@ namespace Gen {
 	    */
 	}
 
-	System.String toString() {
-	    System.String offset = "";
-	    System.String base = "";
-	    System.String index = "";
-	    System.String scale = "";
+	String toString() {
+	    String offset = "";
+	    String base = "";
+	    String index = "";
+	    String scale = "";
 
 	    MBase b;
 	    MIndex i;
@@ -1371,7 +1377,7 @@ namespace Gen {
 	    }
 	}
 
-	System.String dump() {
+	String dump() {
 	    return "MAddress(" + left + "+" + right + ")";
 	}
     }
@@ -1379,14 +1385,14 @@ namespace Gen {
     class MLea extends MA2 {
 	void init( MTree left, MTree right ) {
 	    super.init( Op.LEA, left, right );
-	    left.setMode(Mode.WRITE);
+	    left.Mode = Mode.WRITE;
 	}
 
-	System.String toString() {
+	String toString() {
 	    return "lea " + right + "," + left;
 	}
 
-	System.String dump() {
+	String dump() {
 	    return "MLea(" + left + "=" + right + ")";
 	}
     }
@@ -1397,20 +1403,20 @@ namespace Gen {
 	    super.init(op,null,left,right);
 	}
     
-	System.String toString() {
-	    System.String op_string;
+	String toString() {
+	    String op_string;
 	    switch( getRawOp() ) {
 	    case Op.ADD:
 		op_string = "+";
 	    case Op.SUB:
 		op_string = "-";
 	    default:
-		throw new System.Exception( "unknown relocation operation: " + opString(op) );
+		throw new Exception( "unknown relocation operation: " + opString(op) );
 	    }
 	    return left.toString() + op_string + right.toString();
 	}
 
-	System.String dump() {
+	String dump() {
 	    return "MReloc(" + right.dump() + opString(op) + left.dump() + ")";
 	}
     }
@@ -1421,11 +1427,11 @@ namespace Gen {
 	    super.init(op,null,left,right);
 	}
     
-	System.String toString() {
+	String toString() {
 	    return opString(op) + ' ' + right + ',' + left;
 	}
 
-	System.String dump() {
+	String dump() {
 	    return "MB(" + right.dump() + opString(op) + left.dump() + ")";
 	}
     }
@@ -1435,7 +1441,7 @@ namespace Gen {
 	    super.init( op, null, left, right );
 	}
 
-	System.String toString() {
+	String toString() {
 	    if( left != null ) {
 		return opString(op) + ' ' + right + " # " + left;
 	    } else {
@@ -1443,7 +1449,7 @@ namespace Gen {
 	    }
 	}
 
-	System.String dump() {
+	String dump() {
 	    if( left != null ) {
 		return "Jump(" + opString(op) + ' ' + right.dump() + ',' + left.dump() + ")";
 	    } else {
@@ -1459,7 +1465,7 @@ namespace Gen {
 	    return op == Op.JUMP;
 	}
 
-	bool equals( System.Object o ) {
+	bool equals( Object o ) {
 	    IO.Std.err.println( "MTree compare: " + this );
 	    IO.Std.err.println( "MTree to:      " + o );
 	    /*
@@ -1477,7 +1483,7 @@ namespace Gen {
 	    }
 
 	    /*
-	    if( !System.Object.equals(dest, t.dest) ) {
+	    if( !Object.equals(dest, t.dest) ) {
 		IO.Std.err.println( "dests differ" );
 	    }
 	    */
@@ -1500,33 +1506,33 @@ namespace Gen {
 	    return true;
 	    /*
 	    return op == t.op &&
-		System.Object.equals(dest, t.dest) &&
-		System.Object.equals(left, t.left) &&
-		System.Object.equals(right, t.right);
+		Object.equals(dest, t.dest) &&
+		Object.equals(left, t.left) &&
+		Object.equals(right, t.right);
 	    */
 	}
 
-	System.String getLabel() {
-	    return right.getLabel();
+	get String Label {
+	    return right.Label;
 	}
     }
 
     class MDecBranchNotNeg extends MJump {
 	void init( int op, MTree left, MTree right ) {
 	    super.init( op, left, right );
-	    left.setMode( Mode.READ | Mode.WRITE );
+	    left.Mode = Mode.READ | Mode.WRITE;
 	    IO.Std.err.println( "created MDecBranchNotNeg tree: " + left + "," + right );
 	}
 
-	System.String toString() {
+	String toString() {
 	    IO.Std.err.println( "to string MDecBranchNotNeg tree..." );
-	    int s = getSize();
+	    int s = Size;
 	    /* if( left.isReg() && left.getReg() == Machine.R_ECX && s == Machine.WORD ) {
 		IO.Std.err.println( "left is RCX - can use loop instruction" );
 		return opString(op);
 		} else { */
 	    // IO.Std.err.println( "left is not CX - cannot use loop instruction" );
-		System.String r;
+		String r;
 		if( s == 8 ) {
 		    r = "decq ";
 		} else if( s == 4 ) {
@@ -1534,9 +1540,9 @@ namespace Gen {
 		} else if( s == 1 ) {
 		    r = "decb ";
 		} else {
-		    throw new System.Exception( "unexpected operation size: " + s );
+		    throw new Exception( "unexpected operation size: " + s );
 		}
-		System.String result = r + left + "; jge " + right;
+		String result = r + left + "; jge " + right;
 		IO.Std.err.println( "returning: " + result );
 		return result;
 		// }
@@ -1547,15 +1553,15 @@ namespace Gen {
 	void init( int op, MTree dest, MTree left ) {
 	    super.init( op, dest, left, null );
 	    if( left.toString().equals( "$0" ) ) {
-		IO.Std.err.println( "created: " + this + " from " + new System.Exception("arse") );
+		IO.Std.err.println( "created: " + this + " from " + new Exception("arse") );
 	    }
 
 	    if( dest != null ) {
-		dest.setMode(Mode.WRITE);
+		dest.Mode = Mode.WRITE;
 	    }
 	}
 
-	System.String toString() {
+	String toString() {
 	    if( op == Op.DYNAMIC_CALL ) {
 		if( dest != null ) {
 		    return "call *" + left + " # result in " + dest;
@@ -1563,7 +1569,7 @@ namespace Gen {
 		    return "call *" + left + " # discard result";
 		}
 	    } else {
-		System.String result = "";
+		String result = "";
 		
 		// FIXME: var args expects zero in rax:
 		if( left.toString().equals("printf") && Machine.WORD == 8 ) {
@@ -1597,15 +1603,15 @@ namespace Gen {
     class MCompare extends MTree {
 	void init( int op, MTree dest, MTree left, MTree right ) {
 	    super.init(op,dest,left,right);
-	    dest.setMode(Mode.WRITE);
+	    dest.Mode = Mode.WRITE;
 	}
 
-	int getTemp() {
-	    return dest.getTemp();
+	get int Temp {
+	    return dest.Temp;
 	}
 
-	int getReg() {
-	    return dest.getReg();
+	get int Reg {
+	    return dest.Reg;
 	}
 
 	bool isCSE() {
@@ -1622,11 +1628,11 @@ namespace Gen {
 	    return result;
 	}
     
-	System.String toString() {
+	String toString() {
 	    return opString(op) + ' ' + right + ',' + left + " # " + dest;
 	}
     
-	System.String dump() {
+	String dump() {
 	    return "Compare(" + dest.dump() + " " + opString(op) + " " + left.dump() + "," + right.dump() + ")";
 	}
     }
@@ -1636,24 +1642,24 @@ namespace Gen {
     class MA3 extends MTree {
 	void init( int op, MTree dest, MTree left, MTree right ) {
 	    super.init(op,dest,left,right);
-	    dest.setMode(Mode.WRITE);
-	    left.setMode(Mode.READ);
-	    right.setMode(Mode.READ);
+	    dest.Mode = Mode.WRITE;
+	    left.Mode = Mode.READ;
+	    right.Mode = Mode.READ;
 	}
 
-	int getTemp() {
-	    return dest.getTemp();
+	get int Temp {
+	    return dest.Temp;
 	}
 
-	int getReg() {
-	    return dest.getReg();
+	get int Reg {
+	    return dest.Reg;
 	}
 
-	System.String toString() {
+	String toString() {
 	    return opString(op) + ' ' + right + ',' + left + ',' + dest;
 	}
     
-	System.String dump() {
+	String dump() {
 	    return "M3(" + dest.dump() + " " + opString(op) + " " + left.dump() + "," + right.dump() + ")";
 	}
     }
@@ -1692,37 +1698,37 @@ namespace Gen {
 	void init( int op, MTree dest, MTree source ) {
 	    super.init(op,dest,source,null);
 
-	    if( op == getRawOp() ) {
-		throw new System.Exception( "creating MMove with zero size operation: " + op );
+	    if( op == RawOp ) {
+		throw new Exception( "creating MMove with zero size operation: " + op );
 	    }
 	    if( source == null ) {
-		throw new System.Exception( "creating MMove with null source: " + opString(op) + " " + dest );
+		throw new Exception( "creating MMove with null source: " + opString(op) + " " + dest );
 	    }
 	    if( dest == null ) {
-		throw new System.Exception( "creating MMove with null source: " + opString(op) + " " + left );
+		throw new Exception( "creating MMove with null source: " + opString(op) + " " + left );
 	    }
-	    dest.setMode(Mode.WRITE);
+	    dest.Mode = Mode.WRITE;
 
 	    // IO.Std.err.println( "mmove: " + this + "from " + new System.Backtrace() );
 	}
     
-	int getReg() {
-	    return dest.getReg();
+	get int Reg {
+	    return dest.Reg;
 	}
     
-	int getTemp() {
-	    return dest.getTemp();
+	get int Temp {
+	    return dest.Temp;
 	}
 
 	bool isCopy() {
-	    return getRawOp() == Op.COPY;
+	    return RawOp == Op.COPY;
 	}
 
 	bool isCSE() {
 	    return true;
 	}
 
-	System.String toString() {
+	String toString() {
 	    /*
  	    // xor trashes flags, which is a bloody nuisence
 
@@ -1732,20 +1738,20 @@ namespace Gen {
 	    }
 	    */
 
-	    int o = getRawOp();
+	    int o = RawOp;
 
 	    if( o >= Op.CAST_FROM1 && o <= Op.CAST_FROM8 ) {
 		if( op == Op.CAST_FROM1_4 || op == Op.CAST_FROM1_8 ) {
-		    left.setSize(1);
+		    left.Size = 1;
 		} else if( op == Op.CAST_FROM4_8 ) {
-		    left.setSize(4);
+		    left.Size = 4;
 		}
 
 	    }
 	    return opString(op) + ' ' + left + ',' + dest;
 	}
 
-	System.String dump() {
+	String dump() {
 	    if( dest == null ) {
 	        IO.Std.err.println( "dest is null" );
 	    } else if( left == null ) {
@@ -1760,27 +1766,27 @@ namespace Gen {
 	void init( int op, MTree dest, MTree source ) {
 	    super.init(op,dest,source,null);
 	    if( source == null ) {
-		throw new System.Exception( "creating MMove with null source: " + opString(op) + " " + dest );
+		throw new Exception( "creating MMove with null source: " + opString(op) + " " + dest );
 	    }
 	    if( dest == null ) {
-		throw new System.Exception( "creating MMove with null source: " + opString(op) + " " + left );
+		throw new Exception( "creating MMove with null source: " + opString(op) + " " + left );
 	    }
-	    dest.setMode(Mode.WRITE);
+	    dest.Mode = Mode.WRITE;
 	}
     
-	int getReg() {
-	    return dest.getReg();
+	get int Reg {
+	    return dest.Reg;
 	}
     
-	int getTemp() {
-	    return dest.getTemp();
+	get int Temp {
+	    return dest.Temp;
 	}
     
-	System.String toString() {
+	String toString() {
 	    return opString(op) + ' ' + dest + " # " + left;
 	}
 
-	System.String dump() {
+	String dump() {
 	    if( dest == null ) {
 	        IO.Std.err.println( "dest is null" );
 	    } else if( left == null ) {
@@ -1796,7 +1802,7 @@ namespace Gen {
 	    // IO.Std.err.println( "init indirect: " + left + "/" + this.left );
 	}
     
-	System.String toString() {
+	String toString() {
 	    // not strictly right but each memory reference generally should only be converted to a string once when
 	    // code is written to assembler file:
 	    MInst.indirect_number = MInst.indirect_number + 1;
@@ -1804,7 +1810,7 @@ namespace Gen {
 	    return left.toString();
 	}
 
-	System.String dump() {
+	String dump() {
 	    return "MIndirect(" + left.dump() + ")";
 	}
 
@@ -1819,34 +1825,34 @@ namespace Gen {
 
 
     class MGlobal extends MTree {
-	System.String name;
+	String name;
     
-	void init( System.String name ) {
+	void init( String name ) {
 	    super.init(0,null,null,null);
 	    this.name = name;
 	}
 
-	System.String toString() {
+	String toString() {
 	    return name;
 	}
 
-	System.String toContents() {
+	String toContents() {
 	    return name;
 	}
 
-	System.String getValue() {
+	get String Value {
 	    return name;
 	}
 
-	System.String dump() {
+	String dump() {
 	    return "MGlobal(" + name + ")";
 	}
     }
 
     class MImmediate extends MTree {
-	protected System.String value;
+	protected String value;
 
-	void init( System.String value ) {
+	void init( String value ) {
 	    super.init(0,null,null,null);
 	    this.value = value;
 	}
@@ -1855,42 +1861,42 @@ namespace Gen {
 	    init( "" + value );
 	}
 
-	System.String toString() {
+	String toString() {
 	    return "$" + value;
 	}
 
-	System.String getLabel() {
+	get String Label {
 	    return value;
 	}
 
-	System.String getValue() {
+	get String Value {
 	    return value;
 	}
 
 	bool isConstantZero() {
 	    // IO.Std.err.println( "is constant 0: " + value + "?" );
-	    return System.String.equals("0",value);
+	    return String.equals("0",value);
 	}
 
 	bool isConstantOne() {
 	    // IO.Std.err.println( "is constant 1: " + value + "?" );
-	    return System.String.equals("1",value);
+	    return String.equals("1",value);
 	}
 
 	bool isConstantMinusOne() {
 	    // IO.Std.err.println( "is constant -1: " + value + "?" );
-	    return System.String.equals("-1",value);
+	    return String.equals("-1",value);
 	}	
 
-	System.String dump() {
+	String dump() {
 	    return "MImmediate(" + value + ")";
 	}
     }
 
     class MConst extends MTree {
-	protected System.String value;
+	protected String value;
 
-	void init( System.String value ) {
+	void init( String value ) {
 	    super.init(0,null,null,null);
 	    this.value = value;
 	}
@@ -1899,63 +1905,63 @@ namespace Gen {
 	    init( "" + value );
 	}
 
-	System.String toString() {
+	String toString() {
 	    return value;
 	}
 
-	void setValue( System.String v ) {
+	set String Value = v {
 	    value = v;
 	}
 
-	void setValue( int v ) {
+	set int Value = v {
 	    value = "" + v;
 	}
 
-	System.String getLabel() {
+	get String Label {
 	    return value;
 	}
 
-	int getInt() {
+	get int Int {
 	    return value.parseInt();
 	}
 
 	bool isConstantZero() {
 	    IO.Std.err.println( "is constant 0: " + value + "?" );
-	    return System.String.equals("0",value);
+	    return String.equals("0",value);
 	}
 
 	bool isConstantOne() {
 	    IO.Std.err.println( "is constant 1: " + value + "?" );
-	    return System.String.equals("1",value);
+	    return String.equals("1",value);
 	}
 
 	bool isConstantMinusOne() {
 	    IO.Std.err.println( "is constant -1: " + value + "?" );
-	    return System.String.equals("-1",value);
+	    return String.equals("-1",value);
 	}	
 
-	System.String getValue() {
+	get String Value {
 	    return value;
 	}
 
-	System.String dump() {
+	String dump() {
 	    return "MConst(" + value + ")";
 	}
     }
 
     class MLabel extends MTree {
-	System.String value;
+	String value;
  
-	void init( int op, System.String value ) {
+	void init( int op, String value ) {
 	    super.init(op,null,null,null);
 	    this.value = value;
 	}
 
-	System.String toString() {
+	String toString() {
 	    return this.value + ":";
 	}
 
-	System.String dump() {
+	String dump() {
 	    return "MLabel(" + value + ")";
 	}
 
@@ -1963,11 +1969,11 @@ namespace Gen {
 	    return op == Op.LABEL;
 	}
 
-	System.String getLabel() {
+	get String Label {
 	    return value;
 	}
 
-	System.String getValue() {
+	get String Value {
 	    return value;
 	}
     }
@@ -2006,7 +2012,7 @@ namespace Gen {
 	    // if( result != null ) {
 	    // IO.Std.err.println( result );
 	    // } else {
-	    // 	IO.Std.err.println( "null from: " + new System.Exception("X") );
+	    // 	IO.Std.err.println( "null from: " + new Exception("X") );
 	    // }
 	}
     }
@@ -2027,7 +2033,7 @@ namespace Gen {
 	    // if( result != null ) {
 	    // IO.Std.err.println( result );
 	    // } else {
-	    // 	IO.Std.err.println( "null from: " + new System.Exception("X") );
+	    // 	IO.Std.err.println( "null from: " + new Exception("X") );
 	    // }
 	    if( result != null ) {
 		result.setITree( itree );
@@ -2047,8 +2053,8 @@ namespace Gen {
 	    }
 	}
 
-	System.String toString() {
-	    System.StringBuffer result = new System.StringBuffer();
+	String toString() {
+	    StringBuffer result = new StringBuffer();
 	    foreach( MTree t; list.elements() ) {
 		result.append( t );
 	    }

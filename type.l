@@ -4,8 +4,13 @@ import vector;
 import container;
 
 namespace Parse {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+    use Generic.Vector;
 
-    class Type extends System.Object {
+    class Type extends Object {
         private Container c;
         private Type sub_type;
         private int type_kind;
@@ -50,8 +55,8 @@ namespace Parse {
             QUALITY_NO_MATCH = 0;
 
 
-        int getRegSize() {
-	    return getSize();
+        get int RegSize {
+	    return Size;
         }
 
         bool isContainer() {
@@ -80,9 +85,9 @@ namespace Parse {
             this.sub_type = null;
         }
 
-        int getTypeKind() {
+        get int TypeKind {
             if( type_kind == Type.CLASS && c == null ) {
-                throw new System.Exception( "wierd: type is Type.CLASS but class is null" );
+                throw new Exception( "wierd: type is Type.CLASS but class is null" );
             }
             return type_kind;
         }
@@ -106,9 +111,9 @@ namespace Parse {
 	    return isInteger(type_kind);
         }
 
-        Type getSubType() {
+        get Type SubType {
             if( sub_type == null ) {
-                throw new System.Exception( "oops: getSubType() but sub_type is null" );
+                throw new Exception( "oops: getSubType() but sub_type is null" );
             }
             return sub_type;
         }
@@ -119,31 +124,31 @@ namespace Parse {
 	    }
 	}
 
-        void setSubType( Type new_sub_type ) {
+        set Type SubType = new_sub_type {
             if( sub_type != null ) {
-                throw new System.Exception( "oops: setSubType() this type already has a sub-type" );
+                throw new Exception( "oops: setSubType() this type already has a sub-type" );
             }
 
             this.sub_type = new_sub_type;
         }
 
-        Container findMethod( System.String name, Generic.Vector<Type> arguments, bool exact ) {
+        Container findMethod( String name, Vector<Type> arguments, bool exact ) {
             if( c != null ) {
                 return c.findMethod( name, arguments, exact );
             } else {
-                throw new System.Exception( "oops: cannot look for method " + name + " in non class type" );
+                throw new Exception( "oops: cannot look for method " + name + " in non class type" );
             }
         }
 
-        Container findBestMethod( System.String name, Generic.Vector<Type> arguments, Quality quality ) {
+        Container findBestMethod( String name, Vector<Type> arguments, Quality quality ) {
             if( c != null ) {
                 return c.findBestMethod( name, arguments, quality );
             } else {
-                throw new System.Exception( "oops: cannot look for method " + name + " in non class type" );
+                throw new Exception( "oops: cannot look for method " + name + " in non class type" );
             }
         }
 
-        Symbol findSymbol( System.String name, bool types_only ) {
+        Symbol findSymbol( String name, bool types_only ) {
             if( c != null ) {
                 return c.findSymbol( name, types_only );
             } else {
@@ -151,15 +156,15 @@ namespace Parse {
             }
         }
 
-        Container getClazz() {
+        get Container Clazz {
             if( c == null ) {
-                throw new System.Exception( "oops: cannot return class for type without one" );
+                throw new Exception( "oops: cannot return class for type without one" );
             }
             return c;
         }
 
 
-        void dump( System.StringBuffer human, System.StringBuffer decorate ) {
+        void dump( StringBuffer human, StringBuffer decorate ) {
 	    if( this == null ) {
 		IO.Std.err.println( "null type: " + new System.Backtrace() );
 		human.append( "NULL TYPE" );
@@ -170,19 +175,19 @@ namespace Parse {
             dumpDecorate( decorate );
         }
 
-	System.String dumpTemplate() {
-	    System.StringBuffer b = new System.StringBuffer();
+	String dumpTemplate() {
+	    StringBuffer b = new StringBuffer();
 
 	    dumpHuman(b, true);
 
 	    return b;
 	}
 
-	void dumpHuman( System.StringBuffer human ) {
+	void dumpHuman( StringBuffer human ) {
 	    dumpHuman( human, false );
 	}
 
-        void dumpHuman( System.StringBuffer human, bool template ) {
+        void dumpHuman( StringBuffer human, bool template ) {
 	    // IO.Std.err.println( "dumping type to: " + human );
             switch ( type_kind ) {
             case Type.NONE:
@@ -244,7 +249,7 @@ namespace Parse {
             }
         }
 
-        void dumpDecorate( System.StringBuffer decorate ) {
+        void dumpDecorate( StringBuffer decorate ) {
             switch ( type_kind ) {
             case Type.NONE:
                 decorate.append( 'v' );
@@ -276,7 +281,7 @@ namespace Parse {
 		} else if( Gen.Machine.WORD == 4 ) {
 		    decorate.append( 'i' );
 		} else {
-		    throw new System.Exception( "unexpected word length: " + Gen.Machine.WORD );
+		    throw new Exception( "unexpected word length: " + Gen.Machine.WORD );
 		}
 		*/
 		   
@@ -294,7 +299,7 @@ namespace Parse {
                 sub_type.dumpDecorate( decorate );
 
             case Type.CLASS,Type.ENUM:
-                System.String n = c.getDecoratedName();
+                String n = c.DecoratedName;
                 decorate.append( n );
 
             case Type.STRING:
@@ -305,17 +310,17 @@ namespace Parse {
             }
         }
 
-        System.String dump() {
-            System.StringBuffer result = new System.StringBuffer();
+        String dump() {
+            StringBuffer result = new StringBuffer();
             dumpHuman( result );
             return result;
         }
 
 
-        int getSize() {
-            switch( getTypeKind() ) {
+        get int Size {
+            switch( TypeKind ) {
             case Type.VOID:
-		IO.Std.err.println( "returning size 0 for type: " + this + " of kind " + cast<int>(getTypeKind()) + " from: " + new System.Backtrace() );
+		IO.Std.err.println( "returning size 0 for type: " + this + " of kind " + cast<int>(TypeKind) + " from: " + new System.Backtrace() );
                 return 0;
 
             case Type.BOOL,Type.BYTE,Type.CHAR:
@@ -328,14 +333,14 @@ namespace Parse {
 		return Gen.Machine.WORD;
 
             default:
-                throw new System.Exception( "oops: unknown type-kind " + cast<int>(getTypeKind()) + " in Type.getSize() on: " + this );
+                throw new Exception( "oops: unknown type-kind " + cast<int>(getTypeKind()) + " in Type.getSize() on: " + this );
             }
         }
 
-        SymbolList getScope() {
-            if( getTypeKind() == Type.CLASS ) {
+        get SymbolList Scope {
+            if( TypeKind == Type.CLASS ) {
                 if( c == null ) {
-                    throw new System.Exception( "strange: class is null" );
+                    throw new Exception( "strange: class is null" );
                 }
                 return c.getScope();
             } else {
@@ -352,7 +357,7 @@ namespace Parse {
                 if( type_kind == Type.VECTOR || type_kind == Type.POINTER ) {
 		    return MATCH_NULL;
 		} else if( type_kind == Type.REFERENCE ) {    
-                    return getSubType().matchScore( u, assign );
+                    return SubType.matchScore( u, assign );
                 } else if( type_kind == Type.CLASS ) {
                     return MATCH_NULL - Clazz.Depth;
                 } else if( assign ) {
@@ -361,13 +366,13 @@ namespace Parse {
                     return MATCH_NONE;
                 }
                 // IO.Std.err.println( "null match 2" );
-            } else if( getTypeKind() != u.getTypeKind() ) {
+            } else if( TypeKind != u.TypeKind ) {
                 // IO.Std.err.println( "no match: 0" );
                 return MATCH_NONE;
             } else if( equals( u ) ) {
                 // IO.Std.err.println( "equal match: 100" );
                 return MATCH_EXACT;
-            } else if( getTypeKind() == Type.CLASS ) {
+            } else if( TypeKind == Type.CLASS ) {
                 Container this_class = Clazz;
                 Container that_class = u.Clazz;
 		// IO.Std.err.println( "is assignable from: " + this_class.HumanName + " vs " + that_class.HumanName );
@@ -381,9 +386,9 @@ namespace Parse {
                     // IO.Std.err.println( "not assignable: 0\n" );
                     return MATCH_NONE;
                 }
-            } else if( getTypeKind() == Type.VECTOR || getTypeKind() == Type.POINTER || getTypeKind() == Type.REFERENCE ) {
+            } else if( TypeKind == Type.VECTOR || TypeKind == Type.POINTER || TypeKind == Type.REFERENCE ) {
 		// IO.Std.err.println( "comparing sub-types..." );
-                int result = getSubType().matchScore( u.getSubType(), assign );
+                int result = SubType.matchScore( u.SubType, assign );
                 return result;
             } else {
 		IO.Std.err.println( "weird comparison: " + dump() + " versus " + u.dump() );
@@ -401,7 +406,7 @@ namespace Parse {
 
         bool equals( Type u ) {
             if( u == null ) {
-                throw new System.Exception( "oops: cannot compare type to null type" );
+                throw new Exception( "oops: cannot compare type to null type" );
             }
 
 	    // IO.Std.err.println( "" + this + " equals " + u + "?" );
@@ -432,14 +437,14 @@ namespace Parse {
             } else {
 		// IO.Std.err.println( "identical sub-types?" );
                 if( sub_type == null ) {
-                    throw new System.Exception( "oops: cannot compare null sub-types" );
+                    throw new Exception( "oops: cannot compare null sub-types" );
                 }
                 return sub_type.equals( u.sub_type );
             }
         }
 
-        System.String toString() {
-            System.StringBuffer buffer = new System.StringBuffer();
+        String toString() {
+            StringBuffer buffer = new StringBuffer();
             dumpHuman( buffer );
             return buffer;
         }

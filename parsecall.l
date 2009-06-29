@@ -1,6 +1,11 @@
 
 
 namespace Parse {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+
     use Gen.ITree;
     use Gen.IBlock;
     use Gen.ILabel;
@@ -79,7 +84,7 @@ namespace Parse {
 
                 if( method == null || method.Owner != class_symbol ) {
                     method = undefined_method;
-                    System.String arg_string = dumpArguments( arg_types );
+                    String arg_string = dumpArguments( arg_types );
 
                     error( "class " + class_symbol.HumanName + " has no constructor init(" + arg_string + ")" );
                     
@@ -152,14 +157,14 @@ namespace Parse {
 		} else {
 		    vtable = new ITree( line_number, Op.GLOBAL, Machine.WORD, "vtable$__" + class_symbol.DecoratedName );
 
-		    // does this class override System.Object.finalize()? If so need to register it's 
+		    // does this class override Object.finalize()? If so need to register it's 
 		    // finalizer with the garbage collector:
 
 		    Quality q = new Quality();
 		    Container m = class_symbol.findBestMethod( "dispose", new Generic.Vector<Type>(), q );
 
 		    if( m != null && m.Owner != object_type.Clazz ) {
-			// dispose method found and it's not System.Object.dispose() - need to register finalizer
+			// dispose method found and it's not Object.dispose() - need to register finalizer
 			op = Op.NEW_FINALIZE;
 		    }
 		}
@@ -221,11 +226,11 @@ namespace Parse {
             }
         }
 
-	int getDepth() {
+	get int Depth {
 	    if( argument != null ) {
-		return argument.getDepth() + 1;
+		return argument.Depth + 1;
 	    } else {
-		return arguments.getDepth() + 1;
+		return arguments.Depth + 1;
 	    }
 	}
 
@@ -257,7 +262,7 @@ namespace Parse {
         ExpressionList arguments;
 
 	/*
-	static System.String[] pointer_return = {
+	static String[] pointer_return = {
 	    "alloco",
 	    "__get_argv",
 	    "__get_envp"
@@ -275,7 +280,7 @@ namespace Parse {
 	    type = new Type( Type.POINTER, new Type( Type.BYTE ) );
 	    /*
 
-	    System.String n = name.getName();
+	    String n = name.getName();
 	    for( int i = 0; i < pointer_return.length; i = i + 1 ) {
 		if( n.equals( pointer_return[i] ) ) {
 		    type = new Type( Type.POINTER, new Type( Type.BYTE ) );			
@@ -343,9 +348,9 @@ namespace Parse {
 	    compileCall( state, into, Op.STATIC_CALL_DISCARD, null, name.Name, 0, count, null );
         }
 
-	int getDepth() {
+	get int Depth {
 	    if( arguments != null ) {
-		return arguments.getDepth() + 1;
+		return arguments.Depth + 1;
 	    } else {
 		return 1;
 	    }
@@ -385,7 +390,7 @@ namespace Parse {
             this.left_value = left_value;
 
 	    if( name == left_value ) { 
-		throw new System.Exception( "creating method call with name==left value, name is " + name.Name );
+		throw new Exception( "creating method call with name==left value, name is " + name.Name );
 	    }
         }
 
@@ -443,12 +448,12 @@ namespace Parse {
 	    not_result = nr;
 	}
 
-	Quality getQuality() {
+	get Quality Quality {
 	    // get previously calculated overload match quality - for ArithExpression
 	    return quality;
 	}
 
-	Type getType() {
+	get Type Type {
 	    // get previously calculated type - for ArithExpression
 	    return type;
 	}
@@ -459,7 +464,7 @@ namespace Parse {
 
         void calcType( CompileState state, bool quiet ) {
             Symbol symbol = null;
-            System.String arg_string = null;
+            String arg_string = null;
             
             Generic.Vector<Type> arg_types = null;
             if( arguments != null ) {
@@ -577,14 +582,14 @@ namespace Parse {
                 } else {
                     method = cast<Container>( symbol );
                     if( method == null ) {
-                        throw new System.Exception( "oops: method symbol " + symbol.HumanName + " is not a container" );
+                        throw new Exception( "oops: method symbol " + symbol.HumanName + " is not a container" );
                     }
                     type = method.Type;
                 }
                 
                 if( quality.quality < Type.QUALITY_GOOD ) {
                     arg_string = dumpArguments( arg_types );
-                    System.String resolve_string = dumpArguments( method.ArgTypes );
+                    String resolve_string = dumpArguments( method.ArgTypes );
                     
 		    if( !quiet && state.WantWarnResolve ) {
 			warn( "call to " + name.Name + "(" + arg_string +
@@ -762,7 +767,7 @@ namespace Parse {
             }
         }
 
-        void dump( CompileState state, System.StringBuffer buffer ) {
+        void dump( CompileState state, StringBuffer buffer ) {
 
             if( left_value != null ) {
                 left_value.dump( state, buffer );
@@ -785,17 +790,17 @@ namespace Parse {
         }
 	*/
 
-	System.String toString() {
-	    System.StringBuffer result = new System.StringBuffer();
+	String toString() {
+	    StringBuffer result = new StringBuffer();
 	    dump( CompileState.getInstance(), result );
 
 	    return result;
 	}
 
-	int getDepth() {
-	    int result = name.getDepth();
+	get int Depth {
+	    int result = name.Depth;
 	    if( arguments != null ) {
-		int d = arguments.getDepth();
+		int d = arguments.Depth;
 		if( d > result ) {
 		    result = d;
 		}

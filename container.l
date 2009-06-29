@@ -7,6 +7,11 @@ import gset;
 
 namespace Parse {
     use Gen.Machine;
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+    use Generic.Vector;
 
     class Addresses extends System.Object {
         public int itable_offset;
@@ -25,7 +30,7 @@ namespace Parse {
         Container parent;
 	Container template;
 
-	// Generic.Vector<Container> dependants;
+	// Vector<Container> dependants;
 
         SymbolList members;
 
@@ -35,17 +40,17 @@ namespace Parse {
 	bool cannot_inline;
         Container override;
 
-	Generic.Vector<Identifier> arg_names;
-	Generic.Vector<Type> arg_types;
-	Util.Vector implements_list;
+	Vector<Identifier> arg_names;
+	Vector<Type> arg_types;
+	Vector<Container> implements_list;
         int vtable_offset;
         int itable_offset;
         int stack_offset;
 	int local_offset;
 	int method_index;
         int hash;
-        System.String decorated;
-        System.String qualified;
+        String decorated;
+        String qualified;
         bool is_final;
         bool is_struct;
 	bool is_generic;
@@ -73,7 +78,7 @@ namespace Parse {
 	    // this.is_leaf = true;
         }
 
-        void init( Container parent, Container owner, System.String name ) {
+        void init( Container parent, Container owner, String name ) {
            super.init( owner, name, Symbol.CLASS, 0, null );
             setup( parent );
             decorated = null;
@@ -84,7 +89,7 @@ namespace Parse {
             vtable_offset = 0;
         }
 
-        void init( Container parent, Container owner, System.String name, int kind, int access, Type type ) {
+        void init( Container parent, Container owner, String name, int kind, int access, Type type ) {
             super.init( owner, name, kind, access, type );
             setup( parent );
 
@@ -99,18 +104,18 @@ namespace Parse {
 
         void init() {
             super.init();
-            throw new System.Exception( "Container.init() called\n" );
+            throw new Exception( "Container.init() called\n" );
         }
 
 	void addImplements( Container c ) {
 	    if( implements_list == null ) {
-		implements_list = new Util.Vector();
+		implements_list = new Vector<Container>();
 	    }
 
 	    implements_list.add( c );
 	}
 
-	get Util.Vector ImplementsList {
+	get Vector<Container> ImplementsList {
 	    return implements_list;
 	}
 	
@@ -136,11 +141,11 @@ namespace Parse {
 	    return false;
 	}
 	            
-        bool getIsFinal() {
+        get bool IsFinal {
             return is_final;
         }
 
-	bool getIsStatic() {
+	get bool IsStatic {
 	    return Kind & Symbol.FLAG_STATIC != 0;
 	}
 
@@ -154,23 +159,23 @@ namespace Parse {
 	}
 	*/
 
-	bool getIsInline() {
+	get bool IsInline {
 	    return inline_block != null;
 	}
 
-	bool getIsNative() {
+	get bool IsNative {
 	    return is_native;
 	}
 
-	void setIsNative( bool n ) {
+	set bool IsNative = n {
 	    is_native = n;
 	}
 
-	bool getAlreadyParsed() {
+	get bool AlreadyParsed {
 	    return already_parsed;
 	}
 
-	void setAlreadyParsed( bool p ) {
+	set bool AlreadyParsed = p {
 	    already_parsed = p;
 	}
 
@@ -225,7 +230,7 @@ namespace Parse {
 	    }
 	}
 
-	Gen.MBitSet getAddressesTaken() {
+	get Gen.MBitSet AddressesTaken {
 	    return address_taken;
 	}
 
@@ -243,7 +248,7 @@ namespace Parse {
 	    return DecoratedName.opCompare( c.DecoratedName );
 	}
 
-	Container nextMethodByIndex(System.String name) {
+	Container nextMethodByIndex(String name) {
 	    // IO.Std.err.println( "MMMMMM: next method by index looking for " + name + " from " + this + " start index: " + method_index );
 
 	    for( int i = method_index; i < members.Length; i = i + 1 ) {
@@ -293,60 +298,59 @@ namespace Parse {
 	    cannot_inline = true;
 	}
 
-	bool getCannotInline() {
+	get bool CannotInline {
 	    return cannot_inline;
 	}
 
-        void setIsStruct( bool b ) {
+        set bool IsStruct = b {
             is_struct = b;
         }
         
-        bool getIsStruct() {
+        get bool IsStruct {
             return is_struct;
         }
 
-        void setIsGeneric( bool b ) {
+        set bool IsGeneric = b {
             is_generic = b;
         }
         
-        bool getIsGeneric() {
+        get bool IsGeneric {
             return is_generic;
         }
 
-	int getCurrentLabel() {
+	get int CurrentLabel {
 	    return label;
 	}
 
-	void setCurrentLabel( int label ) {
+	set int CurrentLabel = label {
 	    this.label = label;
 	}
 
-
-	void setArgNames( Generic.Vector<Identifier> arg_names ) {
+        set Vector<Identifier> ArgNames = arg_names {
 	    this.arg_names = arg_names;
 	}
 
-	Generic.Vector<Identifier> getArgNames() {
+	get Vector<Identifier> ArgNames {
 	    return arg_names;
 	}
 
-	void setArgTypes( Generic.Vector<Type> arg_types ) {
+	set Vector<Type> ArgTypes = arg_types {
 	    this.arg_types = arg_types;
 	}
 
-	Generic.Vector<Type> getArgTypes() {
+	get Vector<Type> ArgTypes {
 	    return arg_types;
 	}
 
-	Container getTemplate() {
+	get Container Template {
 	    return template;
 	}
 
-	void setTemplate( Container template ) {
+	set Container Template = template {
 	    this.template = template;
 	}
 
-	int getTypeArgsRequiredLength() {
+	get int TypeArgsRequiredLength {
 	    if( is_generic && arg_names != null ) {
 		// IO.Std.err.println( "" + HumanName + ": is generic: " + is_generic + ", args_length: " + type_formal_args.Length );
 		return arg_names.Length;
@@ -356,7 +360,7 @@ namespace Parse {
 	    }
 	}
 
-	bool checkTypeArgs( Generic.Vector<Type> ta ) {
+	bool checkTypeArgs( Vector<Type> ta ) {
 	    if( arg_types.Length != ta.Length ) {
 		// IO.Std.err.println( "argument lists differ in length" );
 		return false;
@@ -379,16 +383,15 @@ namespace Parse {
 	    return true;
 	}
 
-        void setDecoratedName( System.String d ) {
+        set String DecoratedName = d {
             this.decorated = d;
         }
 
-
-        Container getSuper() {
+        get Container Super {
             return parent;
         }
 
-        int getDepth() {
+        get int Depth {
             if( parent == null ) {
                 return 0;
             } else {
@@ -396,11 +399,11 @@ namespace Parse {
             }
         }
 
-	Gen.IBlock getInlineBlock() {
+	get Gen.IBlock InlineBlock {
 	    return inline_block;
 	}
 
-	void setInlineBlock( Gen.IBlock b ) {
+	set Gen.IBlock InlineBlock = b {
 	    this.inline_block = b;
 	}
 
@@ -419,13 +422,13 @@ namespace Parse {
             int result = 0;
             
             if( kind & Symbol.FLAG_METHOD != 0 || kind & Symbol.FLAG_STATIC != 0 ) {
-                throw new System.Exception( "oops: cannot allocate this sort of thing in a method: K" + kind );
+                throw new Exception( "oops: cannot allocate this sort of thing in a method: K" + kind );
             } else {
 		if( kind & FLAG_LOCAL != 0 ) {
 		    result = local_offset;
 
 		    if( (result / Machine.WORD) * Machine.WORD != result ) {
-			throw new System.Exception( "here: " + local_offset + "," + result + ": " + this );
+			throw new Exception( "here: " + local_offset + "," + result + ": " + this );
 		    }
 		    local_offset = local_offset - Machine.WORD;
 		    // IO.Std.err.println( "alloc local: " + result );
@@ -440,7 +443,7 @@ namespace Parse {
 
 	void checkAlign( int initial ) {
 	    if( (initial / Machine.WORD) * Machine.WORD != initial ) {
-		throw new System.Exception( "here: " + initial + ": " + this );
+		throw new Exception( "here: " + initial + ": " + this );
 	    }
 	}
 
@@ -452,15 +455,15 @@ namespace Parse {
 	    local_offset = -initial_local;
         }
 
-        Container getOverride() {
+        get Container Override {
             return override;
         }
 
-        void setOverride( Container override ) {
+        set Container Override = override {
             this.override = override;
         }
 
-        void setIsFinal( bool final ) {
+        set bool IsFinal = final {
             is_final = final;
         }
 
@@ -470,13 +473,13 @@ namespace Parse {
 		return;
 	    }
 	    if( dependants == null ) {
-		dependants = new Generic.Vector<Container>();
+		dependants = new Vector<Container>();
 	    }
 	    IO.Std.err.println( "add dependant: " + this + " must load before " + d );
 	    dependants.add(d);
 	}
 
-	Generic.Vector<Container> getDependants() {
+	Vector<Container> getDependants() {
 	    return dependants;
 	}
 	*/
@@ -485,8 +488,8 @@ namespace Parse {
 	    int h;
 
             if( hash == 0 ) {
-                if( getSuper() != null ) {
-                    hash = getSuper().getHash();
+                if( Super != null ) {
+                    hash = Super.Hash;
 
                     hash = Util.Hash.rotate(hash);
 		    // IO.Std.err.println( HumanName + ": super hash " + hash );
@@ -509,13 +512,13 @@ namespace Parse {
                     }
                     hash = Util.Hash.rotate(hash) + m;
 
-                    if( current.getKind() == Symbol.ENUM ) {
+                    if( current.Kind == Symbol.ENUM ) {
 			hash = Util.Hash.rotate(hash) + current.Hash;
 		    } else {
                         hash = Util.Hash.rotate(hash) + current.Address;
                     }
                     
-                    System.String s = current.DecoratedName;
+                    String s = current.DecoratedName;
                     hash = Util.Hash.rotate(hash) + Util.Hash.hash(s);
 
 		    // IO.Std.err.println( HumanName + ": member " + s + "@" + current.Address + " hash " + hash );
@@ -530,7 +533,7 @@ namespace Parse {
             }
         }
 
-        int getHash() {
+        get int Hash {
             if( hash == 0 ) {
                 calcHash();
             } 
@@ -549,23 +552,23 @@ namespace Parse {
             return hash;
         }
 
-        bool getNeedsBody()  {
+        get bool NeedsBody  {
             return needs_body;
         }
 
-        void setNeedsBody( bool needs_body ) {
+        set bool NeedsBody = needs_body {
             this.needs_body = needs_body;
         }
 
-        void setSuper( Container parent ) {
+        set Container Super = parent {
             setup( parent );
         }
         
-        int getStackOffset() {
+        get int StackOffset {
             return stack_offset;
         }
 
-	int getLocalOffset() {
+	get int LocalOffset {
 	    return local_offset;
 	}
 
@@ -594,7 +597,7 @@ namespace Parse {
 	    return false;
         }
 
-        bool matches( Generic.Vector<Type> arg_types, Quality result ) {
+        bool matches( Vector<Type> arg_types, Quality result ) {
             result.quality = 0;
             result.score = -1;
 
@@ -605,8 +608,8 @@ namespace Parse {
 
             bool this_no_args, that_no_args;
             
-            this_no_args = this.arg_types == null || this.arg_types.getLength() == 0;
-            that_no_args = arg_types == null || arg_types.getLength() == 0;
+            this_no_args = this.arg_types == null || this.arg_types.Length == 0;
+            that_no_args = arg_types == null || arg_types.Length == 0;
             
             if( this_no_args || that_no_args ) {
                 if( this_no_args && that_no_args ) {
@@ -620,7 +623,7 @@ namespace Parse {
                 }
             }
             
-            if( this.arg_types.getLength() == arg_types.getLength() ) {
+            if( this.arg_types.Length == arg_types.Length ) {
                 result.quality = Type.QUALITY_EXACT;
 
                 var i = this.arg_types.elements();
@@ -630,8 +633,8 @@ namespace Parse {
                     Type tl = cast<Type>(i.nextElement());
                     Type tr = cast<Type>(j.nextElement());
                    
-                    if( tl.getTypeKind() == Type.REFERENCE ) {
-                        tl = tl.getSubType();
+                    if( tl.TypeKind == Type.REFERENCE ) {
+                        tl = tl.SubType;
                     }
                     
                     // fprintf( stderr, "comparing: %s versus %s\n", tl.dump(), tr.dump() );
@@ -664,17 +667,17 @@ namespace Parse {
             return false;
         }
         
-        bool matches( Generic.Vector<Type> arg_types, bool exact ) {
+        bool matches( Vector<Type> arg_types, bool exact ) {
             bool this_no_args, that_no_args;
             
-            this_no_args = this.arg_types == null || this.arg_types.getLength() == 0;
-            that_no_args = arg_types == null || arg_types.getLength() == 0;
+            this_no_args = this.arg_types == null || this.arg_types.Length == 0;
+            that_no_args = arg_types == null || arg_types.Length == 0;
             
             if( this_no_args || that_no_args ) {
                 return this_no_args && that_no_args;
             }
             
-            if( this.arg_types.getLength() == arg_types.getLength() ) {
+            if( this.arg_types.Length == arg_types.Length ) {
                 var i = this.arg_types.elements();
                 var j = arg_types.elements();
                 
@@ -682,8 +685,8 @@ namespace Parse {
                     Type tl = cast<Type>(i.nextElement());
                     Type tr = cast<Type>(j.nextElement());
                     
-                    if( !exact && tl.getTypeKind() == Type.REFERENCE ) {
-                        tl = tl.getSubType();
+                    if( !exact && tl.TypeKind == Type.REFERENCE ) {
+                        tl = tl.SubType;
                     }
                     
                     if( exact ) {
@@ -704,16 +707,16 @@ namespace Parse {
         }
 
 
-        Container findBestMethod( System.String name, Generic.Vector<Type> arg_types, Quality quality ) {
+        Container findBestMethod( String name, Vector<Type> arg_types, Quality quality ) {
             quality.score = -1;
             return findBestMethod( name, arg_types, quality, true );
         }
     
-        Container findBestMethod( System.String name, Generic.Vector<Type> arg_types, Quality quality, bool recurse ) {
+        Container findBestMethod( String name, Vector<Type> arg_types, Quality quality, bool recurse ) {
             Container result = null;
             
             if( members != null ) {
-		// IO.Std.err.println( "about to search: " + members + " (" + System.String.hex(cast<int>(members)) + ") for: " + name );
+		// IO.Std.err.println( "about to search: " + members + " (" + String.hex(cast<int>(members)) + ") for: " + name );
                 result = members.findMethod( name, arg_types, quality );
                 if( result != null ) {
                     // fprintf( stderr, "found %s with score %d\n", result.getDecoratedName(), score );
@@ -725,7 +728,7 @@ namespace Parse {
                 Container r = parent.findBestMethod( name, arg_types, quality, true );
                 if( result != null ) {
                     if( r != null && s > quality.score ) {
-                        IO.Std.err.println( "found better match in parent: " + r.getDecoratedName() + " (" + s + ") versus " + result.getDecoratedName() + " (" + quality.score + ")" );
+                        IO.Std.err.println( "found better match in parent: " + r.DecoratedName + " (" + s + ") versus " + result.DecoratedName + " (" + quality.score + ")" );
                     }
                 } else {
                     result = r;
@@ -743,7 +746,7 @@ namespace Parse {
             return findMethod( method.Name, method.ArgTypes, true );
         }
 
-        Container findMethod( System.String name, Generic.Vector<Type> arg_types, bool exact ) {
+        Container findMethod( String name, Vector<Type> arg_types, bool exact ) {
             Container result = null;
 
             if( members != null ) {
@@ -765,22 +768,22 @@ namespace Parse {
             this.members = members;
         }
         
-        int getSize() {
+        get int Size {
             return itable_offset;
         }
 
-        System.String getDecoratedName() {
+        get String DecoratedName {
             if( decorated == null ) {
-                IO.Std.err.println( "get decorated " + getQualifiedName() + ": null" );
-                return getName();
+                IO.Std.err.println( "get decorated " + QualifiedName + ": null" );
+                return Name;
             } else {
                 return decorated;
             }
         }
         
-        System.String getQualifiedName() {
+        get String QualifiedName {
             if( qualified == null ) {
-		System.StringBuffer result = new System.StringBuffer();
+		StringBuffer result = new StringBuffer();
 		Symbol o = Owner; 
 		if( o != null ) {
 		    result.append( o.QualifiedName );
@@ -793,9 +796,9 @@ namespace Parse {
             }
         }
 
-	System.String getHumanName() {
-	    System.StringBuffer b = new System.StringBuffer();
-	    System.String s = QualifiedName;
+	get String HumanName {
+	    StringBuffer b = new StringBuffer();
+	    String s = QualifiedName;
 	    
 	    for( int i = 0; i < s.Length; i = i + 1 ) {
 		char c = s[i];
@@ -819,16 +822,16 @@ namespace Parse {
 	    return b;
 	}
 
-	System.String getFileName() {
+	get String FileName {
 	    return QualifiedName;
 	}
         
-        void setQualifiedName( System.String qn ) {
+        set String QualifiedName = qn {
             qualified = qn;
         }
         
         
-        SymbolList getScope() {
+        get SymbolList Scope {
             return members;
         }
         
@@ -836,7 +839,7 @@ namespace Parse {
             members.stripDefined( level );
         }
         
-        Symbol findSymbol( System.String name, int find_what ) {
+        Symbol findSymbol( String name, int find_what ) {
             Symbol result = null;
 
 	    // IO.Std.err.println( "search " + HumanName + " for " + name + " (" + find_what + ")" );
@@ -849,7 +852,7 @@ namespace Parse {
                 }
             }
             
-            if( getKind() == Symbol.NAMESPACE ) {
+            if( Kind == Symbol.NAMESPACE ) {
 		// IO.Std.err.println( "not searching parent of namespace " + HumanName + " for " + name );
             } else if( parent != null ) {
                 // not a namespace and have a parent class - search that instead#
@@ -859,7 +862,7 @@ namespace Parse {
             return null;
         }
         
-        Symbol findDecoratedSymbol( System.String name )     {
+        Symbol findDecoratedSymbol( String name )     {
             if( members == null ) {
                 return null;
             }
@@ -875,9 +878,9 @@ namespace Parse {
         }
         
         void emitStaticTables( CompileState  state ) {
-            foreach( Symbol current; members.getSymbolList().elements() ) {
-                if( current.getKind() == Symbol.STATIC_VARIABLE ) {
-                    Machine.emitDefLong( state.getOutput(), 0 );
+            foreach( Symbol current; members.SymbolList.elements() ) {
+                if( current.Kind == Symbol.STATIC_VARIABLE ) {
+                    Machine.emitDefLong( state.Output, 0 );
                 }
             }
         }
@@ -887,18 +890,18 @@ namespace Parse {
                 parent.emitTypeTables( state );
             }
         
-            foreach( Symbol current; members.getSymbolList().elements() ) {
-                if( current.getKind() == Symbol.INSTANCE_VARIABLE ) {
-                    Type t = current.getType();
+            foreach( Symbol current; members.SymbolList.elements() ) {
+                if( current.Kind == Symbol.INSTANCE_VARIABLE ) {
+                    Type t = current.Type;
                     int value = 0;
-                    if( t.getTypeKind() == Type.CLASS ) {
+                    if( t.TypeKind == Type.CLASS ) {
                         value = 1;
-                    } else if( t.getTypeKind() == Type.VECTOR ) {
+                    } else if( t.TypeKind == Type.VECTOR ) {
                         value = 2;
-                    } else if( t.getTypeKind() == Type.POINTER ) {
+                    } else if( t.TypeKind == Type.POINTER ) {
                         value = 3;
                     }
-                    Machine.emitDefByte( state.getOutput(), value );
+                    Machine.emitDefByte( state.Output, value );
                 }
             }
         }
@@ -911,7 +914,7 @@ namespace Parse {
             }
         }
 
-	void populateAllImplementedInterfaces( Generic.Vector<Container> all_implemented ) {
+	void populateAllImplementedInterfaces( Vector<Container> all_implemented ) {
 	    all_implemented.clear();
 
 	    // IO.Std.err.println( "find all implemented interfaces for " + HumanName + "..." );
@@ -941,21 +944,21 @@ namespace Parse {
 	    } while( p != null );
 	}
 
-	get Generic.Vector<Container> AllImplementedInterfaces {
-	    var result = new Generic.Vector<Container>();
+	get Vector<Container> AllImplementedInterfaces {
+	    var result = new Vector<Container>();
 
 	    populateAllImplementedInterfaces( result );
 
 	    return result;
 	}
 
-	static void buildInterfaceTables( Generic.Set<Container> interfaces_set, Generic.Vector<Symbol> symbol_list ) {
+	static void buildInterfaceTables( Generic.Set<Container> interfaces_set, Vector<Symbol> symbol_list ) {
 	    int j, size = interfaces_set.Length;
 	    if( size == 0 ) {
 		return;
 	    }
 
-	    var interfaces = new Generic.Vector<Container>(size);
+	    var interfaces = new Vector<Container>(size);
 
 	    // IO.Std.err.println( "build interface tables for " + size + " interfaces: " + interfaces_set );
 
@@ -969,7 +972,7 @@ namespace Parse {
 	    }
 
 	    // sort interfaces list so that compile order does not affect addresses assigned by selector coloring:
-	    Generic.Sort<Container,Generic.Vector<Container>>.sort(interfaces);
+	    Generic.SortList<Container>.sort(interfaces);
 
 	    j = 0;
 	    foreach( var is; interfaces.elements() ) {
@@ -988,7 +991,7 @@ namespace Parse {
 	    }
 	    */
 
-	    var all_implemented = new Generic.Vector<Container>();
+	    var all_implemented = new Vector<Container>();
 
 	    foreach( var si; symbol_list.elements() ) {
 		var ci = cast Container(si);
@@ -1026,17 +1029,17 @@ namespace Parse {
 	    allocateInterfaceSlots( interfaces, matrix );
 	}
 
-	static void allocateInterfaceSlots( Generic.Vector<Container> interfaces, Gen.MBitSet[] matrix ) {
-	    var slots = new Generic.Vector<Generic.Vector<Container>>();
+	static void allocateInterfaceSlots( Vector<Container> interfaces, Gen.MBitSet[] matrix ) {
+	    var slots = new Vector<Vector<Container>>();
 	    foreach( var ii; interfaces.elements() ) {
 		allocateInterfaceSlots( interfaces, ii, slots, matrix );
 	    }
 	}
 
 	static void allocateInterfaceSlots(
-	    Generic.Vector<Container> interfaces,
+	    Vector<Container> interfaces,
 	    Container ii,
-	    Generic.Vector<Generic.Vector<Container>> slots,
+	    Vector<Vector<Container>> slots,
 	    Gen.MBitSet[] matrix
 	) {
 	    int slot_index = -1;
@@ -1074,7 +1077,7 @@ namespace Parse {
 		    if( slots[slot_index] == null ) {
 			// IO.Std.err.println( "nothing yet in slot #" + slot_index );
 
-			slots[slot_index] = new Generic.Vector<Container>();
+			slots[slot_index] = new Vector<Container>();
 			break;
 		    }
 
@@ -1134,13 +1137,13 @@ namespace Parse {
             int stable_offset = 0;
         
             if( members == null ) {
-                throw new System.Exception( "weird: build class tables for class with no member list: " + getQualifiedName() );
+                throw new Exception( "weird: build class tables for class with no member list: " + QualifiedName );
             }
         
-            foreach( Symbol current; members.getSymbolList().elements() ) { 
+            foreach( Symbol current; members.SymbolList.elements() ) { 
 		int k = current.Kind;
                 if( current == null ) {
-                    throw new System.Exception( "oops: cannot build vtable slot for null member" );
+                    throw new Exception( "oops: cannot build vtable slot for null member" );
                 } else if( k & Symbol.FLAG_METHOD != 0 ) {
                     Container ancestor = null;
                     if( parent != null ) {
@@ -1151,7 +1154,7 @@ namespace Parse {
                         // not defined in parent-class - gets its own vtable offset
                     
                         if( current.IsAddressValid ) {
-                            throw new System.Exception( "oops: " + current.getName() + " already has an address" );
+                            throw new Exception( "oops: " + current.Name + " already has an address" );
                         }
                     
                         current.Address = address.vtable_offset;
@@ -1173,21 +1176,21 @@ namespace Parse {
                         current.Override = cast<Container>(ancestor);
                     
                         if( !ancestor.IsAddressValid ) {
-                            throw new System.Exception( "oops: " + current.Name + " inherits its address but the method it overrides has no address" );
+                            throw new Exception( "oops: " + current.Name + " inherits its address but the method it overrides has no address" );
                         } else {
                             current.Address = ancestor.Address;
                         }
                     }
                 } else if( k == Symbol.STATIC_VARIABLE ) {
                     if( current.IsAddressValid ) {
-                        throw new System.Exception( "weird: static variable " + current.HumanName + " already has an address" );
+                        throw new Exception( "weird: static variable " + current.HumanName + " already has an address" );
                     }
                 
                     current.Address = stable_offset;
                     stable_offset = stable_offset + Machine.WORD;
                 } else if( k == Symbol.INSTANCE_VARIABLE ) {
                     if( current.IsAddressValid ) {
-                        throw new System.Exception( "weird: instance variable " + current.HumanName + " already has an address" );
+                        throw new Exception( "weird: instance variable " + current.HumanName + " already has an address" );
                     }
                 
                     current.Address = address.itable_offset;
@@ -1196,7 +1199,7 @@ namespace Parse {
                     ; // do nothing - occupies no space
                 } else {
 		    IO.Std.err.println( "weird: ignoring symbol " + current.Name + " of kind " + current.Kind );
-                    // throw new System.Exception( "weird: ignoring symbol " + current.Name + " of kind " + current.Kind );
+                    // throw new Exception( "weird: ignoring symbol " + current.Name + " of kind " + current.Kind );
                 }
             }
         
@@ -1211,8 +1214,8 @@ namespace Parse {
 		return;
 	    }
 
-	    var slots = new Generic.Vector<Container>();
-	    var implemented = new Generic.Vector<Container>();
+	    var slots = new Vector<Container>();
+	    var implemented = new Vector<Container>();
 	    populateAllImplementedInterfaces( implemented );
 
 	    Container i;
@@ -1313,18 +1316,18 @@ namespace Parse {
 
             foreach( Symbol current; members.SymbolList.elements() ) { 
                 if( current == null ) {
-                    throw new System.Exception( "oops: cannot emit vtable slot for missing member" );
-                } else if( current.getKind() & Symbol.FLAG_METHOD != 0 ) {
+                    throw new Exception( "oops: cannot emit vtable slot for missing member" );
+                } else if( current.Kind & Symbol.FLAG_METHOD != 0 ) {
                     Symbol candidate = for_class.findMethod( cast<Container>(current) );
                 
                     if( candidate == null ) {
-                        throw new System.Exception( "strange: member missing: " + current.Name );
+                        throw new Exception( "strange: member missing: " + current.Name );
                         Machine.emitDefPointer( state.Output, 0 );
                     } else {
                         Container owner = candidate.Owner;
                     
                         if( owner == null ) {
-                            throw new System.Exception( "oops: cannot emit vtable entry for method with no owning class\n" );
+                            throw new Exception( "oops: cannot emit vtable entry for method with no owning class\n" );
                         } else {
                             Container o = candidate.Override;
                         
@@ -1350,14 +1353,14 @@ namespace Parse {
                 
                 } else if( current.Kind != Symbol.STATIC_VARIABLE && current.Kind != Symbol.CONST && current.Kind != Symbol.ENUM &&
 			   current.Kind != Symbol.TYPE && current.Kind != Symbol.ACCESSOR ) {
-                    throw new System.Exception( "oops: member " + current.Name + " is weird kind: " + current.Kind );
+                    throw new Exception( "oops: member " + current.Name + " is weird kind: " + current.Kind );
                 }
 		ca = ca + Machine.WORD;
             }
         }
 
-	System.String toString() {
-	    System.StringBuffer b = new System.StringBuffer("Container(");
+	String toString() {
+	    StringBuffer b = new StringBuffer("Container(");
 	    b.append( this.QualifiedName );
 
 	    if( this.Type != null ) {

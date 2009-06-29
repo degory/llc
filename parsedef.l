@@ -1,5 +1,11 @@
 
 namespace Parse {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+    use Generic.Vector;
+
     use Gen.ITree;
     use Gen.IBlock;
     use Gen.ILabel;
@@ -9,11 +15,11 @@ namespace Parse {
     use Gen.MBitSet;
 
     class ArgumentsDef extends Statement {
-        Generic.Vector<VariableDef> list;
+        Vector<VariableDef> list;
         
         void init( int line_number ) {
             super.init( line_number );
-	    list = new Generic.Vector<VariableDef>();
+	    list = new Vector<VariableDef>();
         }
 
 	void init( int line_number, VariableDef first ) {
@@ -35,7 +41,7 @@ namespace Parse {
 	    }
 	}
         
-        void dump( CompileState state, System.StringBuffer  human, System.StringBuffer decorate ) {
+        void dump( CompileState state, StringBuffer  human, StringBuffer decorate ) {
             for( var i = list.elements(); i.hasMoreElements(); ) {
                 VariableDef v = i.nextElement();
                 v.getType( state ).dump( human, decorate );
@@ -46,7 +52,7 @@ namespace Parse {
             }
         }
         
-        void dump( System.StringBuffer human, System.StringBuffer decorate ) {
+        void dump( StringBuffer human, StringBuffer decorate ) {
             for( var i = list.elements(); i.hasMoreElements(); ) {
                 VariableDef v = cast<VariableDef>(i.nextElement());
                 v.dump( human, decorate );
@@ -62,8 +68,8 @@ namespace Parse {
             list.add( next );
         }
         
-        Generic.Vector<Type> getTypes( CompileState state ) {
-            var result = new Generic.Vector<Type>();
+        Vector<Type> getTypes( CompileState state ) {
+            var result = new Vector<Type>();
             foreach( VariableDef v; list.elements() ) {
                 result.add( v.getType( state ) );
             }
@@ -175,7 +181,7 @@ namespace Parse {
         }
         
         void parseImports( CompileState state ) {
-            System.StringBuffer b = new System.StringBuffer();
+            StringBuffer b = new StringBuffer();
             name.dump(state,b);
             state.addLibrary(b);
         }
@@ -185,7 +191,7 @@ namespace Parse {
 		state.markCodeUnsafe( CompileState.UNSAFE_LINK );
 	    }
             if( state.WantWarnUnsafe ) {
-                System.StringBuffer b = new System.StringBuffer();
+                StringBuffer b = new StringBuffer();
                 name.dump(state,b);
                 warn( "additional linker option: '" + b + "'" );
             }
@@ -204,17 +210,17 @@ namespace Parse {
     class AccessDef extends Statement {
         private int access;
 
-        void setAccess( int access ) {
+        set int Access = access {
             this.access = access;
         }
 
-        void setAccess( AccessSpecifier a ) {
+        set AccessSpecifier Access = a {
             if( a != null ) {
                 Access = a.Access;
             }
         }
 
-        int getAccess() {
+        get int Access {
             return access;
         }
 
@@ -299,7 +305,7 @@ namespace Parse {
                             if( t.RawOp != Op.CONST ) {
                                 error( "initializer for " + e.HumanName + "." + e.Name + " must be constant" );
                             } else {
-                                address = t.Value.getInt();
+                                address = t.Value.Int;
                                 next_enum_value = address+1;
                             }
                         }
@@ -340,23 +346,23 @@ namespace Parse {
         Container c;
 	int next_index;
 
-	bool is_internal_definition; // class definition created for compiler's internal use (e.g for System.Object) - this
+	bool is_internal_definition; // class definition created for compiler's internal use (e.g for Object) - this
 	                             // class must be allowed to be redefined by the runtime library
 	bool is_super_class_concrete;
 
 	bool is_generic;
-	Generic.Vector<Container> generic_instances;
+	Vector<Container> generic_instances;
 	static int generic_count;
 	
-	bool getIsStruct() {
+	get bool IsStruct {
 	    return false;
 	}
 
-	bool getIsInterface() {
+	get bool IsInterface {
 	    return false;
 	}
 
-	void setInternalDefinition( bool v ) {
+	set bool InternalDefinition = v {
 	    is_internal_definition = v;
 	}
 
@@ -397,7 +403,7 @@ namespace Parse {
 	    if( super_arguments != null && super_arguments.List.Length > 0 ) {
 		this.super_arguments = super_arguments;
 	    }
-	    generic_instances = new Generic.Vector<Container>();
+	    generic_instances = new Vector<Container>();
             body = null;
             c = null;
         }
@@ -419,10 +425,10 @@ namespace Parse {
 	    }
 	    this.implements_list = implements_list;
             this.body = body;
-	    generic_instances = new Generic.Vector<Container>();
+	    generic_instances = new Vector<Container>();
 
 	    if( body == null ) {
-		throw new System.Exception( "cannot declare class " + name + " with null body" );
+		throw new Exception( "cannot declare class " + name + " with null body" );
 	    }
 
             c = null;
@@ -465,10 +471,10 @@ namespace Parse {
 
 	    // this will cause declareClass to give an error if a generic class is redefined. Otherwise
 	    // because generic classes never get a body, declareClass assumes they're internally defined
-	    // like System.Object.
+	    // like Object.
 	    // c.NeedsBody = false;
 
-	    var arg_names = new Generic.Vector<Identifier>();
+	    var arg_names = new Vector<Identifier>();
 	    foreach( Identifier i; arguments.List.elements() ) {
 		arg_names.add( i );
 	    }
@@ -476,9 +482,9 @@ namespace Parse {
 	    c.ArgNames = arg_names;
 	}
         
-	Container makeConcrete( CompileState state, Generic.Vector<Type> args ) {
+	Container makeConcrete( CompileState state, Vector<Type> args ) {
 	    if( !is_generic ) {
-		throw new System.Exception( "cannot make concrete version of non template class " + c );
+		throw new Exception( "cannot make concrete version of non template class " + c );
 	    }
 
 	    // IO.Std.err.println( "make concrete: " + c );
@@ -488,7 +494,7 @@ namespace Parse {
                 a = Symbol.ACCESS_PUBLIC;
             }
 	    /*
-	    System.StringBuffer b = new System.StringBuffer();
+	    StringBuffer b = new StringBuffer();
 	    b.append(" of<");
 
 	    
@@ -504,7 +510,7 @@ namespace Parse {
 	    */
 
 	    Container super_class = findSuperClass( state );
-	    System.StringBuffer n = new System.StringBuffer(name.Name);
+	    StringBuffer n = new StringBuffer(name.Name);
 
 	    /*
 	    n.append('$');
@@ -583,12 +589,12 @@ namespace Parse {
 	    }
 	}
 
-	void addConcreteArguments( CompileState state, Container c, Generic.Vector<Type> args ) {
+	void addConcreteArguments( CompileState state, Container c, Vector<Type> args ) {
 	    c.ArgTypes = args;
 
 	    for( int i = 0; i < args.Length; i = i + 1 ) {
 		Type t = args[i];
-		System.String n = arguments[i].Name;
+		String n = arguments[i].Name;
 
 		state.declareType( this, n, Symbol.ACCESS_PRIVATE, t );
 	    }
@@ -639,7 +645,7 @@ namespace Parse {
 	}
 
 
-	Container findSuperClass( CompileState state ) { // , System.String class_name ) {
+	Container findSuperClass( CompileState state ) { // , String class_name ) {
 	    if( super_ident != null ) {
 		// do not report errors and only look for types:
 		Symbol super_symbol = super_ident.getSymbol( state, false, Symbol.FIND_TYPE );
@@ -805,7 +811,7 @@ namespace Parse {
 
             if( body != null ) {
 		if( state.WantVeryVerbose ) {
-		    message( "prepare inlined methods: " + c.getHumanName() );
+		    message( "prepare inlined methods: " + c.HumanName );
 		}
 
                 state.beginCompileClass( this, c, name.Name );
@@ -837,7 +843,7 @@ namespace Parse {
 		}
 		// IO.Std.err.println( "pass " + i + " code generation for static initializers in class " + c.QualifiedName + " failed, simplifying..." );
 		// }
-	    throw new System.Exception( "code generation for static initializers in class " + c.HumanName + " failed" );
+	    throw new Exception( "code generation for static initializers in class " + c.HumanName + " failed" );
 	}
 
 	void compile( CompileState state ) {
@@ -895,7 +901,7 @@ namespace Parse {
 		    // class info is list of name/vtable pairs for runtime class lookup:
 		    Machine.emitClassSegment( f );
 		    // class name$__... is a variable, we want direct pointer to name string here:
-                    Machine.emitDefPointerLabel( f, l.getInt() );
+                    Machine.emitDefPointerLabel( f, l.Int );
 		    Machine.emitDefPointer( f, "vtable$__" + c.DecoratedName );
                     
                     Machine.emitRoDataSegment( f );
@@ -906,22 +912,22 @@ namespace Parse {
                     Machine.emitGlobal( f, "size$__" + c.DecoratedName );
                     Machine.emitGlobal( f, "vtable$__" + c.DecoratedName );
         
-                    Machine.emitLabel( f, l.getInt() );
+                    Machine.emitLabel( f, l.Int );
                     Machine.emitDefAsciiz( f, c.HumanName );
                     Machine.emitAlign( f, Machine.WORD );
 
 		    c.emitInterfaceTables( state, this );
                     Machine.emitLabel( f, "type$__" + c.DecoratedName );
-                    Machine.emitDefPointerLabel( f, m.getInt() );
+                    Machine.emitDefPointerLabel( f, m.Int );
                     Machine.emitLabel( f, "name$__" + c.DecoratedName );
-                    Machine.emitDefPointerLabel( f, l.getInt() );
+                    Machine.emitDefPointerLabel( f, l.Int );
                     Machine.emitLabel( f, "size$__" + c.DecoratedName );
                     Machine.emitDefLong( f, c.getSize() );
                     Machine.emitLabel( f, "vtable$__" + c.DecoratedName );
 
 
-                    if( c.getSuper() != null ) {
-                        System.String svt = "vtable$__" + c.Super.DecoratedName;
+                    if( c.Super != null ) {
+                        String svt = "vtable$__" + c.Super.DecoratedName;
                         Machine.emitExtern( f, svt );
 
                         Machine.emitDefPointer( f, svt );
@@ -935,7 +941,7 @@ namespace Parse {
 
 		    Machine.emitDefLong( f, 0 );
                     
-                    Machine.emitLabel( f, m.getInt() );
+                    Machine.emitLabel( f, m.Int );
                     // state.cg.emitLabel( m );
                     
                     Machine.emitDefByte( f, 0 );
@@ -944,7 +950,7 @@ namespace Parse {
                     
                     Machine.emitDataSegment( f );
                     Machine.emitAlign( f, Machine.WORD );
-                    System.String st = "stable$__" + c.DecoratedName;
+                    String st = "stable$__" + c.DecoratedName;
                     Machine.emitGlobal( f, st );
                     Machine.emitLabel( f, st );
                                        
@@ -1028,8 +1034,8 @@ namespace Parse {
             }
         }
 
-        System.String toString() {
-            System.StringBuffer result = new System.StringBuffer();
+        String toString() {
+            StringBuffer result = new StringBuffer();
             result.append( "class " );
             result.append( name );
             if( super_ident != null ) {
@@ -1088,7 +1094,7 @@ namespace Parse {
         // BlockStatement body;
         // Container c;
 
-	bool getIsStruct() {
+	get bool IsStruct {
 	    return true;
 	}
 
@@ -1117,7 +1123,7 @@ namespace Parse {
 		       );
         }
 
-	bool getIsInterface() {
+	get bool IsInterface {
 	    return true;
 	}
     }
@@ -1227,7 +1233,7 @@ namespace Parse {
                     } else if( t.RawOp != Op.CONST ) {
                         error( "initializer for " + symbol.HumanName + " must be constant" );                  
                     } else {
-                        symbol.Address = t.Value.getInt();
+                        symbol.Address = t.Value.Int;
                     }
                 }
             }
@@ -1245,7 +1251,7 @@ namespace Parse {
             
             var v = list.List;
             foreach( Identifier ident; v.elements() ) {
-                System.String name = ident.Name;
+                String name = ident.Name;
                                 
                 Symbol symbol = state.findSymbol( name, Symbol.FIND_ANY );
 		if( symbol == null ) {
@@ -1286,7 +1292,7 @@ namespace Parse {
             return type_expr.parseType( state );
         }
 
-        System.String getFirstName() {
+        get String FirstName {
             var v = list.List;
             
             if( v.Length >= 1 ) {
@@ -1297,13 +1303,13 @@ namespace Parse {
         }
 
 
-        void dump( System.StringBuffer human, System.StringBuffer decorate ) {
+        void dump( StringBuffer human, StringBuffer decorate ) {
             if( type_expr != null ) {
                 type_expr.dump( human, decorate );
             }
         }
 
-        void dump( CompileState state, System.StringBuffer human, System.StringBuffer decorate ) {
+        void dump( CompileState state, StringBuffer human, StringBuffer decorate ) {
             Type t = null;
             if( type_expr != null ) {
                 t = type_expr.parseType( state );
@@ -1323,15 +1329,15 @@ namespace Parse {
             }
         }
 
-        void dump( CompileState state, System.StringBuffer human ) {
-            System.StringBuffer dummy;
+        void dump( CompileState state, StringBuffer human ) {
+            StringBuffer dummy;
             type_expr.parseType( state ).dump( human, dummy );
             human.append( ' ' );
             list.dump( state, human );
         }
 
-        System.String toString() {
-            System.StringBuffer result = new System.StringBuffer();
+        String toString() {
+            StringBuffer result = new StringBuffer();
             result.append( type_expr );
             result.append( ' ' );
             result.append( list );
@@ -1422,17 +1428,17 @@ namespace Parse {
                 }
             }
             
-            Generic.Vector<Type> arg_types = null;
+            Vector<Type> arg_types = null;
             if( args != null ) {
                 arg_types = args.getTypes( state );
             }
             
-            System.StringBuffer human = new System.StringBuffer();
-            System.StringBuffer decorate = new System.StringBuffer();
+            StringBuffer human = new StringBuffer();
+            StringBuffer decorate = new StringBuffer();
             
             dump( state, human, decorate );
 
-	    System.String n = name.Name;
+	    String n = name.Name;
             m = cast<Container>( state.declareMethod( this, n, kind, actual_access, type.parseType(state), arg_types, decorate ) );
 	   
 	    if( n.Length > 3 ) {
@@ -1463,7 +1469,7 @@ namespace Parse {
         }
 
 	int compileArguments( CompileState state, IBlock into, bool include_this ) {
-	    Generic.Vector<Type> a = m.ArgTypes;
+	    Vector<Type> a = m.ArgTypes;
 
 	    int num_args = 0;
 	    int to_pop = 0;
@@ -1493,7 +1499,7 @@ namespace Parse {
 
 	    int i;
 	    
-	    var p = new Generic.Vector<ITree>();
+	    var p = new Vector<ITree>();
 
 	    for( i = 0; i < num_args; i = i + 1 ) {
 		int temp = TempFactory.nextTemp();
@@ -1579,8 +1585,8 @@ namespace Parse {
 
 	    checkOverride( state );
 
-            System.StringBuffer human = new System.StringBuffer();
-            System.StringBuffer decorated = new System.StringBuffer();
+            StringBuffer human = new StringBuffer();
+            StringBuffer decorated = new StringBuffer();
             
             dump( state, human, decorated );
 
@@ -1613,8 +1619,8 @@ namespace Parse {
 	    // IO.Std.err.println( "check inline: " + name );
 	    m = state.nextMethodByIndex( name.Name );
 
-            System.StringBuffer human = new System.StringBuffer();
-            System.StringBuffer decorated = new System.StringBuffer();
+            StringBuffer human = new StringBuffer();
+            StringBuffer decorated = new StringBuffer();
             
             dump( state, human, decorated );
 
@@ -1626,7 +1632,7 @@ namespace Parse {
 		    IO.Std.err.println( "method def check inline - m not valid yet" );
 		}
 		
-		Generic.Vector<Type> a = m.ArgTypes;
+		Vector<Type> a = m.ArgTypes;
 		
 		// more args (including 'this' than will fit in parameter registers?)
 		if( a != null && a.Length+1 > Machine.NUM_REG_PARAM ) {
@@ -1680,8 +1686,8 @@ namespace Parse {
 		inline_count = inline_count + 1;
 	    }
 
-            System.StringBuffer human = new System.StringBuffer();
-            System.StringBuffer decorated = new System.StringBuffer();
+            StringBuffer human = new StringBuffer();
+            StringBuffer decorated = new StringBuffer();
 	    dump( state, human, decorated );
 	    if( state.WantVeryVerbose ) {
 		message( "prepare inline version of method: " + human );
@@ -1765,8 +1771,8 @@ namespace Parse {
 	bool genMethod(
 		       CompileState state,
 		       IBlock into,
-		       System.String decorated,
-		       System.String human,
+		       String decorated,
+		       String human,
 		       int[] attempt,
 		       Gen.MBitSet address_taken,
 		       int ref frame_flags ) {
@@ -1822,8 +1828,8 @@ namespace Parse {
 
 	    progress();
 
-            System.StringBuffer human = new System.StringBuffer();
-            System.StringBuffer decorated = new System.StringBuffer();
+            StringBuffer human = new StringBuffer();
+            StringBuffer decorated = new StringBuffer();
             
             resetTemporary();
             
@@ -1832,7 +1838,7 @@ namespace Parse {
 	    // message( human );
 
             if( m == null ) {
-                throw new System.Exception( "couldn't find previous definition for " + human + " (" + decorated + ")" );
+                throw new Exception( "couldn't find previous definition for " + human + " (" + decorated + ")" );
                 return;
             }
 
@@ -1952,7 +1958,7 @@ namespace Parse {
 
 
 	    if( !success ) {
-		throw new System.Exception( "failed to compile " + human );
+		throw new Exception( "failed to compile " + human );
 	    }
 
 	    // IO.Std.err.println( "finished compile: " + human );
@@ -1965,11 +1971,11 @@ namespace Parse {
             state.endCompileMethod(m);
         }
 
-        void dump( CompileState state, System.StringBuffer human, System.StringBuffer decorated ) {
+        void dump( CompileState state, StringBuffer human, StringBuffer decorated ) {
             decorated.append( name.Name );
             decorated.append( "__" );
             
-            System.StringBuffer dummy = new System.StringBuffer();
+            StringBuffer dummy = new StringBuffer();
             
             Type t = new Type( Type.CLASS, state.CurrentClass );
             t.dump( dummy, decorated );
@@ -1989,8 +1995,8 @@ namespace Parse {
             human.append( ')' );
         }
 
-        System.String toString() {
-            System.StringBuffer result = new System.StringBuffer();
+        String toString() {
+            StringBuffer result = new StringBuffer();
             result.append( type );
             result.append( ' ' );
             result.append( name );
@@ -2059,14 +2065,14 @@ namespace Parse {
             int kind = Symbol.FLAG_STATIC;
             int actual_access = Access & ~Symbol.ACCESS_STATIC;
             if( actual_access == 0 ) {
-                if( state.getCurrentMethod() != null ) {
+                if( state.CurrentMethod != null ) {
                     actual_access = Symbol.ACCESS_LOCAL;
                 } else {
                     actual_access = Symbol.ACCESS_PUBLIC;
                 }
             }
             
-            Generic.Vector<Type> arg_types = null;
+            Vector<Type> arg_types = null;
             if( args != null ) {
                 arg_types = args.getTypes( state );
             }
@@ -2099,7 +2105,7 @@ namespace Parse {
 		return;
 	    }
 
-            Machine.emitExtern( state.getOutput(), m.Name );
+            Machine.emitExtern( state.Output, m.Name );
 	    if( state.WantMarkUnsafe ) {
 		state.markCodeUnsafe( CompileState.UNSAFE_NATIVE );
 	    }

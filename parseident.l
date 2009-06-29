@@ -1,5 +1,11 @@
 
 namespace Parse {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+    use Generic.Vector;
+
     use Gen.ITree;
     use Gen.IBlock;
     use Gen.ILabel;
@@ -9,7 +15,7 @@ namespace Parse {
     use Gen.MBitSet;
 
     class Identifier extends LeftValue {
-        protected System.String name;
+        protected String name;
         protected Expression left_value;
         protected Symbol symbol;
         protected bool reference;
@@ -21,7 +27,7 @@ namespace Parse {
 	Expression indexer_value;
 	bool want_indexer;
         
-        void init( int ln, System.String name ) {
+        void init( int ln, String name ) {
             super.init( ln );
 	    // IO.Std.err.println( "initialize identifier: " + this );
             symbol = null;
@@ -70,7 +76,7 @@ namespace Parse {
 	}
         
         void calcType( CompileState state ) {
-	    System.String n;
+	    String n;
 	    bool want_method = false;
 
 	    // IO.Std.err.println( "XXXXXX: identifier calc type: " + this + "," + left_value + ", getting symbol..." );
@@ -109,7 +115,7 @@ namespace Parse {
 		    }
 		}
 
-		      System.String n;
+		      String n;
 		      if( want_set_value ) {
 		      n = "set" + name;
 		      } else {
@@ -255,7 +261,7 @@ namespace Parse {
 	    }
         }
         
-        void dump( CompileState state, System.StringBuffer buffer ) {
+        void dump( CompileState state, StringBuffer buffer ) {
             if( left_value != null ) {
                 left_value.dump( state, buffer );
                 buffer.append('.');
@@ -263,12 +269,12 @@ namespace Parse {
             buffer.append(name);
         }
 
-        System.String toString() {
+        String toString() {
 	    if( left_value == this ) {
-		throw new System.Exception( "oops: left value is this: " + name );
+		throw new Exception( "oops: left value is this: " + name );
 		return name;
 	    }
-            System.StringBuffer result = new System.StringBuffer();
+            StringBuffer result = new StringBuffer();
             if( left_value != null ) {
                 result.append( left_value );
                 result.append( '.' );
@@ -278,12 +284,12 @@ namespace Parse {
         }
                 
 
-        System.String getName() {
+        String getName() {
             return name;
         }
         
-        System.String getQualifiedName( CompileState state ) {
-            System.StringBuffer buffer = new System.StringBuffer();
+        String getQualifiedName( CompileState state ) {
+            StringBuffer buffer = new StringBuffer();
             dump( state, buffer );
             return buffer;
         }
@@ -304,7 +310,7 @@ namespace Parse {
 	    return getSymbol( state, name, complain, find_what );
 	}
 
-        Symbol getSymbol( CompileState state, System.String name, bool complain, int find_what ) {
+        Symbol getSymbol( CompileState state, String name, bool complain, int find_what ) {
 	    // IO.Std.err.println( "YYYYYY: get symbol: " + this );
             if( symbol != null ) {
 		// IO.Std.err.println( "returning cached symbol: " + symbol );
@@ -683,12 +689,12 @@ namespace Parse {
 
     
     class IdentifierList extends ParseTree {
-        Generic.Vector<Identifier> list;
+        Vector<Identifier> list;
         
         void init( int ln ) {
             super.init( ln );
 	    // IO.Std.err.println( "IdentifierList.init()..." );
-            list = new Generic.Vector<Identifier>();
+            list = new Vector<Identifier>();
         }
 
 	void init( int ln, Identifier first ) {
@@ -717,7 +723,7 @@ namespace Parse {
             list.add( next );
         }
         
-        void dump( CompileState state, System.StringBuffer human ) {
+        void dump( CompileState state, StringBuffer human ) {
             for( var i = list.elements(); i.hasMoreElements(); ) {
                 Identifier e = i.nextElement();
                 e.dump( state, human );
@@ -727,9 +733,9 @@ namespace Parse {
             }
         }
 
-        System.String toString() {
+        String toString() {
 	    // IO.Std.err.println( "IdentifierList.toString()..." );
-            System.StringBuffer result = new System.StringBuffer();
+            StringBuffer result = new StringBuffer();
 
             for( var i = list.elements(); i.hasMoreElements(); ) {
                 Identifier e = i.nextElement();
@@ -746,7 +752,7 @@ namespace Parse {
 	    return list.Length;
 	}
 
-        Generic.Vector<Identifier> getList() {
+        Vector<Identifier> getList() {
             return list;
         }
 
