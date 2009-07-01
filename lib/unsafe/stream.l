@@ -1,5 +1,6 @@
 import string;
 import thread;
+import lock;
 
 pragma NoWarnUnsafe, NoMarkUnsafe;
 
@@ -14,9 +15,9 @@ namespace IO {
         /// Standard input
 	public static Reader in = new Reader(in_stream);
 	/// Standard output
-	public static Writer out = new Writer(out_stream);
+	public static Writer out = cast Writer(System.Exit.add(new Writer(out_stream)));
 	/// Standard error
-	public static Writer err = new Writer(err_stream);
+	public static Writer err = cast Writer(System.Exit.add(new Writer(err_stream)));
 
         /// Replace standard input, standard output and standard error with thread safe versions
  	public static void makeThreadSafe() {
@@ -26,8 +27,8 @@ namespace IO {
 	    // FIXME: anything buffered here is lost:
 	    in = new LockedReader( in_stream );
 	    
-	    out = new LockedWriter( out_stream );
-	    err = new LockedWriter( err_stream );
+	    out = cast Writer(System.Exit.add(new LockedWriter( out_stream )));
+	    err = cast Writer(System.Exit.add(new LockedWriter( err_stream )));
 	}
     }
 
@@ -51,14 +52,14 @@ namespace IO {
     /// A thread-safe Reader
     class LockedReader extends Reader {
 	const int DEFAULT_CAPACITY = 1024;
-	System.Lock lock;
+	Util.Lock lock;
 
         /// Construct a LockedReader
         /// \param s CharStream to read
         /// \param c size of buffer to allocate in chars
 	void init( CharStream s, int c ) {
 	    super.init( s, c );
-	    lock = new System.Lock();
+	    lock = new Util.Lock();
 	}
 
         /// Construct a LockedReader with default buffer size
@@ -131,14 +132,14 @@ namespace IO {
 
     /// A thread-safe Writer
     class LockedWriter extends Writer {
-	private System.Lock lock;
+	private Util.Lock lock;
 
         /// Construct a LockedWriter
         /// \param s CharStream to write to
         /// \param c size of buffer to allocate in chars
 	void init( CharStream s, int c ) {
 	    super.init( s, c );
-	    lock = new System.Lock();
+	    lock = new Util.Lock();
 	}
 
         /// Construct a LockedWriter with default buffer size
@@ -406,6 +407,11 @@ namespace IO {
 	    // native.printf( `new writer on %s from %s\n`, s.toCString(), new System.Backtrace().toCString() );
 	}
 
+	void dispose() {
+	    _flushUnlocked();
+	    stream.dispose();
+	}
+
 	// Get the underlying CharStream
 	get CharStream Stream {
 	    return stream;
@@ -498,7 +504,7 @@ namespace IO {
 	    } else {
 		while( len > 0 ) {
 		    char c = [b];
-		    _writeUnlocked( [b] );
+		    _writeUnlocked( c );
 		    b = b + 1;
 		    len = len - 1;
 		}

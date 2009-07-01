@@ -11,6 +11,7 @@ namespace Kit {
 	}
     }
 
+    /// Connection to an X server
     class Connection {
 	X.Display display;
 	EventLoop loop;
@@ -31,6 +32,7 @@ namespace Kit {
 	}
     }
 
+    /// An X Drawable
     class Drawable extends System.Object {
 	X.Display display;
 	X.Drawable drawable;
@@ -40,6 +42,7 @@ namespace Kit {
 	}
     }
 
+    /// An X Window
     class Window extends Drawable {
 	Window parent;
         GC _gc;
@@ -172,6 +175,7 @@ namespace Kit {
 	}
     }
 
+    /// An Xft Font
     class Font {
 	X.Display display;
 	X.XftFont font;
@@ -185,6 +189,7 @@ namespace Kit {
 	}
     }
 
+    /// An X ColorMap
     class ColorMap {
 	X.Display display;
 	X.Colormap colormap;
@@ -210,6 +215,7 @@ namespace Kit {
 	}
     }
 
+    /// An Xft Color
     class TextColor {
 	ColorMap map;
 	X.XftColor xft_color;
@@ -233,6 +239,7 @@ namespace Kit {
 	}
     }
 
+    /// An X Color
     class Color {
 	ColorMap map;
 	X.XColor x_color;
@@ -256,6 +263,7 @@ namespace Kit {
 	}
     }
     
+    /// Thrown if a Layout fails
     class LayoutException extends System.Exception {
         Layout layout;
         void init( Layout l, System.String message ) {
@@ -264,6 +272,8 @@ namespace Kit {
         }
     }
     
+
+    /// A Widget that can hold other Widgets
     class Container extends Widget {
 	Util.Vector contents;
 
@@ -278,6 +288,7 @@ namespace Kit {
 	}
     }
 
+    /// Abstract: a Container that can arrange its Widgets
     class Layout extends Container {        
         void init( Connection c, Window parent, int x, int y, int w, int h ) {
             super.init( c, parent, x, y, w, h );
@@ -286,7 +297,8 @@ namespace Kit {
         void layout() {
         }
     }
-    
+
+    /// A Layout that arranges Widgets vertically
     class StackLayout extends Layout {
 	void init( Connection c, Window parent, int x, int y, int w, int h ) {
 	    super.init( c, parent, x, y, w, h );
@@ -362,6 +374,8 @@ namespace Kit {
 
 // FIXME: this is exactly analoguous to StackLayout, with x substituted for y and vice versa
 // should abstract this somehow
+
+    /// A Layout that arranges its Widgets horizontally
     class ListLayout extends Layout {
         void init( Connection c, Window parent, int x, int y, int w, int h ) {
             super.init( c, parent, x, y, w, h );
@@ -436,6 +450,7 @@ namespace Kit {
 	}
     }
 
+    /// An X GC (graphics context)
     class GC {
 	X.GC gc;
 	ColorMap color_map;
@@ -509,7 +524,7 @@ namespace Kit {
 	}
     }
 
-
+    /// An X Event
     class Event {
 	X.XEvent x_event;
     
@@ -518,6 +533,7 @@ namespace Kit {
 	}
     }
 
+    /// Application event loop
     class EventLoop {
 	X.Display display;
 	Util.Vector window_list;
@@ -558,6 +574,7 @@ namespace Kit {
 	}
     }
 
+    /// A rectangle with x-y position and width-height dimension
     class Rectangle extends System.Object {
 	int x, y, w, h;
 	void init( int x, int y, int w, int h ) {
@@ -574,6 +591,7 @@ namespace Kit {
 	}
     }
 
+    /// A dimension with width and height
     class Dimension extends System.Object {
 	int w, h;
 	void init( int w, int h ) {
@@ -587,6 +605,7 @@ namespace Kit {
 	}
     }
 
+    /// A Window that has a minimum and preferred size so it can be arranged by a Layout
     class Widget extends Window {
 	Rectangle bounds;
 	
@@ -628,6 +647,7 @@ namespace Kit {
 	}
     }
 
+    /// A Widget that can send actions to an ActionListener
     class ActionWidget extends Widget {
 	ActionListener listener;
 
@@ -651,7 +671,7 @@ namespace Kit {
 	}
     }
 
-
+    /// A Widget that implements a simple menu bar
     class MenuBar extends Widget {
 	Util.Vector menus;
 
@@ -722,6 +742,7 @@ namespace Kit {
 	}
     }
 
+    /// A Widget that implements a simple drop down menu
     class DropMenu extends ActionWidget {
 	Util.Vector list;
 	bool is_dropped;
@@ -904,7 +925,8 @@ namespace Kit {
 	    return "DropMenu" + bounds;
 	}
     }
-    
+
+    /// A Layout that arranges a group of RadioButtons
     class RadioGroup extends StackLayout {
         void init( Connection c, Window parent, int x, int y, int w, int h ) {
             super.init( c, parent, x, y, w, h );
@@ -933,6 +955,7 @@ namespace Kit {
 	}
     }
     
+    /// Abstract: a Widget that can be in either selected or not-selected states
     class SelectableButton extends Widget {
         const int
             RING_SIZE = 15,
@@ -995,6 +1018,7 @@ namespace Kit {
 	}
     }
 
+    /// A check box Widget
     class CheckBox extends SelectableButton {
 	RadioGroup owner;
 
@@ -1028,7 +1052,7 @@ namespace Kit {
 	}   
     }
 
-
+    /// A radio button Widget
     class RadioButton extends SelectableButton {
         RadioGroup owner;
         
@@ -1061,10 +1085,12 @@ namespace Kit {
 	}
     }
 
+    /// Possible orientations for a ScrollBar
     enum Orientation {
 	Vertical, Horizontal
     }
 
+    /// A scroll bar Widget
     class ScrollBar extends Widget {
 	Orientation orientation;
 
@@ -1267,12 +1293,14 @@ namespace Kit {
 	    return "ScrollBar" + bounds;
 	}
     }
-    
+
+    /// Extend this to be able to receive action events
     class ActionListener extends System.Object {
 	void action( System.String action ) {
 	}
     }
 
+    /// A button Widget
     class Button extends ActionWidget {
 	bool pressed;
 	System.String text;
@@ -1347,6 +1375,7 @@ namespace Kit {
 	}
     }
 
+    /// A label Widget
     class Label extends Widget {
 	System.String text;
 

@@ -9,6 +9,7 @@ namespace SQL {
 
     use Util.Pointer;
 
+    /// SQLite3 error codes
     enum SQLResult {
 	OK = 0,   /* Successful result */
 	    /* beginning-of-error-codes */
@@ -42,7 +43,7 @@ namespace SQL {
 	DONE = 101  /* sqlite3_step() has finished executing */
     }
 
-
+    /// Thrown by SQLLite3 bindings on errors
     class SQLLite3Exception extends SQLException {
 	SQLResult error;
 	void init( word connection, System.String message, SQLResult error ) {
@@ -55,11 +56,15 @@ namespace SQL {
 	}       
     }
 
+    /// A SQLite3 Statement
     class SQLite3Statement extends Statement {
 	word connection;
 	word statement;
 	Generic.Map<System.String,int> column_map;
 
+	/// Construct a new SQLite3Statement
+	/// \param c pointer to libsqlite3 connection structure
+	/// \param s pointer to libsqlite3 statement structure
 	void init( word c, word s ) {
 	    this.connection = c;
 	    this.statement = s;
@@ -160,15 +165,19 @@ namespace SQL {
 	}
     }
 
+    /// a Connection to a SQLite3 database
     class SQLite3Connection extends Connection {
 	System.String name;
 	word connection;
 
+	/// Construct a new SQLite3Connection
+	/// \param name path to the SQLite3 database file to open
 	void init( System.String name ) {
 	    this.name = name;
 	    open();
 	}
 
+	/// Internal method. SQLite3Connections are opened when constructed
         void open() {
 	    Pointer t = new Pointer();
 	    SQLResult result = cast SQLResult(native.sqlite3_open( name.toCString(), t ));

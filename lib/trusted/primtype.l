@@ -6,6 +6,7 @@ import primlong;
 pragma NoMarkUnsafe, NoWarnUnsafe;
 
 namespace System is
+    /// Object wrapper around primitive int type
     class Int extends Object is
 	public static Int Zero = new Int(0);
 	protected int _value;

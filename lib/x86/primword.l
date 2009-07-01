@@ -1,5 +1,6 @@
 
 namespace System {
+    /// Object wrapper around primitive word value 
     class Word extends Object {
 	public static Word Zero = new Word(0W);
 	protected word _value;

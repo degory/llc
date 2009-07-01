@@ -1,5 +1,6 @@
 
 namespace System {
+    /// Object wrapper around primitive long value
     class Long extends Object {
 	public static Long Zero = new Long(0L);
 	protected long _value;

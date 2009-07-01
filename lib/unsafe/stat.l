@@ -2,6 +2,7 @@
 pragma NoWarnUnsafe, NoMarkUnsafe;
 
 namespace IO {
+    /// Wrapper around UNIX stat() 
     struct Stat {
 	public int mtime;
 	// public int size;

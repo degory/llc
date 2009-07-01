@@ -1,30 +1,40 @@
 import stream;
 import thread;
 import pointer;
+import glqueue;
 
 namespace Util {
     use System.Object;
     use System.String;
     use System.Thread;
-    use System.Lock;
-    use System.Signal;
+    use Generic.LockedQueue;
 
+    /// Work objects are processed by ThreadPool Workers. In order to submit work to a ThreadPool, derive a new class from
+    /// Work and override its process() method to perform the required work
     class Work extends System.Object {
+	/// Construct a new Work object
 	void init() { }
 
+	/// Override this method to perform work. A Worker object from ThreadPool will call process() to perform work on caller's behalf
 	void process() {
 	    // override me
 	}
 
+	/// Accessor: get bool Done
+	/// Internal accessor. ThreadPool arranges for this accessor to be false to inform Workers to exit
 	get bool Done {
 	    return false;
 	}
     }
 
+    /// A Thread in a ThreadPool that performs work on behalf of clients of ThreadPool
     class Worker extends System.Thread {
 	int id;
 	LockedQueue<Work> queue;
 
+	/// Construct a new Worker
+	/// \param id number of this Worker within its ThreadPool
+	/// \param q the LockedQueue of Work that this Worker Thread will receive work from
 	void init( int id, LockedQueue<Work> q ) {
 	    super.init();
 	    this.id = id;
@@ -33,6 +43,9 @@ namespace Util {
 
 	// it's essential that this method does not return until it receives a finished
 	// work message - otherwise it will hang the thread pool.
+
+	/// The main loop of a Worker Thread. Repeatedly removes Work from the ThreadPool's LockedQueue
+	/// and calls Work.process() until it receives a Work object where Work.Done == true
 	void run() {
 	    bool done = false;
 	    do { 
@@ -57,6 +70,7 @@ namespace Util {
 	}
     }
 
+    /// Special subclass of Work that signals Done == true to Worker Threads
     class Finished extends Work {
 	void init() {
       	}
@@ -68,11 +82,15 @@ namespace Util {
 
     // with the exception of 'submit()' this call is not itself thread safe - it should
     // be managed by calls from a single thread:
-
+    /// A pool of Threads that queues received Work until a Worker Thread is available to process it.
+    /// Work will generally be processed in order submitted but this is not guarenteed. Multiple Threads
+    /// can submit work simultaneously
     class ThreadPool extends System.Object {
 	LockedQueue<Work> queue;
 	Worker[] worker;
 
+	/// Construct a new ThreadPool
+	/// \param size number of Worker Threads to create
 	void init( int size ) {
 	    queue = new LockedQueue<Work>(size*4);
 	    worker = new Worker[size];
@@ -81,7 +99,8 @@ namespace Util {
 		worker[i] = new Worker(i,queue);
 	    }
 	}
-
+	
+	/// Start the Worker Threads in this pool
 	void start() {
 	    for( int i = 0; i < worker.length; i = i + 1 ) {
 		IO.Std.err.println( "start worker: " + i );
@@ -89,6 +108,8 @@ namespace Util {
 	    }
 	}
 
+	/// Wait for all existing Work to process. No further Work can be submitted after this method is called either
+	/// by the calling thread or any other thread
 	void wait() {
 	    int i;
 	    for( i = 0; i < worker.length; i = i + 1 ) {
@@ -108,133 +129,10 @@ namespace Util {
 	    // IO.Std.err.println( "all threads exited" );
 	}
 
+	/// Submit work to the queue
+	/// \param work Work to process
 	void submit( Work work ) {
 	    queue.add( work );
-	}
-    }
-
-    class QueueException extends System.Exception {
-	void init( String message ) {
-	    super.init(message);
-	}
-    }
-
-    class LockedQueue<T> extends Queue<T> {
-	Lock lock;
-	Signal not_full;
-	Signal not_empty;
-
-	void init( int size ) {
-	    super.init(size);
-	    
-	    lock = new Lock();
-	    not_full = new Signal(lock);
-	    not_empty = new Signal(lock);
-	}
-
-	void add( T v ) {
-	    try {
-		lock.lock();
-		while( IsFull ) {
-		    not_full.wait(3);
-		}
-
-		bool was_empty = IsEmpty;
-		super.add( v );
-
-		if( was_empty ) {
-		    not_empty.signal();
-		}
-	    } finally {
-		lock.unlock();
-	    }
-	}
-
-	T remove() {
-	    try {
-		lock.lock();
-		while( IsEmpty ) {
-		    not_empty.wait(3);
-		}
-
-		bool was_full = IsFull;
-
-		T result = super.remove();
-
-		if( was_full ) {
-		    not_full.signal();
-		}	
-
-		return result;
-	    } finally {
-		lock.unlock();
-	    }
-	}      
-    }
-
-    class Queue<T> extends System.Object {
-	T[] queue;
-	int head;  // elements added here
-	int tail;  // elements removed here
-
-	void init( int size ) {
-	    assert( size > 0 );
-	    queue = new T[size];
-	}
-
-	get bool IsEmpty {
-	    return head == tail;
-	}
-
-	int next(int index) {
-	    return (index + 1) % queue.length;
-	}
-
-	get bool IsFull {
-	    return next(head) == tail;
-	}
-
-	void add( T v ) {
-	    int next_head = next(head);
-	    if( next_head == tail ) {
-		throw new QueueException( "add on full queue" );
-	    } else {
-		queue[head] = v;
-		head = next_head;
-	    }
-	}
-
-	bool addQuiet( T v ) {
-	    int next_head = next(head);
-	    if( next_head == tail ) {
-		return false;
-	    } else {
-		queue[head] = v;
-		head = next_head;
-		return true;
-	    }
-	}
-
-	T remove() {
-	    if( head == tail ) {
-		throw new QueueException( "remove on empty queue" );
-	    } else {
-		T result = queue[tail];
-		tail = next(tail);
-		return result;
-	    }
-	}
-
-	T removeQuiet() {
-	    if( head == tail ) {
-		// note for non-Object types this is ambiguous but caller has option
-		// of checking IsEmpty first:
-		return T.none;
-	    } else {
-		T result = queue[tail];
-		tail = next(tail);
-		return result;
-	    }
 	}
     }
 

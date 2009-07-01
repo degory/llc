@@ -165,9 +165,9 @@ namespace Parse {
 	    pl(p);
 
 	    p.nl();
-	    p.print( "import " );
+	    p.print( "#include <" );
 	    name.print( state, p );
-	    p.println( ";" );
+	    p.println( ".h>" );
 	}
     }
 
@@ -677,11 +677,14 @@ namespace Parse {
 		} else {
 		    error( "super class " + super_ident + " is not defined" );
 		}
+	    } else if( c == ObjectClass || IsInterface || IsStruct ) {
+		return null;
+	    } else {
+		// warn( c.HumanName + "does not inherit from System.Object" );
+		// return null;
+		return ObjectClass;
 	    }
-	    return null;
 	}
-
-
 
 	void checkTemplates( CompileState state ) {
 	    if( !is_generic ) {	       
@@ -1091,13 +1094,19 @@ namespace Parse {
 		    p.print( ">" );
 		}
 		p.print( " " );
+	    } else if( !IsInterface && !IsStruct ) {
+		IO.Std.err.println( "no super ident: " + name + ", " + name.Name + ", " + (name.Name !~ "Object") );
+		if( name.Name !~ "Object" ) {
+		    any_supers = true;
+		    p.print( ": System.Object " );
+		}
 	    }
 
 	    if( implements_list != null ) {
 		if( !any_supers ) { 
-		    p.print( ": " );
+		    p.print( ": /* implements */ " );
 		} else {
-		    p.print( ", " );
+		    p.print( ", /* implements */ " );
 		} 
 		implements_list.print( state, p );
 		p.print( " " );

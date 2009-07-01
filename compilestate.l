@@ -965,9 +965,9 @@ namespace Parse {
 		writeHashFiles();
 		pool.close();
 		if( ParseTree.didErrorsOccur() ) {
-		    native.exit(1);
+		    System.Exit.exit(1);
 		} else {
-		    native.exit(0);
+		    System.Exit.exit(0);
 		}
 	    } else if( ParseTree.didErrorsOccur() ) {
 		ParseTree.message( "*** errors occurred ***" );
@@ -1418,6 +1418,7 @@ namespace Parse {
 
         void closeOutput() {
             if( output != null ) {
+		output.println( "# closing output" );
                 output.close();
                 output = null;
             }
@@ -1427,6 +1428,7 @@ namespace Parse {
             if( output != null ) {
                 return output;
             } else {
+		IO.Std.err.println( "oops: no output stream" );
                 return IO.Std.err;
             }
         }

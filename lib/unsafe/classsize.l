@@ -3,7 +3,10 @@
 import unwind;
 
 namespace System is
+    /// Estimate static memory usage of a class and all its methods
     class ClassSize is
+        /// Estimate static memory usage of a class and all its methods
+	/// \param c Class to estimate memory usage
 	static int getClassSize( Class c ) is
    	    int size = 0;	    
 	    StringBuffer class_name = new StringBuffer(c.Name);
@@ -35,6 +38,8 @@ namespace System is
 	    return size;
 	end
 
+	/// Return number of methods in a class
+	/// \param c Class to return number of methods
 	static int getMethodCount( Class c ) is
 	    int count = 0;	    
 	    StringBuffer class_name = new StringBuffer(c.Name);

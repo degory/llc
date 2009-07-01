@@ -6,6 +6,8 @@ import vector;
 import iterator;
 
 namespace Util is
+    /// Iterates over the keys or values in a Map
+    /// \deprecated use Generic.Map
     private class MapIterator extends Iterator is
 	Map _map;            // the Map we're iterating over
 	int _i;              // the index of the hash chain we're currently iterating over
@@ -72,6 +74,8 @@ namespace Util is
 	end
     end
 
+    /// Holds a key-value pair of Objects
+    /// \deprecated use Generic.MapPair<K,T>
     private class MapPair extends System.Object is
 	public System.Object key;
 	public System.Object value;
@@ -92,8 +96,8 @@ namespace Util is
 	end
     end
 
-    // An associative array
-    // \deprecated Use Generic.Map<K,V> instead
+    /// An associative array
+    /// \deprecated Use Generic.Map<K,V> instead
     class Map extends System.Object is
 	public Vector _values;
 

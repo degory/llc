@@ -14,7 +14,7 @@ namespace Parse {
     use Generic.Vector;
 
     class Main {
-	const int BUILD = 1141;
+	const int BUILD = 1142;
 
 	CompileState state;
 
@@ -338,19 +338,19 @@ namespace Parse {
 		    IO.Std.err.println( "        " + Gen.MInst.mem_number + " spills converted to direct memory references" );
 		}
 		if( ParseTree.didErrorsOccur() ) {
-		    native.exit(1);
+		    System.Exit.exit(1);
 		} else {
-		    native.exit(0);
+		    System.Exit.exit(0);
 		}
 	    } catch( ParseException pe ) {
 		ParseTree.newline();
 		IO.Std.err.println( "*** unrecoverable parse error ***" );
-		native.exit(1);
+		System.Exit.exit(1);
 	    } catch( Exception se ) {
 		ParseTree.newline();
 		IO.Std.err.println( "*** fatal error ***" );
 		IO.Std.err.println( se );
-		native.exit(1);
+		System.Exit.exit(1);
 	    }
         }
 

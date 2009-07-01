@@ -1,5 +1,6 @@
 
 namespace System {
+    /// Constants describing machine name and sizes of primitive integer types
     class Environment {
 	public static String getNAME() { return "x86"; }
 

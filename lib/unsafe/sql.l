@@ -55,20 +55,23 @@ namespace SQL {
 	    }
 	}
 
-	/// Indexed accessor bind integer value to parameter
+	/// Indexed accessor: set int Param[int c] = i
+	/// Bind integer value to parameter
 	/// \param c parameter number to bind to
 	/// \param i integer value to bind
 	set int Param[int c] = i {
 	    bind( c, i );
 	}
 
-	/// Indexed accessor bind string value to parameter
+	/// Indexed accessor: set String Param[int c] = s
+	/// Bind string value to parameter
 	/// \param c parameter number to bind to
 	/// \param s string value to to bind
 	set String Param[int c] = s {
 	    bind( c, s );
 	}
 
+	/// Indexed accessor: set bool Param[int c] = b
 	/// Bind boolean value to parameter
 	/// \param c parameter number to bind to
 	/// \param b boolean value to bind
@@ -82,53 +85,85 @@ namespace SQL {
 	    // driver must override me
 	}
 
-	/// 
+	/// Execute prepared statement discarding any results
 	void exec() {
 	    while( next() ) 
 		;
 	}
 
+	/// Accessor: get int ColumnCount
+	/// Get number of columns in result set
 	get int ColumnCount {
 	    // driver must override me
 	}
 
+	/// Indexed accessor: get System.String Name[int c]
+	/// Get name of column
+	/// \param c index of column
 	get System.String Name[int c] {
 	    // driver must override me
 	}
 
+	/// Indexed accessor: get SQLType Type[int c]
+	/// Get type of column
+	/// \param c index of column
 	get SQLType Type[int c] {
 	    // driver must override me
 	}
 
+	/// Indexed accessor: get SQLType Type[System.String name]
+	/// Get type of column
+	/// \param name name of column
 	get SQLType Type[System.String name] {
 	    return Type[ColumnIndex[name]];
 	}
 
+	/// Indexed accessor: get System.String String[int c]
+	/// Get value of column as a String
+	/// \param c index of column
 	get System.String String[int c] {
 	    // driver must override me
 	}
 
+	/// Indexed accessor: get System.String String[System.String name]
+	/// Get value of column as a String
+	/// \param name name of column
 	get System.String String[System.String name] {
 	    return String[ColumnIndex[name]];
 	}
 
+	/// Indexed accessor: get int Int[int c]
+	/// Get value of column as an integer
+	/// \param c index of column
 	get int Int[int c] {
 	    // driver must override me
 	}
 
+	/// Indexed accessor: get int Int[System.String name]
+	/// Get value of column as an integer
+	/// \param name name of column
 	get int Int[System.String name] {
 	    return Int[ColumnIndex[name]];
 	}
 
+	/// Indexed accessor: get int ColumnIndex[System.String name]
+	/// Get index of a column from name
+	/// \param name name of column
 	get int ColumnIndex[System.String name] {
 	    // driver must override me
 	}
 
+	/// Indexer: get System.Object[System.String name]
+	/// Get value of column as an Object
+	/// \param name name of column
 	get System.Object[System.String name] {
 	    int c = ColumnIndex[name];
 	    return opGet( c );
 	}
 
+	/// Indexer: get System.Object[int c] {
+	/// Get value of column as an Object
+	/// \param c index of column
 	get System.Object[int c] {
 	    var type = Type[c];
 	    switch( type ) {
@@ -146,35 +181,46 @@ namespace SQL {
 	    }	    
 	}
 
+	/// Reset this Statement prior to reuse
 	void reset() {
 	    // driver must override me:
 	}
 
+	/// Free any resources held by this Statement
 	void dispose() {
 	    // driver must override me:
 	}
     }
 
+    /// A connection to a database
     class Connection extends System.Object {
+	/// Construct a new Connection object
 	void init() {
 	}
 
+	/// Begin a transaction
 	void begin() {
 	}
 
+	/// Commit current transaction
 	void commit() {
 	}
-
+       
+	/// Roll back current transaction
 	void rollback() {
 	}
-
+	
+	/// Set auto commit mode
 	void autocommit() {
 	}
 
+	/// Return a new Statement object that can subsequently be executed
+	/// \param query the SQL query for this Statement
 	Statement prepare( System.String query ) {
 	    // driver must override me
 	}
 
+	/// Free any resources held by this Connection
 	void dispose() {
 	    // driver must override me
 	}

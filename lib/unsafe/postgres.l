@@ -19,7 +19,7 @@ namespace SQL {
 	    }
 	}
 	
-	
+	/// PostgreSQL error numbers
 	enum Status {
 	    EMPTY_QUERY = 0,          /* empty query string was executed */
 		COMMAND_OK,                       /* a query command that doesn't return
@@ -35,11 +35,13 @@ namespace SQL {
 		NONFATAL_ERROR,           /* notice or warning message */
 		FATAL_ERROR                       /* query failed */
 		}
-	
+
+	/// A PostgreSQL result set structure
 	struct Result {
 	    // opaque and allocated by PostgreSQL
 	}
 	
+	/// A PostgreSQL prepared statement and result set
 	class Statement extends SQL.Statement {
 	    word connection;
 	    Result result_set;
@@ -77,7 +79,9 @@ namespace SQL {
 	    native bool PQgetisnull( Result pg_result, int row_index, int column_index );
 	    native char ptr PQgetvalue( Result pg_result, int row_index, int column_index );
 	    
-	    
+	    /// Construct a new PostgreSQLStatement
+	    /// \param con a pointer to the PostgreSQL connection structure
+	    /// \param query SQL query text for this Statement
 	    void init( word con, System.String query ) {
 		connection = con;
 		
@@ -116,6 +120,8 @@ namespace SQL {
 		values = new char ptr[param_count];
 	    }
 	    
+	    /// Construct a new PostgreSQLStatement with no SQL query text
+	    /// \param c a pointer to the PostgreSQL connection structure
 	    void init( word c ) {
 		// no prepared statement - only exec with explicit query is supported
 		connection = c;
@@ -139,6 +145,7 @@ namespace SQL {
 		return current_row < row_count;
 	    }
 	    
+	    /// Internal method: execute prepared statement, check result and determine size of result set
 	    void fetchResultSet() {
 		result_set = executePrepared();
 		checkResult( result_set );
@@ -149,7 +156,8 @@ namespace SQL {
 
 		// IO.Std.err.println( "fetch: row count: " + row_count + ", column_count: " + column_count );
 	    }
-	    
+
+	    /// Internal method: execute prepared statement and check result
 	    Result executePrepared() {
 		if( name == null ) {
 		    throw new Exception( "no prepared statement" );
@@ -184,17 +192,21 @@ namespace SQL {
 		PQclear( result_set );
 	    }
 	    
+	    /// Execute SQL query immediately without preparing a statement first
 	    void exec( String query ) {
 		var result = PQexec( connection, query.toCString() );
 		checkResult( result );
 		PQclear( result );
 	    }
 
+	    /// Execute SQL query immediately and ignore any error result
 	    void execQuiet( String query ) {
 		var result = PQexec( connection, query.toCString() );
 		PQclear( result );
 	    }
 
+	    /// Check the result of executing a query
+	    /// \throw SQL.PostgreSQL.Exception
 	    void checkResult( Result pg_result ) {
 		var result = PQresultStatus(pg_result);
 
@@ -222,7 +234,7 @@ namespace SQL {
 	    }
 	    
 	    get SQLType Type[int c] {
-		// FIXME:
+		// FIXME: this is completely wrong
 		return cast SQLType( PQftype(result_set,c) );
 	    }
 	    
@@ -263,6 +275,7 @@ namespace SQL {
 	    }
 	}
 	
+	/// A Connection to a PostgreSQL database
 	class Connection extends SQL.Connection {
 	    word connection;
 	    Statement ts;
@@ -271,6 +284,8 @@ namespace SQL {
 	    native word PQfinish( word connection );
 	    native int PQstatus( word connection );
 	    
+	    /// Construct a new SQL.PostgreSQL.Connection
+	    /// \param connect_string a PostgreSQL connect string describing the database to connect to
 	    void init( System.String connect_string ) {
 		// IO.Std.err.println( "connecting to: " + connect_string );
 
@@ -280,6 +295,7 @@ namespace SQL {
 		checkStatus(connection);
 	    }
 	    
+	    /// Internal method: check that we are connected to PostgreSQL
 	    void checkStatus( word connection ) {
 		// IO.Std.err.println( "check status..." );
 		int result = PQstatus( connection );

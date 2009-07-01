@@ -1,5 +1,6 @@
 #K
 namespace System is
+    /// Constants describing machine name and sizes of primitive integer types
     class Environment is
         const int WORD_BITS = 64;
 	const int WORD_MASK = 63;

@@ -6,6 +6,8 @@ import vector;
 pragma NoWarnUnsafe, NoMarkUnsafe;
 
 namespace System is
+    /// A primitive array of non-Object values
+    /// \deprecated non-functional, needs to be replaced with a template equivalent
     class Array extends Object is
 	int length;
 
@@ -41,6 +43,8 @@ namespace System is
 	end
     end
 
+    /// An iterator over an Array
+    /// \deprecated non-functional, needs to be replaced with a template equivalent
     class ArrayIterator extends Util.Iterator is
 	Object[] a;
 	int i;
@@ -66,12 +70,18 @@ namespace System is
 	end
     end
 
+    /// A primitive array of word values
+    /// \deprecated non-functional, needs to be replaced with a template equivalent
     class WordArray extends Array is
     end
 
+    /// A primitive array of byte values
+    /// \deprecated non-functional, needs to be replaced with a template equivalent
     class ByteArray extends Array is
     end
 
+    /// A primitive array of Object
+    /// \deprecated non-functional, needs to be replaced with a template equivalent
     class ObjectArray extends Array is
 	Util.Iterator elements() is
 	    return new ArrayIterator(this.toVec() );

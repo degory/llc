@@ -1,10 +1,12 @@
 #K
 pragma NoWarnUnsafe, NoMarkUnsafe;
 
+import exit;
+
 namespace System is
     /// Program startup. Sets up exception handler for all unhandled exceptions and calls user program entry point.
     class Startup is
-	public static bool http_mode;
+	public static bool http_mode;	
 
         /// Handle an uncaught exception. Calls C-library to display backtrace in case L runtime is in an unstable state and
         /// then exits program
@@ -34,6 +36,8 @@ namespace System is
 		// what method, if any, might be in that VTable slot. Instead call thunk in entry.S
 		// that knows the mangled name of Main.init() and jumps to it for us:
 		native.__main_init(main);
+
+		Exit.shutdown();
 	    catch System.Exception se
 	        uncaughtException( se );
 	    yrt
@@ -44,6 +48,8 @@ namespace System is
 	static void run1(System.Object main) is
 	    try
 		main.init();
+
+		Exit.shutdown();
 	    catch System.Exception se
 	        uncaughtException( se );
 	    yrt

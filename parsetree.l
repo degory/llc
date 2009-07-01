@@ -748,7 +748,7 @@ namespace Parse {
 
 	get String TemplateErrorString {
 	    Container c = CompileState.Instance.CurrentClass;
-	    if( c.Template != null ) {
+	    if( c != null && c.Template != null ) {
 		return " (in template " + c.HumanName + ")";
 	    } else {
 		return "";

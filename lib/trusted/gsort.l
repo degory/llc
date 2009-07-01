@@ -12,6 +12,7 @@ namespace Generic is
 	end
 
 	/// Sort a slice of the supplied List
+	/// \param values the List<T> of values to sort
 	/// \param p first element in the range to sort, inclusive
 	/// \param r last element in the range to sort, inclusive
 	static void sort(List<T> values, int p, int r) is
@@ -51,13 +52,16 @@ namespace Generic is
     /// Sort an array of values of type T
     /// \param T type of values in the array to be sorted
     class SortArray<T> is
-        /// Sort the supplied List of values
+        /// Sort the supplied array of values
 	/// \param values the T[] array of values to sort
 	static void sort(T[] values) is
 	    sort( values, 0, values.length - 1 );
 	end
 
 	/// Sort a slice of the supplied array
+	/// \param values the T[] array of values to sort
+	/// \param p first element in the range to sort, inclusive
+	/// \param r last element in the range to sort, inclusive
 	static void sort(T[] values, int p, int r) is
 	    if p < r then
 		int q = partition( values, p, r );

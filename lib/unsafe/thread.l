@@ -3,9 +3,11 @@ pragma NoWarnUnsafe, NoMarkUnsafe;
 import pointer;
 
 namespace System {
+    /// A thread of execution within a process.
     class Thread extends System.Object {	
 	word _pthread_id;
 	
+	/// Construct a new Thread
 	void init() {
 	}
 
@@ -18,11 +20,14 @@ namespace System {
 	native void __set_tls2(Object o);
 	native System.Object __get_tls2();
 
+        /// Start this Thread. A new operating system thread is created and it begins executing at this Thread's run() method.
+        /// Behaviour is undefined if this method is called more than once
 	void start() {
 	    __thread_start(this);
 	}
 
-	// only use from within thread unless _pthread id known already set:
+        /// Internal interface for determining thread id
+        /// only use from within thread unless _pthread id known already set:
 	word __get_pthread_id() {
 	    // cannot rely on either setting this in newly created thread via run() or having creator
             // thread set it after pthread_create returns - either option alone results in a race if
@@ -44,12 +49,13 @@ namespace System {
 
 	// called by runtime to set our id shortly after thread is created. If we need the id before then,
 	// then we'll call pthread_self() in __get_pthread_id().
-
+        /// Internal method: set pthread id
         void __set_pthread_id(word id) {
 	    _pthread_id = id;
 	    // IO.Std.err.println( "set pthread id is is " + cast int(_pthread_id) );
 	}
 
+        /// Internal method: entry point into newly started thread from runtime
 	void __thread_entry() {
 	    try {
 		run();
@@ -62,16 +68,26 @@ namespace System {
 	    native.pthread_exit();
 	}	     
 
+        /// Suspend execution for period of time
+        /// \param n how many seconds to sleep for
 	static void sleep( int n ) {
 	    native.sleep(n);
 	}
 
+	/// Accessor: static set System.Object TLS1 = o
+        /// Set thread local storage object 1 for currently executing Thread
+        /// \param o object to place in thread local storage slot 1
+	/// \property
 	static set System.Object TLS1 = o {
 	    // IO.Std.err.println( "set tls1: " + cast int(o) );
 	    // IO.Std.err.println( "set tls1: " + o );
 	    __set_tls1(o);
 	}
 
+	/// Accessor: static get System.Object TLS1
+        /// Get thread local storage object 1 for currently executing Thread
+        /// \returns null if object 1 not previously set
+	/// \property
 	static get System.Object TLS1 {
 	    System.Object o = __get_tls1();
 	    // IO.Std.err.println( "get tls1: " + cast int(o) );
@@ -79,99 +95,32 @@ namespace System {
 	    return o;
 	}
 
+	/// Accessor: static set System.Object TLS2 = o
+        /// Set thread local storage object 2 for currently executing Thread
+        /// \param o object to place in thread local storage slot 2
+	/// \property
 	static set System.Object TLS2 = o {
 	    __set_tls2(o);
 	}
 
+	/// Accessor: static get System.Object TLS2
+        /// Get thread local storage object 2 for currently executing Thread
+        /// \returns null if object 2 not previously set
+	/// \property
 	static get System.Object TLS2 {
 	    return __get_tls2();
 	}
 
+        /// Wait for Thread to exit.
 	word waitExit() {
 	    Util.Pointer p = new Util.Pointer();
 	    native.GC_pthread_join(__get_pthread_id(),p);
 	    return p.value;
 	}
 
+        /// Entry point for newly created threads. Inherit from Thread and override run()
 	void run() {
 
-	}
-    }
-
-    struct PThreadMutex {
-    }
-
-    struct PThreadCond {
-    }
-
-    class Lock extends System.Object {
-	public PThreadMutex _mutex;
-
-	native PThreadMutex __mutex_alloc();
-	native int pthread_mutex_lock(PThreadMutex m);
-	native int pthread_mutex_unlock(PThreadMutex m);
-	native void pthread_mutex_init(PThreadMutex m);
-	native bool __mutex_lock_timed(PThreadMutex m, int seconds);
-	native bool __mutex_lock(PThreadMutex m);
-
-	void init() {
-	    _mutex = __mutex_alloc();
-	    pthread_mutex_init(_mutex);
-	    // native.printf( `initialized lock %lp...\n`, m );
-	}
-
-	bool lock() {
-	    // native.printf( `>>> locking %lp...\n`, m );
-	    return __mutex_lock(_mutex);
-	    // native.printf( `>>> locked %lp...\n`, m );
-	}
-
-	bool lock(int seconds) {
-	    return __mutex_lock_timed(_mutex, seconds);
-	}
-
-	void unlock() {
-	    // native.printf( `<<< unlocking %lp...\n`, m );
-	    pthread_mutex_unlock(_mutex);
-	    // native.printf( `<<< unlocked %lp...\n`, m );
-	}
-    }
-
-    class Signal extends System.Object {
-	PThreadCond cond;
-	Lock lock;
-
-	void init() {
-	    this.init( new Lock() );
-	}
-
-	void init( Lock lock ) {
-	    cond = cast<PThreadCond>(native.__cond_alloc());
-	    this.lock = lock;
-	}
-
-	void lock() {
-	    lock.lock();
-	}
-
-	void unlock() {
-	    lock.unlock();
-	}
-
-	bool wait() {
-	    native.__cond_wait( cond, lock._mutex );
-	}
-
-	bool wait( int seconds ) {
-	    native.__cond_wait_timed( cond, lock._mutex, seconds );
-	}
-
-	void signal() {
-	    native.pthread_cond_signal( cond );
-	}
-
-	void signalAll() {
-	    native.pthread_cond_broadcast( cond );
 	}
     }
 }
