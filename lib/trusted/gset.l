@@ -8,37 +8,50 @@ namespace Generic is
     use System.String;
     use System.StringBuffer;
 
+    /// A set of values
+    /// \param T the type of values in this set
     class Set<T> extends System.Object implements Bag<T> is
     	Map<T,bool> _map;
 
+	/// Construct a new Set with capacity reserved for specified number of values
+	/// \param size initial capacity to reserve
 	void init( int size ) is
 	    _map = new Map<T,bool>(size);
 	end
 
+	/// Construct a new Set with default initial capacity
 	void init() is
 	    init( 1021 );
 	end
 
+	/// Get the number of values in this Set
 	get int Length is
 	    return _map.Length;
         end
 
+	/// Place the supplied value in the set. If an equal value is already in the set then it will be replaced by the new value.
+	/// \param o the value to add
 	void add( T o ) is
 	    _map[o] = true;
 	end
 
+	/// Does this set contain a value equal to the supplied value?
+	/// \param o the value to search for
 	bool contains( T o ) is
 	    return _map[o];
 	end
 
+	/// Return true if this Set contains no values, otherwise return false
 	bool isEmpty() is
 	    return _map.isEmpty();
 	end	    
 
+	/// If this Set contains a value equal to the supplied value then remove that value from this Set
         void remove( T o ) is
 	    _map.remove(o);
         end
 
+	/// Return a new Iterator over the values in this set. The Iterator returns each value in the set in turn in no particular order.
 	Iterator<T> elements() is
 	    return _map.keys();
 	end

@@ -7,51 +7,68 @@ import exception;
 pragma NoWarnUnsafe, NoMarkUnsafe;
 
 namespace Util is
+    /// Thrown if an out of bounds index accessed in a Vector
     class IntVectorException extends System.Exception is
 	IntVector vector;
 	int index;
+
+	/// Construct a new IntVectorException
+	/// \param message error message
+	/// \param vector IntVector where error occurred
+	/// \param index index within vector
 	void init( System.String message, IntVector vector, int index ) is
 	    super.init( message );
 	    this.vector = vector;
 	    this.index = index;
 	end
 
+	/// Get IntVector where error occurred
 	get IntVector Vector is
 	    return vector;
 	end
 
+	/// Get index where error occurred
 	get int Index is
 	    return index;
 	end
     end
 
-
+    /// A resizeable array of integers
+    /// \deprecated Use Generic.Vector<int>    
     class IntVector extends System.Object is
 	private int _length;
 	private int _allocated_length;
 	private int ptr _values;
 
 	private const int DEFAULT_SIZE = 5;
-    
+    	
+	/// Construct an IntVector with enough space for at least l values
+	/// \param l how many values to initially allocate space for
 	void init( int l ) is
 	    super.init();
 	    reserve( l );
 	end
 
+	/// Construct an IntVector with default initial capacity
 	void init() is
 	    init( DEFAULT_SIZE );
 	end
     
+        /// Get how many values this IntVector currently holds
 	get int Length is
 	    return _length;
 	end
 
+	/// Append supplied integer to this IntVector after the current last element
+	/// \param o the integer to add
 	void add( int o ) is
 	    reserve( _length + 1 );
 	    [_values + _length] = o;
 	    _length = _length + 1;
 	end
 
+	/// Remove and return the current last element
+	/// \throw IntVectorException
 	int pop() is
 	    if _length > 0 then
 		int result = [_values + _length - 1];
@@ -62,6 +79,8 @@ namespace Util is
 	    fi
         end
 
+	/// Return the current last element
+	/// \throw IntVectorException
 	get int Top is
 	    if _length > 0 then
 		return [_values + _length - 1];
@@ -70,6 +89,9 @@ namespace Util is
 	    fi
 	end
 
+	/// Replace the current last element with the supplied value
+	/// \param o the value to replace the current last value with
+	/// \throw IntVectorException
 	set int Top = o is
 	    if _length > 0 then
 		[_values + _length - 1] = o;
@@ -78,6 +100,9 @@ namespace Util is
 	    fi
 	end
 
+	/// Return the value with the supplied index
+	/// \param i the index of the value to return
+	/// \throw IntVectorException
 	get int[int i] is
 	    if i >= 0 && i < _length then
 		return [_values + i];
@@ -87,6 +112,10 @@ namespace Util is
 	    fi
 	end
 
+	/// Replace the value at the supplied index with the supplied value, extending the IntVector if index is beyond the current last value
+	/// \param i the index of the value to replace
+	/// \param o the value to replace it with
+	/// \throw IntException
 	set int[int i] = o is
 	    if i < 0 then
 		throw new IntVectorException( "IntVector.put() outside IntVector bounds", this, i );
@@ -99,22 +128,13 @@ namespace Util is
 	    fi
 	end
 
-	/*    
-	Iterator elements() {
-	    return new IntVectorIterator( this );
-	
-	}
-
-	Iterator reverseElements() {
-	    return new IntVectorReverseIterator( this );
-	}
-	*/
-
+	/// Set the length of this IntVector from the supplied length, discarding values or extending (with zeros) where appropriate.
 	set int Length = l is
 	    reserve(l);
 	    _length = l;
 	end
 
+	/// If supplied length is greater than the existing length then set length to the supplied length.
 	void lengthen( int l ) is
 	    reserve(l);
 	    if l > _length then

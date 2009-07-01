@@ -11,6 +11,8 @@ namespace Util is
 	end
     end
 
+    /// Sort arrays or Vectors of Objects.
+    /// \deprecated Use Generic.SortList<T> or Generic.SortArray<T> instead
     class Sort is
 	static void sort(Compare compare, Util.Vector values ) is
 	    sort( compare, values, 0, values.getLength() - 1 );

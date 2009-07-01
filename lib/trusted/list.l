@@ -33,6 +33,8 @@ namespace Util is
 	end
     end
 
+    /// A linked list of Objects.
+    /// \deprecated Use Generic.LinkedList<T> instead
     class List extends System.Object is
 	RealList list;
 	void init() is
@@ -90,6 +92,8 @@ namespace Util is
 	end
     end
 
+    /// A linked list of Objects.
+    /// \deprecated Use Generic.RealList<T> instead
     class RealList extends System.Object is
 	RealList tail;
 	System.Object value;

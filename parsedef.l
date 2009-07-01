@@ -229,22 +229,28 @@ namespace Parse {
             access = 0;
         }
 
-	void print( CompileState state, Printer p ) {
+	void print( CompileState state, Printer p) {
 	    pl(p);
 
 	    p.nl();
-	    if( access & Symbol.ACCESS_PRIVATE != 0 ) {
-		p.print( "private " );
-	    }
 
-	    if( access & Symbol.ACCESS_PROTECTED != 0 ) {
-		p.print( "protected " );
-	    }
+	    bool is_public = true;
 
-	    if( access & Symbol.ACCESS_PUBLIC != 0 ) {
-		p.print( "public " );
-	    }
+	    if( !p.InArgs ) {
+		if( access & Symbol.ACCESS_PRIVATE != 0 ) {
+		    p.print( "private: " );
+		    is_public = false;
+		}
+		
+		if( access & Symbol.ACCESS_PROTECTED != 0 ) {
+		    p.print( "protected: " );
+		    is_public = false;
+		}
 
+		if( is_public || access & Symbol.ACCESS_PUBLIC != 0 ) {
+		    p.print( "public: " );
+		}
+	    }
 	    if( access & Symbol.ACCESS_STATIC != 0 ) {
 		p.print( "static " );
 	    }
@@ -264,6 +270,7 @@ namespace Parse {
             super.init( line_number );
             this.name = name;
             this.members = members;
+
             e = null;
         }
 
@@ -329,9 +336,9 @@ namespace Parse {
 	    p.nl();
 	    p.print( "enum " );
 	    name.print( state, p );
-	    p.println( " is" );
+	    p.println( " {" );
 	    members.print( state, p );
-	    p.println( "end" );
+	    p.println( "};" );
 	}
     }
 
@@ -1048,10 +1055,18 @@ namespace Parse {
         }
 
 	void print( CompileState state, Printer p ) {
+	    state.beginCompileClass( this, c, name.Name );
+	    
+	    p.comment( comment );
+
 	    super.print( state, p );
 
 	    if( IsStruct ) {
 		p.print( "struct " );
+		/*
+	    } else if( IsInterface ) {
+		p.print( "interface " );
+		*/
 	    } else {
 		p.print( "class " );
 	    }
@@ -1064,8 +1079,11 @@ namespace Parse {
 		p.print( "> " );
 	    }
 
+	    bool any_supers = false;
+
 	    if( super_ident != null ) {
-		p.print( "extends " );
+		any_supers = true;
+		p.print( ": " );
 		super_ident.print( state, p );
 		if( super_arguments != null ) {
 		    p.print( "<" );
@@ -1075,7 +1093,17 @@ namespace Parse {
 		p.print( " " );
 	    }
 
-	    p.println( "is" );
+	    if( implements_list != null ) {
+		if( !any_supers ) { 
+		    p.print( ": " );
+		} else {
+		    p.print( ", " );
+		} 
+		implements_list.print( state, p );
+		p.print( " " );
+	    }
+
+	    p.println( "{" );
 
 	    if( body != null ) {
 		p.indent();
@@ -1083,7 +1111,9 @@ namespace Parse {
 		p.outdent();
 	    }
 
-	    p.println( "end" );
+	    p.println( "};" );
+
+	    state.endCompileClass( c );
 	}
     }
 
@@ -1170,6 +1200,8 @@ namespace Parse {
 		declare( state );
 	    }
 	}
+
+
 
         void declare( CompileState state ) {
 	    int actual_access = Access;
@@ -2007,6 +2039,7 @@ namespace Parse {
         }
 
 	void print( CompileState state, Printer p ) {
+	    p.comment( comment );
 	    super.print( state, p );
 	    type.print( state, p );
 	    p.print( " " );
@@ -2021,11 +2054,12 @@ namespace Parse {
 		p.OneLine = false;
 		p.InArgs = false;
 	    }
-	    p.println( ") is" );
-	    p.indent();
-	    body.print( state, p );
-	    p.outdent();
-	    p.println( "end" );
+	    p.print( ")" );
+	    if( state.CurrentClass.IsInterface ) {
+		p.println( ";" );
+	    } else {
+		p.println( " {}" );
+	    }
 	}
     }
 
@@ -2115,6 +2149,7 @@ namespace Parse {
         }
 
 	void print( CompileState state, Printer p ) {
+	    /*
 	    super.print( state, p );
 	    p.print( "native " );
 
@@ -2130,6 +2165,7 @@ namespace Parse {
 		p.print( " " );
 	    }
 	    p.println( ");" );
+	    */
 	}
     }
 }

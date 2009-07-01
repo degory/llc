@@ -3,6 +3,7 @@
 import unwind;
 
 namespace System is
+    /// A method in memory
     class Method extends System.Object is
 	UnwindInfo unwind;
 	ConstString name;

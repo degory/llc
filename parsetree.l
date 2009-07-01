@@ -147,29 +147,12 @@ namespace Parse {
 	    }
 	}
 
-	void line( int line_number, String comment ) {
-	    if( line_number > last_line || comment != null ) {
-		if( comment != null ) {
-		    // IO.Std.out.println( "CCCCCC: output comment: " + comment );
+	void comment(String comment) {
+	    if( comment != null ) {
+		// IO.Std.out.println( "CCCCCC: output comment: " + comment );
 
-		    bool line_comment = true;
-		    for( int i = 0; i < comment.Length; i = i + 1 ) {
-			if( comment[i] == '\n' ) {
-			    line_comment = false;
-			    break;
-			}
-		    }
-		    if( line_comment ) {
-			printIndent();
-			out.println( "//" + comment );
-		    } else {
-			out.println( "/*" + comment + " */" );
-		    }
-		    first = true;
-		} else {
-		    nl();
-		}
-		last_line = line_number;
+		out.print( comment );
+		first = comment.endsWith('\n');
 	    }
 	}
 
@@ -298,27 +281,34 @@ namespace Parse {
             throw new Exception( "implement me" );
         }
 
-	static set String LastComment = s {
-	    if( s != null ) {
-		// IO.Std.out.println( "CCCCCC: seen comment: " + s );
-
-		if( last_comment != null ) {
-		    last_comment = last_comment + "\n" + s;
-		} else {
-		    last_comment = s;
-		}
+	static void appendLastComment( String s ) {
+	    if( last_comment == null ) {
+		last_comment = s;
+	    } else {
+		last_comment = last_comment + s;
 	    }
+	}
+
+	static set String LastComment = s {
+	    last_comment = s;
 	}	
 
 	static get String LastComment {
-	    String result = last_comment;
-	    /*
-	    if( result != null ) {
-		IO.Std.out.println( "CCCCCC: last comment: " + result );
-	    }
-	    */
-	    last_comment = null;
+	    var result = last_comment;
+	    // last_comment = null;
 	    return result;
+	}
+
+	static void resetLastComment() {
+	    last_comment = null;
+	}
+
+	get String Comment {
+	    return comment;
+	}
+
+	set String Comment = c {
+	    comment = c;
 	}
 
 	static get Container ObjectClass {
@@ -574,6 +564,7 @@ namespace Parse {
 	    // IO.Std.err.println( "initialize ParseTree..." );
             file_name = current_file_name;
             this.line_number = line_number;
+
 	    comment = LastComment;
 	    /*
 	    if( comment != null ) {
@@ -637,11 +628,11 @@ namespace Parse {
         }
 
 	void print( CompileState state, Printer p ) {
-	    p.print( "???" + Class.Name + "???" );
+	    p.print( "/* " + Class.Name + " */" );
 	}
 
 	void pl( Printer p ) {
-	    p.line( line_number, comment );
+	    // p.comment( comment );
 	}
         
         void compile( CompileState state ) {
@@ -775,6 +766,7 @@ namespace Parse {
             IO.Std.err.println( file_name + ": " + line_number + ": warn: " + msg + TemplateErrorString );
         }
 
+
 	ITree castTo( int to_size, int from_size, ITree t ) {
 	    if( to_size == from_size ) {
 		return t;
@@ -857,6 +849,16 @@ namespace Parse {
         void compile( CompileState state ) {
 	    apply( state );
         }	
+    }
+
+    class DocComment extends ParseTree {
+	void init( int line_number, String c ) {
+	    comment = c;
+	}
+
+	get String Value {
+	    return comment;
+	}
     }
 
     class AccessSpecifier extends ParseTree {

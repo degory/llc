@@ -188,6 +188,8 @@ struct:
 			cast<Parse.Identifier>($3),
 			cast<Parse.BlockStatement>($4) );
 		  cast<Parse.StructDef>($$).setAccess( cast<Parse.AccessSpecifier>($1).getAccess() );
+                  cast Parse.ParseTree($$).Comment = cast Parse.ParseTree($3).Comment;
+                  Parse.ParseTree.resetLastComment();
 		}
 ;
 
@@ -202,6 +204,8 @@ class:
 			cast Parse.TypeExprList($5),    // implements
 			cast<Parse.BlockStatement>($6) ); // body
 		  cast<Parse.ClassDef>($$).setAccess( cast<Parse.AccessSpecifier>($1).getAccess() );
+                  cast Parse.ParseTree($$).Comment = cast Parse.ParseTree($3).Comment;
+                  Parse.ParseTree.resetLastComment();
 		}
 |   class_specifiers CLASS identifier generic EXTENDS name generic_super implements class_body
 		{ $$ = new Parse.ClassDef(
@@ -213,6 +217,8 @@ class:
 			cast Parse.TypeExprList($8),    // implements
 			cast<Parse.BlockStatement>($9) );	// body
 		  cast<Parse.ClassDef>($$).setAccess( cast<Parse.AccessSpecifier>($1).getAccess() );
+                  cast Parse.ParseTree($$).Comment = cast Parse.ParseTree($3).Comment;
+                  Parse.ParseTree.resetLastComment();
 		}
 ;
 
@@ -226,6 +232,8 @@ interface:
                         null,                             // super class generic arguments
                         cast<Parse.BlockStatement>($5) ); // body
                   cast<Parse.ClassDef>($$).setAccess( cast<Parse.AccessSpecifier>($1).getAccess() );
+                  cast Parse.ParseTree($$).Comment = cast Parse.ParseTree($3).Comment;
+                  Parse.ParseTree.resetLastComment();
                 }
 |   class_specifiers INTERFACE identifier generic EXTENDS name generic_super class_body
                 { $$ = new Parse.InterfaceDef(
@@ -236,6 +244,8 @@ interface:
                         cast<Parse.TypeExprList>($7),           // super class generic arguments
                         cast<Parse.BlockStatement>($8) );       // body
                   cast<Parse.ClassDef>($$).setAccess( cast<Parse.AccessSpecifier>($1).getAccess() );
+                  cast Parse.ParseTree($$).Comment = cast Parse.ParseTree($3).Comment;
+                  Parse.ParseTree.resetLastComment();
                 }
 ;
 
@@ -263,10 +273,15 @@ enumeration:
     class_specifiers ENUM identifier START_BLOCK identifier_list END_BLOCK
 	{ $$ = new Parse.EnumDef( /*@3.*/first_line, cast<Parse.Identifier>($3), cast<Parse.IdentifierList>($5) );
 		  cast<Parse.EnumDef>($$).setAccess( cast<Parse.AccessSpecifier>($1).getAccess() );
+                  cast Parse.ParseTree($$).Comment = cast Parse.ParseTree($3).Comment;
+                  Parse.ParseTree.resetLastComment();
+
 	} |
     class_specifiers ENUM identifier START_BLOCK END_BLOCK
 	{ $$ = new Parse.EnumDef( /*@3.*/first_line, cast<Parse.Identifier>($3), cast<Parse.IdentifierList>($5) );
 		  cast<Parse.EnumDef>($$).setAccess( cast<Parse.AccessSpecifier>($1).getAccess() );
+                  cast Parse.ParseTree($$).Comment = cast Parse.ParseTree($3).Comment;
+                  Parse.ParseTree.resetLastComment();
         }
 ;	
 
@@ -344,6 +359,9 @@ normal_method_declaration:
 			cast<Parse.ArgumentsDef>($3),
 			cast<Parse.BlockStatement>($4)
 		);
+
+		cast Parse.ParseTree($$).Comment = cast Parse.ParseTree($2).Comment;
+            	Parse.ParseTree.resetLastComment();
 	}
 ;
 
@@ -361,6 +379,10 @@ accessor_declaration:
 	        null,
 	        cast Parse.BlockStatement($4)
 	    );
+
+	    cast Parse.ParseTree($$).Comment = cast Parse.ParseTree($3).Comment;
+            Parse.ParseTree.resetLastComment();
+
         }
 |       
      /* 1    2   3          4      5          6 */
@@ -389,6 +411,8 @@ accessor_declaration:
 		cast Parse.BlockStatement($6)
             );
 
+	    cast Parse.ParseTree($$).Comment = cast Parse.ParseTree($3).Comment;
+            Parse.ParseTree.resetLastComment();
         }
 ;
 
@@ -411,6 +435,8 @@ indexer_declaration:
 	       cast Parse.BlockStatement($6)
 	    );
 
+	    cast Parse.ParseTree($$).Comment = cast Parse.ParseTree($2).Comment;
+            Parse.ParseTree.resetLastComment();
 	}
 |
      /* 1    2   3           4                    5            6      7          8 */
@@ -443,6 +469,8 @@ indexer_declaration:
 		cast Parse.BlockStatement($8)
 	    );
 
+	    cast Parse.ParseTree($$).Comment = cast Parse.ParseTree($2).Comment;
+            Parse.ParseTree.resetLastComment();
         }
 ;
 
@@ -464,6 +492,9 @@ indexed_accessor_declaration:
 	       args5,
 	       cast Parse.BlockStatement($7)
 	    );
+
+	    cast Parse.ParseTree($$).Comment = cast Parse.ParseTree($3).Comment;
+            Parse.ParseTree.resetLastComment();
         }
 |
      /* 1    2   3          4           5                    6            7      8          9 */
@@ -495,6 +526,9 @@ indexed_accessor_declaration:
 		args6,
 		cast Parse.BlockStatement($9)
 	    );
+
+	    cast Parse.ParseTree($$).Comment = cast Parse.ParseTree($3).Comment;
+            Parse.ParseTree.resetLastComment();
 	}
 ;
 
@@ -547,6 +581,9 @@ argument_declaration:
 			0,
 			cast<Parse.TypeExpr>($1)
 		);
+
+		cast Parse.ParseTree($$).Comment = cast Parse.ParseTree($2).Comment;
+            	Parse.ParseTree.resetLastComment();
 	}
 ;
 
@@ -1291,7 +1328,10 @@ new:
 ;
 
 
-identifier:			IDENTIFIER { $$ = new Parse.Identifier( /*@1.*/first_line, cast<String>(yyLex.getValue())); };
+identifier: IDENTIFIER {
+	    $$ = new Parse.Identifier( /*@1.*/first_line, cast<String>(yyLex.getValue()));
+            cast Parse.ParseTree($$).Comment = Parse.ParseTree.LastComment;
+};
 constant_null:      CONST_NULL    { $$ = new Parse.Constant( /*@1.*/first_line, Type.NULL, "0" ); };
 constant_integer:	CONST_INT	{ $$ = new Parse.Constant( /*@1.*/first_line, Type.INTEGER, cast<String>(yyLex.getValue()) ); };
 constant_string:	CONST_STRING	{ $$ = new Parse.Constant( /*@1.*/first_line, Type.STRING, cast<String>(yyLex.getValue()) ); };
@@ -1303,10 +1343,12 @@ constant_boolean:   CONST_TRUE    { $$ = new Parse.Constant( /*@1.*/first_line, 
 ;
 
 type:
-	name
-		 { $$ = new Parse.NamedType( /*@1.*/first_line, cast<Parse.Identifier>($1) ); }
-|       base_type
-|	complex_type
+	name {
+	     $$ = new Parse.NamedType( /*@1.*/first_line, cast<Parse.Identifier>($1) );
+             cast Parse.ParseTree($$).Comment = Parse.ParseTree.LastComment;
+	}
+|       base_type { cast Parse.ParseTree($$).Comment = Parse.ParseTree.LastComment; }
+|	complex_type { cast Parse.ParseTree($$).Comment = Parse.ParseTree.LastComment; }
 ;
 
 

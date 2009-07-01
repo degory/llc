@@ -4,16 +4,22 @@ import thread;
 pragma NoWarnUnsafe, NoMarkUnsafe;
 
 namespace IO {
+    /// Holds Reader on standard input and Writers on standard output and standard error streams
     class Std extends System.Object {
+
 	static FileStream in_stream = new FileStream(0);
 	static FileStream out_stream = new FileStream(1);
 	static FileStream err_stream = new FileStream(2);
 
+        /// Standard input
 	public static Reader in = new Reader(in_stream);
+	/// Standard output
 	public static Writer out = new Writer(out_stream);
+	/// Standard error
 	public static Writer err = new Writer(err_stream);
 
-	public static void makeThreadSafe() {
+        /// Replace standard input, standard output and standard error with thread safe versions
+ 	public static void makeThreadSafe() {
 	    out.flush();
 	    err.flush();
 	    
@@ -25,29 +31,38 @@ namespace IO {
 	}
     }
 
+    /// Thrown on IO failures
     class IOException extends System.Exception {
 	int os_error;
-    
+
+        /// Construct an IOException for the given operating system error number and message    
 	void init( int os_error, System.String message ) {
 	    super.init( message );
 	    this.os_error = os_error;
 	}
 
+        /// Construct an IOException for the given operating system error number and C-string message
 	void init( int os_error, char ptr message ) {
 	    super.init( message );
 	    this.os_error = os_error;
 	}
     }
 
+    /// A thread-safe Reader
     class LockedReader extends Reader {
 	const int DEFAULT_CAPACITY = 1024;
 	System.Lock lock;
 
+        /// Construct a LockedReader
+        /// \param s CharStream to read
+        /// \param c size of buffer to allocate in chars
 	void init( CharStream s, int c ) {
 	    super.init( s, c );
 	    lock = new System.Lock();
 	}
 
+        /// Construct a LockedReader with default buffer size
+        /// \param s CharStream to read
 	void init( CharStream s ) {
 	    init( s, DEFAULT_CAPACITY );
 	}
@@ -114,14 +129,20 @@ namespace IO {
 	}
     }
 
+    /// A thread-safe Writer
     class LockedWriter extends Writer {
 	private System.Lock lock;
 
+        /// Construct a LockedWriter
+        /// \param s CharStream to write to
+        /// \param c size of buffer to allocate in chars
 	void init( CharStream s, int c ) {
 	    super.init( s, c );
 	    lock = new System.Lock();
 	}
 
+        /// Construct a LockedWriter with default buffer size
+        /// \param s CharStream to write to
 	void init( CharStream s ) {
 	    init( s, 1024 );
 	}
@@ -172,6 +193,7 @@ namespace IO {
 	}
     }
 
+    /// Reads from a CharStream through a buffer
     class Reader extends System.Object {
 	const int DEFAULT_CAPACITY = 1024;
 
@@ -182,7 +204,10 @@ namespace IO {
 	int size;
 	bool is_at_end;
 
-	void init( CharStream s, int c ) {
+        /// Construct a Reader
+        /// \param s CharStream to read
+        /// \param c size of buffer to allocate in chars
+ 	void init( CharStream s, int c ) {
 	    super.init();
 	    stream = s;
 	    buffer = new char[c];
@@ -191,22 +216,28 @@ namespace IO {
 	    size = 0;
 	}
 
-	void init( CharStream s ) {
+        /// Construct a Reader with default buffer size
+        /// \param s CharStream to read
+ 	void init( CharStream s ) {
 	    init( s, DEFAULT_CAPACITY );
 	}
 
+	// Get the underlying CharStream
 	get CharStream Stream {
 	    return stream;
 	}
 
+	// Get the operating system handle from the underlying CharStream
 	get int Handle {
 	    return stream.Handle;
 	}
 
+        /// Have all characters available in the underlying CharStream been read
 	bool isAtEnd() {
 	    return is_at_end;
 	}
 
+	/// Internal method for LockedReader
 	int _readUnlocked() {
 	    if( position >= size ) {
 		position = 0;
@@ -221,10 +252,14 @@ namespace IO {
 	    return result;
 	}
 
+        /// Read a character and return it, cast to an int. If the buffer is empty, fill the buffer from the underlying CharStream. If buffer is
+        /// not empty, return the next available character from the buffer as an int, otherwise return -1
+        /// \throw IOException
 	int read() {
 	    return _readUnlocked();
 	}
 
+        /// Internal method for LockedReader
 	void _unReadUnlocked( int c ) {
 	    //try {
 	    //	lock.lock();
@@ -239,10 +274,13 @@ namespace IO {
 		// }
 	}
 
+        /// Push supplied character back into the buffer.
+        /// \throw IOException if insufficient space in the buffer
 	void unRead( int c ) {
 	    _unReadUnlocked( c );
 	}
 
+        /// Internal method for LockedReader
 	void _readAllUnlocked( System.StringBuffer b ) {
 	    while( true ) {
 		int c = _readUnlocked();
@@ -254,16 +292,22 @@ namespace IO {
 	    close();
 	}
 
+        /// Read all remaining characters and append to supplied StringBuffer
+        /// \param b StringBuffer to read into
+        /// \throw IOException
 	void readAll( System.StringBuffer b ) {
 	    _readAllUnlocked( b );
 	}
 
+        /// Read all remaining characters into a new StringBuffer and return it
+        /// \throw IOException
 	System.StringBuffer readAll() {
 	    System.StringBuffer result = new System.StringBuffer();
 	    readAll(result);
 	    return result;
 	}
 
+	/// Internal method for LockedReader
 	int _readIntUnlocked() {
 	    int r = 0;
 	    bool negative;
@@ -303,10 +347,15 @@ namespace IO {
 	    }
 	}
 
+        /// Parse an integer from input and return it.
+        /// \throw IOException
 	int readInt() {
 	    return _readIntUnlocked();
 	}
 
+        /// Parse an integer from input into supplied reference
+        /// \param result reference to read integer into
+        /// \return true on success, false on any failure
 	bool readInt(int ref result) {
 	    try {
 		result = readInt();
@@ -318,23 +367,29 @@ namespace IO {
 
 	}
 
-
+	/// Internal method for LockedReader
 	void _closeUnlocked() {
 	    stream.close();
 	}
 
+        /// Discard buffered input and close underlying CharStream
+        /// \throw IOException
 	void close() {
 	    _closeUnlocked();
 	}
     }
 
+    /// Writes to a CharStream through a buffer
     class Writer extends System.Object {
 	private CharStream stream;
 	private char[] buffer;
 	private int capacity;
 	private int position;
-	private bool seen_newline;
+	private bool flush_on_println;
 
+        /// Construct a Writer
+        /// \param s CharStream to write to
+        /// \param c size of buffer to allocate in chars
 	void init( CharStream s, int c ) {
 	    super.init();
 	    stream = s;
@@ -342,26 +397,42 @@ namespace IO {
 
 	    capacity = c;
 	    position = 0;
-	    seen_newline = false;
 	}
 
-	get CharStream Stream {
-	    return stream;
-	}
-
-	get int Handle {
-	    return stream.Handle;
-	}
-
-	get bool IsTTY {
-	    return stream.IsTTY;
-	}
-
+        /// Construct a Writer with default buffer size
+        /// \param s CharStream to write to
 	void init( CharStream s ) {
 	    this.init( s, 1024 );
 	    // native.printf( `new writer on %s from %s\n`, s.toCString(), new System.Backtrace().toCString() );
 	}
 
+	// Get the underlying CharStream
+	get CharStream Stream {
+	    return stream;
+	}
+
+        // Get the operating system handle from the underlying CharStream
+	get int Handle {
+	    return stream.Handle;
+	}
+
+        /// Get is the underlying CharString a terminal?
+	get bool IsTTY {
+	    return stream.IsTTY;
+	}
+
+	/// Get should flush on every println?
+	get bool FlushOnPrintln {
+	    return flush_on_println;
+	}
+
+	/// Set should flush on every println
+	/// \param f should always flush?
+	set bool FlushOnPrintln = f {
+	    flush_on_println = f;
+	}
+
+	/// Internal method for LockedWriter
 	void _flushUnlocked() {
 	    if( position > 0 ) {
 		stream.write( buffer.address, position );
@@ -370,27 +441,36 @@ namespace IO {
 	    }
 	}
 
+        /// Write all buffered characters to underlying CharStream
+        /// \throw IOException
 	void flush() {
 	    _flushUnlocked();
 	}
 
+	// Internal method for LockedWriter
 	void _closeUnlocked() {
 	    _flushUnlocked();
 	    stream.close();
 	}
 
+        /// Write all buffered characters to underlying CharStream and close it
+        /// \throw IOException
 	void close() {
 	    _closeUnlocked();
 	}
 
+        /// Internal method for LockedWriter
 	void _writeUnlocked( int i ) {
 	    _writeUnlocked( cast<char>(i) );
 	}
 
+	/// Convert supplied int to char and write it.
+	/// \param i integer to write as character. Behaviour is not defined if supplied int is not representable as a char.
 	void write( int i ) {
 	    _writeUnlocked( i );
 	}
 	
+	/// Internal method for LockedWriter
 	void _writeUnlocked( char b ) {
 	    if( position < capacity ) {
 		buffer[position] = b;
@@ -402,64 +482,67 @@ namespace IO {
 	    }
 	}
 
+	/// Write supplied char. Char is appended to the buffer and if the buffer is full then the buffer
+	/// is flushed.  Behaviour is not defined if supplied int is not representable as a char.
+	/// \param b char to write
 	void write( char b ) {
 	    _writeUnlocked( b );
 	}
 
+	/// Internal method for LockedWriter
 	void _writeUnlocked( char ptr b, int len ) {
-	    _flushUnlocked();
-	    stream.write( b, len );
-	    /*
-	    if( len > capacity ) {
-
+	    int remain = capacity - position;
+	    if( remain < len ) {
+		_flushUnlocked();
+		stream.write( b, len );
 	    } else {
-		int p = 0;
-
-
 		while( len > 0 ) {
-		    while( position < capacity && len > 0 ) {
-			char c = [b + p];
-			if( c == '\n' ) {
-			    seen_newline = true;
-			}
-
-			buffer[position] = c;
-			position = position + 1;
-			p = p + 1;
-			len = len - 1;
-		    }
-		    if( position >= capacity ) {
-			_flushUnlocked();
-		    }
+		    char c = [b];
+		    _writeUnlocked( [b] );
+		    b = b + 1;
+		    len = len - 1;
 		}
 	    }
-	    */
 	}
 
+        /// Write supplied C char array. If there is sufficient space then write the characters to the buffer, otherwise flush the buffer and then write the
+	/// characters directly to the underlying CharStream 
+	/// \param b C char array to write. Must be at least len characters long
+	/// \param len how many characters to write
+        /// \throw IOException
 	void write( char ptr b, int len ) {
 	    _writeUnlocked( b, len );
 	}
 
+	/// Write the supplied String
+	/// \param s string to write
+        /// \throw IOException
 	void write( System.String s ) {
 	    write( s.toCString(), s.getLength() );
 	}
 
+	/// Write the supplied Object as a String. The Object is converted to a String and then written
+	/// \param o the Object to write.
+        /// \throw IOException
 	void print( System.Object o ) {
-	    write( o.toString() );
-	    if( seen_newline ) {
-		seen_newline = false;
-		flush();
+	    if( o != null ) {
+		write( o.toString() );
+	    } else {
+		write( "<null>" );
 	    }
 	}
 
+	/// Write the supplied String.
+	/// \param s the String to write.
+	/// \throw IOException
 	void print( System.String s ) {
 	    write( s );
-	    if( seen_newline ) {
-		seen_newline = false;
-		flush();
-	    }
 	}
 
+	/// Write the supplied Object as a String. The Object is converted to a String and then written followed by a newline.
+	/// If FlushOnPrintln is set then the buffer is flushed after the newline is written.
+	/// \param o the Object to write.
+        /// \throw IOException
 	void println( System.Object o ) {
 	    if( this == null ) {
 		native.printf( `println: this Writer is null %s\n`, new System.Backtrace().toCString() );
@@ -472,9 +555,16 @@ namespace IO {
 		write( "<null>" );
 	    }
 	    write( '\n' );
-	    flush();
+
+	    if( flush_on_println ) {
+		flush();
+	    }
 	}
 
+	/// Write the supplied String.
+	/// If FlushOnPrintln is set then the buffer is flushed after the newline is written.
+	/// \param s the String to write.
+        /// \throw IOException
 	void println( System.String s ) {
 	    if( this == null ) {
 		native.printf( `println: this Writer is null %s\n`, new System.Backtrace().toCString() );
@@ -483,59 +573,101 @@ namespace IO {
 
 	    write( s );
 	    write( '\n' );
-	    flush();
+
+	    if( flush_on_println ) {
+		flush();
+	    }
 	}
 
+	/// Write a newline.
+	/// If FlushOnPrintln is set then the buffer is flushed after the newline is written.
+        /// \throw IOException
 	void println() {
 	    if( this == null ) {
 		native.printf( `println: this Writer is null %s\n`, new System.Backtrace().toCString() );
 	    }
 
 	    write( '\n' );
-	    flush();
+	    if( flush_on_println ) {
+		flush();
+	    }
 	}
     }
 
 
-    class CharStream extends System.Object { // abstract
+    /// A stream of characters, simplex or duplex depending on implementation.
+    /// \abstract
+    class CharStream extends System.Object {
+	/// Construct a new CharStream
+	/// \abstract
 	void init() { super.init(); }
+
+	/// Does this Stream refer to a terminal?
 	get bool IsTTY { return false; }
+
+	/// Get the underlying operating system handle for this CharStream
 	get int Handle { return -1; }
+
+	/// Get the last operating system error number for this CharString
 	get int LastError { return 0; }
 
+	/// Read characters into supplied buffer
+	/// \param buffer pointer to buffer that characters will be read into. Must have space for at least count characters
+	/// \param count number of characters to read
+	/// \return number of characters read.
 	int read( char ptr buffer, int count ) {
 	    throw new System.NotImplementedException( "read not implemented in " + this );
 	}
+
+	/// Write characters from supplied buffer
+	/// \param buffer pointer to buffer that characters will be written from. Must contain at least count characters
+	/// \param count number of characters to write. 
+	/// \return number of characters written.
 	int write( char ptr buffer, int count ) {
 	    throw new System.NotImplementedException( "write not implemented in " + this );
 	}
+
+	/// Close this CharStream
 	void close() {
 	    throw new System.NotImplementedException( "close not implemented in " + this );
 	}
+
+	/// Return has all available input been read?
 	bool isAtEnd() {
 	    throw new System.NotImplementedException( "isAtEnd not implemented in " + this );
 	}
 
+	/// Move the read/write position to supplied offset relative to start of file
+	/// \param offset new read/write position in characters from start of file
 	void seekSet( long offset ) {
 	    throw new System.NotImplementedException( "seekSet not implemented in " + this );
 	}
 
+	/// Move the read/write position to supplied offset relative to current position
+	/// \param offset new read/write position in characters from current position
 	void seekCur( long offset ) {
 	    throw new System.NotImplementedException( "seekCur not implemented in " + this );
 	}
 
+	/// Move the read/write position to supplied offset relative to end of file
+	/// \param offset new read/write position in characters from end of file
 	void seekEnd( long offset ) {
 	    throw new System.NotImplementedException( "seekEnd not implemented in " + this );
 	}
 
+	/// If underlying stream output is buffered then flush all buffered output, otherwise
+	/// do nothing
 	void flush() {
 	}
     }
 
+    /// A read only CharStream over a String
     class StringStream extends CharStream {
 	protected System.String string;
 	protected int position;
 
+	/// Construct a new StringStream
+	/// \param s the String this StringStream will read 
 	void init( System.String s ) {
 	    super.init();
 	    string = s;
@@ -553,11 +685,13 @@ namespace IO {
 	    return i;
 	}
 
+	/// \attention StringStream is read only
 	int write( char ptr buffer, int size ) {
 	    throw new IOException( 0, "cannot write to StringStream" );
 	}
     }	
 
+    /// A read write CharStream over a StringBuffer
     class StringBufferStream extends StringStream {
 	void init( System.StringBuffer s ) {
 	    super.init(s);
@@ -572,6 +706,7 @@ namespace IO {
 	}
     }
 
+    /// A read write CharStream over an operating system handle (typically a file handle but can be a pipe etc.)
     class FileStream extends CharStream {
 	private int handle;
 	private System.String path;
@@ -585,7 +720,8 @@ namespace IO {
 	static get int LastError {
 	    return cast int(native.__geterrno());
 	}
-        
+
+	/// Throws an IOException with message text appropriate for supplied operating system error
 	static void throwIOException( System.String string, int error, System.String path ) {
 	    System.StringBuffer b = new System.StringBuffer(string);
 	    b.append( ` \"` );
@@ -602,33 +738,41 @@ namespace IO {
 	    throw new IOException( error, b );
 	}
 
+	/// Throws an IOException with message text appropriate for supplied operating system error
 	void throwIOException( System.String string, int error ) {
 	    throwIOException( string, error, path );
 	}
 
+	/// Construct a FileStream with Path set to supplied String. Note: Path is used only for error reporting. 
+	/// Callers need to also set an operating system handle before a FileStream can be used
 	void init( System.String path ) {
 	    super.init();
 	    Path = path;
 	}
 
-	get bool IsTTY {
-	    return cast int(native.isatty(handle)) != 0;
-	}
-
-	set System.String Path = path {
-	    this.path = path;
-	}
-
-	get System.String Path {
-	    return path;
-	}
-
+	// Construct a FileStream over the supplied handle.
 	void init( int handle ) {
 	    super.init();
 
 	    this.path = "handle #" + handle + " from " + new System.Backtrace();
 	    this.handle = handle;
 	}
+
+
+	get bool IsTTY {
+	    return cast int(native.isatty(handle)) != 0;
+	}
+
+	/// Set the path name used for error reporting
+	set System.String Path = path {
+	    this.path = path;
+	}
+
+	/// Get the path name used for error reporting
+	get System.String Path {
+	    return path;
+	}
+
 
 	System.String toString() {
 	    return "IO.FileStream on " + path;
@@ -638,6 +782,8 @@ namespace IO {
 	    return is_at_end;
 	}
 
+	/// Ensure that the supplied result is not an error (is not negative), otherwise throw an IOException
+	/// \throw IOException
 	void checkResult( char ptr message, int r ) {
 	    // native.printf( `check result %s %d\n`, message, r );
 	    if( r < 0 ) {
@@ -645,6 +791,7 @@ namespace IO {
 	    }
 	}
 
+	/// Check that this FileStream is open (has a valid handle), otherwise throw an IOException
 	void checkOpen( char ptr message ) {
 	    if( handle < 0 ) {
 		throwIOException( "closed: " + new System.String(message), 0 );
@@ -660,10 +807,12 @@ namespace IO {
 	    handle = -1;
 	}
 
+	/// Close this stream without checking result for error
 	void closeQuiet() {
 	    native.close(handle);	    
 	}
 
+	/// Dispose of this FileStream. Close the handle if it's open.
 	void dispose() {
 	    if( handle >= 0 ) {
 		closeQuiet();
@@ -746,6 +895,7 @@ namespace IO {
 	}
     }
 
+    /// Provides methods for opening files as FileStream objects and utility methods relating to paths, files and directories
     class File extends System.Object {
 	const int
 	    O_RDONLY = 0,
@@ -774,42 +924,55 @@ namespace IO {
 	private int prot;
 	private System.String path;
 
+	/// Construct a File object with the supplied path
+	/// \param path a path name, either absolute or relative to current working directory
 	void init( System.String path ) {
 	    Path = path;
 	    read = true;
 	    prot = DEFAULT_PROT;
 	}
 
+	/// Set this File's path
 	set System.String Path = path {
 	    this.path = path;
 	}
 
+	/// Get this File's path
 	get System.String Path {
 	    return path;
 	}
 
+	/// Set permission bits.
+	/// \param prot any new files created from this File object will get these permission bits
 	set int Prot = prot {
 	    this.prot = prot;
 	}
 
+	/// Set want read mode.
+	/// \param read if true, FileStreams created from this File will be readable (provided file system permissions allow it)
 	set bool Read = read {
 	    mode_set = true;
 	    this.read = read;
 	}
 
+	/// Get want read mode.
 	get bool Read {
 	    return read;
 	}
 
+	/// Set want write mode.
+	/// \param write if true, FileStreams created from this File will be writeable (provided file system permissions allow it)
 	set bool Write = write {
 	    mode_set = true;
 	    this.write = write;
 	}
 
+	/// Get want write mode.
 	get bool Write {
 	    return write;
 	}
 
+	/// Get the underlying UNIX open()/creat() mode bits that will be specified for FileStreams opened from this file
 	get int Mode {
 	    int m = mode;
 	    if( read ) {
@@ -830,6 +993,8 @@ namespace IO {
 	    return m;
 	}
 
+	/// Set the underlying UNIX open()/creat() mode bits that will be specified for FileStreams opened from this file
+	/// \param mode UNIX mode bits suitible for passing to open()/creat()
 	set int Mode = mode {
 	    mode_set = true;
 	    int m = mode & ~M_RDWR;
@@ -850,6 +1015,8 @@ namespace IO {
 	    this.mode = m;
 	}
 
+	/// Check that no mode bits have been explicitly set, otherwise throw IOException
+	/// \throw IOException
 	void checkNoModeSet() {
 	    if( mode_set ) { 
 		throw new IOException(0,"a mode is set for file '" + path + "': use IO.File.open()" );
@@ -864,38 +1031,49 @@ namespace IO {
 	    }
 	}
 
+	/// Return a new Reader on a read-only FileStream for the supplied path
+	/// \param path path to the file to open
 	static Reader openRead( System.String path ) {
 	    return new Reader( openReadStream( path ) );
 	}
 
+	/// Return a new Reader on a read-only FileStream for current path
 	Reader openRead() {
 	    return new Reader( openReadStream() );
 	}
 
+	/// Return a new Writer on a write-only FileStream for the supplied path
+	/// \param path path to the file to open
 	static Writer openWrite( System.String path ) {
 	    return new Writer( openWriteStream(path) );
 	}
 
+	/// Return a new Writer on a write-only FileStream for current path
 	Writer openWrite() {
 	    return new Writer( openWriteStream() );
 	}
 
+	/// Return a new Writer on an append-only FileStream for the supplied path
 	static Writer openAppend( System.String path ) {
 	    return new Writer( openAppendStream(path) );
 	}
 
+	/// Return a new Writer on an append-only FileStream for the current path
 	Writer openAppend() {
 	    return new Writer( openAppendStream() );
 	}
 
+	/// Return a new Writer on a write-only FileStream for a newly created file at the supplied path
 	static Writer openCreate( System.String path ) {
 	    return new Writer( openCreateStream(path) );
 	}
 
+	/// Return a new Writer on a write-only FileStream for a newly created file at the current path
 	Writer openCreate() {
 	    return new Writer( openCreateStream() );
 	}
 
+	/// Return a new read-write FileStream for a newly created temporary file at the supplied path
 	static FileStream openTemp( System.String path ) {
 	    int l = path.Length;
 	    char ptr s = cast char ptr(native.GC_malloc_atomic(l + 7));
@@ -922,6 +1100,12 @@ namespace IO {
 	    return result;
 	}
 
+	/// Return a new FileStream for a file at the supplied path
+	/// \param path path to file to open or create
+	/// \param mode UNIX open mode
+	/// \param prot UNIX file protection bits
+	/// \param quiet if true, return null on failure, otherwise throw IOException on failure
+	/// \throw IOException
 	static FileStream openStream( System.String path, int mode, int prot, bool quiet ) {
 	    // native.printf( `mode %o prot %o\n`, mode, prot );
 	    // IO.Std.err.println( "opening '" + path + "' mode: " + System.String.oct(mode) + ", prot: " + System.String.oct(prot) );
@@ -939,75 +1123,121 @@ namespace IO {
 	    return new FileStream( handle );
 	}
 
+	/// Return a new FileStream for a file at the supplied path
+	/// \param path path to file to open or create
+	/// \param mode UNIX open mode
+	/// \param prot UNIX file protection bits
+	/// \throw IOException
 	static FileStream openStream( System.String path, int mode, int prot ) {
 	    return openStream( path, mode, prot, false );
 	}
 
+	/// Return a new FileStream for a file at the current path using currently set UNIX open mode and UNIX file protection bits
+	/// \throw IOException
 	FileStream openStream() {
 	    return openStream( path, mode, prot, false );
 	}
 
-	// read -> fail if not present, read only
+	/// Return a new read-only FileStream for a file at the supplied path, which must exist
+	/// \param path path to the file to open
 	static FileStream openReadStream( System.String path ) {
 	    return openStream( path, O_RDONLY, 0, false );
 	}
 
+	/// Return a new read-only FileStream for a file at the current path, which must exist
 	FileStream openReadStream() {
 	    checkNoModeSet();
 	    return openStream( path, O_RDONLY, 0, false );
 	}
 
-        // write -> create if not present, no truncate, write only - is this useful?
+	/// Return a new write-only FileStream for a file at the supplied path. The file is created with default UNIX
+	/// protection bits if it does not exist. Existing files are not truncated.
+	/// \param path path to file to open or create
+	/// \throw IOException
 	static FileStream openWriteStream( System.String path ) {
 	    return openStream( path, O_WRONLY | O_CREAT, DEFAULT_PROT, false );
 	}
 
+	/// Return a new write-only FileStream for a file at the current path. The file is created with current UNIX
+	/// protection bits if it does not exist. Existing files are not truncated
+	/// \throw IOException
 	FileStream openWriteStream() {
 	    checkNoModeSet();
 	    return openStream( path, O_WRONLY | O_CREAT, prot, false );
 	}
 
-        // read,write -> create if not present, no truncate, read/write
+	/// Return a new read-write FileStream for a file at the supplied path. The file is created with default UNIX
+	/// protection bits if it does not exist. Existing files are not truncated
+	/// \param path path to file to open or create
+	/// \throw IOException
 	static FileStream openReadWriteStream( System.String path ) {
 	    return openStream( path, O_RDWR | O_CREAT, DEFAULT_PROT, false );
 	}
 
+	/// Return a new read-write FileStream for a file at the current path. The file is created with current UNIX
+	/// protection bits if it does not exist. Existing files are not truncated
+	/// \throw IOException
 	FileStream openReadWriteStream() {
 	    checkNoModeSet();
 	    return openStream( path, O_RDWR | O_CREAT, prot, false );
 	}
 
-        // append -> create if not present, no truncate, write only
+	/// Return a new append-only FileStream for a file at the supplied path. The file is created with default UNIX
+	/// protection bits if it does not exist. Existing files are not truncated.
+	/// \param path path to file to open or create
+	/// \throw IOException
 	static FileStream openAppendStream( System.String path ) {
 	    // IO.Std.err.println( "open append: " + System.String.oct(O_RDWR | O_CREAT | O_APPEND) + " prot: " + System.String.oct(DEFAULT_PROT) );
 	    return openStream( path, O_WRONLY | O_CREAT | O_APPEND, DEFAULT_PROT, false );
 	}
 
+	/// Return a new append-only FileStream for a file at the current path. The file is created with current UNIX
+	/// protection bits if it does not exist. Existing files are not truncated
+	/// \throw IOException	FileStream openAppendStream() {
 	FileStream openAppendStream() {
 	    checkNoModeSet();
 	    return openStream( path, O_WRONLY | O_CREAT | O_APPEND, prot, false );
 	}
 
+	/// Return a new write-only FileStream for a file at the supplied path. The file is created with default UNIX
+	/// protection bits if it does not exist. Existing files are truncated.
+	/// \param path path to file to open or create
+	/// \throw IOException
 	// create -> create if not present, truncate if present, write only
 	static FileStream openCreateStream( System.String path ) {
 	    return openStream( path, O_WRONLY | O_CREAT | O_TRUNC, DEFAULT_PROT, false );
 	}
 
+	/// Return a new write-only FileStream for a file at the current path. The file is created with current UNIX
+	/// protection bits if it does not exist. Existing files are truncated
+	/// \throw IOException
 	FileStream openCreateStream() {
 	    checkNoModeSet();
 	    return openStream( path, O_WRONLY | O_CREAT | O_TRUNC, prot, false );
 	}
 
-	// create lock -> create only if not present, don't truncate, write only, quiet failure:
+	/// Return a new write-only FileStream for a file at the supplied path. The file is created with default UNIX
+	/// protection bits if it does not exist. If the file already exists null is returned
+	/// \param path path to file to open or create
+	/// \return FileStream on success, null if the file already exists
+	/// \throw IOException
 	static FileStream openCreateLockStream( System.String path ) {
 	    return openStream( path, O_WRONLY | O_CREAT | O_TRUNC | O_EXCL, DEFAULT_PROT, true );
 	}
 
+	/// Return a new write-only FileStream for a file at the current path. The file is created with current UNIX
+	/// protection bits if it does not exist. If the file already exists null is returned
+	/// \return FileStream on success, null if the file already exists
+	/// \throw IOException
 	FileStream openCreateLockStream() {
 	    checkNoModeSet();
 	    return openStream( path, O_WRONLY | O_CREAT | O_TRUNC | O_EXCL, prot, true );
 	}
-       
+
+	/// Rename a file, return success or failure
+	/// \param from path to existing file
+	/// \param to path to rename file to
+	/// \return true on success, otherwise false
 	static bool renameQuiet( System.String from, System.String to ) {
 	    int result = cast int(native.rename(from.toCString(), to.toCString()));
 	    /*
@@ -1020,41 +1250,68 @@ namespace IO {
 
 	    return result == 0;
 	}
+	
 
+	/// Rename a file
+	/// \param from path to existing file
+	/// \param to path to rename file to
+	/// \throw IOException
 	static void rename( System.String from, System.String to ) {
 	    if( !renameQuiet(from, to) ) {
 		FileStream.throwIOException( "rename to " + to, FileStream.LastError, from );
 	    }
 	}
 	
+	/// Delete file with supplied path, return success or failure
+	/// \param file path to file to delete
+	/// \return true on success, otherwise false
 	static bool deleteQuiet( System.String file ) {
 	    int result = cast int(native.unlink(file.toCString()));
 	    return result == 0;
 	}
 
+	// Delete file with current path, return success or failure
+	// \return true on success, otherwise false
 	bool deleteQuiet() {
 	    return deleteQuiet( path );
 	}
 
+	/// Delete file with supplied path
+	/// \param file path to file to delete
+	/// \throw IOException
 	static void delete( System.String file ) {
 	    if( !deleteQuiet(file) ) {
 		FileStream.throwIOException( "delete", FileStream.LastError, file );
 	    }
 	}
 
+	/// Delete file with supplied path
+	/// \throw IOException
 	void delete() {
 	    delete( path );
 	}
 
+	/// Touch the supplied file. If the file exists its last modified time is set to the current time. If the file doesn't exist then
+	/// it is created and its creation time is set to the current time.
+	/// \param file path to the file to touch
+	/// \throw IOException
 	static void touch( System.String file ) {
 	    FileStream f = File.openWriteStream(file);
 	    f.close();
 	}
 
+	/// Touch the file at the current path. If the file exists its last modified time is set to the current time. If the file doesn't exist then
+	/// it is created and its creation time is set to the current time.
+	/// \param file path to the file to touch
+	/// \throw IOException
 	void touch() {
 	    touch( path );
 	}
 
+	/// Touch the supplied file, return success or failure. If the file exists its last modified time is set to the current time. If the
+	/// file doesn't exist then it is created and its creation time is set to the current time.
+	/// \param file path to the file to touch
+	/// \return true on success, otherwise false
 	static bool touchQuiet( System.String file ) {
 	    try {
 		touch( file );
@@ -1064,11 +1321,16 @@ namespace IO {
 	    }
 	}
 
+	/// Touch the file at the current path, return success or failure. If the file exists its last modified time is set to the current time. If the
+	/// file doesn't exist then it is created and its creation time is set to the current time.
+	/// \return true on success, otherwise false
 	bool touchQuiet() {
 	    return touchQuiet( path );
 	}
 
 	const int MAX_PATH_LENGTH = 512;
+
+	/// Get the path to the current working directory.
 	static get System.String WorkingDirectory {
 	    char ptr buffer = cast char ptr( native.GC_malloc_atomic( MAX_PATH_LENGTH ) );
             // native.printf( `%p working directory\n`, buffer );
@@ -1081,6 +1343,12 @@ namespace IO {
 	    }
 	}
 
+	/// Read a symbolic link and return the path it refers to, optionally suppress exceptions on error.
+	/// \param file path to the link to read
+	/// \param quiet if true do not throw IOException if the link cannot be read but instead return null
+	/// \return if file refers to a symbollic link, return the referenced path; if file refers to a regular
+	/// file return its path otherwise if quiet then return null, otherwise throw IOException
+	/// \throw IOException
 	static System.String readLink( System.String file, bool quiet ) {
 	    char ptr buffer = cast char ptr( native.GC_malloc_atomic( MAX_PATH_LENGTH ) );
             // native.printf( `%p read link\n`, buffer );
@@ -1102,10 +1370,20 @@ namespace IO {
 	    }		   
 	}
 
+	/// Read a symbolic link and return the path it refers to.
+	/// \param file path to the link to read
+	/// \return if file refers to a symbollic link, return the referenced path; if file refers to a regular
+	/// file return its path otherwise throw IOException
+	/// \throw IOException
 	static System.String readLink( System.String file ) {
 	    return readLink( file, false );
 	}
 
+	/// Read a symbolic link and return the path it refers to.
+	/// \param file path to the link to read
+	/// \param quiet if true do not throw IOException if the link cannot be read but instead return null
+	/// \return if file refers to a symbollic link, return the referenced path; if file refers to a regular
+	/// file return its path otherwise return null
 	static System.String readLinkQuiet( System.String file ) {
 	    return readLink( file, true );
 	}

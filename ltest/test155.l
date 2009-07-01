@@ -6,7 +6,9 @@ import gvector;
 namespace Test155 {
     use System;
     use Generic;
+    /// Test doc comment for class
     class Main extends Object {
+	/// Test doc comment for method
 	void init() {
 	    Bag<char> v = new Vector<char>();
 

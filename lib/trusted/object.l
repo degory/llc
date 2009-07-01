@@ -6,9 +6,13 @@ import string;
 pragma NoWarnUnsafe, NoMarkUnsafe, NoWarnHide, NoWarnResolve;
 
 namespace System is
+    /// Root of the standard L class heirarchy
+
     class Object is
+        /// Internal interface for garbage collector. Ensures that any exceptions thrown by dispose() are caught
 	// DO NOT MOVE: runtime depends on the _dispose() method occupying the first slot in the vtable:
 	void _dispose() is
+
 	    try 
 	        dispose();
 	    catch System.Exception se 
@@ -16,20 +20,21 @@ namespace System is
 	    yrt
 	end
 
-	void dispose() is
+        /// Override dispose() to deallocate any resources held by this object. Can be called explicitly as well as by garbage collector when Object is
+	/// deallocated. As a result, implementers should be prepared for dispose() to be called repeatedly
+	void dispose() is    	    
 	end
 
+        /// Constructor
 	void init() is
-	    word ptr vtable = [cast word ptr ptr(this)];
-	    char ptr name = cast char ptr([vtable - 2]);
-	    // native.printf( `%p %s alloc\n`, this, name );
 	end
 
-	Object clone() is
+	/// Returns a shallow copy
+        Object clone() is
 	    word ptr self = cast word ptr(this);
       	    int count = getObjectSize() >> System.Environment.WORD_TO_BYTE_SHIFT;
 	    word ptr result = cast word ptr(native.GC_malloc(getObjectSize()));
-            // native.printf( `%p object clone\n`, result );
+            // native.printf( `%p Object clone\n`, result );
 
 	    word ptr save_result = result;
 
@@ -44,30 +49,43 @@ namespace System is
 	    return cast Object(save_result);
 	end
 
+	/// Check that supplied bool argument is true otherwise throw an AssertException with supplied message
+	/// \param v value asserted to be true
+	/// \param message message included in thrown exception if asserted value is false
+        /// \throw AssertException
 	static void assert( bool v, String message ) is
 	    if !v then
 		throw new AssertException(message);
 	    fi
 	end
 
+        /// Check that supplied bool argument is true otherwise throw an AssertException with a standard message
+        /// \param v value asserted to be true
+        /// \throw AssertException
 	static void assert( bool v ) is
 	    assert( v, "assertion failed" );
         end
 
+        /// Throw an AssertException with supplied message
+        /// \param message message displayed
+        /// \throw AssertException
 	static void assert( String message ) is
 	    assert(false, message);
 	end
 
+	/// Return a hash value for this Object. Hash values must be equal for equal Objects and should differ for unequal Objects	    
 	int hash() is
 	    return cast int(this);
 	end
 
+	/// Return a pointer to this Object's type table
 	protected char ptr _get_ttable() is
 	    int ptr ptr vtable = _get_vtable();
 	
 	    return cast char ptr([vtable-3]);
 	end
-   
+
+	/// Return the size of this Object in bytes   
 	get int ObjectSize is
 	    int ptr ptr vtable;
 	    vtable = cast int ptr ptr(_get_vtable());
@@ -78,6 +96,7 @@ namespace System is
 	    fi
 	end
     
+	/// return this Object's class name as a C-string
 	get char ptr ClassNameC is
 	    int ptr ptr vtable = _get_vtable();
 	    if vtable != null then
@@ -87,6 +106,7 @@ namespace System is
 	    fi
 	end
 
+	/// Return a pointer to this Object's type table
 	get word ptr TypeTable is
 	    int ptr ptr _vtable = _get_vtable();
 	    if _vtable != null then
@@ -96,10 +116,12 @@ namespace System is
 	    fi
 	end
 
+	/// Return this Object's class name
 	get String ClassName is
 	    return new String( getClassNameC() );
 	end
 
+	/// Return a human readable string representing this Object
 	String toString() is
 	    StringBuffer result;
 	    int i;
@@ -110,10 +132,12 @@ namespace System is
 	    return result;
 	end
 
+	/// Attempt to convert this Object to an int. Throws CastException.
 	int toInt() is
 	    throw new CastException( "cannot convert " + Class.Name + " to int" );
 	end
 
+	/// Print this Object's string representation to C standard output
 	void print() is
 	    if this == null then
 		// called statically by exception handling in runtime so this could happen
@@ -123,15 +147,21 @@ namespace System is
 		native.printf( `%s`, p );
 	    fi
 	end
-	
+
+	/// Return a human readable C-string representing this Object
 	char ptr toCString() is
 	    return toString().toCString();
 	end
 
+	/// compare this Object to Object o and return true if they refer to the same object.
+	/// \param o Object to compare this Object to
 	bool equals( Object o ) is
 	    return cast word(this) == cast word(o);
 	end
 
+	/// compare Object o to Object p and return true if they compare equal.
+	/// \param o Object to compare
+	/// \param p Object to compare
 	static bool equals( Object o, Object p ) is
 	    if o == null then
 		return p == null;
@@ -139,7 +169,8 @@ namespace System is
 		return o.equals(p);
 	    fi
 	end
-    
+    	
+	/// return a pointer to this Object's vtable
 	protected int ptr ptr _get_vtable() is
 	    if this == null then
 		return null;
@@ -147,11 +178,14 @@ namespace System is
 		return [cast int ptr ptr ptr(this)];
 	    fi
 	end
-
+	
+	/// return a Class representing this Object's class
 	get Class Class is
 	    return new Class(this);
 	end
 
+	/// return true if Object o is an instance of the same class as or a sub-class of this Object's class
+	/// \param o Object to test if instance
 	bool likeMe(Object o) is
 	    if this == null || o == null then
 		//native.printf( `null is instance of anything\n` );

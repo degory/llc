@@ -4,15 +4,20 @@ import thread;
 pragma NoWarnUnsafe, NoMarkUnsafe;
 
 namespace IO {
+    /// Holds Reader on standard input and Writers on standard output and standard error streams
     class Std extends System.Object {
 	static FileStream in_stream = new FileStream(0);
 	static FileStream out_stream = new FileStream(1);
 	static FileStream err_stream = new FileStream(2);
 
+	/// Standard input
 	public static Reader in = new Reader(in_stream);
+	/// Standard output
 	public static Writer out = new Writer(out_stream);
+	/// Standard error
 	public static Writer err = new Writer(err_stream);
 
+	/// Replace standard input, standard output and standard error with thread safe versions
 	public static void makeThreadSafe() {
 	    out.flush();
 	    err.flush();
@@ -25,33 +30,42 @@ namespace IO {
 	}
     }
 
+    /// Thrown on IO failures
     class IOException extends System.Exception {
 	int os_error;
-    
+
+	/// Construct an IOException for the given operating system error number and message
 	void init( int os_error, System.String message ) {
 	    super.init( message );
 	    this.os_error = os_error;
 	}
 
+	/// Construct an IOException for the given operating system error number and C-string message
 	void init( int os_error, char ptr message ) {
 	    super.init( message );
 	    this.os_error = os_error;
 	}
     }
 
+    /// A thread-safe Reader
     class LockedReader extends Reader {
 	const int DEFAULT_CAPACITY = 1024;
 	System.Lock lock;
 
+	/// Construct a LockedReader
+	/// \param s CharStream to read
+	/// \param c size of buffer to allocate in chars
 	void init( CharStream s, int c ) {
 	    super.init( s, c );
 	    lock = new System.Lock();
 	}
 
+	/// Construct a LockedReader with default buffer size
+	/// \param s CharStream to read
 	void init( CharStream s ) {
 	    init( s, DEFAULT_CAPACITY );
 	}
-
+	
 	int read() {
 	    try {
 		lock.lock();
@@ -114,14 +128,20 @@ namespace IO {
 	}
     }
 
+    /// A thread-safe Writer
     class LockedWriter extends Writer {
 	private System.Lock lock;
 
+	/// Construct a LockedWriter
+	/// \param s CharStream to write to
+	/// \param c size of buffer to allocate in chars
 	void init( CharStream s, int c ) {
 	    super.init( s, c );
 	    lock = new System.Lock();
 	}
 
+	/// Construct a LockedWriter with default buffer size
+	/// \param s CharStream to write to
 	void init( CharStream s ) {
 	    init( s, 1024 );
 	}
@@ -144,6 +164,8 @@ namespace IO {
 	    }
 	}
 
+	/// Cast supplied int to a char and then write it.
+	/// \throw IOException
 	void write( int i ) {
 	    try {
 		lock.lock();
@@ -153,6 +175,9 @@ namespace IO {
 	    }
 	}
 	
+	/// Write supplied char. If the buffer is full, flush it then append the char to the buffer
+	/// \param b char to write
+	/// \throw IOException
 	void write( char b ) {
 	    try {
 		lock.lock();
@@ -162,6 +187,8 @@ namespace IO {
 	    }
 	}
 
+	/// Write supplied C char array. Flush the buffer and then write the supplied characters directly to the underlying CharStream
+	/// \throw IOException
 	void write( char ptr b, int len ) {
 	    try {
 		lock.lock();
@@ -172,6 +199,7 @@ namespace IO {
 	}
     }
 
+    /// Reads from a CharStream through a buffer
     class Reader extends System.Object {
 	const int DEFAULT_CAPACITY = 1024;
 
@@ -182,6 +210,9 @@ namespace IO {
 	int size;
 	bool is_at_end;
 
+	/// Construct a Reader
+	/// \param s CharStream to read
+	/// \param c size of buffer to allocate in chars
 	void init( CharStream s, int c ) {
 	    super.init();
 	    stream = s;
@@ -191,14 +222,18 @@ namespace IO {
 	    size = 0;
 	}
 
+	/// Construct a Reader with default buffer size
+	/// \param s CharStream to read
 	void init( CharStream s ) {
 	    init( s, DEFAULT_CAPACITY );
 	}
 
+	/// Have all characters available in the underlying CharStream been read
 	bool isAtEnd() {
 	    return is_at_end;
 	}
 
+	/// Internal method for LockedReader
 	int _readUnlocked() {
 	    if( position >= size ) {
 		position = 0;
@@ -213,10 +248,14 @@ namespace IO {
 	    return result;
 	}
 
+	/// Read a character and return it, cast to an int. If the buffer is empty, fill the buffer from the underlying CharStream. If buffer is
+	/// not empty, return the next available character from the buffer as an int, otherwise return -1
+	/// \throw IOException
 	int read() {
 	    return _readUnlocked();
 	}
 
+	/// Internal method for LockedReader
 	void _unReadUnlocked( int c ) {
 	    //try {
 	    //	lock.lock();
@@ -231,10 +270,13 @@ namespace IO {
 		// }
 	}
 
+	/// Push supplied character back into the buffer.
+	/// \throw IOException if insufficient space in the buffer
 	void unRead( int c ) {
 	    _unReadUnlocked( c );
 	}
 
+	/// Internal method for LockedReader
 	void _readAllUnlocked( System.StringBuffer b ) {
 	    while( true ) {
 		int c = _readUnlocked();
@@ -245,16 +287,22 @@ namespace IO {
 	    }
 	}
 
+	/// Read all remaining characters and append to supplied StringBuffer
+	/// \param b StringBuffer to read into
+	/// \throw IOException
 	void readAll( System.StringBuffer b ) {
 	    _readAllUnlocked( b );
 	}
 
+	/// Read all remaining characters into a new StringBuffer and return it
+	/// \throw IOException
 	System.StringBuffer readAll() {
 	    System.StringBuffer result = new System.StringBuffer();
 	    readAll(result);
 	    return result;
 	}
 
+	/// Internal method for LockedReader
 	int _readIntUnlocked() {
 	    int r = 0;
 	    bool negative;
@@ -294,10 +342,16 @@ namespace IO {
 	    }
 	}
 
+	/// Parse an integer from input and return it.
+	/// \throw IOException
 	int readInt() {
 	    return _readIntUnlocked();
 	}
 
+
+	/// Parse an integer from input into supplied reference
+	/// \param result reference to read integer into
+	/// \return true on success, false on any failure
 	bool readInt(int ref result) {
 	    try {
 		result = readInt();
@@ -309,16 +363,19 @@ namespace IO {
 
 	}
 
-
+	/// Internal method for LockedReader
 	void _closeUnlocked() {
 	    stream.close();
 	}
 
+	/// Discard buffered input and close underlying CharStream
+	/// \throw IOException
 	void close() {
 	    _closeUnlocked();
 	}
     }
 
+    /// Writes to a CharStream through a buffer
     class Writer extends System.Object {
 	private CharStream stream;
 	private char[] buffer;
@@ -326,6 +383,9 @@ namespace IO {
 	private int position;
 	private bool seen_newline;
 
+	/// Construct a Writer
+	/// \param s CharStream to write to
+	/// \param c size of buffer to allocate in chars
 	void init( CharStream s, int c ) {
 	    super.init();
 	    stream = s;
@@ -336,14 +396,18 @@ namespace IO {
 	    seen_newline = false;
 	}
 
-	get bool IsTTY {
-	    return stream.IsTTY;
-	}
-
+	/// Construct a Writer with default buffer size
+	/// \param s CharStream to write to
 	void init( CharStream s ) {
 	    this.init( s, 1024 );
 	}
 
+	/// Get is the underlying CharString a terminal?
+	get bool IsTTY {
+	    return stream.IsTTY;
+	}
+
+	/// Internal method for LockedWriter
 	void _flushUnlocked() {
 	    if( position > 0 ) {
 		stream.write( buffer.address, position );
@@ -352,19 +416,25 @@ namespace IO {
 	    }
 	}
 
+	/// Write all buffered characters to underlying CharStream
+	/// \throw IOException
 	void flush() {
 	    _flushUnlocked();
 	}
 
+	/// Internal method for LockedWriter
 	void _closeUnlocked() {
 	    _flushUnlocked();
 	    stream.close();
 	}
 
+	/// Write all buffered characters to underlying CharStream and close it
+	/// \throw IOException
 	void close() {
 	    _closeUnlocked();
 	}
 
+	/// Internal method for LockedWriter
 	void _writeUnlocked( int i ) {
 	    _writeUnlocked( cast<char>(i) );
 	}

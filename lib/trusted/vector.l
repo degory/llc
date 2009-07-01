@@ -5,6 +5,8 @@ import iterator;
 
 
 namespace Util {
+    use System.Object;
+
     pragma NoWarnUnsafe, NoMarkUnsafe;
     class VectorIterator extends Iterator {
 
@@ -75,6 +77,8 @@ namespace Util {
 	}
     }
 
+    /// A resizeable array of Objects
+    /// \deprecated Use Generic.Vector<Object> instead
     class Vector extends System.Object {
 	private int _length;
 	private int _allocated_length;

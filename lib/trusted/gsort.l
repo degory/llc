@@ -2,12 +2,18 @@
 
 import gvector;
 namespace Generic is
+    /// Sort a List of values of type T
+    /// \param T type of values in the list to be sorted
     class SortList<T> is
-
+        /// Sort the supplied List of values
+	/// \param values the List<T> of values to sort
 	static void sort(List<T> values) is
 	    sort( values, 0, values.Length - 1 );
 	end
 
+	/// Sort a slice of the supplied List
+	/// \param p first element in the range to sort, inclusive
+	/// \param r last element in the range to sort, inclusive
 	static void sort(List<T> values, int p, int r) is
 	    if p < r then
 		int q = partition( values, p, r );
@@ -19,6 +25,7 @@ namespace Generic is
 	    fi
 	end
 
+	/// Internal method supporting sort(List<T>, int p, int r )
 	static int partition(List<T> values, int lo, int hi ) is
 	    T middle = values[lo];
 	    do
@@ -41,11 +48,16 @@ namespace Generic is
 	end
     end
 
+    /// Sort an array of values of type T
+    /// \param T type of values in the array to be sorted
     class SortArray<T> is
+        /// Sort the supplied List of values
+	/// \param values the T[] array of values to sort
 	static void sort(T[] values) is
 	    sort( values, 0, values.length - 1 );
 	end
 
+	/// Sort a slice of the supplied array
 	static void sort(T[] values, int p, int r) is
 	    if p < r then
 		int q = partition( values, p, r );
@@ -57,6 +69,7 @@ namespace Generic is
 	    fi
 	end
 
+	/// Internal method supporting sort(T[] values, int p, int r)
 	static int partition(T[] values, int lo, int hi ) is
 	    T middle = values[lo];
 	    do

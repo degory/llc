@@ -14,6 +14,7 @@ namespace Parse {
     use Gen.TempFactory;
     use Gen.MBitSet;
 
+    /// Array literal
     class VectorList extends Expression {
         TypeExpr element_type;
         ExpressionList list;
@@ -181,6 +182,7 @@ namespace Parse {
 	}
     }
 
+    /// Cast
     class Cast extends Expression {
         TypeExpr left;
         Expression right;
@@ -294,6 +296,7 @@ namespace Parse {
 	}
     }
 
+    /// Load an intermediate code temporary as if it were a source expression
     class LoadTemporary extends Expression {
         int temporary;
 
@@ -324,6 +327,7 @@ namespace Parse {
         }
     }
 
+    /// This
     class This extends Expression {
         void init( int line_number ) {
             super.init( line_number );
@@ -364,6 +368,7 @@ namespace Parse {
 	}
     }
 
+    /// Class qualifier (e.g. class Object)
     class ClassQualifier extends Expression {
         TypeExpr left;
 	Container c;
@@ -411,6 +416,8 @@ namespace Parse {
 	}
     }
 
+
+    /// Super
     class Super extends Expression {
         void init( int line_number ) {
             super.init( line_number );

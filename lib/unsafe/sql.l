@@ -8,6 +8,7 @@ namespace SQL {
 
     use System.String;
 
+    /// Type numbers
     // SQL Lite 3 type numbers - other drivers must use these numbers:
     enum SQLType {
 	INTEGER = 1,
@@ -17,24 +18,35 @@ namespace SQL {
         NULL = 5
     }
 
+    /// Root of SQLException heirarchy. Exceptions thrown by SQL drivers should inherit from this class
     class SQLException extends System.Exception {
 	void init( System.String message ) {
 	    super.init( message );
 	}
     }
 
+    /// Prepared statement/result set
     class Statement extends System.Object {
 	void init() {
 	}
 
+	/// Bind integer value to parameter
+	/// \param c parameter number to bind to
+	/// \param i integer value to bind
 	void bind( int c, int i ) {
 	    // driver must override me
 	}
 
+	/// Bind string value to parameter
+	/// \param c parameter number to bind to
+	/// \param s string value to to bind
 	void bind( int c, System.String s ) {
 	    // driver override me
 	}
 
+	/// Bind boolean value to parameter
+	/// \param c parameter number to bind to
+	/// \param b boolean value to bind
 	void bind( int c, bool b ) {
 	    if( b ) {
 		bind( c, 1 );
@@ -43,22 +55,34 @@ namespace SQL {
 	    }
 	}
 
+	/// Indexed accessor bind integer value to parameter
+	/// \param c parameter number to bind to
+	/// \param i integer value to bind
 	set int Param[int c] = i {
 	    bind( c, i );
 	}
 
+	/// Indexed accessor bind string value to parameter
+	/// \param c parameter number to bind to
+	/// \param s string value to to bind
 	set String Param[int c] = s {
 	    bind( c, s );
 	}
 
+	/// Bind boolean value to parameter
+	/// \param c parameter number to bind to
+	/// \param b boolean value to bind
 	set bool Param[int c] = b {
 	    bind( c, b );
 	}
 
+	/// Advance to next row in result set
+	/// \return true if positioned at a row, false if no more rows in result set
 	bool next() {
 	    // driver must override me
 	}
 
+	/// 
 	void exec() {
 	    while( next() ) 
 		;

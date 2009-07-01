@@ -581,6 +581,10 @@ namespace Parse {
 	    return loop_stack;
 	}
 
+	get String LCacheDir {
+	    return lcache_dir;
+	}
+
 	// FIXME: this is mad - stack top is level - 1
 	get int ExceptionLevel {
 	    return exception_level;

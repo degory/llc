@@ -619,10 +619,12 @@ namespace Parse {
 
 	    super.print( state, p );
 
+	    /*
 	    if( right != null ) {
 		p.print( " = " );
 		right.print( state, p );
 	    }
+	    */
 	}       
     }
 

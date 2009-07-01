@@ -4,8 +4,11 @@ import glist;
 import giterator;
 
 namespace Generic is
-    class ListIterator<T> extends System.Object implements Iterator<T> is
+    /// An Iterator<T> over a LinkedList<T>
+    class LinkedListIterator<T> extends System.Object implements Iterator<T> is
 	RealList<T> _head;
+
+        /// Construct a new LinkedListIterator referencing the supplied RealList
 	void init( RealList<T> h ) is
 	    super.init();
 	    _head = h;
@@ -27,18 +30,23 @@ namespace Generic is
 	end
     end
 
+    /// Thrown if an out of bounds LinkedList index is referenced
     class ListException extends System.Exception is
         void init( System.String message ) is
 	    super.init(message);
 	end
     end 
 
+    /// An ordered resizable list of values implemented as a linked list
+    /// \param T the type of values in this list
     class LinkedList<T> extends System.Object implements List<T> is
 	RealList<T> list;
 	void init() is
 	    super.init();
 	end
 
+	/// Append supplied value after last element in this LinkedList
+	/// \param v the value to append
 	void add( T v ) is
 	    if list == null then
 		list = new RealList<T>( v, null );
@@ -47,6 +55,8 @@ namespace Generic is
 	    fi
 	end
 
+	/// Remove first occurance, if any, of supplied value from this LinkedList
+	/// \param v the value to remove
 	void remove( T v ) is
 	    if list != null then
 		list = list.remove(v);
@@ -55,6 +65,8 @@ namespace Generic is
 	    fi
 	end
 
+	/// Return true if this LinkedList contains the supplied value
+	/// \param v the value to look for
 	bool contains( T v ) is
 	    if list != null then
 	        return list.contains(v);
@@ -69,7 +81,9 @@ namespace Generic is
 	void push( T v ) is
 	    add(v);
 	end
-
+	
+	/// Indexed get
+	/// \param index the index of the value to get
 	get T[int index] is
 	    if list == null then
 	        throw new ListException( "index out of bounds" );
@@ -78,6 +92,9 @@ namespace Generic is
 	    fi
 	end
 
+	/// Indexed set
+	/// \param index the index of the value to set
+	/// \param v the value to set
 	set T[int index] = v is
 	    if list == null || index < 0 then
 	        throw new ListException( "index out of bounds" );
@@ -85,11 +102,14 @@ namespace Generic is
 	        list[index] = v;
  	    fi
 	end	 
-
+	
+	/// Return true if this LinkedList contains no values
 	bool isEmpty() is
 	    return list == null;
 	end
 
+	/// Get the length of this LinkedList
+	/// \property
 	get int Length is
 	    if list == null then
 		return 0;
@@ -98,6 +118,7 @@ namespace Generic is
 	    fi
 	end
 
+	/// Remove and return the first value in this LinkedList
 	T pull() is
 	    if list != null then
 		T result = list.Value;
@@ -108,6 +129,7 @@ namespace Generic is
 	    fi
 	end
 
+	/// Remove and return the last value in this LinkedList
 	T pop() is
 	    if list != null then
 		if list.Tail == null then
@@ -122,6 +144,7 @@ namespace Generic is
 	    fi
 	end
 
+	/// Return the first value in this LinkedList or T.none if the list is empty
 	get T Head is
 	    if list != null then
 		return list.Value;
@@ -130,11 +153,13 @@ namespace Generic is
 	    fi
 	end
 
-	ListIterator<T> elements() is
-	    return new ListIterator<T>(list);
+	/// Return an Iterator<T> that returns each element of this LinkedList in turn from first to last
+	LinkedListIterator<T> elements() is
+	    return new LinkedListIterator<T>(list);
 	end
     end
 
+    /// Internal linked list implementation for LinkedList<T>
     class RealList<T> extends System.Object is
 	RealList<T> tail;
 	T value;
@@ -266,8 +291,8 @@ namespace Generic is
 	    return result;
 	end
 
-	ListIterator<T> elements() is
-	    return new ListIterator<T>(this);
+	LinkedListIterator<T> elements() is
+	    return new LinkedListIterator<T>(this);
 	end
     end
 end

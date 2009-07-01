@@ -13,4 +13,9 @@ lgeng
 test??
 test???
 *-backup
+*.o
+*.h
 \#*\#
+jay/*
+syntaxl.l
+syntaxk.l

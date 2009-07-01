@@ -6,6 +6,9 @@ import vector;
 pragma NoWarnUnsafe, NoMarkUnsafe;
 
 namespace System is
+    /// Values of native array types (type[]) can be cast to Array 
+    /// \deprecated none of this stuff works. Needs replacing with a template equivalent plus some sugar syntax to coerce array types
+    /// to equivalent Array<T> objects when needed 
     class Array extends Object is
 	int length;       
 

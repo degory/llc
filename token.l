@@ -411,7 +411,8 @@ namespace Parse {
 		return p.token;
 	    }
 
-	    r = readToken2();
+	    r = readToken2(false);
+
 	    if( r != Token.LT /* && r != Token.WHILE */ ) {
 		return r;
 	    }
@@ -434,7 +435,7 @@ namespace Parse {
 		    return readToken();
 		}
 
-		r = readToken2();
+		r = readToken2(false);
 
 		// IO.Std.err.println( "token is: " + cast<int>(r) + ", string: " + token_string );
 
@@ -473,7 +474,7 @@ namespace Parse {
 	    return readToken();
 	}
 
-        Token readToken2() {
+        Token readToken2(bool for_comment) {
 	    Token r;
 
             char c = skipWhiteSpace();
@@ -750,18 +751,29 @@ namespace Parse {
             case '/':
                 c = nextChar();
                 if( c == '/' ) {
-		    buffer = new StringBuffer();
+		    buffer = new StringBuffer("//");
                     do {
                         c = nextChar();
 			if( c != '\n' ) {
 			    buffer.append( c );
 			}
                     } while( !end_of_file && c != '\n' );
-		    ParseTree.LastComment = buffer;
 
-                    return readToken();
+		    if( buffer.startsWith("///" ) ) {			
+			buffer.append( "\n" );
+			if( for_comment ) {
+			    // IO.Std.err.println( "from: " + new System.Backtrace() );
+			    // IO.Std.err.println( "appending comment: " + buffer );
+			    ParseTree.appendLastComment(buffer);
+			} else {
+			    ParseTree.LastComment = buffer;
+			}
+			return readToken2(true);
+		    } else {
+			return readToken2(false);
+		    }
                 } else if( c == '*' ) { 
-		    buffer = new StringBuffer();
+		    buffer = new StringBuffer("/*");
 		    do {
 			c = nextChar();
 
@@ -776,8 +788,19 @@ namespace Parse {
 
 		    } while( !end_of_file );
 
-		    ParseTree.LastComment = buffer;
-		    return readToken();
+		    if( buffer.startsWith( "/**" ) ) {
+			buffer.append( "*/" );
+			if( for_comment ) {
+			    IO.Std.err.println( "from: " + new System.Backtrace() );
+			    IO.Std.err.println( "appending comment: " + buffer );
+			    ParseTree.appendLastComment(buffer);
+			} else {
+			    ParseTree.LastComment = buffer;
+			}
+			return readToken2(true);		    
+		    } else {
+			return readToken2(false);
+		    }
 		} else {
                     prevChar(c);
                     return Token.DIV;

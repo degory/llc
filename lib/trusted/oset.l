@@ -3,6 +3,9 @@
 import map;
 
 namespace Util is
+    use System.Object;
+    /// A set of Objects.
+    /// \deprecated Use Generic.Set<T>
     class Set extends System.Object is
 	Map _map;
 

@@ -1,12 +1,15 @@
 #K
 
 namespace Util is
+    /// Utility class for combining hash values
     class Hash is
+        /// Rotate supplied integer left five bits
 	static int rotate( int u ) is
             int result = u << 5;
             return result | ((u >> 27) & 0x1F);
         end
 
+	/// Return a hash of supplied String
 	static int hash( System.String s ) is
 	    int l = s.getLength();
 	    int h = 0;
@@ -15,6 +18,7 @@ namespace Util is
 	    od
 	end
 
+	/// Combine to hashes 
 	static int hash( int i, int j ) is
 	    return rotate(i) + j;
 	end

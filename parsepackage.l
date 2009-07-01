@@ -129,9 +129,13 @@ namespace Parse {
 
 	void print( CompileState state ) {
 	    if( state.WantPrint ) {
-		String s = file_name.substring( 0, file_name.Length-2 ) + ".p";
+		int from = file_name.lastIndexOf('/');
+		if( from < 0 ) {
+		    from = 0;
+		}
+		String s = state.LCacheDir + file_name.substring( from, file_name.Length-2 ) + ".h";
 		IO.Std.out.println( "would output to: '" + s + "'" );
-		
+
 		IO.Writer o = IO.File.openCreate( s );
 
 		Printer p = new Printer( o );
@@ -242,11 +246,11 @@ namespace Parse {
 	    p.nl();
 	    p.print( "namespace " );
 	    name.print( state, p );
-	    p.println( " is" );
+	    p.println( " {" );
 	    p.indent();
 	    body.print( state, p );
 	    p.outdent();
-	    p.println( "end" );
+	    p.println( "}" );
 	}
 
         String toString() {
@@ -297,8 +301,10 @@ namespace Parse {
 	    pl(p);
 
 	    p.nl();
-	    p.print( "use " );
+	    p.print( "using " );
+	   
 	    name.print( state, p );
+	    p.println( ";" );
 	}
     }
 }

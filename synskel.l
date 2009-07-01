@@ -122,6 +122,8 @@ namespace Parse {
 		return yyparse2( yyLex );
 	    } catch( System.Exception e ) {
 		yyerror( yyLex, "parse error" );
+
+		// IO.Std.err.println( e );
 		
 		if( CompileState.Instance.WantVeryVerbose ) {
 		    yyerror( yyLex, "exception in parser: " + e );

@@ -92,6 +92,8 @@ namespace Util is
 	end
     end
 
+    // An associative array
+    // \deprecated Use Generic.Map<K,V> instead
     class Map extends System.Object is
 	public Vector _values;
 

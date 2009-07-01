@@ -1,37 +1,45 @@
 pragma NoMarkUnsafe, NoWarnUnsafe;
 
 namespace Util {
+    /// Holds a number of seconds and can format it as a human readable string
     class Time extends System.Object {
         int seconds; // time in UNIX epoch
 
+	/// Construct a new time representing a given number of seconds
 	void init( int seconds ) {
 	    this.seconds = seconds;
 	}
 
+	/// Construct a new time representing now in seconds into the UNIX epoch
 	void init() {
 	    init( NowInSeconds );
 	}
 
+	/// Return a new time representing now in seconds into the UNIX epoch
 	static get Time Now {
 	    return new Time();
 	}
 
+	/// Get the seconds value for this Time
 	get int Seconds {
 	    return seconds;
 	}
-
+	
 	int toInt() {
 	    return seconds;
 	}
 
+	/// Get the current time as seconds into the UNIX epoch
 	static get int NowInSeconds {
 	    return cast int(native.__get_time());
 	}
 
+	/// Return a new time that represents this Time plus the given number of seconds
 	Time opAdd( int seconds ) {
 	    return new Time( this.seconds + seconds );
 	}
 
+	/// Return a new time that represents this Time minus the given number of seconds
 	Time opSub( int seconds ) {
 	    return new Time( this.seconds - seconds );
 	}	

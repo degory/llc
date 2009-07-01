@@ -4,8 +4,10 @@ import string;
 pragma NoWarnUnsafe, NoMarkUnsafe, NoWarnHide, NoWarnResolve;
 
 namespace System is
+    /// Generates an exception backtrace for debugging
     class Backtrace extends Object is
 	String _backtrace;
+	/// Construct a new Backtrace from the current stack frame
 	void init() is
 	    super.init();
 	    try
@@ -20,20 +22,27 @@ namespace System is
 	end
     end    
 
+    /// Root of Exception heirarchy. Runtime expects all thrown objects to inherit from Exception
     class Exception extends Object is
 	word _backtrace_info;
 	String _backtrace;
 	String _message;
 
+	/// Construct a new exception for the supplied frame
+	/// \deprecated
 	void init( int eip, int ebp ) is
 	    super.init();
 	end
     
+	/// Construct a new exception with the supplied message
+	/// \param m message text to include in this Exception
 	void init( String m ) is
 	    super.init();
 	    _message = m;
 	end
 
+	/// Construct a new exception with the supplied C-string message
+	/// \param m C-string message text to include in this Exception
 	void init( char ptr m ) is
 	    super.init();
 	    _message = new String(m);
@@ -57,14 +66,18 @@ namespace System is
 	    fi
 	end
 
+	/// Internal interface for runtime to get backtrace token
 	word getBacktraceInfo() is
 	    return _backtrace_info;
 	end
 
+	/// Internal interface for runtime to set backtrace token
 	void setBacktraceInfo( word info ) is
 	    this._backtrace_info = info;
 	end
 
+	/// Get the bracktrace string for this Exception
+	/// \property
 	get String Backtrace is
 	    // run time does not produce a human readable backtrace at exception throw time as
 	    // it's an expensive operation and the results might not be needed
@@ -88,11 +101,14 @@ namespace System is
 	    fi
 	end
 
+	/// Get the message string for this Exception
+	/// \property
 	get String Message is
 	    return _message;
 	end
     end   
 
+    /// Root class for exceptions thrown by the runtime
     class RuntimeException extends Exception is
 	void init() is
 	    super.init();
@@ -107,6 +123,7 @@ namespace System is
 	end
     end
 
+    /// Exception thrown when the runtime detects a memory protection fault
     class MemoryException extends RuntimeException is
 	word address;
 
@@ -118,15 +135,21 @@ namespace System is
 	    super.init( m );
 	end
 
+	/// Set the faulting address
+	/// \property
+	/// \param a the memory address that caused the fault
 	set word Address = a is
 	    address = a;
 	end
 
+	/// Get the faulting address
+	/// \property
 	get word Address is
 	    return address;
 	end
     end
 
+    /// Exception thrown when runtime detects a null pointer dereference
     class NullPointerException extends MemoryException is
 	void init( String m ) is
 	    // native.printf( `new null pointer exception %p\n`, this );
@@ -138,11 +161,13 @@ namespace System is
 	    super.init( m );
 	end
 
+	/// \deprecated
 	void enableGC() is
 	    native.GC_enable();
 	end
     end
 
+    /// Exception thrown when runtime detects a non-null memory protection fault
     class MemoryProtectionException extends MemoryException is
 	void init( System.String m ) is
 	    super.init( m );
@@ -153,6 +178,7 @@ namespace System is
 	end
     end
 
+    /// Exception thrown when runtime detects an out of bounds array index
     class ArrayBoundsException extends RuntimeException is
 	void init( System.String m ) is
 	    super.init( m );
@@ -163,6 +189,7 @@ namespace System is
 	end
     end
 
+    /// Exception thrown when the runtime detects an invalid cast
     class CastException extends RuntimeException is
 	void init( System.String m ) is
 	    super.init( m );
@@ -173,6 +200,8 @@ namespace System is
 	end
     end
 
+    /// Exception thrown when runtime cannot clone an object
+    /// \deprecated
     class CannotCloneException extends Exception is
 	void init( String message ) is
 	    super.init( message );
@@ -183,6 +212,7 @@ namespace System is
 	end
     end
 
+    /// Exception thrown when an operation is not implemented
     class NotImplementedException extends Exception is
 	void init( String message ) is
 	    super.init( message );
@@ -193,6 +223,7 @@ namespace System is
 	end
     end
 
+    /// Exception thrown when an assertion (Object.assert()) fails 
     class AssertException extends Exception is
 	void init( String message ) is
 	    super.init( message );

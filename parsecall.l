@@ -229,8 +229,10 @@ namespace Parse {
 	get int Depth {
 	    if( argument != null ) {
 		return argument.Depth + 1;
-	    } else {
+	    } else if( arguments != null ) {
 		return arguments.Depth + 1;
+	    } else {
+		return 1;
 	    }
 	}
 

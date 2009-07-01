@@ -3,6 +3,7 @@
 pragma NoWarnUnsafe, NoMarkUnsafe;
 
 namespace Util is
+    /// A process that can fork and run other programs
     class Process extends System.Object is
 	const int
 	    EAGAIN = 11,
@@ -12,16 +13,22 @@ namespace Util is
 	int pid;
 	bool child;
 
+	/// Construct an empty Process
 	void init() is
 	    super.init();
 	end
 
+	/// Throw an Exception for the last operating system error encountered
+	/// \param unix_call description of the operating system call that failed
 	void throwUnixError( System.String unix_call ) is
 	    int errno = cast int(native.__geterrno());
 	    // IO.Std.err.println( "unix call failed: " + unix_call + ", errno: " + errno + ", " + cast<char ptr>(native.strerror()) );
 	    throw new System.Exception(unix_call + ": " + cast char ptr(native.strerror()));
 	end
  
+        /// Fork this process
+	/// \return true in child process, false in parent process
+	/// \throw System.Exception
 	bool fork() is
 	    // int cpid = cast<int>(native.vfork());
 	    int cpid = cast int(native.fork());
@@ -44,10 +51,15 @@ namespace Util is
 		    // IO.Std.err.println( "fork - in parent, child is process " + cpid );
 		    pid = cpid;
 		fi
+		return child;
 	    fi
 	end
 
-
+        /// V-Fork this process
+	/// \return true in child process, false in parent process
+	/// \attention this is not safe because vfork() has tight restrictions on what the child process may do before it calls exec
+	/// that this class does not adhere to
+	/// \throw System.Exception
 	bool vfork() is
 	    // int cpid = cast<int>(native.vfork());
 	    int cpid = cast int(native.fork());
@@ -70,17 +82,25 @@ namespace Util is
 		    // IO.Std.err.println( "fork - in parent, child is process " + cpid );
 		    pid = cpid;
 		fi
+		return child;
 	    fi
 	end
 
+	/// Is this the child process?
+	/// \return true in child process, false in parent process
 	bool isChild() is
 	    return child;
 	end
 
+	/// Return process id of child process
+	/// \attention returned process id only correct in parent process
 	get int PID is
 	    return pid;
 	end
 
+	/// Wait for child process to exit
+	/// \return exit status of child process
+	/// \throw System.Exception
 	int wait() is
 	    int exit_status = 0;
 	    // IO.Std.err.println( "wait for process " + pid + " to complete..." );
@@ -94,6 +114,10 @@ namespace Util is
 	    return exit_status;
 	end
 
+	/// Replace running program with a new program
+	/// \param name path to program to execute
+	/// \param args program arguments in a C-array of C-strings 
+	/// \param env program environment in a C-array of C-strings 
 	void spawn( char ptr name, char ptr ptr args, char ptr ptr env ) is
 	    if env != null then
 		native.__set_environ(env);
@@ -105,6 +129,10 @@ namespace Util is
 	    throwUnixError("execvp: " + name );
 	end
 
+	/// Replace running program with a new program
+	/// \param name path to program to execute
+	/// \param args program arguments in an array of Strings
+	/// \param env program environment in an array of Strings
 	void spawn( System.String name, System.String[] args, System.String[] env ) is
 	    char ptr ptr a = cast char ptr ptr(native.malloc(8 * (args.length + 1)));
 
@@ -127,6 +155,11 @@ namespace Util is
 	    spawn( name.toCString(), a, e );
 	end
 
+	/// Start a new program and optionally wait for it to complete
+	/// \param name path to program to execute
+	/// \param args program arguments in an array of Strings
+	/// \param env program environment in an array of Strings
+	/// \return child exit status if wait, otherwise zero
 	int run( System.String name, System.String[] args, System.String[] env, bool wait ) is
 	    native.GC_disable();
 	    fork();
@@ -144,10 +177,19 @@ namespace Util is
 	    fi
 	end
 
+	/// Start a new program and wait for it to complete
+	/// \param name path to program to execute
+	/// \param args program arguments in an array of Strings
+	/// \param env program environment in an array of Strings
+	/// \return child exit status
 	int run( System.String name, System.String[] args, System.String[] env ) is
 	    return run( name, args, env, true ) >> 8;
 	end
 
+	/// Start a new program and wait for it to complete. New program receives a copy of the current program environment.
+	/// \param name path to program to execute
+	/// \param args program arguments in an array of Strings
+	/// \return child exit status
 	int run( System.String name, System.String[] args ) is
 	    return run( name, args, null, true ) >> 8;
 	end

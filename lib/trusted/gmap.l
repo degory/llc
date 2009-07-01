@@ -12,7 +12,7 @@ namespace Generic is
     class MapIterator<K,T> extends System.Object is
 	Map<K,T> _map;            // the Map we're iterating over
 	int _i;              // the index of the hash chain we're currently iterating over
-	ListIterator<MapPair<K,T>> _j;   // iterator over the current hash chain
+	LinkedListIterator<MapPair<K,T>> _j;   // iterator over the current hash chain
 	MapPair<K,T> _next; // the map value that we will return as nextElement()	
 	bool _keys;          // iterate over keys rather than values
 	bool _more_elements; // is _next valid? or have we already enumerated all values in Map

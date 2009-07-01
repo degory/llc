@@ -5,12 +5,14 @@ import integer;
 namespace System is
     pragma NoWarnUnsafe, NoMarkUnsafe;
 
+    /// A string of characters. String is immutable, its child StringBuffer is not.
     class String extends Object is
 	pragma NoWarnHide;
 
 	protected char ptr _buffer;
 	protected int _length;
 
+	/// Return a formatted copy of supplied string with supplied arguments substituted for '%'
 	static StringBuffer format( String s, Object[] args ) is
 	    StringBuffer result = new StringBuffer(``);
 	    int i = 0;
@@ -30,6 +32,7 @@ namespace System is
 	    return result;
 	end
 
+	/// Return a formatted copy of supplied string with supplied arguments substituted for '%'
 	static StringBuffer format( String s, int[] args ) is
 	    StringBuffer result = new StringBuffer(``);
 	    int i = 0;
@@ -49,6 +52,7 @@ namespace System is
 	    return result;
 	end
 
+	/// Append every object int the supplied array into a new StringBuffer and return it
 	static StringBuffer cat( Object[] args ) is
 	    StringBuffer result = new StringBuffer(``);
 	    for int i = 0; i < args.length; i = i + 1 do
@@ -57,22 +61,28 @@ namespace System is
 	    return result;
 	end
 
+	/// Format a string with a single argument
 	static StringBuffer format( String s, int i ) is
 	    return format( s, Object { new Int(i) } );
 	end
 
+	/// Format a string with a two arguments
 	static StringBuffer format( String s, int i, int j ) is
 	    return format( s, Object { new Int(i), new Int(i) } );
 	end
 
+	/// Format a string with a single argument
 	static StringBuffer format( String s, Object i ) is
 	    return format( s, { i } );
 	end
 
+	/// Format a string with a two arguments
 	static StringBuffer format( String s, Object i, Object j ) is
 	    return format( s, { i, j } );
 	end
 
+	// Construct a new String by copying the supplied C-string
+	// \param s a C-string to copy. Must be terminated with cast char(0)
 	void init( char ptr s ) is
 	    super.init();
 
@@ -94,6 +104,7 @@ namespace System is
 	    od
 	end
 
+	/// Construct a new String by copying the supplied String
 	void init( String s ) is
 	    this.init( s.toCString() );
 	end
@@ -111,11 +122,16 @@ namespace System is
 	    return result;
 	end
 
+	/// Return character at supplied index
+	/// \deprecated Use get char[int i] instead (\see opGet(int i))
 	char charAt( int i ) is
 	    return opGet(i);
 	end
 
+	/// Return character at supplied index
+	/// \param i index of character to get
 	get char[int i] is
+	    // FIXME: not bounds checked!
 	    return [_buffer + i];
 	end
 
@@ -123,10 +139,13 @@ namespace System is
 	    return this;
 	end
 
+	/// Is supplied character white space?
+	/// \param c character to test
 	static bool isSpace( char c ) is
 	    return c == ' ' || c == cast char(9) || c == '\n' || c == cast char(13);
 	end
 
+	/// Return a copy of this string with leading an trailing white space trimmed
 	String trim() is
 	    int from, to;
 	    System.StringBuffer result = new System.StringBuffer( _length );
@@ -142,6 +161,8 @@ namespace System is
 	    return substring( from, to + 1 );
 	end
 
+	/// Return a copy of this string with all instances of the supplied character removed
+	/// \param c the character to strip
 	String strip( char c ) is
 	    System.StringBuffer result = new System.StringBuffer( _length );
 	    int l = _length;
@@ -156,18 +177,24 @@ namespace System is
 	    return result;
 	end
 	    
+        /// Return a String representing the supplied integer in base 8
+	/// \param i the value to format in octal
 	static String oct(int i) is
 	    StringBuffer result = new StringBuffer();
 	    result.append( i, 8 );
 	    return result;
 	end
 
+        /// Return a String representing the supplied integer in base 16
+	/// \param i the value to format in hex
 	static String hex(int i) is
 	    StringBuffer result = new StringBuffer();
 	    result.append( i, 16 );
 	    return result;
 	end
 
+        /// Return a String representing the supplied word in base 16
+	/// \param i the value to format in hex
 	static String hex(word i) is
 	    StringBuffer result = new StringBuffer();
 	    result.append( i, 16 );
@@ -186,14 +213,20 @@ namespace System is
 	}
 	*/
 
+        /// Return a pointer to this String as a C-string.
+	/// This method may not copy the internal buffer holding the characters that comprise this String but the contents of the
+	/// returned C-string are immutable.
 	public char ptr toCString() is
 	    return _buffer;
 	end
 
+	/// Return the number of characters that comprise this String
 	get int Length is
 	    return _length;
 	end
 
+	/// Compare this String to the supplied C-string and return true if they are the same.
+	/// \param s the C-string to compare to. Must be terminated with cast char(0)
 	bool equals( char ptr s ) is
 	    int i = 0;
 	    while i < _length && [s + i] != cast char(0) do
@@ -205,6 +238,9 @@ namespace System is
 	    return i == _length && [s + i] == cast char(0);
 	end
 
+	/// Compare this String to the supplied Object and return true iff the Object is non-null,
+	/// a String, it's length is equal to this String's length and the two String's buffers
+	/// compare equal character for character
 	bool equals( Object s ) is
 	    if s == null then
 		return false;
@@ -231,6 +267,7 @@ namespace System is
 	    fi
 	end
 
+	/// Return true if supplied string is a prefix of or is equal to this String
 	bool startsWith( System.String s ) is
 	    int l = s._length;
 
@@ -253,10 +290,12 @@ namespace System is
 	    fi
 	end
 
+	/// Return true if the last character of this string equals the supplied character
 	bool endsWith( char c ) is
 	    return _length > 0 && [_buffer + _length - 1] == c;
 	end
 
+	/// Return true if the supplied string is a suffix of or is equal to this String
 	bool endsWith( System.String s ) is
 	    int l = s._length;
 	    if _length < l then
@@ -278,6 +317,8 @@ namespace System is
 	    fi
 	end
 
+	/// Return the first index where the supplied char appears in this String, or -1 if it
+	/// does not appear
 	int indexOf( char c ) is
 	    for int i = 0; i < _length; i = i + 1 do
 		if [_buffer+i] == c then
@@ -288,6 +329,8 @@ namespace System is
 	    return -1;
 	end
 
+        /// Return the last index where the supplied char appears in this String, or -1 if it
+	/// does not appear	
 	int lastIndexOf( char c ) is
 	    for int i = _length-1; i >= 0; i = i - 1 do
 		if [_buffer+i] == c then
@@ -298,6 +341,7 @@ namespace System is
 	    return -1;
 	end
 
+	/// Return true if the supplied string is a substring of this String beginning with the supplied index
 	bool matches( System.String s, int index ) is
 	    int l = s.Length;
 
@@ -313,6 +357,7 @@ namespace System is
 	    return true;
 	end
 
+	/// Return the first index where matches(s,index) is true
 	int indexOf( System.String s ) is
 	    for int i = 0; i < _length; i = i + 1 do
 		if matches( s, i ) then
@@ -322,6 +367,8 @@ namespace System is
 	    return -1;
 	end
 
+	/// Equality operator
+	/// \param t String to compare this String to
 	bool opEquals( System.String t ) is
 	    int cl = _length;
 	    if cl != t._length then
@@ -336,6 +383,8 @@ namespace System is
 	    fi
 	end
 
+	/// Equality operator
+	/// \param t C-string to compare this String to
 	bool opEquals( char ptr t ) is
 	    int cl = _length;
 	    int i;
@@ -350,6 +399,9 @@ namespace System is
 	    return [t + i] == cast char(0);
 	end
 
+	/// Inequality operator
+	/// \param t String to compare this String to
+	/// \return negative, zero or positive integer depending on the ordering of this String relative to supplied String
 	int opCompare( System.String t ) is
 	    // IO.Std.err.println( "compare " + this + " to " + t );
 	    int cl = _length;
@@ -376,6 +428,7 @@ namespace System is
 	    return tie;
 	end
 
+	/// \deprecated Use =~ operator instead (\see String.opEquals(String))
 	static bool equals( System.String s, System.String t ) is
 	    if s == t then
 		return true;
@@ -403,10 +456,15 @@ namespace System is
             fi
 	end
 
+	/// Parse this string as an integer
+	/// \deprecated Use \see System.String.toInt() instead
 	int parseInt() is
 	    return toInt();
 	end
 
+	/// Parse this string as an integer of supplied base
+	/// \param base radix to use for conversion. Must be between 1 and 36
+	/// \throw Exception if this String cannot be parsed in supplied base
 	int parseInt( int base ) is
             bool negative = false;
 	    int i;
@@ -454,6 +512,8 @@ namespace System is
 	    fi
 	end
 
+	/// Return the length in characters of supplied C-string
+	/// \param s C-string to get the length of. Must be terminated with cast char(0)
 	int _c_getLength( char ptr s ) is
 	    for int i = 0; [s + i] != cast char(0); i = i + 1 do
 	        ;
@@ -462,14 +522,23 @@ namespace System is
 	    return i;
 	end
 
+	/// Return a copy of this string.
 	String copy() is
 	    return new String(_buffer);
 	end
 
+	/// Returns a substring of this string comprised of characters from and including the supplied position up to and including the last character 
+	/// in the string. If from is greater than or equal to length then result is an empty String. Behaviour is undefined if from is negative
+	/// \param from index of first character to include in substring
 	StringBuffer substring( int from ) is
 	    return substring( from, _length );
 	end
 
+	/// Returns a substring of this string comprised of characters from and including the supplied to position up to and not including the supplied from
+	/// position. If from is greater than or equal to length then result is an empty String. If to is greater than or equal to length then the result is
+	/// the same as String.substring(from). Behaviour is undefined if from is negative
+	/// \param from index of first character to include in substring
+	/// \param to index of character after last character to include in substring
 	StringBuffer substring( int from, int to ) is
 	    StringBuffer result = new StringBuffer();
 	    for int i = from; i < to && i < _length; i = i + 1 do
@@ -478,6 +547,8 @@ namespace System is
 	    return result;
 	end
 
+	/// Splits this String at each point where the supplied delimiter character is found into an array of substrings
+	/// \param delim character at which to split this String 
 	String[] split( char delim ) is
 	    int i;
 	    int parts = 1;
@@ -512,22 +583,27 @@ namespace System is
 	    return result;
 	end
 
+	/// Implements + operator. 
 	StringBuffer opAdd( String s ) is
 	    return new StringBuffer( toCString() ).append( s );
 	end
 
+	/// Implements + operator. 
 	StringBuffer opAdd( int i ) is
 	    return new StringBuffer( toCString() ).append( i );
 	end
 
+	/// Implements + operator. 
 	StringBuffer opAdd( word w ) is
 	    return new StringBuffer( toCString() ).append( w );
 	end
 
+	/// Implements + operator. 
 	StringBuffer opAdd( char c ) is
 	    return new StringBuffer( toCString() ).append( c );
 	end
 
+	/// Implements + operator. 
 	StringBuffer opAdd( bool b ) is
 	    if b then
 		return new StringBuffer( toCString() ).append( `true` );
@@ -536,14 +612,18 @@ namespace System is
 	    fi
 	end
 
+	/// Implements + operator. 
 	StringBuffer opAdd( char ptr s ) is
 	    return new StringBuffer( toCString() ).append( s );
 	end
 
+	/// Implements + operator. 
 	StringBuffer opAdd( Object o ) is
 	    return new StringBuffer( toCString() ).append( o );
 	end
 
+	/// Return a copy of this string with all ASCII upper case characters converted to lower case equivalents. This
+	/// method converts only 'A' - 'Z', no other letters are affected.
 	get StringBuffer LowerCase is
 	    StringBuffer result = new StringBuffer(_length);
 	    for int i = 0; i < _length; i = i + 1 do
@@ -557,6 +637,8 @@ namespace System is
 	    return result;
 	end
 
+	/// Return a copy of this string with all ASCII lower case characters converted to upper case equivalents. This
+	/// method converts only 'a' - 'z', no other letters are affected.
 	get StringBuffer UpperCase is
 	    StringBuffer result = new StringBuffer(_length);
 	    for int i = 0; i < _length; i = i + 1 do
@@ -571,6 +653,7 @@ namespace System is
 	end
     end
 
+    /// A variable length modifyible string of characters. 
     class StringBuffer extends String is
 	private int _allocated_length;
 
