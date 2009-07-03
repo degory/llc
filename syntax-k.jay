@@ -127,6 +127,7 @@ class Root { // is
 %token DO_WHILE      111
 %token IMPLEMENTS    112
 %token INTERFACE     113
+%token PROC          114
 %start ROOT
 
 %%

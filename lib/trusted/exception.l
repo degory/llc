@@ -77,7 +77,6 @@ namespace System is
 	end
 
 	/// Get the bracktrace string for this Exception
-	/// \property
 	get String Backtrace is
 	    // run time does not produce a human readable backtrace at exception throw time as
 	    // it's an expensive operation and the results might not be needed
@@ -102,7 +101,6 @@ namespace System is
 	end
 
 	/// Get the message string for this Exception
-	/// \property
 	get String Message is
 	    return _message;
 	end
@@ -136,14 +134,12 @@ namespace System is
 	end
 
 	/// Set the faulting address
-	/// \property
 	/// \param a the memory address that caused the fault
 	set word Address = a is
 	    address = a;
 	end
 
 	/// Get the faulting address
-	/// \property
 	get word Address is
 	    return address;
 	end

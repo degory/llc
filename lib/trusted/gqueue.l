@@ -6,13 +6,13 @@ namespace Generic {
 
     /// Thrown on full or empty Queue
     class QueueException extends Exception {
+        /// Construct a new QueueException
+	/// \param message message to include in the exception
 	void init( String message ) {
-	    /// Construct a new QueueException
 	    super.init(message);
 	}
     }
     
-
     /// A circular buffer of values
     /// \param T the type of values the Queue holds
     class Queue<T> extends Object {
@@ -28,21 +28,22 @@ namespace Generic {
 	}
 
 	/// Accessor: get bool IsEmpty
-	/// Get does the queue have no values in it?
-	/// \property
+	/// Get is the queue empty
+	/// \return true if the queue has no values in it, otherwise false 
 	get bool IsEmpty {
 	    return head == tail;
 	}
 
 	/// Internal method: get the next index wrapping around at the queue end
 	/// \param index get the index of the value after this index
+	/// \return if index < length - 1 then index + 1, else 0
 	int next(int index) {
 	    return (index + 1) % queue.length;
 	}
 	
 	/// Accessor: get bool IsFull
-	/// Get does the queue have no space for additional values?
-	/// \property
+	/// Get is the queue full?
+	/// \return true if the queue has no more space for additional values, otherwise false
 	get bool IsFull {
 	    return next(head) == tail;
 	}

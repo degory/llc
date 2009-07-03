@@ -12,7 +12,7 @@ namespace Generic is
     /// Iterates over a Map and returns each MapPair comprising the Map in turn. Returns values in no particular order 
     /// \param K the key type
     /// \param T the value type
-    class MapIterator<K,T> extends System.Object is
+    class MapIterator<K,T> implements Iterator<MapPair<K,T>> is
 	Map<K,T> _map;            // the Map we're iterating over
 	int _i;              // the index of the hash chain we're currently iterating over
 	LinkedListIterator<MapPair<K,T>> _j;   // iterator over the current hash chain
@@ -181,10 +181,9 @@ namespace Generic is
 	    fi
 	end
 
-	/// Set indexed accessor: set T[K key] = value
+	/// Indexed accessor: set T[K key] = value
 	/// \param key the key to set
 	/// \param value the value to give this key
-	/// \property
 	set T[K key] = value is
 	    int k;
 	    int h;
@@ -211,10 +210,9 @@ namespace Generic is
 	    fi
 	end
 
-	/// Get indexed accessor: get T[K key]
+	/// Indexed accessor: get T[K key]
 	/// \param key the key to get
 	/// \return the value associated with key
-	/// \property
 	get T[K key] is
 	    int k;
 	    int h;
@@ -271,7 +269,6 @@ namespace Generic is
 
 	/// Accessor: get int Length
 	/// Return the number of values in this Map
-	/// \property
 	get int Length is
 	    int result = 0;
 
@@ -337,21 +334,18 @@ namespace Generic is
 
 	/// Accessor: get MapValueIterator<K,T> Elements
 	/// Get a new Iterator that returns each value in the Map in turn
-	/// \property
 	get MapValueIterator<K,T> Elements is
 	    return elements();
 	end
 
 	/// Accessor: get MapKeyIterator<K,T> Keys
 	/// Get a new Iterator that returns each key in the Map in turn
-	/// \property
 	get MapKeyIterator<K,T> Keys is
 	    return keys();
 	end
 
 	/// Accessor: get MapIterator<K,T> Pairs
 	/// Get a new Iterator that returns each key-value pair in the Map in turn
-	/// \property
 	get MapIterator<K,T> Pairs is
 	    return pairs();
 	end

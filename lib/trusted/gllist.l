@@ -82,8 +82,9 @@ namespace Generic is
 	    add(v);
 	end
 	
-	/// Indexed get
+	/// Indexer: get T[int index]
 	/// \param index the index of the value to get
+	/// \return value at index
 	get T[int index] is
 	    if list == null then
 	        throw new ListException( "index out of bounds" );
@@ -92,7 +93,7 @@ namespace Generic is
 	    fi
 	end
 
-	/// Indexed set
+	/// Indexer: set T[int index] = v
 	/// \param index the index of the value to set
 	/// \param v the value to set
 	set T[int index] = v is
@@ -103,13 +104,15 @@ namespace Generic is
  	    fi
 	end	 
 	
-	/// Return true if this LinkedList contains no values
+	/// Is this list empty?
+        /// \return true if list contains no values, false otherwise
 	bool isEmpty() is
 	    return list == null;
 	end
 
-	/// Get the length of this LinkedList
-	/// \property
+	/// Accessor: get int Length
+	/// Get the length of the list
+	/// \return number of values in the list
 	get int Length is
 	    if list == null then
 		return 0;
@@ -119,6 +122,8 @@ namespace Generic is
 	end
 
 	/// Remove and return the first value in this LinkedList
+	/// \return removed value
+	/// \throw ListException if list is empty
 	T pull() is
 	    if list != null then
 		T result = list.Value;
@@ -130,6 +135,8 @@ namespace Generic is
 	end
 
 	/// Remove and return the last value in this LinkedList
+	/// \return removed value
+	/// \throw ListException if list is empty
 	T pop() is
 	    if list != null then
 		if list.Tail == null then
@@ -144,7 +151,9 @@ namespace Generic is
 	    fi
 	end
 
-	/// Return the first value in this LinkedList or T.none if the list is empty
+	/// Accessor: get T Head
+	/// Get the first value in the list
+	/// \return the first value in this LinkedList or T.none if the list is empty
 	get T Head is
 	    if list != null then
 		return list.Value;
@@ -153,7 +162,8 @@ namespace Generic is
 	    fi
 	end
 
-	/// Return an Iterator<T> that returns each element of this LinkedList in turn from first to last
+	/// Get iterator
+	/// \return Iterator<T> that returns each element of this LinkedList in turn from first to last
 	LinkedListIterator<T> elements() is
 	    return new LinkedListIterator<T>(list);
 	end

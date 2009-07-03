@@ -67,23 +67,25 @@ namespace Parse {
             ACCESS_MASK = 63;
 
         public const int
-            MASK = 0xF0F,
-            KIND_MASK = 0xF00,
+            MASK = 0xFF0F,
+            KIND_MASK = 0xFF00,
             CLASS = 0x100,
             NAMESPACE = 0x200,
             CONST = 0x300,
             ENUM = 0x400,
 	    TYPE = 0x500,
-            ATTRIBUTE = 0x600,
-            ATTRIBUTE_LENGTH = 0x700,
-            ATTRIBUTE_ARRAY = 0x800,
-            ATTRIBUTE_STRUCT = 0x900,
-	    ATTRIBUTE_ADDRESS = 0xA00,
-	    ATTRIBUTE_SIZE = 0xB00,
-	    ATTRIBUTE_TYPE = 0xC00,
-	    ATTRIBUTE_BOX = 0xD00,
-	    ATTRIBUTE_PASS = 0xE00,
-	    ATTRIBUTE_NONE = 0xF00;
+	    PROC = 0x600,
+            ATTRIBUTE = 0x700,
+            ATTRIBUTE_LENGTH = 0x800,
+            ATTRIBUTE_ARRAY = 0x900,
+            ATTRIBUTE_STRUCT = 0xA00,
+	    ATTRIBUTE_ADDRESS = 0xB00,
+	    ATTRIBUTE_SIZE = 0xC00,
+	    ATTRIBUTE_TYPE = 0xD00,
+	    ATTRIBUTE_BOX = 0xE00,
+	    ATTRIBUTE_PASS = 0xF00,
+	    ATTRIBUTE_NONE = 0x1000;
+	    
 
         Container owner;
         bool is_address_valid;

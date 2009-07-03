@@ -214,6 +214,7 @@ namespace Parse {
 	    symbol_tokens["set"] = Token.SET;
 	    symbol_tokens["implements"] = Token.IMPLEMENTS;
 	    symbol_tokens["interface"] = Token.INTERFACE;
+	    symbol_tokens["proc"] = Token.PROC;
 
 	    return symbol_tokens;
 	}

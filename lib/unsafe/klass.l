@@ -186,11 +186,14 @@ namespace System is
 	/// and behaviour is undefined if the class does not inherit from Object
 	/// \return a new instance of this class
 	Object create() is
-	    Object p = cast Object(native.GC_malloc(getObjectSize()));
+	    /// FIXME: original reason for these crazy pointer types was because 64 bit target had no
+	    /// 64 bit integer type but had 64 bit pointers:
+	    int ptr ptr ptr p = cast int ptr ptr ptr(native.GC_malloc(getObjectSize()));
+            [p] = _vtable;
 
-	    [cast int ptr ptr ptr(p)] = _vtable;
-	    p.init();
-	    return p;
+	    Object o = cast Object(p);
+	    o.init();
+	    return o;
 	end
     end
 

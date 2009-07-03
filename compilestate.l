@@ -361,6 +361,7 @@ namespace Parse {
 
 	Vector<Template> generic_templates;
 	Vector<Container> generic_instances;
+	Vector<Type> proc_instances;
 
 	Generic.Set<Container> interfaces_set;
 
@@ -511,6 +512,8 @@ namespace Parse {
 
 	    generic_templates = new Vector<Template>();
 	    generic_instances = new Vector<Container>();
+
+	    proc_instances = new Vector<Type>();
 	 
 	    interfaces_set = new Generic.Set<Container>();
  
@@ -1428,7 +1431,7 @@ namespace Parse {
             if( output != null ) {
                 return output;
             } else {
-		IO.Std.err.println( "oops: no output stream" );
+		IO.Std.err.println( "oops: no output stream: " + new System.Backtrace() );
                 return IO.Std.err;
             }
         }
@@ -2042,7 +2045,8 @@ namespace Parse {
 
 	    if( c.Template != null ) {
 		IO.Std.err.println( "is already an instance??: " + c + ", " + c.Template );
-		return new Type( Type.CLASS, c );
+		return c.Type;
+		// return new Type( Type.CLASS, c );
 	    }
 
 	    foreach( Container d; generic_instances.elements() ) {
@@ -2050,7 +2054,8 @@ namespace Parse {
 		if( d.Template == c && d.checkTypeArgs( arguments ) ) {
 		    // d.markReferenced();
 		    // IO.Std.err.println( "returning this instance" );
-		    return new Type( Type.CLASS, d );
+		    return d.Type;
+		    // return new Type( Type.CLASS, d );
 		}
 	    }
 
@@ -2058,11 +2063,80 @@ namespace Parse {
 	    Container e = makeConcrete( c, arguments );
 	    // e.markReferenced();
 	    // IO.Std.err.println( "created new instance: " + e + " from template " + e.Template );
+	    
 	    generic_instances.add( e );
-	    return new Type( Type.CLASS, e );
+	    return e.Type;
+	    // return new Type( Type.CLASS, e );
 	    //	    } else {
 	    //	throw new Exception( "cannot make new generic class " + c + " here" );
 	    //}
+	}
+
+	Type findProcType( Type want_return, Vector<Type> want_arguments ) {
+	    // Not using existing code for matching methods here because:
+	    // - only interested in exact match
+	    // - want return 
+
+	    int want_arguments_length = want_arguments.Length;
+
+	    foreach( Type d; proc_instances.elements() ) {
+		IO.Std.err.println( "exising proc type: " + d );
+
+		if( !d.Clazz.matches( want_arguments, true ) ) {
+		    IO.Std.err.println( "arguments don't match" );
+		    IO.Std.err.println( "want: " + want_arguments );
+		    IO.Std.err.println( "have: " + d.Clazz.ArgTypes );
+		    continue;
+		}
+
+		if( !d.Clazz.Type.equals( want_return ) ) {
+		    IO.Std.err.println( "return type doesn't match" );
+		    IO.Std.err.println( "want: " + want_return);
+		    IO.Std.err.println( "have: " + d.Clazz.Type );
+		    continue;
+		}
+
+		return d;
+	    }
+
+	    IO.Std.err.println( "need new proc type: " + want_return + " proc(" + want_arguments + ")" );
+
+	    Container c = new Container( null, null, "proc", Symbol.PROC, 0, want_return );
+	    c.ArgTypes = want_arguments;
+
+	    var decorated = new StringBuffer();
+	    var human = new StringBuffer();
+            decorated.append( "proc$__" );
+            
+	    want_return.dumpDecorate( decorated );
+	    foreach( Type t; want_arguments.elements() ) {
+		t.dumpDecorate( decorated );
+	    }
+
+	    c.DecoratedName = decorated;
+
+	    want_return.dumpHuman( human );
+	    human.append( "$Sproc$l" );
+	    bool seen_any;
+	    foreach( Type u; want_arguments.elements() ) {
+		if( seen_any ) {
+		    human.append( "$C" );
+		}
+		u.dumpHuman( human );
+		seen_any = true;
+	    }
+	    human.append( "$r" );
+
+	    c.QualifiedName = human;
+
+	    IO.Std.err.println( "created proc container: " + c );
+	    
+	    Type r = new Type( Type.PROC, c );
+
+	    IO.Std.err.println( "created proc type: " + r );
+
+	    proc_instances.add( r );
+	    return r;
 	}
 
 	get int GenericInstanceCount {

@@ -812,6 +812,15 @@ namespace Parse {
 			b.append( '>' );
 		    } else if( c == 'C' ) {
 			b.append( ',' );
+		    } else if( c == 'S' ) {
+			b.append( ' ' );
+		    } else if( c == 'l' ) {
+			b.append( '(' );
+		    } else if( c == 'r' ) {
+			b.append( ')' );
+		    } else {
+			b.append( '$' );
+			b.append( c );
 		    }
 		} else {
 		    b.append( c );

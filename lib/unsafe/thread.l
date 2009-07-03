@@ -77,7 +77,6 @@ namespace System {
 	/// Accessor: static set System.Object TLS1 = o
         /// Set thread local storage object 1 for currently executing Thread
         /// \param o object to place in thread local storage slot 1
-	/// \property
 	static set System.Object TLS1 = o {
 	    // IO.Std.err.println( "set tls1: " + cast int(o) );
 	    // IO.Std.err.println( "set tls1: " + o );
@@ -86,8 +85,7 @@ namespace System {
 
 	/// Accessor: static get System.Object TLS1
         /// Get thread local storage object 1 for currently executing Thread
-        /// \returns null if object 1 not previously set
-	/// \property
+        /// \returns last TLS1 object set or null if not previously set
 	static get System.Object TLS1 {
 	    System.Object o = __get_tls1();
 	    // IO.Std.err.println( "get tls1: " + cast int(o) );
@@ -98,15 +96,13 @@ namespace System {
 	/// Accessor: static set System.Object TLS2 = o
         /// Set thread local storage object 2 for currently executing Thread
         /// \param o object to place in thread local storage slot 2
-	/// \property
 	static set System.Object TLS2 = o {
 	    __set_tls2(o);
 	}
 
 	/// Accessor: static get System.Object TLS2
         /// Get thread local storage object 2 for currently executing Thread
-        /// \returns null if object 2 not previously set
-	/// \property
+        /// \returns last TLS2 object set or null if not previously set
 	static get System.Object TLS2 {
 	    return __get_tls2();
 	}

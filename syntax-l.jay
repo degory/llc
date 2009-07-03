@@ -126,6 +126,7 @@ class Root {
 %token DO_WHILE      111
 %token IMPLEMENTS    112
 %token INTERFACE     113
+%token PROC          114
 %start ROOT
 
 %%
@@ -1086,10 +1087,10 @@ field_access:
 		cast<Parse.Identifier>($3).qualifies( new Parse.Super( /*@1.*/first_line ) );
 		$$ = $3;
 	}
-|   generic_type DOT identifier {
-    		 cast<Parse.Identifier>($3).qualifies( new Parse.WrapTypeExprAsExpression(first_line,cast<TypeExpr>($1)) );
-		 $$ = $3;
-        }
+//|   generic_type DOT identifier {
+//    		 cast<Parse.Identifier>($3).qualifies( new Parse.WrapTypeExprAsExpression(first_line,cast<TypeExpr>($1)) );
+//		 $$ = $3;
+//        }
 
 ;
 
@@ -1131,22 +1132,22 @@ method_call:
 			cast<Parse.ExpressionList>($5)
 		);
 	}
-|   generic_type DOT identifier OPEN_PAREN CLOSE_PAREN {
-		$$ = new Parse.MethodCall(
-			/*@1.*/first_line,
-			new Parse.WrapTypeExprAsExpression(first_line,cast<TypeExpr>($1)),
-			cast<Parse.Identifier>($3),
-			cast<Parse.ExpressionList>(null)
-		);
-        }
-|   generic_type DOT identifier OPEN_PAREN expression_list CLOSE_PAREN {
-		$$ = new Parse.MethodCall(
-			/*@1.*/first_line,
-			new Parse.WrapTypeExprAsExpression(first_line,cast<TypeExpr>($1)),
-			cast<Parse.Identifier>($3),
-			cast<Parse.ExpressionList>($5)
-		);
-        }
+//|   generic_type DOT identifier OPEN_PAREN CLOSE_PAREN {
+//		$$ = new Parse.MethodCall(
+//			/*@1.*/first_line,
+//			new Parse.WrapTypeExprAsExpression(first_line,cast<TypeExpr>($1)),
+//			cast<Parse.Identifier>($3),
+//			cast<Parse.ExpressionList>(null)
+//		);
+//       }
+//|   generic_type DOT identifier OPEN_PAREN expression_list CLOSE_PAREN {
+//		$$ = new Parse.MethodCall(
+//			/*@1.*/first_line,
+//			new Parse.WrapTypeExprAsExpression(first_line,cast<TypeExpr>($1)),
+//			cast<Parse.Identifier>($3),
+//			cast<Parse.ExpressionList>($5)
+//		);
+//        }
 |   SUPER DOT identifier OPEN_PAREN CLOSE_PAREN {
 		$$ = new Parse.MethodCall(
 			/*@1.*/first_line,
@@ -1235,23 +1236,24 @@ primary:
 |	vector_access
 |       pointer_access
 |       class_qualifier
+|       generic_type { $$ = new Parse.WrapTypeExprAsExpression(first_line,cast<TypeExpr>($1)); }
 ;
 
 
 vector_list:
 
-	type START_BLOCK expression_list END_BLOCK {
+	NEW type START_BLOCK expression_list END_BLOCK {
 		$$ = new Parse.VectorList(
 			/*@1.*/first_line,
-			cast<Parse.TypeExpr>($1),
-			cast<Parse.ExpressionList>($3)
+			cast<Parse.TypeExpr>($2),
+			cast<Parse.ExpressionList>($4)
 		);
 	} |
-	type START_BLOCK expression_list COMMA END_BLOCK {
+	NEW type START_BLOCK expression_list COMMA END_BLOCK {
 		$$ = new Parse.VectorList(
 			/*@1.*/first_line,
-			cast<Parse.TypeExpr>($1),
-			cast<Parse.ExpressionList>($3)
+			cast<Parse.TypeExpr>($2),
+			cast<Parse.ExpressionList>($4)
 		);
 	} | 
 	START_BLOCK expression_list END_BLOCK {
@@ -1359,6 +1361,10 @@ complex_type:
 		{ $$ = new Parse.PointerType( /*@1.*/first_line, cast<Parse.TypeExpr>($1) ); }
 |	type REFERENCE
 		{ $$ = new Parse.ReferenceType( /*@1.*/first_line, cast<Parse.TypeExpr>($1) ); }
+|       type PROC OPEN_PAREN type_list CLOSE_PAREN
+	        { $$ = new Parse.ProcType( first_line, cast Parse.TypeExpr($1), cast Parse.TypeExprList($4) ); }
+|       type PROC OPEN_PAREN CLOSE_PAREN
+	        { $$ = new Parse.ProcType( first_line, cast Parse.TypeExpr($1), null ); }
 |       generic_type { $$ = $1; }
 // type OPEN_GENERIC type_list CLOSE_GENERIC { $$ = new GenericType( first_line, cast<Parse.TypeExpr>($1), cast<Parse.TypeExprList>($3) ); }
 |       type OPEN_GENERIC CLOSE_GENERIC { $$ = $1; }

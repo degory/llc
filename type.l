@@ -44,8 +44,9 @@ namespace Parse {
             SUPER = 19,
             NULL = 20,
             STRUCT = 21,
-	    INFER = 22,
-            ERROR = 22;
+	    PROC = 22,
+	    INFER = 23,
+            ERROR = 23;
 
         public const int 
             QUALITY_EXACT = 5,
@@ -240,6 +241,9 @@ namespace Parse {
 	    case Type.INFER:
 		human.append( "undefined" );
 
+	    case Type.PROC:
+		human.append( Clazz.HumanName );
+
             case Type.ERROR:
                 human.append( "undefined" );
 
@@ -305,6 +309,10 @@ namespace Parse {
             case Type.STRING:
                 decorate.append( "Pc" );
 
+	    case Type.PROC:
+                decorate.append( "F" );
+		decorate.append( c.DecoratedName );
+
             default:
                 decorate.append( 'v' );
             }
@@ -329,7 +337,7 @@ namespace Parse {
             case Type.INTEGER,Type.ENUM,Type.ERROR:
                 return 4;
 
-	    case Type.NONE,Type.NULL,Type.WORD,Type.LONG,Type.VECTOR,Type.REFERENCE,Type.POINTER,Type.CLASS:
+	    case Type.NONE,Type.NULL,Type.WORD,Type.LONG,Type.VECTOR,Type.REFERENCE,Type.POINTER,Type.CLASS,Type.PROC:
 		return Gen.Machine.WORD;
 
             default:

@@ -564,6 +564,8 @@ namespace Parse {
 
 	    // IO.Std.err.println( "made concrete: " + concrete ); // + " return to: " + new System.Backtrace());
 
+	    concrete.Type = new Type( Type.CLASS, concrete );
+
 	    return concrete;
 	}
 

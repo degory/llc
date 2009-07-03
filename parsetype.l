@@ -412,6 +412,99 @@ namespace Parse {
 	}	
     }
 
+    class ProcType extends TypeExpr {
+	TypeExpr type_expr;
+	TypeExprList arguments;
+
+
+	void init( int line_number, TypeExpr type_expr, TypeExprList arguments ) {
+	    super.init( line_number );
+	    this.type_expr = type_expr;
+
+	    if( arguments == null ) {
+		arguments = new TypeExprList(line_number);
+	    }
+
+	    this.arguments = arguments;
+
+	    IO.Std.err.println( "new proc type expr: " + this );
+	}
+
+
+	Type parseType( CompileState state ) {
+	    Type r, t;
+
+    	    r = type_expr.parseType( state );
+
+	    /*
+	    IO.Std.err.println( "template is: " + t );
+	    IO.Std.err.println( "symbol table is: " + state.symbol_table );
+	    */
+	    
+	    var a = new Vector<Type>();
+	    foreach( TypeExpr e; arguments.List.elements() ) {
+		t = e.parseType( state );
+		// IO.Std.err.println( "type argument: " + t + " from " + e );
+		a.add( t );
+	    }
+
+	    return state.findProcType( r, a );
+	}
+
+	void checkTemplates( CompileState state ) {
+	    if( arguments != null ) {
+		arguments.checkTemplates(state);
+	    }
+	    if( type_expr != null ) {
+		type_expr.checkTemplates(state);
+	    }
+	    parseType( state /*, false */ );
+	}
+
+	void clear( CompileState state ) {
+	    if( type_expr != null ) {
+		type_expr.clear( state );
+	    }
+	}
+
+	String toString() {
+	    StringBuffer b = new StringBuffer();
+	    b.append( type_expr );
+
+	    b.append( " proc(" );
+
+	    bool seen_any = false;
+	    foreach( TypeExpr e; arguments.List.elements() ) {
+		if( seen_any ) {
+		    b.append(',');
+		}
+		b.append( e.toString() );		
+		seen_any = true;
+	    }	    
+
+	    b.append(")");
+
+	    return b;
+	}
+
+	void print( CompileState state, Printer p ) {
+	    pl(p);
+
+	    type_expr.print( state, p );
+
+	    p.print( " proc(" );
+	    bool seen_any = false;
+	    foreach( TypeExpr e; arguments.List.elements() ) {
+		if( seen_any ) {
+		    p.print(", ");
+		}
+		e.print( state, p );
+		seen_any = true;
+	    }	    
+	    p.print( ")" );
+	}
+    }
+
     class GenericType extends TypeExpr {
 	Type type;
 	TypeExpr type_expr;
@@ -516,15 +609,16 @@ namespace Parse {
 	    } else {
 		p.print( type );
 	    }
-	    p.print( "<" );
+	    p.print( "< " );
 	    bool seen_any = false;
 	    foreach( TypeExpr e; arguments.List.elements() ) {
 		if( seen_any ) {
-		    p.print(",");
+		    p.print(", ");
 		}
 		e.print( state, p );
+		seen_any = true;
 	    }	    
-	    p.print( ">" );
+	    p.print( " >" );
 	}
     }
     
