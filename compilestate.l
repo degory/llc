@@ -1388,7 +1388,7 @@ namespace Parse {
             closeOutput();
             
 	    Util.Process assembler = new Util.Process();
-	    int result = assembler.run( "/usr/bin/as", String { "/usr/bin/as", Machine.AS_SWITCH, cast<String>(assembler_file), "-o", object_file }, null);
+	    int result = assembler.run( "/usr/bin/as", { "/usr/bin/as", Machine.AS_SWITCH, cast<String>(assembler_file), "-o", object_file }, null);
 	    if( result != 0 ) {
 		throw new Exception( "assembly of file " + assembler_file + " failed with exit status " + result );
 	    }
@@ -2080,26 +2080,26 @@ namespace Parse {
 	    int want_arguments_length = want_arguments.Length;
 
 	    foreach( Type d; proc_instances.elements() ) {
-		IO.Std.err.println( "exising proc type: " + d );
+		// IO.Std.err.println( "existing proc type: " + d );
 
 		if( !d.Clazz.matches( want_arguments, true ) ) {
-		    IO.Std.err.println( "arguments don't match" );
-		    IO.Std.err.println( "want: " + want_arguments );
-		    IO.Std.err.println( "have: " + d.Clazz.ArgTypes );
+		    // IO.Std.err.println( "arguments don't match" );
+		    // IO.Std.err.println( "want: " + want_arguments );
+		    // IO.Std.err.println( "have: " + d.Clazz.ArgTypes );
 		    continue;
 		}
 
 		if( !d.Clazz.Type.equals( want_return ) ) {
-		    IO.Std.err.println( "return type doesn't match" );
-		    IO.Std.err.println( "want: " + want_return);
-		    IO.Std.err.println( "have: " + d.Clazz.Type );
+		    // IO.Std.err.println( "return type doesn't match" );
+		    // IO.Std.err.println( "want: " + want_return);
+		    // IO.Std.err.println( "have: " + d.Clazz.Type );
 		    continue;
 		}
 
 		return d;
 	    }
 
-	    IO.Std.err.println( "need new proc type: " + want_return + " proc(" + want_arguments + ")" );
+	    // IO.Std.err.println( "need new proc type: " + want_return + " proc(" + want_arguments + ")" );
 
 	    Container c = new Container( null, null, "proc", Symbol.PROC, 0, want_return );
 	    c.ArgTypes = want_arguments;
@@ -2129,11 +2129,11 @@ namespace Parse {
 
 	    c.QualifiedName = human;
 
-	    IO.Std.err.println( "created proc container: " + c );
+	    // IO.Std.err.println( "created proc container: " + c );
 	    
 	    Type r = new Type( Type.PROC, c );
 
-	    IO.Std.err.println( "created proc type: " + r );
+	    // IO.Std.err.println( "created proc type: " + r );
 
 	    proc_instances.add( r );
 	    return r;

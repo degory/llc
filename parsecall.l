@@ -499,6 +499,12 @@ namespace Parse {
 	    if( quiet || left_value.isSuper(state) || left_value.isMethod(state) ) {
 		calcTypeNormal( state, quiet );
 	    } else {
+		/*
+		IO.Std.err.println( "this: " + this );
+		IO.Std.err.println( "quiet: " + quiet );
+		IO.Std.err.println( "left.is super: " + left_value.isSuper(state) );
+		IO.Std.err.println( "left.is method: " + left_value.isMethod(state) );
+		*/
 		// left value is not a method identifier - assume it's a proc reference or an error:
 		calcTypeProcReference( state );
 	    }
@@ -643,14 +649,50 @@ namespace Parse {
 		// IO.Std.err.println( "method call arguments: " + arg_types );
             }
 
-	    IO.Std.err.println( "calling though something other than a method identifier, is it a proc reference?" );
+	    // IO.Std.err.println( "calling though something other than a method identifier, is it a proc reference? " + new System.Backtrace() );
+	    // IO.Std.err.println( "" + line_number + ": left value is: " + left_value );
 
 	    proc_type = left_value.getType( state );
 	    
-	    IO.Std.err.println( "left value type is: " + proc_type );
+	    // IO.Std.err.println( "left value type is: " + proc_type );
 
 	    if( proc_type.TypeKind != Type.PROC ) {
-		error( "cannot call though non proc value: " + proc_type );
+		if( left_value.isIdentifier(state) ) {
+		    Identifier n = cast Identifier(left_value);
+		    Symbol s = n.getSymbol(state,false,Symbol.FIND_ANY);
+		    if( s != null ) {
+			int k = s.Kind;
+
+			if( k & Symbol.FLAG_METHOD != 0 ) {
+			    error( "strange: " + s.OwnerHumanName + "." + s.Name + " is a method but cannot call it" );
+			} else {
+			    String kind_s = "";
+			    String scope_s = "";
+			    
+			    if( k & Symbol.FLAG_VARIABLE != 0 ) {
+				kind_s = "variable";
+			    } else if( k & Symbol.FLAG_CLASS != 0 ) {
+				kind_s = "container";
+			    } else if( k & Symbol.FLAG_ACCESSOR != 0 ) {
+				kind_s = "accessor";
+			    } else if( k > Symbol.ATTRIBUTE ) {
+				kind_s = "attribute";
+			    }
+
+			    if( k & Symbol.FLAG_STATIC != 0 ) {
+				scope_s = "static ";
+			    } else if( k & Symbol.FLAG_LOCAL != 0 ) {
+				scope_s = "local ";
+				
+			    }
+
+
+			    error( s.OwnerHumanName + "." + s.Name + " is a " + scope_s + kind_s + " not a method" );
+			}
+		    } else {
+			error( "" + proc_type + " is not a method" );
+		    }
+		}
 		proc_type = null;
 		type = undefined_type;
 		return;
@@ -665,7 +707,7 @@ namespace Parse {
 	    }
 
 	    type = proc_type.Clazz.Type;
-	    IO.Std.err.println( "call through proc reference " + proc_type + " returns type " + type );
+	    // IO.Std.err.println( "call through proc reference " + proc_type + " returns type " + type );
 	}
 
         ITree compileValue( CompileState state, IBlock into ) {
@@ -740,10 +782,10 @@ namespace Parse {
 		flags = flags | LOAD_FLAG_PROC_CALL;
                 t = left_value.compileValue( state, into );
 
-		IO.Std.err.println( "compile proc call on type: " + proc_type );
+		// IO.Std.err.println( "compile proc call on type: " + proc_type );
                 t = compileLoad( state, into, null, arguments, proc_type.Clazz.ArgTypes, t, Machine.WORD, flags, null );
 
-		IO.Std.err.println( "block now:\n" + into );
+		// IO.Std.err.println( "block now:\n" + into );
 
 	    } else if( left_value != null && !left_value.isClass( state ) ) {
 		// Std.err.println( "call A..." );
@@ -911,5 +953,170 @@ namespace Parse {
 	    }
 	    p.print( ")" );	   
 	}
+    }
+
+    class ProcRef extends Expression {
+	Expression left;
+	TypeExprList arguments;
+	Container method;
+
+	void init( int line_number, Expression left, TypeExprList arguments ) {
+	    super.init( line_number );
+	    this.left = left;
+	    this.arguments = arguments;
+	}
+
+	void clear( CompileState state ) {
+	    super.clear(state);
+
+	    method = null;
+	    left.clear(state);
+	    arguments.clear(state);
+	}
+
+	void calcType( CompileState state ) {
+	    if( !left.isMethod(state) ) {
+		error( ".proc() must qualify a method name" );
+		type = undefined_type;
+		return;
+	    }
+
+            var arg_types = arguments.getTypes( state );
+	    String arg_string;
+
+	    var name = cast Identifier(left);
+	    var left_value = name.LeftValue;
+
+	    Symbol symbol;
+
+            var quality = new Quality();
+            if( left_value != null ) {
+                type = left_value.getType( state );
+
+                if( type.TypeKind == Type.ERROR ) {
+                    symbol = undefined_method;
+		    return;
+		} else if( type.TypeKind != Type.CLASS ) {
+		    error( "cannot search for method " + name + " in " + type );
+		    type = undefined_type;
+		    return;
+                }
+
+		symbol = type.findBestMethod( name.Name, arg_types, quality );
+            } else {
+                // IO.Std.err.println( "searching current class " + state.CurrentClass + " for best match: " + name.Name + "(" + arg_types + ")" );
+
+                symbol = state.findBestMethod( name.Name, arg_types, quality );
+            }
+
+            if( symbol == null ) {
+                type = undefined_type;
+
+                arg_string = dumpArguments( arg_types );
+
+                if( left_value != null ) {
+                    error( "method " + name.Name + "(" + arg_string + ") is not defined in " + left_value.getType( state ).dump() );
+                } else {
+                    error( "method " + name.Name + "(" + arg_string + ") is not defined in " + state.CurrentClass.HumanName );
+
+                }
+		return;
+            } else if( symbol.Kind & Symbol.FLAG_METHOD == 0 ) {
+		type = undefined_type;
+		error( name.Name + " is not a method" );
+		return;
+            }
+
+	    method = cast<Container>( symbol );
+	    if( method == null ) {
+		throw new Exception( "oops: method symbol " + symbol.HumanName + " is not a container" );
+	    }
+
+	    type = state.findProcType( method.Type, method.ArgTypes );
+
+	    if( quality.quality < Type.QUALITY_GOOD ) {
+		arg_string = dumpArguments( arg_types );
+		String resolve_string = dumpArguments( method.ArgTypes );
+		
+		if( state.WantWarnResolve ) {
+		    warn( "reference to " + name.Name + "(" + arg_string +
+			  ") resolves to " + method.HumanName + "(" + resolve_string + ") match quality " + quality.quality );
+		}
+	    }
+
+	    /*
+	      IO.Std.err.println( "method call resolves to: " + symbol );
+	      IO.Std.err.println( "IIIIII: kind is " + symbol.Kind + " versus " + Symbol.STATIC_METHOD );
+	    */
+	    checkAccess( symbol, state );	    
+	}
+
+        ITree compileValue( CompileState state, IBlock into ) {
+            getType( state );
+
+            if( method == null || method == undefined_method ) {
+                return new ITree( line_number, Op.ERROR, 0 );
+            }
+
+	    var load_this = false;
+	    Identifier name;
+	    var left_value = left;
+
+	    name = cast Identifier(left_value);
+	    left_value = name.LeftValue;
+	    
+
+	    // IO.Std.err.println( "call method " + method.Owner.HumanName + " " + method.Name );
+
+	    if( left_value != null && !left_value.isThis( state ) && !left_value.isSuper( state ) ) {
+		// IO.Std.err.println( "IIIIII: load this" );
+		load_this = true;
+	    }
+            
+            int size = 0;
+	    /*
+            if( method.getKind() == Symbol.INSTANCE_METHOD ) {
+                size = 4;                       // FIXME: not always
+            }
+	    */
+            
+            int flags = LOAD_FLAG_REFERENCE;
+                        
+            ITree t = null;
+
+	    if( left_value != null && !left_value.isClass( state ) ) {
+		// Std.err.println( "call A..." );
+                t = left_value.compileValue( state, into );
+
+                Container scope = left_value.getType(state).Clazz;
+                Container super_class = null;
+                if( left_value.getType(state).TypeKind == Type.SUPER ) {
+                    super_class = scope;
+                }
+
+		/*
+		IO.Std.err.println( "method call calling load: " + method );
+		IO.Std.err.println( "IIIIII: kind is " + method.Kind + " versus " + Symbol.STATIC_METHOD );
+		*/
+
+                t = compileLoad( state, into, method, null, null, t, Machine.WORD, flags, super_class );
+            } else if( left_value != null ) {
+		// Std.err.println( "call B..." );
+                if( left_value.isClass( state ) ) {
+                    flags = flags | LOAD_FLAG_STATIC;
+		}
+
+                t = compileLoad( state, into, method, null, null, null, Machine.WORD, flags, null );
+            } else {
+		// Std.err.println( "call C..." );
+                if( state.CurrentMethod.IsStatic ) {
+                    flags = flags | LOAD_FLAG_STATIC;
+		}
+
+                t = compileLoad( state, into, method, null, null, t, Machine.WORD, flags, null );
+            }
+            
+	    return t;
+        }	
     }
 }

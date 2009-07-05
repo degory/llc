@@ -16,13 +16,13 @@ namespace Parse {
     class Addresses extends System.Object {
         public int itable_offset;
         public int vtable_offset;
-        public int hash;
+	//  public int hash;
         
         void init() {
             super.init();
             itable_offset = Machine.WORD;
             vtable_offset = Machine.WORD;
-            hash = 0;
+            // hash = 0;
         }
     }
 
@@ -48,7 +48,7 @@ namespace Parse {
         int stack_offset;
 	int local_offset;
 	int method_index;
-        int hash;
+        int hash_;
         String decorated;
         String qualified;
         bool is_final;
@@ -73,7 +73,7 @@ namespace Parse {
 	    this.local_offset = -Machine.WORD;
 
             // this.arguments = null;
-            this.hash = 0;
+            this.hash_ = 0;
             this.is_final = true;
 	    // this.is_leaf = true;
         }
@@ -487,20 +487,20 @@ namespace Parse {
         void calcHash() {
 	    int h;
 
-            if( hash == 0 ) {
+            if( hash_ == 0 ) {
                 if( Super != null ) {
-                    hash = Super.Hash;
+                    hash_ = Super.Hash;
 
-                    hash = Util.Hash.rotate(hash);
+                    hash_ = Util.Hash.rotate(hash_);
 		    // IO.Std.err.println( HumanName + ": super hash " + hash );
                 } else {
-                    hash = Machine.NAME.hash();
+                    hash_ = Machine.NAME.hash();
 		    // IO.Std.err.println( HumanName + ": root hash " + hash );
                 }
 
 		if( implements_list != null ) {
 		    foreach( Container c; implements_list.elements() ) {
-			hash = Util.Hash.rotate(hash) + c.Hash;
+			hash_ = Util.Hash.rotate(hash_) + c.Hash;
 			// IO.Std.err.println( HumanName + ": implements " + c.HumanName + " hash " + h );
 		    }
 		}               
@@ -510,22 +510,22 @@ namespace Parse {
                     if( !current.IsFinal ) {
                         m = m | 32;
                     }
-                    hash = Util.Hash.rotate(hash) + m;
+                    hash_ = Util.Hash.rotate(hash_) + m;
 
                     if( current.Kind == Symbol.ENUM ) {
-			hash = Util.Hash.rotate(hash) + current.Hash;
+			hash_ = Util.Hash.rotate(hash_) + current.Hash;
 		    } else {
-                        hash = Util.Hash.rotate(hash) + current.Address;
+                        hash_ = Util.Hash.rotate(hash_) + current.Address;
                     }
                     
                     String s = current.DecoratedName;
-                    hash = Util.Hash.rotate(hash) + Util.Hash.hash(s);
+                    hash_ = Util.Hash.rotate(hash_) + Util.Hash.hash(s);
 
-		    // IO.Std.err.println( HumanName + ": member " + s + "@" + current.Address + " hash " + hash );
+		    // IO.Std.err.println( HumanName + ": member " + s + "@" + current.Address + " hash " + hash_ );
                 }
 
-                if( hash == 0 ) {
-                    hash = 1;
+                if( hash_ == 0 ) {
+                    hash_ = 1;
                 }
                 
 		// IO.Std.err.println( HumanName + ": result hash " + hash );
@@ -534,7 +534,7 @@ namespace Parse {
         }
 
         get int Hash {
-            if( hash == 0 ) {
+            if( hash_ == 0 ) {
                 calcHash();
             } 
 
@@ -549,7 +549,7 @@ namespace Parse {
 		}
    	    } */
             
-            return hash;
+            return hash_;
         }
 
         get bool NeedsBody  {

@@ -26,6 +26,8 @@ namespace Parse {
 
 	Expression indexer_value;
 	bool want_indexer;
+
+	bool want_call;
         
         void init( int ln, String name ) {
             super.init( ln );
@@ -42,6 +44,7 @@ namespace Parse {
 	    method_call = null;
 	    set_value = null;
 	    want_set_value = false;
+	    want_call = false;
 	    if( left_value != null ) {
 		left_value.clear( state );
 	    }
@@ -87,11 +90,22 @@ namespace Parse {
 	    return left_value != null && left_value.isThis(state);
 	}
 
+	// assuming we trying to call this identifier as a method, could it be one?
 	bool isMethod(CompileState state) {
+	    // note that we want to call this identifier as a method or generate a proc reference to it. If this is not
+	    // set we'll issue an error later if the value is loaded:
+	    want_call = true;
+
 	    Symbol s = getSymbol( state, name, false, Symbol.FIND_ANY );
-	    if( s != null && s.Kind & Symbol.FLAG_METHOD != 0 ) {
+	    if( s == null ) {
+		return false;
+	    }
+
+	    int k = s.Kind;
+	    if( k & Symbol.FLAG_METHOD != 0 || k > Symbol.ATTRIBUTE ) {
 		return true;
 	    } else {
+		// IO.Std.err.println( "not method: " + this + ", symbol: " + s );
 		return false;
 	    }
 	}
@@ -471,7 +485,10 @@ namespace Parse {
             
 	    Type at;
             ITree result = null;
-            if( k == Symbol.ATTRIBUTE_LENGTH ) {
+	    if( k & Symbol.FLAG_METHOD != 0 ) {
+		error( "not calling method " + symbol + " here" );
+		return new ITree( 0, Op.ERROR, 0 );
+	    } else if( k == Symbol.ATTRIBUTE_LENGTH ) {
 		// need to allow for null pointer exception to be thrown here:
 		return makeLoadIndirect( state, line_number, into, Machine.WORD, true,
 					 new ITree( line_number, Op.ADD, Machine.WORD, 

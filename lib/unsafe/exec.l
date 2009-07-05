@@ -160,14 +160,14 @@ namespace Util is
 	/// \param args program arguments in an array of Strings
 	/// \param env program environment in an array of Strings
 	/// \return child exit status if wait, otherwise zero
-	int run( System.String name, System.String[] args, System.String[] env, bool wait ) is
+	int run( System.String name, System.String[] args, System.String[] env, bool want_wait ) is
 	    native.GC_disable();
 	    fork();
 	    if isChild() then
 		spawn( name, args, env );
 	    else
 		native.GC_enable();
-		if wait then
+		if want_wait then
 		    int result = wait();
 		    // IO.Std.err.println( "spawned process finished, returning: " + result );
 		    return result;

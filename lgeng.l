@@ -1585,15 +1585,17 @@ namespace LGen {
                     if( buf.getLength() <= 0 ) {
                         println( "\tnts_" + j + " = new int[0];" );
                     } else {
-                        println("\tnts_" + j + " = int { " + buf + " };" );
+                        // println("\tnts_" + j + " = int { " + buf + " };" );
+                        println("\tnts_" + j + " = new int { " + buf + " };" );
                     }
                     str[j] = buf;
                 }
                 nts[i] = j;
                 i = i + 1;
             }
-            
-            print("\tnts = int[] {\n");
+
+//           print("\tnts = int[] {\n");
+            print("\tnts = new int[] {\n");
             i = 0;
             j = 0;
             for( r = rules; r != null; r = r.link ) {
@@ -1776,7 +1778,8 @@ namespace LGen {
             Rule r;
             NonTerminal n;
 
-            println( "\tresult = " + result_name + "Factory {" );
+            println( "\tresult = new " + result_name + "Factory {" );
+	    //            println( "\tresult = {" );
             println("\t\tnull,");
 
             for (r = rules; r != null; r = r.link) {
@@ -1791,7 +1794,8 @@ namespace LGen {
             Rule r;
             NonTerminal n;
             
-            println("\tnts_name = System.String {");
+            println("\tnts_name = new System.String {");
+	    //            println("\tnts_name = {");
             println("\t\tnull,\t/* 0 */");
             for( n = nts; n != null; n = n.link ) {
                 println( "\t\t" + quote + n.name + quote + ",\t/* " + n + "*/" );

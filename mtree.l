@@ -819,7 +819,7 @@ namespace Gen {
     }
 
     class MReg extends MTree {
-	public MSet rset;
+	public MSet rset_;
 	public int size;
 	public int mode;
 	public int temp;
@@ -832,7 +832,7 @@ namespace Gen {
 	void init( int t, MSet rset ) {
 	    super.init(0, null, null, null);
 
-	    this.rset = rset;
+	    this.rset_ = rset;
 	    // IO.Std.err.println( "setting register set to " + Machine.getSetName(rset) + " for " + this + " from: " + new Exception("here"));
 	    this.temp = t;
 	    this.reg = 0;
@@ -844,7 +844,7 @@ namespace Gen {
 	    super.init(0, null, null, null);
 	    this.temp = 0;
 	    this.reg = r;
-	    this.rset = MSet.None;
+	    this.rset_ = MSet.None;
 	    this.size = Machine.WORD;
 	    // IO.Std.err.println( "setting register set to " + Machine.getSetName(rset) + " for " + this + " from: " + new Exception("here"));
 	    this.mode = Mode.READ;
@@ -904,7 +904,7 @@ namespace Gen {
 	    }
 	    */
 
-	    this.rset = rset;
+	    this.rset_ = rset;
 	    return this;
 	}
 
@@ -935,7 +935,7 @@ namespace Gen {
 	}
 
 	void findOperands(Util.Vector v) {
-	    addOperand(v,mode,reg,temp,rset,size,this);
+	    addOperand(v,mode,reg,temp,rset_,size,this);
 	    // IO.Std.err.println( "MReg: find operands: " + v );
 	}
 

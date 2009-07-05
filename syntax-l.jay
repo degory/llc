@@ -268,8 +268,6 @@ generic_super:
 	{ $$ = new Parse.TypeExprList(first_line); }
 ;
 
-
-
 enumeration:
     class_specifiers ENUM identifier START_BLOCK identifier_list END_BLOCK
 	{ $$ = new Parse.EnumDef( /*@3.*/first_line, cast<Parse.Identifier>($3), cast<Parse.IdentifierList>($5) );
@@ -703,8 +701,6 @@ access_specifier:
 ;
 
 
-
-
 ident_assign:
     identifier
 |   identifier ASSIGN expression {
@@ -1078,6 +1074,15 @@ class_qualifier:
 ;
 
 
+proc_ref:
+	PROC OPEN_PAREN type_list CLOSE_PAREN OPEN_PAREN expression CLOSE_PAREN {
+	    $$ =new Parse.ProcRef( first_line, cast<Parse.Expression>($6), cast<Parse.TypeExprList>($3) );
+        }
+|	PROC OPEN_PAREN CLOSE_PAREN OPEN_PAREN expression CLOSE_PAREN {
+	    $$ = new Parse.ProcRef( first_line, cast<Parse.Expression>($5), new Parse.TypeExprList(first_line) );
+        }
+;
+
 field_access:
 	primary DOT identifier {
 		cast<Parse.Identifier>($3).qualifies(cast<Parse.Expression>($1));
@@ -1186,6 +1191,7 @@ primary:
 |	OPEN_PAREN expression CLOSE_PAREN { $$ = $2; }
 |	cast
 |	new
+|       proc_ref
 |	field_access
 |	method_call
 |	vector_access

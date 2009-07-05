@@ -380,7 +380,7 @@ namespace Parse {
             } else if( equals( u ) ) {
                 // IO.Std.err.println( "equal match: 100" );
                 return MATCH_EXACT;
-            } else if( TypeKind == Type.CLASS ) {
+            } else if( TypeKind == Type.CLASS || TypeKind == Type.PROC ) {
                 Container this_class = Clazz;
                 Container that_class = u.Clazz;
 		// IO.Std.err.println( "is assignable from: " + this_class.HumanName + " vs " + that_class.HumanName );
@@ -439,13 +439,13 @@ namespace Parse {
             if( type_kind <= Type.SIMPLE ) {
 		// IO.Std.err.println( "yes: simple type" );
                 return true;
-            } else if( type_kind == Type.CLASS ) {
+            } else if( type_kind == Type.CLASS || type_kind == Type.PROC ) {
 		// IO.Std.err.println( "identical class: " + (c == u.c) );
                 return c == u.c;
             } else {
 		// IO.Std.err.println( "identical sub-types?" );
                 if( sub_type == null ) {
-                    throw new Exception( "oops: cannot compare null sub-types" );
+                    throw new Exception( "oops: cannot compare null sub-types: " + this + " versus " + u );
                 }
                 return sub_type.equals( u.sub_type );
             }

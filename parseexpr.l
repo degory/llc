@@ -198,7 +198,7 @@ namespace Parse {
         void calcType( CompileState state ) {
             type = left.parseType( state );
             Type from = right.getType(state);
-	    bool warn = false;
+	    bool should_warn = false;
 	    
             if( type.isAssignableFrom( from ) ) {
                 // fprintf( stderr, "redundant cast from %s -> %s. no run time check required\n", from.dump(), type.dump() );
@@ -208,13 +208,13 @@ namespace Parse {
 		    if( type.isObject() ) {
 			requires_runtime_check = true;
 		    } else {
-			warn = true;
+			should_warn = true;
 		    }
 		} else if( k == Type.POINTER ) {
-		    warn = true;
+		    should_warn = true;
 		}
 
-		if( warn ) {
+		if( should_warn ) {
 		    if( state.WantMarkUnsafe ) {
 			state.markCodeUnsafe( CompileState.UNSAFE_CAST );
 		    }
@@ -1752,6 +1752,17 @@ namespace Parse {
 	    }
 	}
 
+	ITree compileLoadStaticProcRef( CompileState state, IBlock into, Symbol symbol ) {
+	    var l = TempFactory.nextLabel();
+	    into.add( new ITree( line_number, Op.RODATA, 0 ) );
+	    into.add( new ITree( line_number, Op.LABEL, 0, l ) );
+	    into.add( new ITree( line_number, Op.DEFINT, Machine.WORD, symbol.DecoratedName ) );
+	    
+	    into.add( new ITree( line_number, Op.TEXT, 0 ) );
+
+	    return new ITree( line_number, Op.GLOBAL, Machine.WORD, l );
+	}
+
         ITree compileLoad( CompileState state, IBlock into, Symbol symbol, ExpressionList arguments, Vector<Type> argument_types, ITree from, int size, int flags, Symbol super_class ) {
             String buffer;
             ITree t;
@@ -1877,6 +1888,11 @@ namespace Parse {
                     return t;
                     
                 case Symbol.STATIC_METHOD:
+		    if( reference ) {
+			// IO.Std.err.println( "want proc reference to static method: " + symbol.HumanName );
+			return compileLoadStaticProcRef( state, into, symbol );
+		    }
+
                     if( symbol.Owner != state.CurrentClass ) {
                         into.add( new ITree( line_number, Op.EXTERN, 0, symbol.DecoratedName ) );
                     }
@@ -1892,6 +1908,11 @@ namespace Parse {
 		    return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, size, inline_args );
                     
                 case Symbol.INSTANCE_METHOD:
+		    if( reference ) {
+			IO.Std.err.println( "want proc reference to instance method: " + symbol.HumanName );
+                        return new ITree( line_number, Op.ERROR, 0 );
+		    }
+
                     if( flags & LOAD_FLAG_STATIC != null ) {
                         if( symbol == undefined_method ) {
                             IO.Std.err.println( "calling undefined method" );
@@ -1904,6 +1925,7 @@ namespace Parse {
 			IO.Std.err.println( "IIIIII: versus instance method: " + Symbol.INSTANCE_METHOD );
 			IO.Std.err.println( "calling instance method statically: " + new System.Backtrace() );
 			*/
+                        return new ITree( line_number, Op.ERROR, 0 );
                     }
                     
                     if( super_class != null ) {
@@ -2023,6 +2045,11 @@ namespace Parse {
                     return new ITree( line_number, Op.ERROR, 0 );
                     
                 case Symbol.STATIC_METHOD:
+		    if( reference ) {
+			// IO.Std.err.println( "want proc reference to static method: " + symbol.HumanName );
+			return compileLoadStaticProcRef( state, into, symbol );
+		    }
+
                     if( flags & LOAD_FLAG_STATIC != 0 || super_class != null ) {
                         if( symbol.Owner != state.CurrentClass ) {
                             into.add( new ITree( line_number, Op.EXTERN, 0, symbol.DecoratedName ) );
@@ -2044,10 +2071,15 @@ namespace Parse {
                     throw new Exception( "need to fall through here" );
                     
                 case Symbol.INSTANCE_METHOD:
+		    if( reference ) {
+			IO.Std.err.println( "want proc reference to instance method: " + symbol.HumanName );
+                        return new ITree( line_number, Op.ERROR, 0 );
+		    }
+
                     if( !address ) {
                         error( "using method " + symbol.HumanName + " but not calling it" );
 			IO.Std.err.println( "here: " + new System.Backtrace() );
-                    }
+		    }
                     // source is object address
                     // into will whole call address
                     

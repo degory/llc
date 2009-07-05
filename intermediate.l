@@ -485,7 +485,7 @@ namespace Gen {
         int op;
         int size;
         int reg;
-        MSet rset;
+        MSet rset_;
         int line_number;
         int block_number;
         
@@ -780,7 +780,7 @@ namespace Gen {
 	}
 
 	ITree rset(MSet rset) {
-	    this.rset = rset;
+	    this.rset_ = rset;
 	    if( op == Op.SEQ_8 || op == Op.SEQ_4 || op == Op.SEQ_1 ) {
 		right.rset(rset);
 	    }
@@ -788,7 +788,7 @@ namespace Gen {
 	}
 
 	get MSet Set {
-	    return rset;
+	    return rset_;
 	}
 
 
@@ -957,7 +957,7 @@ namespace Gen {
 	get ITree Temp {
 	    if( RawOp == Op.TEMP ) {
 		ITree result = new ITree(0,op,size,Int);
-		result.rset = rset;
+		result.rset_ = rset_;
 		return result;
 	    } else if( RawOp == Op.SEQ ) {
 		return right.Temp;

@@ -212,9 +212,9 @@ terminal CONST_8 = 411
 terminal CONST_STR_0 = 416
 terminal CONST_CSTR_0 = 424
 terminal BOX_0 = 432
-terminal  BOOL_OR_0 = 440
-terminal  BOOL_OR_4 = 442
-terminal  BOOL_OR_8 = 443
+terminal BOOL_OR_1 = 441
+terminal BOOL_OR_4 = 442
+terminal BOOL_OR_8 = 443
 terminal BOOL_AND_1 = 449
 terminal BOOL_AND_4 = 450
 terminal BOOL_AND_8 = 451
@@ -1170,10 +1170,8 @@ rewrite t = [NEW_ARRAY t] 10
         $T
     ]
 
+// rewrite inst = [DEFINT_8] 10 [DEFINT $A.S]
 
-// rewrite inst = [PROC_CALL t] 10 [LIST [COPY $0.T [INDIRECT [ADD [CONST "0"] [REGISTER 6]]]] [DYNAMIC_CALL $0.T [INDIRECT [ADD [CONST $A.S] $0.T]]]]
-
-// rewrite inst = [PROC_CALL_DISCARD] 10 [LIST [COPY [REGISTER 1] [INDIRECT [ADD [CONST "0"] [REGISTER 6]]]] [DYNAMIC_CALL_DISCARD [INDIRECT [ADD [CONST $A.S] [REGISTER 1]]]]]
 
 rewrite inst = [PROC_CALL t t] 10 [PROC_CALL $0 $1]
 
@@ -1261,9 +1259,9 @@ machine inst = [LEA_8 t addr] 10 [Inst [Move LEA_8 $0 $1]]
 machine inst = [CONST_STR] 0 [Inst [Data CONST_STR [Const $A.S]]]
 machine inst = [CONST_CSTR] 0 [Inst [Data CONST_CSTR [Const $A.S]]]
 
-machine inst = [DEFINT_8] 0 [Inst [Data DEFINT_8 [Const $A.S]]]
-machine inst = [DEFINT_4] 0 [Inst [Data DEFINT_4 [Const $A.S]]]
-machine inst = [DEFINT_1] 0 [Inst [Data DEFINT_1 [Const $A.S]]]
+rule inst = [DEFINT_8] 0 [Inst [Data DEFINT_8 [Const $A.S]]]
+rule inst = [DEFINT_4] 0 [Inst [Data DEFINT_4 [Const $A.S]]]
+rule inst = [DEFINT_1] 0 [Inst [Data DEFINT_1 [Const $A.S]]]
 
 machine inst = [PUSH_8 tm] 10 [Inst [Stack PUSH_8 $0]]
 machine inst = [PUSH_8 immed] 10 [Inst [Stack PUSH_8 $0]]

@@ -224,6 +224,15 @@ namespace Parse {
 	    return list;
 	}
 
+	Vector<Type> getTypes( CompileState state ) {
+	    var result = new Vector<Type>();
+	    foreach( TypeExpr te; list.elements() ) {
+		result.add( te.parseType(state) );
+	    }
+
+	    return result;
+	}
+
 	void add( TypeExpr t ) {
 	    list.add( t );
 	}
@@ -427,7 +436,7 @@ namespace Parse {
 
 	    this.arguments = arguments;
 
-	    IO.Std.err.println( "new proc type expr: " + this );
+	    // IO.Std.err.println( "new proc type expr: " + this );
 	}
 
 
