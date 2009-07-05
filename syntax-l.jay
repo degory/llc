@@ -1083,10 +1083,10 @@ field_access:
 		cast<Parse.Identifier>($3).qualifies(cast<Parse.Expression>($1));
 		$$ = $3;
 	}
-|   SUPER DOT identifier {
-		cast<Parse.Identifier>($3).qualifies( new Parse.Super( /*@1.*/first_line ) );
-		$$ = $3;
-	}
+// |   SUPER DOT identifier {
+//		cast<Parse.Identifier>($3).qualifies( new Parse.Super( /*@1.*/first_line ) );
+//		$$ = $3;
+//	}
 //|   generic_type DOT identifier {
 //    		 cast<Parse.Identifier>($3).qualifies( new Parse.WrapTypeExprAsExpression(first_line,cast<TypeExpr>($1)) );
 //		 $$ = $3;
@@ -1100,70 +1100,22 @@ generic_type:
 ;
 
 method_call:
-    name OPEN_PAREN CLOSE_PAREN {
-		$$ = new Parse.MethodCall(
-			/*@1.*/first_line,
-			cast<Parse.Expression>(null),
-			cast<Parse.Identifier>($1),
+    thing OPEN_PAREN CLOSE_PAREN {
+    	    $$ = new Parse.MethodCall(
+			/*@3.*/first_line,
+			cast<Parse.Expression>($1),
 			cast<Parse.ExpressionList>(null)
 		);
 	}
-|   name OPEN_PAREN expression_list CLOSE_PAREN {
+|
+    thing OPEN_PAREN expression_list CLOSE_PAREN {
 		$$ = new Parse.MethodCall(
-			/*@1.*/first_line,
-			cast<Parse.Expression>(null),
-			cast<Parse.Identifier>($1),
+			/*@3.*/first_line,
+			cast<Parse.Expression>($1),
 			cast<Parse.ExpressionList>($3)
 		);
 	}
-|   primary DOT identifier OPEN_PAREN CLOSE_PAREN {
-		$$ = new Parse.MethodCall(
-			/*@3.*/first_line,
-			cast<Parse.Expression>($1),
-			cast<Parse.Identifier>($3),
-			cast<Parse.ExpressionList>(null)
-		);
-	}
-|   primary DOT identifier OPEN_PAREN expression_list CLOSE_PAREN {
-		$$ = new Parse.MethodCall(
-			/*@3.*/first_line,
-			cast<Parse.Expression>($1),
-			cast<Parse.Identifier>($3),
-			cast<Parse.ExpressionList>($5)
-		);
-	}
-//|   generic_type DOT identifier OPEN_PAREN CLOSE_PAREN {
-//		$$ = new Parse.MethodCall(
-//			/*@1.*/first_line,
-//			new Parse.WrapTypeExprAsExpression(first_line,cast<TypeExpr>($1)),
-//			cast<Parse.Identifier>($3),
-//			cast<Parse.ExpressionList>(null)
-//		);
-//       }
-//|   generic_type DOT identifier OPEN_PAREN expression_list CLOSE_PAREN {
-//		$$ = new Parse.MethodCall(
-//			/*@1.*/first_line,
-//			new Parse.WrapTypeExprAsExpression(first_line,cast<TypeExpr>($1)),
-//			cast<Parse.Identifier>($3),
-//			cast<Parse.ExpressionList>($5)
-//		);
-//        }
-|   SUPER DOT identifier OPEN_PAREN CLOSE_PAREN {
-		$$ = new Parse.MethodCall(
-			/*@1.*/first_line,
-			new Parse.Super( /*@1.*/first_line ),
-			cast<Parse.Identifier>($3),
-			cast<Parse.ExpressionList>(null)
-		);
-	}
-|   SUPER DOT identifier OPEN_PAREN expression_list CLOSE_PAREN {
-		$$ = new Parse.MethodCall(
-			/*@1.*/first_line,
-			new Parse.Super( /*@1.*/first_line ),
-			cast<Parse.Identifier>($3),
-			cast<Parse.ExpressionList>($5)
-		);
-	}
+
 |   NATIVE DOT identifier OPEN_PAREN CLOSE_PAREN {
 		$$ = new Parse.NativeCall(
 			/*@3.*/first_line,
@@ -1224,11 +1176,14 @@ literal:
 
 primary:
 	literal
-|   THIS {
+|       THIS {
 		$$ = new Parse.This( /*@1.*/first_line );
 	}
+|       SUPER {
+	        $$ = new Parse.Super( first_line );
+        }
 |	vector_list
-|	OPEN_PAREN expression CLOSE_PAREN { $$ = new Parse.Parenthesis( first_line, cast<Parse.Expression>($2) ); }
+|	OPEN_PAREN expression CLOSE_PAREN { $$ = $2; }
 |	cast
 |	new
 |	field_access
@@ -1239,6 +1194,7 @@ primary:
 |       generic_type { $$ = new Parse.WrapTypeExprAsExpression(first_line,cast<TypeExpr>($1)); }
 ;
 
+//|	OPEN_PAREN expression CLOSE_PAREN { $$ = new Parse.Parenthesis( first_line, cast<Parse.Expression>($2) ); }
 
 vector_list:
 

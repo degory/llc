@@ -310,7 +310,7 @@ namespace Parse {
                 decorate.append( "Pc" );
 
 	    case Type.PROC:
-                decorate.append( "F" );
+                decorate.append( 'P' );
 		decorate.append( c.DecoratedName );
 
             default:

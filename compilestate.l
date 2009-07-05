@@ -2113,7 +2113,7 @@ namespace Parse {
 		t.dumpDecorate( decorated );
 	    }
 
-	    c.DecoratedName = decorated;
+	    c.DecoratedName = "" + decorated.Length + decorated;
 
 	    want_return.dumpHuman( human );
 	    human.append( "$Sproc$l" );
@@ -2216,6 +2216,15 @@ namespace Parse {
             //  current class and its superclasses
 
             // finds first match only - do not use unless exact
+	    /*
+	    Container current_method = CurrentMethod;
+	    if( current_method != null ) {
+		Container m = current_method.findMethod( name, arguments, exact );
+		if( m != null ) {
+		    return m;
+		}
+	    }
+	    */
 
             Container current_class = CurrentClass;
             if( current_class != null ) {
@@ -2230,12 +2239,13 @@ namespace Parse {
             //  current class and its superclasses
 
             Container current_class = CurrentClass;
-            if( current_class != null ) {
+            if( current_class != null ) {		
+		// FIXME: this looks wrong:
 		quality.score = 0;
                 return current_class.findBestMethod( name, arguments, quality, true );
             }
-            
-            return null;
+
+	    return null;
         }
     
         Symbol findDecoratedSymbol( String name ) {

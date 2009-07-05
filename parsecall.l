@@ -1,5 +1,4 @@
 
-
 namespace Parse {
     use System.Object;
     use System.String;
@@ -207,7 +206,7 @@ namespace Parse {
 
 		into.add( new ITree( line_number, Op.COMMENT, 0, "constructor " + method.DecoratedName ) );
 
-		compileCall( state, into, Op.STATIC_CALL_DISCARD, method, method.DecoratedName, 0, size, inline_args );
+		compileCall( state, into, null, Op.STATIC_CALL_DISCARD, method, method.DecoratedName, 0, size, inline_args );
 		addDummyExceptionHandlerJump( state, line_number, into );
 
 		into.add( new ITree( line_number, Op.COMMENT, 0, "new result is T" + result ) );
@@ -328,7 +327,7 @@ namespace Parse {
             
             into.add( new ITree( line_number, Op.EXTERN, 0, name.Name ) );
 
-	    return compileCall( state, into, Op.STATIC_CALL, null, name.Name, 0, count, null );
+	    return compileCall( state, into, null, Op.STATIC_CALL, null, name.Name, 0, count, null );
         }
 
         void compileDiscardValue( CompileState state, IBlock into ) {
@@ -347,7 +346,7 @@ namespace Parse {
             
             into.add( new ITree( line_number, Op.EXTERN, 0, name.Name ) );
 
-	    compileCall( state, into, Op.STATIC_CALL_DISCARD, null, name.Name, 0, count, null );
+	    compileCall( state, into, null, Op.STATIC_CALL_DISCARD, null, name.Name, 0, count, null );
         }
 
 	get int Depth {
@@ -376,25 +375,37 @@ namespace Parse {
 
     class MethodCall extends Expression {
         Expression left_value;
-        Identifier name;
+        // Identifier name;
         ExpressionList arguments;
         Container method;
 	bool compare_operation;
 	bool not_result;
 	Quality quality;
 	MethodCall method_call;
+	Type proc_type;
 
         void init( int line_number, Expression left_value, Identifier name, ExpressionList args ) {
             super.init( line_number );
             this.method = null;
             this.arguments = args;
-            this.name = name;
-            this.left_value = left_value;
-
-	    if( name == left_value ) { 
-		throw new Exception( "creating method call with name==left value, name is " + name.Name );
+            // this.name = name;
+	    
+	    if( left_value != null ) {
+		// FIXME: sense of qualifies is probably backwards...
+		name.qualifies( left_value );
 	    }
+
+            this.left_value = name;
         }
+
+        void init( int line_number, Expression left_value, ExpressionList args ) {
+            super.init( line_number );
+            this.method = null;
+            this.arguments = args;
+            this.left_value = left_value;
+        }
+
+
 
 	void clear( CompileState state ) {
 	    // IO.Std.err.println( "method call clear: " + name );
@@ -403,8 +414,13 @@ namespace Parse {
 	    compare_operation = false;
 	    not_result = false;
 	    method_call = null;
+	    proc_type = null;
 
-	    name.clear( state );
+	    /*
+	    if( name != null ) {
+		name.clear( state );
+	    }
+	    */
 
 	    if( left_value != null ) {
 		left_value.clear( state );
@@ -418,7 +434,11 @@ namespace Parse {
 	}
 
 	void checkTemplates( CompileState state ) {
-	    name.checkTemplates( state );
+	    /*
+	    if( name != null ) {
+		name.checkTemplates( state );
+	    }
+	    */
 
 	    if( left_value != null ) {
 		left_value.checkTemplates( state );
@@ -430,16 +450,21 @@ namespace Parse {
 	}
 
         bool isSuperConstructorCall( CompileState state ) {
-            getType( state );
+            // getType( state );
             
-            Expression left = name.LeftValue;
+            // Expression left = name.LeftValue;
             
-            if( name.Name =~ "init" && 
-                ( left == null || left.isThis( state ) || left.isSuper( state ) ) ) {
-                return true;
-            } else {
-                return false;
-            }
+	    if( !left_value.isIdentifier(state) ) {
+		return false;
+	    }
+
+	    var name = cast Identifier(left_value);
+
+	    if( name.Name =~ "init" && left_value.isThis( state ) || left_value.isSuper( state ) ) {
+		return true;
+	    } else {
+		return false;
+	    }
         }
 
 	void setIsCompareOperation( bool c ) {
@@ -464,40 +489,44 @@ namespace Parse {
 	    calcType( state, false );
 	}
 
-        void calcType( CompileState state, bool quiet ) {
+	void calcType( CompileState state, bool quiet ) {
+	    if( left_value == null ) {
+		IO.Std.err.println( "left value is null: " + this );
+	    }
+	    // quiet => internally constructed method call and hence cannot be a proc reference
+	    // otherwise check if left value refers to a method identifier (rather than a proc reference
+	    // or some other kind of symbol):
+	    if( quiet || left_value.isSuper(state) || left_value.isMethod(state) ) {
+		calcTypeNormal( state, quiet );
+	    } else {
+		// left value is not a method identifier - assume it's a proc reference or an error:
+		calcTypeProcReference( state );
+	    }
+	}
+
+        void calcTypeNormal( CompileState state, bool quiet ) {
             Symbol symbol = null;
             String arg_string = null;
-            
+
             Generic.Vector<Type> arg_types = null;
             if( arguments != null ) {
                 arg_types = arguments.getTypes( state );
-		// IO.Std.err.println( "method call arguments: " + arg_types );
+                // IO.Std.err.println( "method call arguments: " + arg_types );
             }
-            
-	    /*
-	    IO.Std.err.println( "left value: " + left_value );
-	    IO.Std.err.println( "name: " + name );
-	    */
 
-	    // may have already done this if this is a template instance - 
-	    // if name.leftvalue already == leftvalue don't requalify or
-	    // we get a loop in the qualifiers here:
-            if( left_value != null && left_value != name.LeftValue ) {
-                name.qualifies( left_value );
-            }          
-
-            left_value = name.LeftValue;   // left value now whole qualifier chain
-
+	    var name = cast Identifier(left_value);
+	    var left_value = name.LeftValue;
+	    
             if( left_value != null && left_value.isThis( state ) ) {
-		// IO.Std.err.println( "left value is this" );
+                // IO.Std.err.println( "left value is this" );
                 left_value = null;
-	    }
+            }
 
-	    /*
-	    if( left_value != null ) {
-		IO.Std.err.println( "method call left_value: " + left_value.getType(state) );
-	    }
-	    */
+            /*
+            if( left_value != null ) {
+                IO.Std.err.println( "method call left_value: " + left_value.getType(state) );
+            }
+            */
 
             quality = new Quality();
             if( left_value != null ) {
@@ -505,63 +534,62 @@ namespace Parse {
 
                 if( type.TypeKind == Type.ERROR ) {
                     symbol = undefined_method;
-                } else if( type.TypeKind != Type.CLASS && type.TypeKind != Type.SUPER ) {    
-		    ExpressionList wrap_arguments = new ExpressionList( line_number );
+                } else if( type.TypeKind != Type.CLASS && type.TypeKind != Type.SUPER ) {
+                    ExpressionList wrap_arguments = new ExpressionList( line_number );
 
-		    Type t = getBoxType(type);;
+                    Type t = getBoxType(type);;
 
-		    if( t != null ) {
-			wrap_arguments.add( left_value );
+                    if( t != null ) {
+                        wrap_arguments.add( left_value );
 
-			if( arguments != null && arguments.List.Length > 0 ) {
-			    foreach( Expression e; arguments.List.elements() ) {
-				wrap_arguments.add(e);
-			    }
+                        if( arguments != null && arguments.List.Length > 0 ) {
+                            foreach( Expression e; arguments.List.elements() ) {
+                                wrap_arguments.add(e);
+                            }
 			}
+                        method_call = new MethodCall( line_number, new WrapTypeAsExpression(line_number,t), new Identifier(line_number,name.Name), wrap_arguments );
 
-			method_call = new MethodCall( line_number, new WrapTypeAsExpression(line_number,t), new Identifier(line_number,name.Name), wrap_arguments );
-
-			method_call.calcType( state, true );
-			quality = method_call.Quality;
-			if( quality == null ) {
-			    method = undefined_method;
-			    if( !quiet ) {
-				arg_string = dumpArguments( arg_types );
-				error( "method " + name.Name + "(" + arg_string + ") is not defined in " + type );
-			    }
-			    type = undefined_type;
-			}
-			type = method_call.Type;
-			return;
-		    } else {
-			symbol = undefined_method;
-			quality = null;
-			type = undefined_type;
-			if( quiet ) {			
-			    return;
-			} else {
-			    error( "cannot call method " + name.Name + " in " + type.dump() );
-			    return;
-			}
-		    }
+                        method_call.calcType( state, true );
+                        quality = method_call.Quality;
+                        if( quality == null ) {
+                            method = undefined_method;
+                            if( !quiet ) {
+                                arg_string = dumpArguments( arg_types );
+                                error( "method " + name.Name + "(" + arg_string + ") is not defined in " + type );
+                            }
+                            type = undefined_type;
+                        }
+                        type = method_call.Type;
+                        return;
+                    } else {
+                        symbol = undefined_method;
+                        quality = null;
+                        type = undefined_type;
+                        if( quiet ) {
+                            return;
+                        } else {
+                            error( "cannot call method " + name.Name + " in " + type.dump() );
+                            return;
+                        }
+                    }
 
                 } else {
                     symbol = type.findBestMethod( name.Name, arg_types, quality );
                 }
             } else {
-		// IO.Std.err.println( "searching current class " + state.CurrentClass + " for best match: " + name.Name + "(" + arg_types + ")" );
+                // IO.Std.err.println( "searching current class " + state.CurrentClass + " for best match: " + name.Name + "(" + arg_types + ")" );
 
                 symbol = state.findBestMethod( name.Name, arg_types, quality );
             }
-            
+
             if( symbol == null ) {
-		quality = null;
+                quality = null;
                 method = undefined_method;
                 type = undefined_type;
-                
-		if( quiet ) {
-		    return;
-		}
+
+                if( quiet ) {
+                    return;
+                }
 
                 arg_string = dumpArguments( arg_types );
 
@@ -572,13 +600,13 @@ namespace Parse {
                 }
 
             } else if( symbol != null ) {
-		if( symbol.Kind & Symbol.FLAG_METHOD == 0 ) {
-		    type = undefined_type;
-		    quality = null;
+                if( symbol.Kind & Symbol.FLAG_METHOD == 0 ) {
+                    type = undefined_type;
+                    quality = null;
                     method = undefined_method;
-		    if( quiet ) {
-			return;
-		    }
+                    if( quiet ) {
+                        return;
+                    }
 
                     error( name.Name + " is not a method" );
                 } else {
@@ -588,23 +616,56 @@ namespace Parse {
                     }
                     type = method.Type;
                 }
-                
+
                 if( quality.quality < Type.QUALITY_GOOD ) {
                     arg_string = dumpArguments( arg_types );
                     String resolve_string = dumpArguments( method.ArgTypes );
-                    
-		    if( !quiet && state.WantWarnResolve ) {
-			warn( "call to " + name.Name + "(" + arg_string +
-			      ") resolves to " + method.HumanName + "(" + resolve_string + ") match quality " + quality.quality );
-		    }
+
+                    if( !quiet && state.WantWarnResolve ) {
+                        warn( "call to " + name.Name + "(" + arg_string +
+                              ") resolves to " + method.HumanName + "(" + resolve_string + ") match quality " + quality.quality );
+                    }
                 }
-                
-		/*
-		IO.Std.err.println( "method call resolves to: " + symbol );
-		IO.Std.err.println( "IIIIII: kind is " + symbol.Kind + " versus " + Symbol.STATIC_METHOD );
-		*/
+
+                /*
+                IO.Std.err.println( "method call resolves to: " + symbol );
+                IO.Std.err.println( "IIIIII: kind is " + symbol.Kind + " versus " + Symbol.STATIC_METHOD );
+                */
                 checkAccess( symbol, state );
             }
+	} 
+
+    
+	void calcTypeProcReference( CompileState state ) {
+            Generic.Vector<Type> arg_types = null;
+            if( arguments != null ) {
+                arg_types = arguments.getTypes( state );
+		// IO.Std.err.println( "method call arguments: " + arg_types );
+            }
+
+	    IO.Std.err.println( "calling though something other than a method identifier, is it a proc reference?" );
+
+	    proc_type = left_value.getType( state );
+	    
+	    IO.Std.err.println( "left value type is: " + proc_type );
+
+	    if( proc_type.TypeKind != Type.PROC ) {
+		error( "cannot call though non proc value: " + proc_type );
+		proc_type = null;
+		type = undefined_type;
+		return;
+	    }
+
+	    if( !proc_type.Clazz.matches( arg_types, false ) ) {
+                var arg_string = dumpArguments( arg_types );		
+		error( "argument types do not match: " + proc_type + " vesus(" + arg_string + ")" );
+		proc_type = null;
+		type = undefined_type;
+		return;
+	    }
+
+	    type = proc_type.Clazz.Type;
+	    IO.Std.err.println( "call through proc reference " + proc_type + " returns type " + type );
 	}
 
         ITree compileValue( CompileState state, IBlock into ) {
@@ -634,20 +695,31 @@ namespace Parse {
 		return method_call.compileValue( state, into, need_value );
 	    }
 
+            bool load_this = false;
+	    bool proc_call = proc_type != null;
+
             if( method == undefined_method ) {
                 return new ITree( line_number, Op.ERROR, 0 );
-            } else if( method == null ) {
+            } else if( method == null && !proc_call ) {
                 // result of compile error
                 return new ITree( line_number, Op.ERROR, 0 );
             }
 
-	    // IO.Std.err.println( "call method " + method.Owner.HumanName + " " + method.Name );
+	    Identifier name;
+	    var left_value = this.left_value;
 
-            bool load_this = false;
-            if( left_value != null && !left_value.isThis( state ) && !left_value.isSuper( state ) ) {
-		// IO.Std.err.println( "IIIIII: load this" );
-                load_this = true;
-            }
+	    if( !proc_call ) {
+		name = cast Identifier(left_value);
+		left_value = name.LeftValue;
+	    
+
+		// IO.Std.err.println( "call method " + method.Owner.HumanName + " " + method.Name );
+
+		if( left_value != null && !left_value.isThis( state ) && !left_value.isSuper( state ) ) {
+		    // IO.Std.err.println( "IIIIII: load this" );
+		    load_this = true;
+		}
+	    }
             
             int size = 0;
 	    /*
@@ -664,7 +736,16 @@ namespace Parse {
             
             ITree t = null;
 
-            if( left_value != null && !left_value.isClass( state ) ) {
+	    if( proc_call ) {
+		flags = flags | LOAD_FLAG_PROC_CALL;
+                t = left_value.compileValue( state, into );
+
+		IO.Std.err.println( "compile proc call on type: " + proc_type );
+                t = compileLoad( state, into, null, arguments, proc_type.Clazz.ArgTypes, t, Machine.WORD, flags, null );
+
+		IO.Std.err.println( "block now:\n" + into );
+
+	    } else if( left_value != null && !left_value.isClass( state ) ) {
 		// Std.err.println( "call A..." );
                 t = left_value.compileValue( state, into );
 
@@ -770,13 +851,12 @@ namespace Parse {
         }
 
         void dump( CompileState state, StringBuffer buffer ) {
+	    if( left_value != null ) {
+		left_value.dump( state, buffer );
+	    } else {
+		buffer.append( "<no left value>" );
+	    }
 
-            if( left_value != null ) {
-                left_value.dump( state, buffer );
-		buffer.append( '.' );
-            }
-            
-            name.dump( state, buffer );
             buffer.append( '(' );
             
             if( arguments != null ) {
@@ -800,7 +880,7 @@ namespace Parse {
 	}
 
 	get int Depth {
-	    int result = name.Depth;
+	    int result = left_value.Depth;
 	    if( arguments != null ) {
 		int d = arguments.Depth;
 		if( d > result ) {
@@ -822,7 +902,7 @@ namespace Parse {
 		p.print( "." );
 	    }
 	    */
-	    name.print( state, p );
+	    left_value.print( state, p );
 	    p.print( "(" );
 	    if( arguments != null ) {
 		p.print( " " );

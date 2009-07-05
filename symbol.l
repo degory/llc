@@ -646,24 +646,26 @@ namespace Parse {
             
 	    if( v != null ) {
 		foreach( Symbol s; v.elements() ) {
+
 		    Quality q = new Quality();
-		    if( s.Kind & Symbol.FLAG_METHOD != 0 ) {
-			if( name.equals( s.Name ) ) {
-			    Container class_symbol = cast<Container>(s);
-			    
-			    q.score = 0;
-			    q.quality = 0;
-			    if( class_symbol.matches( arguments, q ) ) {
-				if( q.score > best_score ) {
-				    best_score = q.score;
-				    best_match = class_symbol;
-				    best_quality = q.quality;
-				} else if( best_score == result.score ) {
-				    IO.Std.err.println( "ambiguous method protocols found looking for " + name + ": " + best_match.getDecoratedName() + " versus " + class_symbol.getDecoratedName() );
-				    result.quality = Type.QUALITY_AMBIG;
-				    return null;
-				}
-			    } 
+		    if( s.Kind & Symbol.FLAG_METHOD != 0 && name.equals( s.Name ) ) {
+			Container class_symbol;
+
+			class_symbol = cast<Container>(s);
+
+			q.score = 0;
+			q.quality = 0;
+			if( class_symbol.matches( arguments, q ) ) {
+
+			    if( q.score > best_score ) {
+				best_score = q.score;
+				best_match = class_symbol;
+				best_quality = q.quality;				    
+			    } else if( best_score == result.score ) {
+				IO.Std.err.println( "ambiguous method protocols found looking for " + name + ": " + best_match.getDecoratedName() + " versus " + class_symbol.getDecoratedName() );
+				result.quality = Type.QUALITY_AMBIG;
+				return null;
+			    }
 			}
 		    }
 		}

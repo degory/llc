@@ -57,6 +57,10 @@ namespace Parse {
 	    return want_indexer && method_call != null;
 	}
 
+	bool isIdentifier(CompileState state) {
+	    return true;
+	}
+
 	void wantIndexer( CompileState state, Expression indexer_value ) {
 	    want_indexer = true;
 	    this.indexer_value = indexer_value;
@@ -73,6 +77,23 @@ namespace Parse {
 
 	MethodCall getMethodCall() {
 	    return method_call;
+	}
+
+	bool isSuper(CompileState state) {
+	    return left_value != null && left_value.isSuper(state);
+	}
+
+	bool isLeft(CompileState state) {
+	    return left_value != null && left_value.isThis(state);
+	}
+
+	bool isMethod(CompileState state) {
+	    Symbol s = getSymbol( state, name, false, Symbol.FIND_ANY );
+	    if( s != null && s.Kind & Symbol.FLAG_METHOD != 0 ) {
+		return true;
+	    } else {
+		return false;
+	    }
 	}
         
         void calcType( CompileState state ) {

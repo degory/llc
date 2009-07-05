@@ -718,9 +718,11 @@ namespace Parse {
             if( members != null ) {
 		// IO.Std.err.println( "about to search: " + members + " (" + String.hex(cast<int>(members)) + ") for: " + name );
                 result = members.findMethod( name, arg_types, quality );
-                if( result != null ) {
+		
+                if( result != null && quality.score == Type.QUALITY_EXACT ) {
+		    return result;
                     // fprintf( stderr, "found %s with score %d\n", result.getDecoratedName(), score );
-                }
+                }		
             }
             
             if( recurse && parent != null ) {

@@ -228,6 +228,7 @@ namespace Parse {
             LOAD_FLAG_STATIC = 2,
             LOAD_FLAG_DISCARD = 4,
             LOAD_FLAG_REFERENCE = 8,
+	    LOAD_FLAG_PROC_CALL = 16,
 
             EX_FRAME_SIZE = 24,
             EX_RETURN_OFFSET = 12;

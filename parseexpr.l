@@ -1554,6 +1554,25 @@ namespace Parse {
             return false;
         }
 
+	bool isIdentifier( CompileState state ) {
+	    return false;
+	}
+
+	// does this expression resolve to an identifier that refers to a method?
+	bool isMethod( CompileState state ) {
+	    return false;
+	}
+
+	/*
+	set bool WantProc = p {
+	    // do nothing
+	}
+
+        get bool WantProc {
+	    return false;
+	}
+	*/
+
         Type getType( CompileState state ) {
             if( type == null ) {
                 calcType( state );
@@ -1609,7 +1628,17 @@ namespace Parse {
                               );
         }
 
-	ITree compileCall( CompileState state, IBlock into, int o, Symbol symbol, String name, int offset, int pop_size, Util.IntVector inline_args ) {
+	ITree compileCall(
+            CompileState state, 
+	    IBlock into, 
+	    ITree from, 
+	    int o, 
+	    Symbol symbol, 
+	    String name, 
+	    int offset, 
+	    int pop_size, 
+	    Util.IntVector inline_args )
+	{
 	    int t;
 
 	    if( inline_args != null ) {
@@ -1701,6 +1730,25 @@ namespace Parse {
 		    into.add( new ITree( line_number, Op.RELEASE, 0, pop_size ) );
 		}
 		return new ITree( line_number, Op.COMMENT, 0, "discard call result" );;
+
+	    case Op.PROC_CALL:
+		t = TempFactory.nextTemp();
+		into.add( new ITree( line_number, o, 0, from, new ITree( line_number, Op.TEMP, Machine.WORD, t ) ) );
+		addDummyExceptionHandlerJump( state, line_number, into );
+
+		if( pop_size > 0 ) {
+		    into.add( new ITree( line_number, Op.RELEASE, 0, pop_size ) );
+		}
+		return new ITree( line_number, Op.TEMP, Machine.WORD, t );
+		
+	    case Op.PROC_CALL_DISCARD:
+		into.add( new ITree( line_number, o, 0, from ) );
+		addDummyExceptionHandlerJump( state, line_number, into );
+
+		if( pop_size > 0 ) {
+		    into.add( new ITree( line_number, Op.RELEASE, 0, pop_size ) );
+		}
+		return new ITree( line_number, Op.COMMENT, 0, "proc call result" );;
 	    }
 	}
 
@@ -1712,21 +1760,23 @@ namespace Parse {
             bool address = flags & LOAD_FLAG_ADDRESS != 0;
             bool no_discard = flags & LOAD_FLAG_DISCARD == 0;
             bool reference = flags & LOAD_FLAG_REFERENCE != 0;
+	    bool proc_call = flags & LOAD_FLAG_PROC_CALL != 0;
 	    Util.IntVector inline_args;
-	    if( symbol.IsInline /* && state.InlineOK */ ) {
-		inline_args = new Util.IntVector();
-	    }
-
-            // s is the address of the object containing symbol
-            if( symbol == null ) {
-                error( "oops: cannot load a null symbol" );
-                return new ITree( line_number, Op.ERROR, 0 );
-            }
-
-	    if( symbol.Kind == Symbol.TYPE ) {
-		IO.Std.err.println( "attempting to load value of type symbol " + symbol + " here" );
-	    }
-            
+	    if( symbol != null ) {
+		if( symbol.IsInline /* && state.InlineOK */ ) {
+		    inline_args = new Util.IntVector();
+		}
+		
+		if( symbol.Kind == Symbol.TYPE ) {
+		    IO.Std.err.println( "attempting to load value of type symbol " + symbol + " here" );
+		}
+	    } else {
+		if( !proc_call ) {
+		    error( "oops: cannot load a null symbol" );
+		    return new ITree( line_number, Op.ERROR, 0 );
+		} 
+	    }		
+             
             if( from == null ) {
                 switch ( symbol.Kind ) {
 		    		   
@@ -1839,7 +1889,7 @@ namespace Parse {
 
 		    size = ExpressionList.compilePush( arguments, state, null, argument_types, into, false, false, inline_args );
 
-		    return compileCall( state, into, o, symbol, symbol.DecoratedName, 0, size, inline_args );
+		    return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, size, inline_args );
                     
                 case Symbol.INSTANCE_METHOD:
                     if( flags & LOAD_FLAG_STATIC != null ) {
@@ -1870,9 +1920,9 @@ namespace Parse {
                             o = Op.STATIC_CALL_DISCARD;
                         }
 
-			size = ExpressionList.compilePush( arguments, state, makeLoadThis(state, 0,into), argument_types, into, true, false, inline_args );
+			size = ExpressionList.compilePush( arguments, state, makeLoadThis(state, 0, into), argument_types, into, true, false, inline_args );
 
-			return compileCall( state, into, o, symbol, symbol.DecoratedName, 0, size, inline_args );
+			return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, size, inline_args );
                     }  else {
                         if( no_discard ) {
                             o = Op.DYNAMIC_CALL;
@@ -1888,7 +1938,7 @@ namespace Parse {
 			    throw new Exception( "vtable is not "+ Machine.WORD + "-byte aligned" );
 			}
 
-			return compileCall( state, into, o, symbol, null, symbol.Address, size, null );
+			return compileCall( state, into, null, o, symbol, null, symbol.Address, size, null );
                     }
                     
                 default:
@@ -1904,6 +1954,17 @@ namespace Parse {
                     return new ITree( line_number, Op.ERROR, 0 );
                 }
             } else {                    // from is source and into is destination
+
+		if( proc_call ) {
+		    if( no_discard ) {
+			o = Op.PROC_CALL;
+		    } else {
+			o = Op.PROC_CALL_DISCARD;
+		    }
+		    size = ExpressionList.compilePush( arguments, state, null, argument_types, into, false, false, null );
+
+		    return compileCall( state, into, from, o, null, null, 0, size, null );
+		} else
                 switch ( symbol.Kind ) {
                 case Symbol.STATIC_VARIABLE:
                     buffer = "stable$__" + symbol.Owner.DecoratedName;
@@ -1974,7 +2035,7 @@ namespace Parse {
 
 			size = ExpressionList.compilePush( arguments, state, null, argument_types, into, false, false, inline_args );
 
-			return compileCall( state, into, o, symbol, symbol.DecoratedName, 0, size, inline_args );
+			return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, size, inline_args );
                     }
                     
                     IO.Std.err.println( "calling static method " + symbol.HumanName + " dynamically" );
@@ -2005,7 +2066,7 @@ namespace Parse {
 
 			size = ExpressionList.compilePush( arguments, state, from, argument_types, into, true, false, inline_args );
 
-			return compileCall( state, into, o, symbol, symbol.DecoratedName, 0, size, inline_args );
+			return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, size, inline_args );
                     } else if( cast<Container>(symbol).IsFinal ) {
                         if( symbol.Owner != state.CurrentClass ) {
                             into.add( new ITree( line_number, Op.EXTERN, 0, symbol.DecoratedName ) );
@@ -2018,7 +2079,7 @@ namespace Parse {
 
 			size = ExpressionList.compilePush( arguments, state, from, argument_types, into, true, false, inline_args );
 
-			return compileCall( state, into, o, symbol, symbol.DecoratedName, 0, size, inline_args );
+			return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, size, inline_args );
                     } else {
 
 		        a = symbol.Address;
@@ -2034,7 +2095,7 @@ namespace Parse {
                         }
 			size = ExpressionList.compilePush( arguments, state, from, argument_types, into, true, false, null );
 
-			return compileCall( state, into, o, symbol, null, symbol.Address, size, null );
+			return compileCall( state, into, null, o, symbol, null, symbol.Address, size, null );
                     }
                     break;
                     

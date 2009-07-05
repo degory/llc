@@ -1568,7 +1568,7 @@ namespace Gen {
 		} else {
 		    return "call *" + left + " # discard result";
 		}
-	    } else {
+	    } else if( op == Op.STATIC_CALL ) {
 		String result = "";
 		
 		// FIXME: var args expects zero in rax:
@@ -1583,6 +1583,12 @@ namespace Gen {
 		}
 
 		return result;
+	    } else if( op == Op.PROC_CALL ) {
+		if( dest != null ) {
+		    return "call *0(" + left + ") # result in " + dest;
+		} else {
+		    return "call *0(" + left + ") # discard result";
+		}
 	    }
 	}
 
