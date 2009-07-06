@@ -425,6 +425,7 @@ namespace Parse {
         ILabel return_label;
 
         IO.Writer output;
+	public String last_cleared_output_at;
         
         int unsafe_flags;
 
@@ -749,6 +750,9 @@ namespace Parse {
 
 	    sp = sp - 1;
 	    output = state[sp].Output;
+	    if( output == null ) { 
+		last_cleared_output_at = new System.Backtrace().toString();
+	    }
 	}
         
         void popState() {
@@ -1195,6 +1199,7 @@ namespace Parse {
             pushState( STATE_OUTSIDE_CLASS, source_file_name );
             
             output = null;
+	    last_cleared_output_at = new System.Backtrace().toString();
             current_line = -1;
             seen_line_number = -1;
             last_line_number = -1;
@@ -1204,6 +1209,7 @@ namespace Parse {
             popState();
             
             output = null;
+	    last_cleared_output_at = new System.Backtrace().toString();
             seen_line_number = -1;
             last_line_number = -1;
             current_line = -1;
@@ -1424,6 +1430,7 @@ namespace Parse {
 		output.println( "# closing output" );
                 output.close();
                 output = null;
+		last_cleared_output_at = new System.Backtrace().toString();
             }
         }
 
@@ -1432,6 +1439,7 @@ namespace Parse {
                 return output;
             } else {
 		IO.Std.err.println( "oops: no output stream: " + new System.Backtrace() );
+		IO.Std.err.println( "last cleared at: " + last_cleared_output_at );
                 return IO.Std.err;
             }
         }
@@ -2563,7 +2571,7 @@ namespace Parse {
 	    return cast State(clone());
 	}
 
-	IO.Writer getOutput() {
+	IO.Writer getOutput() {	    
 	    return output;
 	}
 

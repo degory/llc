@@ -147,6 +147,33 @@ exception$top:	.zero 8
 	.byte 0
 .text	
 
+// FIXME: this looks nice but I think having all these jump targets probably in one cache line might thrash
+// the branch target cache?
+	
+.global __proc_thunk5
+__proc_thunk5:
+	mov %r8, %r9
+
+.global __proc_thunk4
+__proc_thunk4:
+	mov %rcx,%r8
+
+.global __proc_thunk3
+__proc_thunk3:
+	mov %rdx,%rcx
+	
+.global __proc_thunk2
+__proc_thunk2:
+	mov %rsi,%rdx	   # shift param #1 -> param #2
+	
+.global __proc_thunk1
+__proc_thunk1:
+	mov %rdi,%rsi      # shift param #0 -> param #1
+	
+.global __proc_thunk0
+__proc_thunk0:
+	mov 8(%rax),%rdi   # shift this -> param #0
+	jmp *16(%rax)
 
 	
 # vtable	0 

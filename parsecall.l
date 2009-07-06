@@ -1099,21 +1099,21 @@ namespace Parse {
 		IO.Std.err.println( "IIIIII: kind is " + method.Kind + " versus " + Symbol.STATIC_METHOD );
 		*/
 
-                t = compileLoad( state, into, method, null, null, t, Machine.WORD, flags, super_class );
+                t = compileLoad( state, into, method, null, method.ArgTypes, t, Machine.WORD, flags, super_class );
             } else if( left_value != null ) {
 		// Std.err.println( "call B..." );
                 if( left_value.isClass( state ) ) {
                     flags = flags | LOAD_FLAG_STATIC;
 		}
 
-                t = compileLoad( state, into, method, null, null, null, Machine.WORD, flags, null );
+                t = compileLoad( state, into, method, null, method.ArgTypes, null, Machine.WORD, flags, null );
             } else {
 		// Std.err.println( "call C..." );
                 if( state.CurrentMethod.IsStatic ) {
                     flags = flags | LOAD_FLAG_STATIC;
 		}
 
-                t = compileLoad( state, into, method, null, null, t, Machine.WORD, flags, null );
+                t = compileLoad( state, into, method, null, method.ArgTypes, t, Machine.WORD, flags, null );
             }
             
 	    return t;

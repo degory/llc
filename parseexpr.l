@@ -5,6 +5,7 @@ namespace Parse {
     use System.StringBuffer;
     use System.Exception;
     use Generic.Vector;
+    use Generic.List;
 
     use Gen.ITree;
     use Gen.IBlock;
@@ -1763,7 +1764,92 @@ namespace Parse {
 	    return new ITree( line_number, Op.GLOBAL, Machine.WORD, l );
 	}
 
-        ITree compileLoad( CompileState state, IBlock into, Symbol symbol, ExpressionList arguments, Vector<Type> argument_types, ITree from, int size, int flags, Symbol super_class ) {
+	ITree compileLoadDynamicProcRef( CompileState state, IBlock into, ITree from, Symbol symbol, Vector<Type> arg_types ) {
+	    int t = TempFactory.nextTemp();
+	    int u = TempFactory.nextTemp();
+	    addDummyExceptionHandlerJump( state, line_number, into );
+
+	    // going to reference from more than once - copy it into a temporary unless it's a simple expression:
+	    if( !from.isPrettySimple() ) {
+		into.add( makeStoreTemporary( u, Machine.WORD, from ) );
+		from = makeLoadTemporary( u, Machine.WORD );
+	    }
+
+
+	    int num_args;
+	    if( arg_types != null ) {
+		num_args = arg_types.Length;
+	    }
+
+	    if( num_args >= Machine.NUM_REG_PARAM ) {
+		error( "instance proc with more than " + (Machine.NUM_REG_PARAM-1) + " arguments not supported" );
+		return new ITree( line_number, Op.ERROR, 0 );
+	    }
+
+	    var b = "__proc_thunk" + num_args;
+	   
+	    int r = TempFactory.nextTemp();
+
+	    // allocate pointer to a proc ref structure and store it in temp r:
+	    into.add( makeStoreTemporary( r, Machine.WORD, new ITree( line_number, Op.PROC_REF, 0 ) ) );
+
+	    // store thunk in word 0 of proc ref structure:
+	    into.add( new ITree( line_number, Op.COPY, Machine.WORD,
+				 new ITree( line_number, Op.INDIRECT, Machine.WORD,
+					    new ITree( line_number, Op.ADD, Machine.WORD,
+						       makeLoadTemporary( r, 8 ),
+						       new ITree( line_number, Op.CONST, Machine.WORD, 0 )
+						       )
+					    ),
+				 new ITree( line_number, Op.GLOBAL, Machine.WORD, b )
+				 )
+		      );
+
+	    // store this address in word 1 of proc ref structure:
+	    into.add( new ITree( line_number, Op.COPY, Machine.WORD,
+				 new ITree( line_number, Op.INDIRECT, Machine.WORD,
+					    new ITree( line_number, Op.ADD, Machine.WORD,
+						       makeLoadTemporary( r, 8 ),
+						       new ITree( line_number, Op.CONST, Machine.WORD, 1 * Machine.WORD )
+						       )
+					    ),
+				 from
+				 )
+		      );
+
+	    // store method address in word 2 of proc ref structure:
+	    into.add( new ITree( line_number, Op.COPY, Machine.WORD,
+				 new ITree( line_number, Op.INDIRECT, Machine.WORD,
+					    new ITree( line_number, Op.ADD, Machine.WORD,
+						       makeLoadTemporary( r, 8 ),
+						       new ITree( line_number, Op.CONST, Machine.WORD, 2 * Machine.WORD )
+						       )
+					    ),
+
+				 new ITree( line_number, Op.INDIRECT, Machine.WORD,
+					    new ITree( line_number, Op.ADD, Machine.WORD,
+						       new ITree( line_number, Op.INDIRECT, Machine.WORD, from ),
+						       new ITree( line_number, Op.CONST, Machine.WORD, symbol.Address )
+						       )
+					    )
+				 )
+		      );
+
+
+
+	    return makeLoadTemporary( r, Machine.WORD );
+	}
+
+        ITree compileLoad(
+	    CompileState state,
+	    IBlock into,
+	    Symbol symbol,
+	    ExpressionList arguments,
+	    Vector<Type> argument_types,
+	    ITree from,
+	    int size,
+	    int flags,
+	    Symbol super_class ) {
             String buffer;
             ITree t;
             int o, a, u;
@@ -1910,7 +1996,12 @@ namespace Parse {
                 case Symbol.INSTANCE_METHOD:
 		    if( reference ) {
 			IO.Std.err.println( "want proc reference to instance method: " + symbol.HumanName );
-                        return new ITree( line_number, Op.ERROR, 0 );
+			return compileLoadDynamicProcRef(
+			    state,
+			    into,
+			    makeLoadThis(state, line_number, into),
+			    symbol,
+			    argument_types );
 		    }
 
                     if( flags & LOAD_FLAG_STATIC != null ) {
@@ -2073,7 +2164,12 @@ namespace Parse {
                 case Symbol.INSTANCE_METHOD:
 		    if( reference ) {
 			IO.Std.err.println( "want proc reference to instance method: " + symbol.HumanName );
-                        return new ITree( line_number, Op.ERROR, 0 );
+			return compileLoadDynamicProcRef(
+			    state,
+			    into,
+			    from,
+			    symbol,
+			    argument_types );
 		    }
 
                     if( !address ) {
