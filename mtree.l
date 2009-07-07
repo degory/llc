@@ -1585,9 +1585,9 @@ namespace Gen {
 		return result;
 	    } else if( op == Op.PROC_CALL ) {
 		if( dest != null ) {
-		    return "call *0(" + left + ") # result in " + dest;
+		    return "call *" + Machine.WORD + "(" + left + ") # result in " + dest;
 		} else {
-		    return "call *0(" + left + ") # discard result";
+		    return "call *" + Machine.WORD + "(" + left + ") # discard result";
 		}
 	    }
 	}

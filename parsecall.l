@@ -48,10 +48,15 @@ namespace Parse {
 
 	void checkTemplates( CompileState state ) {
 	    super.checkTemplates( state );
-	    left.checkTemplates( state );
+
 	    if( argument != null ) {
 		argument.checkTemplates( state );
+		// ensure generic array template is instantiated:
+		new VectorType( line_number, left ).checkTemplates(state);
+	    } else {
+		left.checkTemplates( state );
 	    }
+
 	    if( arguments != null ) {
 		arguments.checkTemplates( state );
 	    }
@@ -116,25 +121,14 @@ namespace Parse {
 
             if( t.TypeKind == Type.VECTOR ) {
                 Type st = t.SubType;
-                if( st.TypeKind == Type.CLASS || st.TypeKind == Type.VECTOR ) {
-		    op = Op.NEW_OBJ_ARRAY;
+		op = Op.NEW_GENERIC_ARRAY;
+		var array_vtable = "vtable$__" + t.getBoxType(state).Clazz.DecoratedName;
 
-                    return new ITree( line_number, op, 0,
-                                      argument.compileValue( state,
-                                                             into ), null,
-                                      new IString( type.
-                                                   SubType.
-                                                   Size ) );
-                } else {
-		    op = Op.NEW_ARRAY;
-
-                    return new ITree( line_number, op, 0,
-                                      argument.compileValue( state,
-                                                             into ), null,
-                                      new IString( type.
-                                                   SubType.
-                                                   Size ) );
-                }
+		return new ITree( line_number, op, 0,
+				  argument.compileValue( state,
+							 into ),
+				  new ITree( 0, Op.CONST, Machine.WORD, st.Size ),
+				  array_vtable );
             } else if( t.TypeKind == Type.CLASS ) {
                 // int temp = TempFactory.nextTemp();
 		int result = TempFactory.nextTemp();
@@ -543,19 +537,30 @@ namespace Parse {
                 } else if( type.TypeKind != Type.CLASS && type.TypeKind != Type.SUPER ) {
                     ExpressionList wrap_arguments = new ExpressionList( line_number );
 
-                    Type t = getBoxType(type);;
+                    Type t = getBoxType(state,type);
 
                     if( t != null ) {
-                        wrap_arguments.add( left_value );
+			if( t.findSymbol( "box", Symbol.FIND_ANY ) != null ) {
+			    // presence of box method implies left value is not already an object and we should simulate object
+			    // behaviour by calling a static method with the left value an additional initial parameter:
+			    wrap_arguments.add( left_value );
 
-                        if( arguments != null && arguments.List.Length > 0 ) {
-                            foreach( Expression e; arguments.List.elements() ) {
-                                wrap_arguments.add(e);
-                            }
+			    if( arguments != null && arguments.List.Length > 0 ) {
+				foreach( Expression e; arguments.List.elements() ) {
+				    wrap_arguments.add(e);
+				}
+			    }
+			    left_value = new WrapTypeAsExpression(line_number,t);
+			} else {
+			    // no box method implies that the left value is already an object and we just need to treat it as an
+			    // object of the boxed type and attempt to call the method on it:
+			    wrap_arguments = arguments;
 			}
-                        method_call = new MethodCall( line_number, new WrapTypeAsExpression(line_number,t), new Identifier(line_number,name.Name), wrap_arguments );
+
+                        method_call = new MethodCall( line_number, left_value, new Identifier(line_number,name.Name), wrap_arguments );
 
                         method_call.calcType( state, true );
+                        type = method_call.Type;
                         quality = method_call.Quality;
                         if( quality == null ) {
                             method = undefined_method;
@@ -565,7 +570,7 @@ namespace Parse {
                             }
                             type = undefined_type;
                         }
-                        type = method_call.Type;
+
                         return;
                     } else {
                         symbol = undefined_method;
@@ -974,6 +979,12 @@ namespace Parse {
 	    arguments.clear(state);
 	}
 
+	void checkTemplates( CompileState state ) {
+	    left.checkTemplates(state);
+	    arguments.checkTemplates(state);
+
+	}
+
 	void calcType( CompileState state ) {
 	    if( !left.isMethod(state) ) {
 		error( ".proc() must qualify a method name" );
@@ -1080,7 +1091,7 @@ namespace Parse {
             }
 	    */
             
-            int flags = LOAD_FLAG_REFERENCE;
+	    bool instance = true;
                         
             ITree t = null;
 
@@ -1099,21 +1110,22 @@ namespace Parse {
 		IO.Std.err.println( "IIIIII: kind is " + method.Kind + " versus " + Symbol.STATIC_METHOD );
 		*/
 
-                t = compileLoad( state, into, method, null, method.ArgTypes, t, Machine.WORD, flags, super_class );
+                t = compileLoadProcRef( state, into, method, type, method.ArgTypes, t, instance, super_class );
             } else if( left_value != null ) {
+
 		// Std.err.println( "call B..." );
                 if( left_value.isClass( state ) ) {
-                    flags = flags | LOAD_FLAG_STATIC;
+		    instance = false;
 		}
 
-                t = compileLoad( state, into, method, null, method.ArgTypes, null, Machine.WORD, flags, null );
+                t = compileLoadProcRef( state, into, method, type, method.ArgTypes, null, instance, null );
             } else {
 		// Std.err.println( "call C..." );
                 if( state.CurrentMethod.IsStatic ) {
-                    flags = flags | LOAD_FLAG_STATIC;
+                    instance = false;
 		}
 
-                t = compileLoad( state, into, method, null, method.ArgTypes, t, Machine.WORD, flags, null );
+                t = compileLoadProcRef( state, into, method, type, method.ArgTypes, t, instance, null );
             }
             
 	    return t;

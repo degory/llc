@@ -2,6 +2,7 @@ import environment;
 import object;
 import primtype;
 import array;
+import gproc;
 import iterator;
 import exception;
 import startup;

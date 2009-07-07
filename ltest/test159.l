@@ -46,6 +46,8 @@ namespace Test159 {
     }
 
     class Main {
+	System.Proc<void proc(Tree)> p0;
+	
 	void init() {
 	    Tree t =
 		new Tree(
@@ -71,7 +73,11 @@ namespace Test159 {
 				  )
 			 );
 
+	    // p0 = cast System.Proc<void proc(Tree)>( proc(Tree)(print) );
+
+	    IO.Std.err.println( "visit print: " );
 	    t.visit( proc(Tree)(print) );
+	    IO.Std.err.println( "visit test: " );
 	    t.visit( proc(Tree)(new Visit().test) );
 	}
 

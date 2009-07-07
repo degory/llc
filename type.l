@@ -13,6 +13,7 @@ namespace Parse {
     class Type extends Object {
         private Container c;
         private Type sub_type;
+	private Type box_type;
         private int type_kind;
 
         public const int
@@ -23,30 +24,30 @@ namespace Parse {
         public const int
             NONE = 0,
             VOID = 1,
-            BOOL = 2,
-            BYTE = 3,
-            CHAR = 4,
-            SHORT = 5,
-            INTEGER = 6,
-	    WORD = 7,
-            LONG = 8,
-            FLOAT = 9,
-            DOUBLE = 10,
+            BOOL = 3,
+            BYTE = 4,
+            CHAR = 5,
+            SHORT = 6,
+            INTEGER = 7,
+	    WORD = 8,
+            LONG = 9,
+            FLOAT = 10,
+            DOUBLE = 11,
             SIMPLE = DOUBLE,
-            VECTOR = 11,
-            REFERENCE = 12,
-            POINTER = 13,
-            CLASS = 14,
-            ENUM = 15,
-            NAMESPACE = 16,
-            STRING = 17,
-            CSTRING = 18,
-            SUPER = 19,
-            NULL = 20,
-            STRUCT = 21,
-	    PROC = 22,
-	    INFER = 23,
-            ERROR = 23;
+            VECTOR = 12,
+            REFERENCE = 13,
+            POINTER = 14,
+            CLASS = 15,
+            ENUM = 16,
+            NAMESPACE = 17,
+            STRING = 18,
+            CSTRING = 19,
+            SUPER = 20,
+            NULL = 21,
+            STRUCT = 22,
+	    PROC = 23,
+	    INFER = 24,
+            ERROR = 25;
 
         public const int 
             QUALITY_EXACT = 5,
@@ -91,7 +92,7 @@ namespace Parse {
                 throw new Exception( "wierd: type is Type.CLASS but class is null" );
             }
             return type_kind;
-        }
+        }	
 
         bool isScalar() {
             return type_kind == Type.LONG || type_kind == Type.WORD || type_kind == Type.INTEGER || type_kind == Type.CHAR;
@@ -118,6 +119,14 @@ namespace Parse {
             }
             return sub_type;
         }
+
+	Type getBoxType( CompileState state ) {
+	    if( box_type == null ) {
+		box_type = ParseTree.getBoxType(state, this);
+	    }
+	    return box_type;
+	}
+
 
 	void markReferenced() {
 	    if( c != null ) {
@@ -149,9 +158,9 @@ namespace Parse {
             }
         }
 
-        Symbol findSymbol( String name, bool types_only ) {
+        Symbol findSymbol( String name, int find_what ) {
             if( c != null ) {
-                return c.findSymbol( name, types_only );
+                return c.findSymbol( name, find_what );
             } else {
                 return null;
             }
@@ -227,7 +236,7 @@ namespace Parse {
                 sub_type.dumpHuman( human, template );
                 human.append( " ptr" );
 
-            case Type.CLASS,Type.STRUCT,Type.ENUM:
+            case Type.CLASS,Type.STRUCT,Type.ENUM,Type.PROC:
 		// IO.Std.err.println( "dumping class, get qualified name..." );
 		if( template ) {
 		    human.append( c.QualifiedName );
@@ -240,9 +249,6 @@ namespace Parse {
 
 	    case Type.INFER:
 		human.append( "undefined" );
-
-	    case Type.PROC:
-		human.append( Clazz.HumanName );
 
             case Type.ERROR:
                 human.append( "undefined" );
@@ -260,7 +266,7 @@ namespace Parse {
                 
             case Type.VOID:
                 decorate.append( 'v' );
-                
+
             case Type.BOOL:
                 decorate.append( 'b' );
                 
@@ -309,7 +315,7 @@ namespace Parse {
             case Type.STRING:
                 decorate.append( "Pc" );
 
-	    case Type.PROC:
+	    case Type.PROC:		
                 decorate.append( 'P' );
 		decorate.append( c.DecoratedName );
 
@@ -404,12 +410,23 @@ namespace Parse {
             }
         }
 
+	/*
         bool isAssignableFrom( Type u ) {
 	    if( type_kind == Type.NONE ) {
 		return false;
 	    }
 	    // IO.Std.err.println( "is " + this + " assignable-from " + u );
             return matchScore( u, true ) > 0;
+        }
+	*/
+
+
+        bool isAssignableFrom( Type u ) {
+	    if( type_kind == Type.NONE ) {
+		return false;
+	    }
+	    // IO.Std.err.println( "is " + this + " assignable-from " + u );
+            return matchScore( u, true ) > 0 )
         }
 
         bool equals( Type u ) {

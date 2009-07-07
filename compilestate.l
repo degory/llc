@@ -2085,7 +2085,10 @@ namespace Parse {
 	    // - only interested in exact match
 	    // - want return 
 
-	    int want_arguments_length = want_arguments.Length;
+	    int want_arguments_length;
+	    if( want_arguments != null ) {
+		want_arguments_length = want_arguments.Length;
+	    }
 
 	    foreach( Type d; proc_instances.elements() ) {
 		// IO.Std.err.println( "existing proc type: " + d );
@@ -2121,7 +2124,10 @@ namespace Parse {
 		t.dumpDecorate( decorated );
 	    }
 
+	    IO.Std.err.println( "decorated name initially: " + decorated );
 	    c.DecoratedName = "" + decorated.Length + decorated;
+
+	    IO.Std.err.println( "decorated name now: " + c.DecoratedName );
 
 	    want_return.dumpHuman( human );
 	    human.append( "$Sproc$l" );
@@ -2136,6 +2142,9 @@ namespace Parse {
 	    human.append( "$r" );
 
 	    c.QualifiedName = human;
+
+	    IO.Std.err.println( "qualified name now: " + c.QualifiedName );
+	    IO.Std.err.println( "human name now: " + c.HumanName );
 
 	    // IO.Std.err.println( "created proc container: " + c );
 	    

@@ -172,9 +172,32 @@ __proc_thunk1:
 	
 .global __proc_thunk0
 __proc_thunk0:
-	mov 8(%rax),%rdi   # shift this -> param #0
-	jmp *16(%rax)
+	mov 16(%rax),%rdi   # shift this -> param #0
+	jmp *24(%rax)
 
+# rdi = element size
+# rsi = element count
+# rdx = vtable
+
+.global allocag
+allocag:
+	pushq %r12	
+	pushq %rbx
+	movq %rdi,%r12	# save element count
+	movq %rdx,%rbx
+	imulq %rsi,%rdi	# total size = element count * element size
+	addq $16, %rdi  #              + 8 bytes for vtable + 8 bytes for stored size
+
+	call NON_OBJECT_ARRAY_ALLOC
+
+	movq %rbx, (%rax)  # initialize vtable
+	movq %r12, 8(%rax) # initialize element count
+	
+	popq %rbx
+	popq %r12
+	ret
+
+.global allocao
 	
 # vtable	0 
 # length	8 

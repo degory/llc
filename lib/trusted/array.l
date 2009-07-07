@@ -1,92 +1,93 @@
 #K
 
 import object;
-import vector;
+import glist;
 
 pragma NoWarnUnsafe, NoMarkUnsafe;
 
 namespace System is
-    /// Values of native array types (type[]) can be cast to Array 
-    /// \deprecated none of this stuff works. Needs replacing with a template equivalent plus some sugar syntax to coerce array types
-    /// to equivalent Array<T> objects when needed 
-    class Array extends Object is
-	int length;       
+    /// Values of native array types (type[]) can be cast or boxed to Array 
+    class Array is
+	int length;
+        word values;
+    end
+end
 
-	StringBuffer toString() is
-	    StringBuffer result;
-	    result = "an Array of " + length + " elements";
+namespace Generic is
+    /// Values of native array types (type[]) can be cast or boxed to Array 
+    class Array<T> implements List<T> is
+	int length;
+        T ptr values;
+
+	void init() is
 	end
 
-	Util.Iterator elements() is
-	    throw new NotImplementedException("cannot iterate over non-Object Array");
+	get T[int index] is
+	    return cast T[](this)[index];
 	end
 
-	Object[] toVec() is
-	    throw new NotImplementedException("cannot convert non-Object Array to Object[]");
+	set T[int index] = v is
+	    cast T[](this)[index] = v;
+        end
+
+	get List<T> List is
+	    return cast List<T>(this);
 	end
 
-	static ObjectArray makeArray( Util.Vector v ) is
-	    int ptr ptr p = cast int ptr ptr( native.GC_malloc((v.getLength() + 2) * native.__get_word_size()) );
-	    // native.printf( `%p array\n`, p );
-	    return cast ObjectArray(p);
+	get int Length is
+	    return length;
 	end
 
-	static Object[] makeVec( Util.Vector v ) is
-	    return makeArray(v).toVec();
+	void add( T v ) is
+	    throw new System.NotImplementedException( "Generic.Array is fixed length" );
 	end
 
-	static void copy( int[] from, int from_offset, int[] to, int to_offset, int len ) is
-	    throw new NotImplementedException("FIXME: implement Array.copy()");
+	void remove( T v ) is
+	    throw new System.NotImplementedException( "Generic.Array is fixed length" );
+        end
+
+	void lengthen( int l ) is
+	    if l > length then
+		throw new System.NotImplementedException( "Generic.Array is fixed length" );
+	    fi
 	end
 
-	static void copy( Object[] from, int from_offset, Object[] to, int to_offset, int len ) is
-	    throw new NotImplementedException("FIXME: implement Array.copy()");
+
+	bool contains( T v ) is
+	    for int i = 0; i < length; i = i + 1 do
+	        if cast T[](this)[i] == v then
+		    return true;
+		fi
+	    od
+
+	    return false;
+	end
+
+	bool isEmpty() is
+	    return length > 0;
+	end
+
+	ArrayIterator<T> elements() is
+	    return new ArrayIterator<T>(cast T[](this));
 	end
     end
 
-    class ArrayIterator extends Util.Iterator is
-	Object[] a;
-	int i;
+    class ArrayIterator<T> implements Iterator<T> is
+        T[] values;
+	int index;
 
-	void init( Object[] a ) is
-	    super.init();
-
-	    // native.printf(`ArrayIterator.init(): vec %p has %d elements\n`, a, a.length );
-	    this.a = a;
-	    i = 0;
+	void init( T[] values ) is
+	    this.values = values;
 	end
 
 	bool hasMoreElements() is
-	    // native.printf( `ArrayIterator.hasMoreElements(): %d < %d?\n`, i, a.length );
-	    return i < a.length;
+	    return index < values.length;
 	end
 
-	Object nextElement() is
-	    Object result = a[i];
-	    // native.printf( `ArrayIterator.nextElement(): index %d returning Object @ %X\n`, i, result );
-	    i = i + 1;
+	T nextElement() is
+	    T result = values[index];
+	    index = index + 1;
 	    return result;
-	end
-    end
-
-    class WordArray extends Array is
-    end
-
-    class ByteArray extends Array is
-    end
-
-    class ObjectArray extends Array is
-	Util.Iterator elements() is
-	    return new ArrayIterator(this.toVec() );
-	end
-
-	Object[] toVec() is
-	    //int ptr t = cast int ptr (this);
-	    //Object[] result = cast Object[](t + 4);
-
-	    //return result;
-
-	    return cast Object[]( cast int ptr(this) );
 	end
     end
 end

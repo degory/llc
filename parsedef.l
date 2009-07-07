@@ -1212,8 +1212,6 @@ namespace Parse {
 	    }
 	}
 
-
-
         void declare( CompileState state ) {
 	    int actual_access = Access;
             if( actual_access & Symbol.ACCESS_CONST != 0 ) {
@@ -1298,7 +1296,13 @@ namespace Parse {
                                 
                 Symbol symbol = state.findSymbol( name, Symbol.FIND_ANY );
 		if( symbol == null ) {
-		    IO.Std.err.println( "could not find previous defitition of " + name + " in " + state.CurrentMethod );
+		    IO.Std.err.println( "could not find previous defitition of " + name );
+		    if( state.CurrentClass != null ) {
+			IO.Std.err.println( "in class " + state.CurrentClass.HumanName );
+		    }
+		    if( state.CurrentMethod != null ) {
+			IO.Std.err.println( "in method " + state.CurrentMethod.HumanName );
+		    }
 		}
 
                 symbol.Defined = state.BlockLevel;

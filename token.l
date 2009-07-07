@@ -424,7 +424,9 @@ namespace Parse {
 	    buffer.reset();
 
 	    buffer.write( new TokenPair( r, token_string ) );
-	    int generic_level = 1;
+	    var bracket_stack = new Token[16];
+	    bracket_stack[0] = r;
+	    int generic_level = 0;
 	    // int do_level = 1;
 	    bool is_generic = true;
 
@@ -443,28 +445,56 @@ namespace Parse {
 		buffer.write( new TokenPair(r, token_string) );
 
 		if( r == Token.LT ) {
-		    // IO.Std.err.println( "OK: open angle bracket..." );
 		    generic_level = generic_level + 1;
+		    bracket_stack[generic_level] = r;
+		    // IO.Std.err.println( "OK: open angle bracket..." );
 		} else if( r == Token.GT ) {
 		    // IO.Std.err.println( "OK: close angle bracket..." );
+		    if( bracket_stack[generic_level] != Token.LT ) {
+			is_generic = false;
+			break;
+		    }
 		    generic_level = generic_level - 1;
 		} else if( r == Token.SHIFT_RIGHT ) {
-		    // IO.Std.err.println( "OK: shift right..." );		    
+		    // IO.Std.err.println( "OK: shift right..." );
+		    if( generic_level < 1 || bracket_stack[generic_level] != Token.LT || bracket_stack[generic_level-1] != Token.LT ) {
+			is_generic = false;
+			break;
+		    }
 		    generic_level = generic_level - 2;
+		} else if( r == Token.CLOSE_PAREN ) {
+		    if( bracket_stack[generic_level] != Token.OPEN_PAREN ) {
+			is_generic = false;
+			break;
+		    }
+		    generic_level = generic_level - 1;
+		} else if( r == Token.PROC ) {
+		    r = readToken2(false);
+		    buffer.write( new TokenPair(r, token_string) );
+
+		    if( r != Token.OPEN_PAREN ) {
+			is_generic = false;
+			break;
+		    } else {
+			generic_level = generic_level + 1;
+			bracket_stack[generic_level] = r;
+		    }
 		} else if( r == Token.DOT || r == Token.COMMA || r == Token.IDENTIFIER ||
-			   (r >= Token.ARRAY_DEF && r <= Token.REFERENCE ) ) {
+			   (r >= Token.ARRAY_DEF && r <= Token.REFERENCE ) || r == Token.VOID ) {
 		    // IO.Std.err.println( "OK: basic type, identifier or dot..." );
 		} else {
 		    // IO.Std.err.println( "" + current_file + ": " + current_line + ": doesn't look like a generic - leaving buffered input alone" );
 		    is_generic = false;
 		    break;
 		}
-	    } while( generic_level > 0 );
+	    } while( generic_level >= 0 );
 
+	    /*
 	    if( generic_level < 0 ) {
 		// IO.Std.err.println( "" + current_file + ": " + current_line + ": doesn't look like a generic - leaving buffered input alone" );
 		is_generic = false;
 	    }
+	    */
 
 	    if( is_generic ) {
 		// IO.Std.err.println( "was generic - convert buffer..." );		
@@ -474,6 +504,8 @@ namespace Parse {
 
 	    return readToken();
 	}
+
+	
 
         Token readToken2(bool for_comment) {
 	    Token r;

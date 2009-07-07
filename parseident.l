@@ -244,7 +244,7 @@ namespace Parse {
 		// IO.Std.err.println( "no symbol and no method call found for " + name );
 		type = undefined_type;
 		symbol = null;
-		error( "undefined symbol " + getQualifiedName(state) );
+		error( "undefined symbol " + getQualifiedName(state) + " (1) from " + new System.Backtrace() );
             }
 
 	    // IO.Std.err.println( "\n" );
@@ -372,9 +372,9 @@ namespace Parse {
 		} else if( name =~ "sizeof" ) {		    
 		    return new Symbol( null, name, Symbol.ATTRIBUTE_SIZE, Symbol.ACCESS_PUBLIC, new Type(Type.INTEGER) );
 		} else if( name =~ "box" ) {
-		    at = getBoxType(t);
+		    at = t.getBoxType(state);
 		    if( at != null ) {
-			// boxable value - will compile a call to box method:
+			// equivalent boxed type found - return box attribute:
 			return new Symbol( null, name, Symbol.ATTRIBUTE_BOX, Symbol.ACCESS_PUBLIC, at );
 		    } else {
 			// not a boxable value - pass left value unchanged:
@@ -428,7 +428,7 @@ namespace Parse {
 		    checkAccess( result, state );
 		} else {
 		    if( complain ) {
-			error( "undefined symbol " + getQualifiedName(state) );
+			error( "undefined symbol " + getQualifiedName(state) + " (2)" );
 		    }
 		}
 
@@ -440,7 +440,7 @@ namespace Parse {
                     checkAccess( result, state );
                 } else {
 		    if( complain ) {
-			error( "undefined symbol " + name /*getName()*/ );
+			error( "undefined symbol " + name /*getName()*/ + " (3)" );
 		    }
 		    // IO.Std.err.println( "undefined symbol " + getQualifiedName(state) );
                 }
@@ -528,17 +528,25 @@ namespace Parse {
 		return new ITree( line_number, Op.CONST, 4, at.RegSize );
 	    } else if( k == Symbol.ATTRIBUTE_BOX ) {
 		at = getType(state);
-
-		// compile '.box' attribute into a static call to type.box(left_value) - for example:
-		// System.Int.box(123)
-		MethodCall box_call =
-		    new MethodCall(
-				   line_number,
-				   new WrapTypeAsExpression(line_number, at),
-				   new Identifier(line_number, "box"),
-				   new ExpressionList(line_number, left_value)
-				   );
-		return box_call.compileValue( state, into );
+		IO.Std.err.println( "attribute type is: " + at );
+		IO.Std.err.println( "attribute type is: " + at + "," + at.Clazz );
+		// does boxed type contain a box method?
+		Symbol bm = at.findSymbol( "box", Symbol.FIND_ANY );
+		if( bm != null && bm.Kind == Symbol.STATIC_METHOD ) {
+		    // compile '.box' attribute into a static call to type.box(left_value) - for example:
+		    // System.Int.box(123)
+		    MethodCall box_call =
+			new MethodCall(
+				       line_number,
+				       new WrapTypeAsExpression(line_number, at),
+				       new Identifier(line_number, "box"),
+				       new ExpressionList(line_number, left_value)
+				       );
+		    return box_call.compileValue( state, into );
+		} else {
+		    // compile '.box' attribute into an unchecked cast:
+		    return left_value.compileValue( state, into );
+		}
 	    } else if( k == Symbol.ATTRIBUTE_PASS ) {
 		return left_value.compileValue( state, into );
 	    } else if( k == Symbol.ATTRIBUTE_NONE ) {

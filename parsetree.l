@@ -251,18 +251,19 @@ namespace Parse {
 
         protected static Type
             undefined_type = new Type( Type.ERROR ),
-            string_type = null,
-            object_type = null,
-	    bool_type = null,
-	    char_type = null,	    
-            integer_type = null,
-	    long_type = null,
-	    word_type = null,
-            iterator_type = null,
+            string_type,
+            object_type,
+	    bool_type,
+	    char_type,	    
+            integer_type,
+	    long_type,
+	    word_type,
+            iterator_type,
 	// generic_iterator_type = null,
-            array_type = null,
-	    class_type = null,
-	    type_type = null;
+            array_type,
+	    class_type,
+	    type_type,
+	    proc_type;
 
         protected static Symbol undefined_variable = new Symbol( null, "#undefined variable#",
                            Symbol.LOCAL_VARIABLE,
@@ -449,7 +450,10 @@ namespace Parse {
             throw new Exception( "unexpected jump operation: " + op );
         }
 
-	static Type getBoxType( Type type ) {
+	static Type getBoxType( CompileState state, Type type ) {
+	    Type sub_type;
+	    Vector<Type> args;
+
 	    switch( type.TypeKind ) {
 	    case Type.BOOL:
 		return bool_type;
@@ -465,6 +469,25 @@ namespace Parse {
 		
 	    case Type.WORD:
 		return word_type;
+
+	    case Type.VECTOR:
+		sub_type = type.SubType;
+		if( sub_type.TypeKind == Type.VECTOR || sub_type.TypeKind == Type.PROC ) {
+		    sub_type = sub_type.getBoxType(state);
+		}
+		args = new Vector<Type>();
+		args.add(sub_type);
+		type = state.findGeneric( array_type.Clazz, args, false );
+		// IO.Std.err.println( "boxed array has type: " + type + ", " + type.Clazz );
+		return type;
+
+	    case Type.PROC:
+		args = new Vector<Type>();
+		args.add(type);
+		IO.Std.err.println( "get box type: " + type + " args: " + args );
+		type = state.findGeneric( proc_type.Clazz, args, false );
+		IO.Std.err.println( "boxed proc has type: " + type );
+		return type;
 	    }
 	    return null;
 	}
@@ -504,7 +527,7 @@ namespace Parse {
             integer_type = defineStandardClassType( state, "Int", "Object" );
 	    long_type = defineStandardClassType( state, "Long", "Object" );
 	    word_type = defineStandardClassType( state, "Word", "Object" );
-            array_type = defineStandardClassType( state, "Array", "Object" );
+	    proc_type = defineStandardClassType( state, "Proc", "Proc" );
 	    // type_type = defineStandardClassType( state, "Type", "Object" );
 	    class_type = defineStandardClassType( state, "Class", "Object" );
             state.exitNameSpace( system );
@@ -514,6 +537,8 @@ namespace Parse {
             state.exitNameSpace( util );
 
 	    state.enterNameSpace( generic );
+	    array_type = defineStandardClassType( state, "Array", "Object" );
+
 	    // generic_iterator_type = defineStandardClassType( state, "Iterator", "Object" );
 	    state.exitNameSpace( generic );
 

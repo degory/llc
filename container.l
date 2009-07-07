@@ -384,6 +384,9 @@ namespace Parse {
 	}
 
         set String DecoratedName = d {
+	    if( d.indexOf(' ') > 0 ) { 
+		throw new System.Exception( "set borken decorated name: " + d );
+	    }
             this.decorated = d;
         }
 

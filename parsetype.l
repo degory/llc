@@ -467,7 +467,8 @@ namespace Parse {
 	    if( type_expr != null ) {
 		type_expr.checkTemplates(state);
 	    }
-	    parseType( state /*, false */ );
+	    var t = parseType( state /*, false */ );
+	    t.getBoxType(state);
 	}
 
 	void clear( CompileState state ) {
@@ -660,6 +661,7 @@ namespace Parse {
 	void checkTemplates( CompileState state ) {
 	    // IO.Std.err.println( "vector type expression " + this + " could be a template" );
 	    type.checkTemplates( state );
+	    ParseTree.getBoxType(state,parseType(state));
 	}
 
         void dump( StringBuffer human, StringBuffer decorate ) {

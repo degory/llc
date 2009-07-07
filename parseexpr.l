@@ -1753,10 +1753,12 @@ namespace Parse {
 	    }
 	}
 
-	ITree compileLoadStaticProcRef( CompileState state, IBlock into, Symbol symbol ) {
+	ITree compileLoadStaticProcRef( CompileState state, IBlock into, Symbol symbol, Type proc_type ) {
 	    var l = TempFactory.nextLabel();
 	    into.add( new ITree( line_number, Op.RODATA, 0 ) );
 	    into.add( new ITree( line_number, Op.LABEL, 0, l ) );
+	    into.add( new ITree( line_number, Op.DEFINT, Machine.WORD, 
+				 "vtable$__" + proc_type.getBoxType(state).Clazz.DecoratedName ) );
 	    into.add( new ITree( line_number, Op.DEFINT, Machine.WORD, symbol.DecoratedName ) );
 	    
 	    into.add( new ITree( line_number, Op.TEXT, 0 ) );
@@ -1764,7 +1766,15 @@ namespace Parse {
 	    return new ITree( line_number, Op.GLOBAL, Machine.WORD, l );
 	}
 
-	ITree compileLoadDynamicProcRef( CompileState state, IBlock into, ITree from, Symbol symbol, Vector<Type> arg_types ) {
+	ITree compileLoadDynamicProcRef(
+	    CompileState state,
+	    IBlock into,
+	    ITree from,
+	    Symbol symbol,
+	    Type proc_type,
+	    Vector<Type> arg_types,
+	    bool no_vtable_lookup
+	) {
 	    int t = TempFactory.nextTemp();
 	    int u = TempFactory.nextTemp();
 	    addDummyExceptionHandlerJump( state, line_number, into );
@@ -1786,6 +1796,7 @@ namespace Parse {
 		return new ITree( line_number, Op.ERROR, 0 );
 	    }
 
+	    var v = "vtable$__" + proc_type.getBoxType(state).Clazz.DecoratedName;
 	    var b = "__proc_thunk" + num_args;
 	   
 	    int r = TempFactory.nextTemp();
@@ -1793,19 +1804,20 @@ namespace Parse {
 	    // allocate pointer to a proc ref structure and store it in temp r:
 	    into.add( makeStoreTemporary( r, Machine.WORD, new ITree( line_number, Op.PROC_REF, 0 ) ) );
 
-	    // store thunk in word 0 of proc ref structure:
+	    // store vtable in word 0 of proc ref structure:
 	    into.add( new ITree( line_number, Op.COPY, Machine.WORD,
 				 new ITree( line_number, Op.INDIRECT, Machine.WORD,
 					    new ITree( line_number, Op.ADD, Machine.WORD,
 						       makeLoadTemporary( r, 8 ),
-						       new ITree( line_number, Op.CONST, Machine.WORD, 0 )
+						       new ITree( line_number, Op.CONST, Machine.WORD, 0 * Machine.WORD )
 						       )
 					    ),
-				 new ITree( line_number, Op.GLOBAL, Machine.WORD, b )
+				 new ITree( line_number, Op.GLOBAL, Machine.WORD, v )
 				 )
 		      );
 
-	    // store this address in word 1 of proc ref structure:
+
+	    // store thunk in word 1 of proc ref structure:
 	    into.add( new ITree( line_number, Op.COPY, Machine.WORD,
 				 new ITree( line_number, Op.INDIRECT, Machine.WORD,
 					    new ITree( line_number, Op.ADD, Machine.WORD,
@@ -1813,11 +1825,11 @@ namespace Parse {
 						       new ITree( line_number, Op.CONST, Machine.WORD, 1 * Machine.WORD )
 						       )
 					    ),
-				 from
+				 new ITree( line_number, Op.GLOBAL, Machine.WORD, b )
 				 )
 		      );
 
-	    // store method address in word 2 of proc ref structure:
+	    // store this address in word 2 of proc ref structure:
 	    into.add( new ITree( line_number, Op.COPY, Machine.WORD,
 				 new ITree( line_number, Op.INDIRECT, Machine.WORD,
 					    new ITree( line_number, Op.ADD, Machine.WORD,
@@ -1825,20 +1837,78 @@ namespace Parse {
 						       new ITree( line_number, Op.CONST, Machine.WORD, 2 * Machine.WORD )
 						       )
 					    ),
-
-				 new ITree( line_number, Op.INDIRECT, Machine.WORD,
-					    new ITree( line_number, Op.ADD, Machine.WORD,
-						       new ITree( line_number, Op.INDIRECT, Machine.WORD, from ),
-						       new ITree( line_number, Op.CONST, Machine.WORD, symbol.Address )
-						       )
-					    )
+				 from
 				 )
 		      );
 
 
+	    if( no_vtable_lookup ) {
+		IO.Std.err.println( "store method address: " + symbol.DecoratedName + " from " + symbol.HumanName );
+		// store method address in word 3 of proc ref structure:
+		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
+				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
+						new ITree( line_number, Op.ADD, Machine.WORD,
+							   makeLoadTemporary( r, 8 ),
+							   new ITree( line_number, Op.CONST, Machine.WORD, 3 * Machine.WORD )
+							   )
+						),
+				     new ITree( line_number, Op.CONST, Machine.WORD, symbol.DecoratedName )
+				     )
+			  );
+	    } else {				     
+		IO.Std.err.println( "store method offset: " + symbol.Address + " from " + symbol.HumanName );
+		// look up method address in vtable and store in word 3 of proc ref structure:
+		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
+				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
+						new ITree( line_number, Op.ADD, Machine.WORD,
+							   makeLoadTemporary( r, 8 ),
+							   new ITree( line_number, Op.CONST, Machine.WORD, 3 * Machine.WORD )
+							   )
+						),
+				     
+				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
+						new ITree( line_number, Op.ADD, Machine.WORD,
+							   new ITree( line_number, Op.INDIRECT, Machine.WORD, from ),
+							   new ITree( line_number, Op.CONST, Machine.WORD, symbol.Address )
+							   )
+						)
+				     )
+			  );
 
+
+	    }
 	    return makeLoadTemporary( r, Machine.WORD );
 	}
+
+	ITree compileLoadProcRef(
+            CompileState state,
+	    IBlock into,
+	    Symbol symbol,
+	    Type proc_type,
+	    Vector<Type> argument_types,
+	    ITree from,
+	    bool instance,
+	    Symbol super_class ) {
+	    if( instance ) {
+		if( from == null ) {
+		    from = makeLoadThis(state, line_number, into);
+		}
+		IO.Std.err.println( "want proc reference to instance method: " + symbol.HumanName );
+		return compileLoadDynamicProcRef(
+						 state,
+						 into,
+						 from,
+						 symbol,
+						 proc_type,
+						 argument_types,
+						 super_class != null );
+		
+	    } else {
+		// IO.Std.err.println( "want proc reference to static method: " + symbol.HumanName );
+		return compileLoadStaticProcRef( state, into, symbol, proc_type );
+	    }
+	}
+	    
 
         ITree compileLoad(
 	    CompileState state,
@@ -1974,10 +2044,7 @@ namespace Parse {
                     return t;
                     
                 case Symbol.STATIC_METHOD:
-		    if( reference ) {
-			// IO.Std.err.println( "want proc reference to static method: " + symbol.HumanName );
-			return compileLoadStaticProcRef( state, into, symbol );
-		    }
+
 
                     if( symbol.Owner != state.CurrentClass ) {
                         into.add( new ITree( line_number, Op.EXTERN, 0, symbol.DecoratedName ) );
@@ -1994,16 +2061,6 @@ namespace Parse {
 		    return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, size, inline_args );
                     
                 case Symbol.INSTANCE_METHOD:
-		    if( reference ) {
-			IO.Std.err.println( "want proc reference to instance method: " + symbol.HumanName );
-			return compileLoadDynamicProcRef(
-			    state,
-			    into,
-			    makeLoadThis(state, line_number, into),
-			    symbol,
-			    argument_types );
-		    }
-
                     if( flags & LOAD_FLAG_STATIC != null ) {
                         if( symbol == undefined_method ) {
                             IO.Std.err.println( "calling undefined method" );
@@ -2136,11 +2193,6 @@ namespace Parse {
                     return new ITree( line_number, Op.ERROR, 0 );
                     
                 case Symbol.STATIC_METHOD:
-		    if( reference ) {
-			// IO.Std.err.println( "want proc reference to static method: " + symbol.HumanName );
-			return compileLoadStaticProcRef( state, into, symbol );
-		    }
-
                     if( flags & LOAD_FLAG_STATIC != 0 || super_class != null ) {
                         if( symbol.Owner != state.CurrentClass ) {
                             into.add( new ITree( line_number, Op.EXTERN, 0, symbol.DecoratedName ) );
@@ -2162,16 +2214,6 @@ namespace Parse {
                     throw new Exception( "need to fall through here" );
                     
                 case Symbol.INSTANCE_METHOD:
-		    if( reference ) {
-			IO.Std.err.println( "want proc reference to instance method: " + symbol.HumanName );
-			return compileLoadDynamicProcRef(
-			    state,
-			    into,
-			    from,
-			    symbol,
-			    argument_types );
-		    }
-
                     if( !address ) {
                         error( "using method " + symbol.HumanName + " but not calling it" );
 			IO.Std.err.println( "here: " + new System.Backtrace() );
