@@ -796,11 +796,11 @@ namespace System is
 	    i = 0;
 
 	    if v < 0 then
-		putCharAt( _length, cast char(45) );
+		opSet( _length, cast char(45) );
 		v = 0-v;
 		i = 1;
 	    elif v == 0 then
-		putCharAt( _length, cast char(48) );
+		opSet( _length, cast char(48) );
 		return this;
 	    fi
 
@@ -827,18 +827,74 @@ namespace System is
 		c = [digit + v % b];
 		v = v / b;
 	    
-		putCharAt( i, c );
+		opSet( i, c );
 	    
 	    od
 
 	    return this;
 	end
 
-	StringBuffer append( word v, int b ) is
-	    append( "<word>" );
+	StringBuffer append( word v, int ib ) is
+            word b = cast word(b);
+	    word m, n;
+	    int i;
+	    char c;
+	    char ptr digit = `0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ`;
+
+	    // native.printf( `entry v is %d...\n`, v );
+                
+	    if ib > 36 then
+		append( "#base>36#" );
+	    fi
+
+	    i = 0;
+
+	    if v < 0w then
+		opSet( _length, cast char(45) );
+		v = 0w-v;
+		i = 1;
+	    elif v == 0w then
+		opSet( _length, cast char(48) );
+		return this;
+	    fi
+
+	    // native.printf( `before v is %d, b is %d...\n`, v, b );
+
+	    i = 0;
+	    m = v;
+	    while m > 0w do
+		// native.printf( `before m is %d...\n`, m );
+		m = m / b;
+		// native.printf( `after m is %d...\n`, m );
+		i = i + 1;
+	    od
+
+	    // native.printf( `number %d length is %d chars\n`, v, i );
+
+	    _reserve( i + _length ); // avoid repeated mallocs
+
+	
+	    i = i + _length;
+	    while v > 0w do
+		i = i - 1;
+	    
+		c = [digit + v % b];
+		v = v / b;
+	    
+		opSet( i, c );
+	    
+	    od
 
 	    return this;
 	end
+
+	/*
+	StringBuffer append( word v, int b ) is
+	    append( cast long(v), b );
+
+	    return this;
+	end
+	*/
 
 	StringBuffer append( int n ) is
 	    return append( n, 10 );

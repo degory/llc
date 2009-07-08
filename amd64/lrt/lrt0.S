@@ -719,4 +719,70 @@ __segv_test:
 
 	mov $0,%rax
 	mov %rax,0(%rax)
+
+.data
+__in_profiler:	.int	0
+	
+# caller address is in %rax
+	
+.global __prof_enter
+__prof_enter:
+	cmpb $0,__in_profiler
+	jnz  1f
+	movb $1,__in_profiler
+	# called immediately after method entry so only additional register we need to save are those that
+	# could hold parameters:
+	push %rdi
+	push %rsi
+	push %rdx
+	push %rcx
+	push %r8
+	push %r9
+	mov %rax, %rdi
+	call enter__Q24Util8Profilerl
+	pop %r9
+	pop %r8
+	pop %rcx
+	pop %rdx
+	pop %rsi
+	pop %rdi
+	movb $0,__in_profiler
+1:	
+	ret
+
+# caller address is in %rdi
+	
+.global __prof_exit
+__prof_exit:
+	cmpb $0,__in_profiler
+	jnz  1f
+	movb $1,__in_profiler
+	# called immediately before method return so only additional register we need to preserve
+	# here is return value in %rax
+	push %rax	# 56
+	# caller address already in %rdi
+	call exit__Q24Util8Profilerl
+	pop %rax
+	movb $0,__in_profiler
+1:
+	ret
+
+.global __prof_stop
+__prof_stop:	
+	movb $1,__in_profiler
+	ret
+
+.weak enter__Q24Util8Profilerl
+enter__Q24Util8Profilerl:
+	ret
+	
+.weak exit__Q24Util8Profilerl
+exit__Q24Util8Profilerl:
+	ret
+
+.weak clock_gettime
+clock_gettime:
+	mov $0,%rax
+	ret
+	
 	

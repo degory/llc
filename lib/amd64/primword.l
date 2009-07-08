@@ -70,6 +70,17 @@ namespace System {
 	    return false;
 	}
 
+	static int opCompare( word w, word x ) {
+	    w = w - x;
+	    if( w < 0W ) { 
+		return -1;
+	    } else if( w > 0W ) {
+		return 1;
+	    } else {
+		return 0;
+	    }
+	}
+
 	bool opEquals( Word w ) {
 	    return _value == w.Value;
 	}

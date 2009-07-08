@@ -56,6 +56,8 @@ namespace Parse {
             QUALITY_BETTER_IN_OUTER_SCOPE = 2,
             QUALITY_NO_MATCH = 0;
 
+	public static int box_lookups;
+	public static int box_misses;
 
         get int RegSize {
 	    return Size;
@@ -121,12 +123,18 @@ namespace Parse {
         }
 
 	Type getBoxType( CompileState state ) {
+	    box_lookups = box_lookups + 1;
 	    if( box_type == null ) {
+		box_misses = box_misses + 1;
 		box_type = ParseTree.getBoxType(state, this);
 	    }
 	    return box_type;
 	}
 
+	get bool CanTreatAsObject {
+	    var tk = TypeKind;
+	    return tk == VECTOR || tk == PROC;
+	}
 
 	void markReferenced() {
 	    if( c != null ) {
@@ -362,7 +370,43 @@ namespace Parse {
             }
         }
 
-        int matchScore( Type u, bool assign ) {
+	int matchScore( Type u, bool assign ) {
+	    int s;
+	    int result = matchScore2( u, assign );
+	    if( /* !assign || */ result == MATCH_EXACT ) {
+		return result;
+	    }
+
+	    var state = CompileState.Instance;
+	    int tk = TypeKind;
+	    int uk = u.TypeKind;
+	    if( (tk != VECTOR && tk != PROC && tk != CLASS) ||
+		(uk != VECTOR && uk != PROC && uk != CLASS) ) {
+		return result;
+	    }
+
+	    Type t = u.getBoxType( state );
+	    if( t != null ) {
+		s = matchScore2( t, assign ) - 1;
+		if( s > result ) { 
+		    IO.Std.err.println( "" + this + " vs " + t + "/" + u );
+		    result = s;
+		}
+	    }
+
+	    t = this.getBoxType( state );
+	    if( t != null ) {
+		s = t.matchScore2( u, assign ) - 1;
+		if( s > result ) {
+		    IO.Std.err.println( "" + this + "/" + t + " vs " + u );
+		    result = s;
+		}
+	    }
+
+	    return result;
+	}
+
+        int matchScore2( Type u, bool assign ) {
             if( u.type_kind == Type.ERROR ) {
 		// IO.Std.err.println( "null match" );
                 return MATCH_NULL;
@@ -426,7 +470,7 @@ namespace Parse {
 		return false;
 	    }
 	    // IO.Std.err.println( "is " + this + " assignable-from " + u );
-            return matchScore( u, true ) > 0 )
+            return matchScore( u, true ) > 0;
         }
 
         bool equals( Type u ) {

@@ -1506,8 +1506,13 @@ namespace Parse {
     class Expression extends ParseTree {
         protected Type type;
 
+	public static int type_misses;
+	public static int type_lookups;
+	public static int type_clears;
+
 	void clear( CompileState state ) {
 	    type = null;
+	    type_clears = type_clears + 1;
 	}
 
 	void checkTemplates( CompileState state ) {
@@ -1575,13 +1580,17 @@ namespace Parse {
 	*/
 
         Type getType( CompileState state ) {
+	    type_lookups = type_lookups + 1;
+
             if( type == null ) {
+		type_misses = type_misses + 1;
                 calcType( state );
                 if( type == null ) {
                     throw new Exception( "shouldn't happen: calcType() didn't assign this parse node a type" );
                     type = undefined_type;
                 }
-            }
+	    }
+
 	    type.markReferenced();
 
             return type;

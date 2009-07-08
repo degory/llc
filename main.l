@@ -14,7 +14,7 @@ namespace Parse {
     use Generic.Vector;
 
     class Main {
-	const int BUILD = 1147;
+	const int BUILD = 1148;
 
 	CompileState state;
 
@@ -179,6 +179,12 @@ namespace Parse {
 
 			    case 'e':
 				state.WantCSE = false;
+
+			    case 'P':
+				state.WantProfile = true;
+			    
+			    case 'p':
+				state.WantProfile = false;
 				    
 			    case '1':
 				// state.WantCoalesce = true;
@@ -314,6 +320,12 @@ namespace Parse {
 
 		Parse.ParseTree.newline();
 		if( Gen.MFlow.method_count != 0 && want_stats ) {
+		    IO.Std.err.println( "        " + Parse.Expression.type_lookups + " type lookups" );
+		    IO.Std.err.println( "        " + Parse.Expression.type_misses + " type misses" );
+		    IO.Std.err.println( "        " + Parse.Expression.type_clears + " type clears" );
+		    IO.Std.err.println( "        " + Type.box_lookups + " box lookups" );
+		    IO.Std.err.println( "        " + Type.box_misses + " box misses" );
+
 		    IO.Std.err.println( "        " + Gen.MFlow.method_count + " methods compiled" );
 		    if( Parse.ParseTree.inline_method_count > 0 ) {
 			IO.Std.err.println( "        " + Parse.ParseTree.inline_method_count + " methods prepared for inline" );

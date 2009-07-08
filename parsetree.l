@@ -837,6 +837,8 @@ namespace Parse {
 		state.WantWarnUnsafe = false;
 	    } else if( name.Name =~ "NoMarkUnsafe" ) {
 		state.WantMarkUnsafe = false;
+	    } else if( name.Name =~ "NoProfile" ) {
+		state.WantProfile = false;
 	    }
 	}
 

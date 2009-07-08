@@ -136,8 +136,6 @@ namespace Parse {
 	}
     }
 
-
-
     class ImportDef extends Statement {
         Identifier name;
 
@@ -1804,6 +1802,7 @@ namespace Parse {
 		}
 		inline_method_count = inline_method_count + 1;
 	    }
+
             state.endCompileMethod(m);
 
 	    // IO.Std.err.println( "restored label: .L" + saved_label );
@@ -1811,6 +1810,23 @@ namespace Parse {
 
 	    // aborting compilation might have left the exception descriptor stack non-empty:
 	    state.resetExceptionLevel();
+	}
+
+	void compileProfileEntry( CompileState state, IBlock into, Container method ) {
+	    into.add( new ITree( 0, Op.RESULT_F, 0,
+				 new ITree( 0, Op.GLOBAL, Machine.WORD, method.DecoratedName ) 
+				 )
+		      );
+	    into.add( new ITree( 0, Op.STATIC_CALL_DISCARD, 0, "__prof_enter" ) );
+	}
+
+	void compileProfileExit(  CompileState state, IBlock into, Container method, int to_pop ) {
+	    into.add( new ITree( 0, Op.ARG0, Machine.WORD,
+				 new ITree( 0, Op.GLOBAL, Machine.WORD, method.DecoratedName ),
+				 new ITree( 0, Op.COMMENT, 0, "last arg" )
+				 )
+		      );
+	    into.add( new ITree( 0, Op.STATIC_CALL_DISCARD, 0, "__prof_exit" ) );
 	}
 
 	static int[] attempt_inline = { Gen.MFlow.GEN_COALESCE | Gen.MFlow.GEN_REGVARS, Gen.MFlow.GEN_REGVARS };
@@ -1948,6 +1964,10 @@ namespace Parse {
                 into.add( new ITree( line_number, Op.LABEL, 0, decorated ) );
                 into.add( new ITree( line_number, Op.ENTER, 0 ) );
 
+		if( state.WantProfile ) {
+		    compileProfileEntry(state,into,m);
+		}
+
                 int to_pop = compileArguments(state, into, !m.IsStatic);
 
                 body.compile( state, into );
@@ -1970,6 +1990,11 @@ namespace Parse {
                 
                 into.add( new ITree( line_number, Op.LABEL, 0, state.ReturnLabel ) );
                 into.add( new ITree( line_number, Op.LEAVE, 0 ) );
+
+		if( state.WantProfile ) {
+		    compileProfileExit(state,into,m,to_pop);
+		}
+
                 into.add( new ITree( line_number, Op.RET, 0, to_pop ) );
                 
                 if( !errors_occurred ) {

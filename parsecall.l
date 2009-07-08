@@ -374,6 +374,7 @@ namespace Parse {
         Container method;
 	bool compare_operation;
 	bool not_result;
+	bool super_call;
 	Quality quality;
 	MethodCall method_call;
 	Type proc_type;
@@ -407,6 +408,7 @@ namespace Parse {
 	    method = null;
 	    compare_operation = false;
 	    not_result = false;
+	    super_call = false;
 	    method_call = null;
 	    proc_type = null;
 
@@ -487,19 +489,13 @@ namespace Parse {
 	    if( left_value == null ) {
 		IO.Std.err.println( "left value is null: " + this );
 	    }
+	   
 	    // quiet => internally constructed method call and hence cannot be a proc reference
 	    // otherwise check if left value refers to a method identifier (rather than a proc reference
 	    // or some other kind of symbol):
 	    if( quiet || left_value.isSuper(state) || left_value.isMethod(state) ) {
 		calcTypeNormal( state, quiet );
 	    } else {
-		/*
-		IO.Std.err.println( "this: " + this );
-		IO.Std.err.println( "quiet: " + quiet );
-		IO.Std.err.println( "left.is super: " + left_value.isSuper(state) );
-		IO.Std.err.println( "left.is method: " + left_value.isMethod(state) );
-		*/
-		// left value is not a method identifier - assume it's a proc reference or an error:
 		calcTypeProcReference( state );
 	    }
 	}
@@ -531,31 +527,29 @@ namespace Parse {
             quality = new Quality();
             if( left_value != null ) {
                 type = left_value.getType( state );
+		if( type.TypeKind == Type.SUPER ) {
+		    super_call = true;
+		} else if( type.CanTreatAsObject ) {
+		    IO.Std.err.println( "will treat " + type + " as " + type.getBoxType(state) );
+		    type = type.getBoxType(state);
+		}
 
                 if( type.TypeKind == Type.ERROR ) {
                     symbol = undefined_method;
                 } else if( type.TypeKind != Type.CLASS && type.TypeKind != Type.SUPER ) {
                     ExpressionList wrap_arguments = new ExpressionList( line_number );
 
-                    Type t = getBoxType(state,type);
+                    Type t = type.getBoxType(state);
 
                     if( t != null ) {
-			if( t.findSymbol( "box", Symbol.FIND_ANY ) != null ) {
-			    // presence of box method implies left value is not already an object and we should simulate object
-			    // behaviour by calling a static method with the left value an additional initial parameter:
-			    wrap_arguments.add( left_value );
+			wrap_arguments.add( left_value );
 
-			    if( arguments != null && arguments.List.Length > 0 ) {
-				foreach( Expression e; arguments.List.elements() ) {
-				    wrap_arguments.add(e);
-				}
+			if( arguments != null && arguments.List.Length > 0 ) {
+			    foreach( Expression e; arguments.List.elements() ) {
+				wrap_arguments.add(e);
 			    }
-			    left_value = new WrapTypeAsExpression(line_number,t);
-			} else {
-			    // no box method implies that the left value is already an object and we just need to treat it as an
-			    // object of the boxed type and attempt to call the method on it:
-			    wrap_arguments = arguments;
 			}
+			left_value = new WrapTypeAsExpression(line_number,t);
 
                         method_call = new MethodCall( line_number, left_value, new Identifier(line_number,name.Name), wrap_arguments );
 
@@ -759,10 +753,9 @@ namespace Parse {
 		name = cast Identifier(left_value);
 		left_value = name.LeftValue;
 	    
-
 		// IO.Std.err.println( "call method " + method.Owner.HumanName + " " + method.Name );
 
-		if( left_value != null && !left_value.isThis( state ) && !left_value.isSuper( state ) ) {
+		if( !super_call && left_value != null && !left_value.isThis( state ) ) {
 		    // IO.Std.err.println( "IIIIII: load this" );
 		    load_this = true;
 		}
@@ -845,10 +838,9 @@ namespace Parse {
 
 		}
 
-                Container scope = left_value.getType(state).Clazz;
                 Container super_class = null;
-                if( left_value.getType(state).TypeKind == Type.SUPER ) {
-                    super_class = scope;
+                if( super_call ) {
+                    super_class = left_value.getType(state).Clazz;
                 }
 
 		/*

@@ -98,7 +98,8 @@ namespace Parse {
 
 	    Symbol s = getSymbol( state, name, false, Symbol.FIND_ANY );
 	    if( s == null ) {
-		return false;
+		// caller want's it to be a method and we've found nothing to contradict that:
+		return true;
 	    }
 
 	    int k = s.Kind;
@@ -373,10 +374,15 @@ namespace Parse {
 		    return new Symbol( null, name, Symbol.ATTRIBUTE_SIZE, Symbol.ACCESS_PUBLIC, new Type(Type.INTEGER) );
 		} else if( name =~ "box" ) {
 		    at = t.getBoxType(state);
-		    if( at != null ) {
-			// equivalent boxed type found - return box attribute:
-			return new Symbol( null, name, Symbol.ATTRIBUTE_BOX, Symbol.ACCESS_PUBLIC, at );
-		    } else {
+		    if( at != null ) {			
+			if( t.CanTreatAsObject ) {
+			    // value is already an object we just need a silent cast to it's boxed type:
+			    return new Symbol( null, name, Symbol.ATTRIBUTE_PASS, Symbol.ACCESS_PUBLIC, at );
+			} else {
+			    // equivalent boxed type found - return box attribute:
+			    return new Symbol( null, name, Symbol.ATTRIBUTE_BOX, Symbol.ACCESS_PUBLIC, at );
+			}
+		    } else {			    
 			// not a boxable value - pass left value unchanged:
 			return new Symbol( null, name, Symbol.ATTRIBUTE_PASS, Symbol.ACCESS_PUBLIC, t );
 		    }

@@ -12,6 +12,7 @@
 #include <pthread.h>
 #include <time.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include <gc/gc.h>
 
@@ -1104,4 +1105,19 @@ void *__get_stderr() {
 
 void *__get_unwind_start() {
   return __unwind_start;
+}
+
+long __get_nanotime() {
+  struct timespec t;
+  if( clock_gettime( CLOCK_PROCESS_CPUTIME_ID, &t ) ) {
+    // printf( "clock gettime failed %s\n", strerror(errno) );
+    return 0;
+  } else {
+    // printf( "clock gettime success: %ld %ld\n", t.tv_sec, t.tv_nsec );
+    long result = t.tv_sec * 1000000000 + t.tv_nsec;
+    // printf( "result is %ld\n", result );
+
+    return result;
+  }
+
 }

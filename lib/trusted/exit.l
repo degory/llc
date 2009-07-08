@@ -1,18 +1,30 @@
 
 namespace System {
     class Exit {
-	static Object[] shutdown_objects;
-	static int next_index;
 
-	static Object add( Object o ) { 
+	const int NUM_LEVEL = 3;
+
+	static Object[][] shutdown_objects;
+	static int[] next_index;
+
+	static Object add( int level, Object o ) { 
 	    if( shutdown_objects == null ) {
-		shutdown_objects = new Object[64];
+		next_index = new int[NUM_LEVEL];
+		shutdown_objects = new Object[][NUM_LEVEL];
+		for( int i = 0; i < NUM_LEVEL; i = i + 1 ) {
+		    shutdown_objects[i] = new Object[32];
+		}
 	    }
 
-	    shutdown_objects[next_index] = o;
-	    next_index = next_index + 1;
+	    int ni = next_index[level];
+	    shutdown_objects[level][ni] = o;
+	    next_index[level] = ni + 1;
 
 	    return o;
+	}
+
+	static Object add( Object o ) {
+	    return add( 0, o );
 	}
 
 	static void exit(int status) { 
@@ -25,13 +37,16 @@ namespace System {
 		return;
 	    }
 
-	    for( int i = 0; i < shutdown_objects.length; i = i + 1 ) {
-		Object o = shutdown_objects[i];
-		if( o != null ) {
-		    try {
-			shutdown_objects[i].dispose();
-		    } catch( System.Exception e ) {
-			// do nothing
+	    for( int j = NUM_LEVEL-1; j >= 0; j = j - 1 ) {
+		Object[] so = shutdown_objects[j];
+		for( int i = so.length-1; i >= 0; i = i - 1 ) {
+		    Object o = so[i];
+		    if( o != null ) {
+			try {
+			    o.dispose();
+			} catch( System.Exception e ) {
+			    // do nothing
+			}
 		    }
 		}
 	    }

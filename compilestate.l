@@ -351,6 +351,15 @@ namespace Parse {
             STATE_INSIDE_CLASS = 2,
             STATE_INSIDE_METHOD = 3;
 
+	const int 
+	    WARN_UNSAFE = 0,
+	    WARN_HIDE = 1,
+	    WARN_RESOLVE = 2,
+    	    MARK_UNSAFE = 3,
+	    IS_TRUSTED = 4,
+            WANT_DEBUG = 5,
+	    WANT_PROFILE = 6;
+
 	private const int
 	    DEFAULT_WARN_FLAGS = 15 | 32; // all warnings enabled, trusted flag not set
 
@@ -2330,7 +2339,6 @@ namespace Parse {
 	    want_very_verbose = v;
 	}
 
-
 	get bool WantPrint {
 	    return want_print;
 	}
@@ -2374,52 +2382,60 @@ namespace Parse {
 	}
 
 	get bool WantWarnUnsafe {
-	    return WarnFlag[0];
+	    return WarnFlag[WARN_UNSAFE];
 	}
 
 	set bool WantWarnUnsafe = w {
-	    WarnFlag[0] = w;
+	    WarnFlag[WARN_UNSAFE] = w;
 	}
 
 	get bool WantWarnHide {
-	    return WarnFlag[1];
+	    return WarnFlag[WARN_HIDE];
 	}
 
 	set bool WantWarnHide = w {
-	    WarnFlag[1] = w;
+	    WarnFlag[WARN_HIDE] = w;
 	}
 
 	get bool WantWarnResolve {
-	    return WarnFlag[2];
+	    return WarnFlag[WARN_RESOLVE];
 	}
 
 	set bool WantWarnResolve = w {
-	    WarnFlag[2] = w;
+	    WarnFlag[WARN_RESOLVE] = w;
 	}
 
 	get bool WantMarkUnsafe {
 	    // !trusted || want mark unsafe:
-	    return !WarnFlag[4] || WarnFlag[3];
+	    return !WarnFlag[IS_TRUSTED] || WarnFlag[MARK_UNSAFE];
 	}
 
 	set bool WantMarkUnsafe = w {
-	    WarnFlag[3] = w;
+	    WarnFlag[MARK_UNSAFE] = w;
 	}
 
 	get bool Trusted {
-	    return WarnFlag[4];
+	    return WarnFlag[IS_TRUSTED];
 	}
 
 	set bool Trusted = w {
-	    WarnFlag[4] = w;
+	    WarnFlag[IS_TRUSTED] = w;
 	}
 
 	get bool WantLineNumbers {
-	    return WarnFlag[5];
+	    return WarnFlag[WANT_DEBUG];
 	}
 
 	set bool WantLineNumbers = v {
-	    WarnFlag[5] = v;
+	    WarnFlag[WANT_DEBUG] = v;
+	}
+
+        get bool WantProfile {
+	    return WarnFlag[WANT_PROFILE];
+	}
+
+	set bool WantProfile = p {
+	    WarnFlag[WANT_PROFILE] = p;
 	}
 
 	get bool WantInline {
