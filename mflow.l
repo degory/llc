@@ -4145,6 +4145,12 @@ namespace Gen {
 	    this.clobber = clobber;
 	    this.pattern = pattern;
 	    is_effective = true;
+
+	    /*
+	    if( left != null && left.RawOp == 0 ) {
+		IO.Std.err.println( "zero op instruction here: " + new System.Backtrace() );
+	    }
+	    */
 	}
 
 	void reset() {
@@ -4487,8 +4493,8 @@ namespace Gen {
 		String s = left.toString();
 
 		if( s == null ) {
-		    IO.Std.err.println( "non null instruction has null representation" );
-		    return "# null instruction";
+		    IO.Std.err.println( "non null instruction has null representation: " + left.Operation );
+		    return "# null instruction\n";
 		}
 
 		bool seen_comment = false;

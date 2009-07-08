@@ -79,7 +79,7 @@ namespace Gen {
 
 	    } catch( System.Exception e ) {
 		if( rethrow ) {
-		    IO.Std.err.println( "not a valid instruction: " + t );
+		    IO.Std.err.println( "not a valid instruction: " + t + " " + e );
 		    throw e;
 		}
 		return false;

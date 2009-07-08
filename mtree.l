@@ -1552,13 +1552,20 @@ namespace Gen {
     class MCall extends MTree {
 	void init( int op, MTree dest, MTree left ) {
 	    super.init( op, dest, left, null );
+	    /*
 	    if( left.toString().equals( "$0" ) ) {
 		IO.Std.err.println( "created: " + this + " from " + new Exception("arse") );
 	    }
+	    */
 
 	    if( dest != null ) {
-		dest.Mode = Mode.WRITE;
+		if( op == Op.PROC_CALL ) {
+		    dest.Mode = Mode.READ | Mode.WRITE;
+		} else {
+		    dest.Mode = Mode.WRITE;
+		}
 	    }
+
 	}
 
 	String toString() {
@@ -1585,10 +1592,13 @@ namespace Gen {
 		return result;
 	    } else if( op == Op.PROC_CALL ) {
 		if( dest != null ) {
-		    return "call *" + Machine.WORD + "(" + left + ") # result in " + dest;
+		    return "call *" + Machine.WORD + "(" + dest + ") # result in " + dest;
 		} else {
-		    return "call *" + Machine.WORD + "(" + left + ") # discard result";
+		    return "call *" + Machine.WORD + "(" + dest + ") # discard result";
 		}
+	    } else {
+		IO.Std.err.println( "call instruction has stupid op: " + op );
+		return "# stupid call";
 	    }
 	}
 

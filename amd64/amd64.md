@@ -1198,9 +1198,22 @@ rewrite t = [PROC_REF] 10
     
 
 
-rewrite inst = [PROC_CALL t t] 10 [PROC_CALL $0 $1]
+rewrite inst = [PROC_CALL t t] 10 
+    [LIST
+        [RESULT $0]
+	[PROC_CALL $0.T]
+	[COPY $1.T $0.T]
+    ]
 
-rewrite inst = [PROC_CALL_DISCARD t] 10 [PROC_CALL_DISCARD $0]
+// [PROC_CALL $0 $1]
+
+rewrite inst = [PROC_CALL_DISCARD t] 10 
+    [LIST
+        [RESULT $0]
+	[PROC_CALL $0.T]
+    ]
+
+// [PROC_CALL_DISCARD $0]
 
 rewrite inst = [STATIC_CALL t] 10 [STATIC_CALL $0.T $A.S]
 
@@ -1233,8 +1246,8 @@ machine inst = [STATIC_CALL_DISCARD] 10 [Inst [Call STATIC_CALL null [Const $A.S
 machine inst = [DYNAMIC_CALL t tm] 10 [Inst [Call DYNAMIC_CALL $0:Return $1] :CallR]
 machine inst = [DYNAMIC_CALL_DISCARD tm] 10 [Inst [Call DYNAMIC_CALL null $0] :CallD]
 
-machine inst = [PROC_CALL t t] 10 [Inst [Call PROC_CALL $0:Return $1:Return] :CallR]
-machine inst = [PROC_CALL_DISCARD t] 10 [Inst [Call PROC_CALL null $0:Return] :CallR]
+machine inst = [PROC_CALL t] 10 [Inst [Call PROC_CALL $0:Return null] :CallR]
+// machine inst = [PROC_CALL_DISCARD t] 10 [Inst [Call PROC_CALL $0:Return null] :CallR]
 
 machine flags = t 0 [Reg $0.T MSet.Flags]
 
