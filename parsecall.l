@@ -503,6 +503,7 @@ namespace Parse {
         void calcTypeNormal( CompileState state, bool quiet ) {
             Symbol symbol = null;
             String arg_string = null;
+	    Type t;
 
             Generic.Vector<Type> arg_types = null;
             if( arguments != null ) {
@@ -524,13 +525,13 @@ namespace Parse {
             }
             */
 
-            quality = new Quality();
+
+	    quality = new Quality();
             if( left_value != null ) {
                 type = left_value.getType( state );
 		if( type.TypeKind == Type.SUPER ) {
 		    super_call = true;
 		} else if( type.CanTreatAsObject ) {
-		    IO.Std.err.println( "will treat " + type + " as " + type.getBoxType(state) );
 		    type = type.getBoxType(state);
 		}
 
@@ -538,8 +539,7 @@ namespace Parse {
                     symbol = undefined_method;
                 } else if( type.TypeKind != Type.CLASS && type.TypeKind != Type.SUPER ) {
                     ExpressionList wrap_arguments = new ExpressionList( line_number );
-
-                    Type t = type.getBoxType(state);
+		    t = type.getBoxType(state);
 
                     if( t != null ) {
 			wrap_arguments.add( left_value );
@@ -656,45 +656,56 @@ namespace Parse {
 	    // IO.Std.err.println( "left value type is: " + proc_type );
 
 	    if( proc_type.TypeKind != Type.PROC ) {
-		if( left_value.isIdentifier(state) ) {
-		    Identifier n = cast Identifier(left_value);
-		    Symbol s = n.getSymbol(state,false,Symbol.FIND_ANY);
-		    if( s != null ) {
-			int k = s.Kind;
-
-			if( k & Symbol.FLAG_METHOD != 0 ) {
-			    error( "strange: " + s.OwnerHumanName + "." + s.Name + " is a method but cannot call it" );
-			} else {
-			    String kind_s = "";
-			    String scope_s = "";
+		if( proc_type.TypeKind == Type.CLASS && proc_type.Clazz.Template == ParseTree.proc_type.Clazz ) {
+		    // IO.Std.err.println( "de-method on System.Proc<P>, attempt to determine proc type so we can call it..." );
+		    
+		    // what is type of P (proc ref) in this specialization of System.Proc?
+		    proc_type = proc_type.getActualArgumentType( state, "P" );
+		    
+		    // IO.Std.err.println( "proc type now: " + proc_type );
+		} else {
+		    if( left_value.isIdentifier(state) ) {
+			Identifier n = cast Identifier(left_value);
+			Symbol s = n.getSymbol(state,false,Symbol.FIND_ANY);
+			if( s != null ) {
+			    int k = s.Kind;
 			    
-			    if( k & Symbol.FLAG_VARIABLE != 0 ) {
-				kind_s = "variable";
-			    } else if( k & Symbol.FLAG_CLASS != 0 ) {
-				kind_s = "container";
-			    } else if( k & Symbol.FLAG_ACCESSOR != 0 ) {
-				kind_s = "accessor";
-			    } else if( k > Symbol.ATTRIBUTE ) {
-				kind_s = "attribute";
-			    }
-
-			    if( k & Symbol.FLAG_STATIC != 0 ) {
-				scope_s = "static ";
-			    } else if( k & Symbol.FLAG_LOCAL != 0 ) {
-				scope_s = "local ";
+			    if( k & Symbol.FLAG_METHOD != 0 ) {
+				error( "strange: " + s.OwnerHumanName + "." + s.Name + " is a method but cannot call it" );
+			    } else {
+				String kind_s = "";
+				String scope_s = "";
 				
+				if( k & Symbol.FLAG_VARIABLE != 0 ) {
+				    kind_s = "variable";
+				} else if( k & Symbol.FLAG_CLASS != 0 ) {
+				    kind_s = "container";
+				} else if( k & Symbol.FLAG_ACCESSOR != 0 ) {
+				    kind_s = "accessor";
+				} else if( k > Symbol.ATTRIBUTE ) {
+				    kind_s = "attribute";
+				}
+				
+				if( k & Symbol.FLAG_STATIC != 0 ) {
+				    scope_s = "static ";
+				} else if( k & Symbol.FLAG_LOCAL != 0 ) {
+				    scope_s = "local ";
+				    
+				}
+				
+				
+				error( s.OwnerHumanName + "." + s.Name + " is a " + scope_s + kind_s + " not a method" );
 			    }
-
-
-			    error( s.OwnerHumanName + "." + s.Name + " is a " + scope_s + kind_s + " not a method" );
+			} else {
+			    error( "" + proc_type + " is not a method" );
 			}
 		    } else {
 			error( "" + proc_type + " is not a method" );
 		    }
+		    proc_type = null;
+		    type = undefined_type;
+		    return;
 		}
-		proc_type = null;
-		type = undefined_type;
-		return;
 	    }
 
 	    if( !proc_type.Clazz.matches( arg_types, false ) ) {
@@ -743,6 +754,7 @@ namespace Parse {
                 return new ITree( line_number, Op.ERROR, 0 );
             } else if( method == null && !proc_call ) {
                 // result of compile error
+		error( "no method here" );
                 return new ITree( line_number, Op.ERROR, 0 );
             }
 

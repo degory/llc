@@ -1651,6 +1651,11 @@ namespace Parse {
 	{
 	    int t;
 
+	    if( o == Op.ERROR ) {
+		IO.Std.err.println( "oops: compiling call with op == Op.ERROR" );
+	    }
+
+
 	    if( inline_args != null ) {
 		if( symbol == null ) {
 		    IO.Std.err.println( "cannot call inline method with no symbol: " + name );
@@ -1760,6 +1765,8 @@ namespace Parse {
 		}
 		return new ITree( line_number, Op.COMMENT, 0, "proc call result" );;
 	    }
+
+	    throw new Exception( "bad call operation: " + o );
 	}
 
 	ITree compileLoadStaticProcRef( CompileState state, IBlock into, Symbol symbol, Type proc_type ) {
@@ -1852,7 +1859,7 @@ namespace Parse {
 
 
 	    if( no_vtable_lookup ) {
-		IO.Std.err.println( "store method address: " + symbol.DecoratedName + " from " + symbol.HumanName );
+		// IO.Std.err.println( "store method address: " + symbol.DecoratedName + " from " + symbol.HumanName );
 		// store method address in word 3 of proc ref structure:
 		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
 				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
@@ -1865,7 +1872,7 @@ namespace Parse {
 				     )
 			  );
 	    } else {				     
-		IO.Std.err.println( "store method offset: " + symbol.Address + " from " + symbol.HumanName );
+		// IO.Std.err.println( "store method offset: " + symbol.Address + " from " + symbol.HumanName );
 		// look up method address in vtable and store in word 3 of proc ref structure:
 		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
 				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
@@ -1902,7 +1909,7 @@ namespace Parse {
 		if( from == null ) {
 		    from = makeLoadThis(state, line_number, into);
 		}
-		IO.Std.err.println( "want proc reference to instance method: " + symbol.HumanName );
+		// IO.Std.err.println( "want proc reference to instance method: " + symbol.HumanName );
 		return compileLoadDynamicProcRef(
 						 state,
 						 into,

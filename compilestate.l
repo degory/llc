@@ -2133,10 +2133,7 @@ namespace Parse {
 		t.dumpDecorate( decorated );
 	    }
 
-	    IO.Std.err.println( "decorated name initially: " + decorated );
 	    c.DecoratedName = "" + decorated.Length + decorated;
-
-	    IO.Std.err.println( "decorated name now: " + c.DecoratedName );
 
 	    want_return.dumpHuman( human );
 	    human.append( "$Sproc$l" );
@@ -2151,9 +2148,6 @@ namespace Parse {
 	    human.append( "$r" );
 
 	    c.QualifiedName = human;
-
-	    IO.Std.err.println( "qualified name now: " + c.QualifiedName );
-	    IO.Std.err.println( "human name now: " + c.HumanName );
 
 	    // IO.Std.err.println( "created proc container: " + c );
 	    

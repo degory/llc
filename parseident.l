@@ -467,8 +467,8 @@ namespace Parse {
 
 	    if( method_call != null ) {
 		// IO.Std.err.println( "identifier is property: " + this );
-		if( want_set_value ) {
-		    // IO.Std.err.println( "property setter method has no value here: " + new System.Backtrace() );
+		if( want_set_value ) {		    
+		    // warn( "property setter method has no value here: " + this + ", from: " + new System.Backtrace() );
 		    method_call.compileDiscardValue( state, into );
 		    return new ITree( line_number, Op.ERROR, 0 );
 		} else {

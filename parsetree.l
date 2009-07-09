@@ -472,9 +472,11 @@ namespace Parse {
 
 	    case Type.VECTOR:
 		sub_type = type.SubType;
+		/*
 		if( sub_type.TypeKind == Type.VECTOR || sub_type.TypeKind == Type.PROC ) {
 		    sub_type = sub_type.getBoxType(state);
 		}
+		*/
 		args = new Vector<Type>();
 		args.add(sub_type);
 		type = state.findGeneric( array_type.Clazz, args, false );
@@ -484,9 +486,7 @@ namespace Parse {
 	    case Type.PROC:
 		args = new Vector<Type>();
 		args.add(type);
-		IO.Std.err.println( "get box type: " + type + " args: " + args );
 		type = state.findGeneric( proc_type.Clazz, args, false );
-		IO.Std.err.println( "boxed proc has type: " + type );
 		return type;
 	    }
 	    return null;
@@ -1524,7 +1524,19 @@ namespace Parse {
             type = left_value.getType( state );
 	    // IO.Std.err.println( "vector access calc type: " + type );
 
-	    if( left_value.isIndexer( state ) ) {
+	    bool cast_generic_array = false;
+
+	    // is the left value a specialization of Generic.Array<T>? If so we want to compile a direct array subscript on it
+	    // rather than going through it's indexer:
+	    if( type.TypeKind == Type.CLASS && type.Clazz.Template == array_type.Clazz ) {
+		// IO.Std.err.println( "subscripting a Generic.Array: " + type );
+	       
+		Type t = type.getActualArgumentType(state, "T");
+		cast_generic_array = true;
+	    }
+
+	    // if the left value is an indexer then we just defer to it's method call:
+	    if( !cast_generic_array && left_value.isIndexer( state ) ) {
 		if( want_set_value ) {
 		    // method call will check supplied type, do not use type
 		    // of left value as it will be 'void':
@@ -1536,14 +1548,19 @@ namespace Parse {
 		return;
 	    } else if( type.TypeKind == Type.ERROR ) {
                 return;
+
+            // if the left value is an array then we'll want to compile a subscript on it:
             } else if( type.TypeKind == Type.VECTOR ) {
 		// IO.Std.err.println( "left type is vector: " + left_value + ", " + type );
-                type = type.SubType;
+		if( !cast_generic_array ) {
+		    type = type.SubType;
+		}
 		// IO.Std.err.println( "result type is: " + type );
 
 		if( !right_value.getType( state ).isInteger() && right_value.getType(state).TypeKind != Type.ERROR ) {
 		    error( "subscript expression must be integer" );
 		}
+            // if the left value is a class an it's not an indexer then we'll see if we can find an indexed accessor for it: 
 	    } else if( type.TypeKind == Type.CLASS ) {
 		// IO.Std.err.println( "left type is class: " + left_value + ", " + type );
 

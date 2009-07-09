@@ -35,7 +35,8 @@ namespace Test164 {
 	    for( i = 0; i < f.length; i = i + 1 ) {
 		f[i](i);
 
-		int k = f[i](i);
+		int k = f[i](i); 
+
 		IO.Std.err.println( "Test0, g " + i + ": " + f[i](i) + " or " + k );
 	    }
 
@@ -45,10 +46,21 @@ namespace Test164 {
 	    }
 
 	    i = 0;
-	    foreach( var g; f.elements() ) {
+	    while( j.hasMoreElements() ) {
+		IO.Std.err.println( "have: " + j.nextElement()(i) );
+		i = i + 1;
+	    }
+
+	    i = 0;
+	    foreach( var g; f.elements() ) {		
 		IO.Std.err.println( "Test0, g " + i + ": " + f[i](i) );
 
 		i = i + 1;
+	    }
+
+	    var l = f.box;
+	    for( i = 0; i < l.Length; i = i + 1 ) {
+		IO.Std.err.println( "Test0, l " + i + ": " + l[i](i) );
 	    }
 	}
 

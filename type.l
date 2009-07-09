@@ -131,6 +131,18 @@ namespace Parse {
 	    return box_type;
 	}
 
+	/// given a type, which should be a specialization generic class and the name of one of its format type arguments
+	/// return the actual type of that argument
+	Type getActualArgumentType( CompileState state, String type_name ) {
+	    Symbol s = c.findSymbol( type_name, Symbol.FIND_ANY );
+	    if( s.Kind == Symbol.TYPE ) {
+		return s.Type;
+	    }
+
+	    IO.Std.err.println( "strange: no actual type argument " + this + "." + type_name + ", symbol: " + s );
+	    return null;
+	}
+
 	get bool CanTreatAsObject {
 	    var tk = TypeKind;
 	    return tk == VECTOR || tk == PROC;
@@ -234,15 +246,27 @@ namespace Parse {
 
             case Type.VECTOR:
                 sub_type.dumpHuman( human, template );
-                human.append( "[]" );
+		if( template ) {
+		    human.append( "$V" );
+		} else {
+		    human.append( "[]" );
+		}
 
             case Type.REFERENCE:
                 sub_type.dumpHuman( human, template );
-                human.append( " ref" );
+		if( template ) {
+		    human.append( "$r" );
+		} else {
+		    human.append( " ref" );
+		}
 
             case Type.POINTER:
                 sub_type.dumpHuman( human, template );
-                human.append( " ptr" );
+		if( template ) {
+		    human.append( "$p" );
+		} else {
+		    human.append( " ptr" );
+		}
 
             case Type.CLASS,Type.STRUCT,Type.ENUM,Type.PROC:
 		// IO.Std.err.println( "dumping class, get qualified name..." );
@@ -389,7 +413,7 @@ namespace Parse {
 	    if( t != null ) {
 		s = matchScore2( t, assign ) - 1;
 		if( s > result ) { 
-		    IO.Std.err.println( "" + this + " vs " + t + "/" + u );
+		    // IO.Std.err.println( "" + this + " vs " + t + "/" + u + " from: " + new System.Backtrace() );
 		    result = s;
 		}
 	    }
@@ -398,7 +422,7 @@ namespace Parse {
 	    if( t != null ) {
 		s = t.matchScore2( u, assign ) - 1;
 		if( s > result ) {
-		    IO.Std.err.println( "" + this + "/" + t + " vs " + u );
+		    // IO.Std.err.println( "" + this + "/" + t + " vs " + u + " from: " + new System.Backtrace() );
 		    result = s;
 		}
 	    }

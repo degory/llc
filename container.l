@@ -823,6 +823,12 @@ namespace Parse {
 			b.append( '(' );
 		    } else if( c == 'r' ) {
 			b.append( ')' );
+		    } else if( c == 'V' ) {
+			b.append( "[]" );
+		    } else if( c == 'p' ) {
+			b.append( " ptr" );
+		    } else if( c == 'r' ) {
+			b.append( " ref" );
 		    } else {
 			b.append( '$' );
 			b.append( c );

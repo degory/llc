@@ -808,12 +808,6 @@ namespace Gen {
 
 	    this.op = this.op | getSizeMask(size);
 
-	    /*
-	    if( this.op == 1 ) {
-		throw new Exception( "creating ITree op " + this.op );
-	    }	
-	    */	
-
 	    if( size > Machine.WORD ) {
 		throw new Exception( "creating ITree op " + op + " of size " + size + " > " + Machine.WORD );
 	    }
