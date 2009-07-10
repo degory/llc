@@ -1210,7 +1210,7 @@ rewrite inst = [PROC_CALL t t] 10
 rewrite inst = [PROC_CALL_DISCARD t] 10 
     [LIST
         [RESULT $0]
-	[PROC_CALL $0.T]
+	[PROC_CALL_DISCARD $0.T]
     ]
 
 // [PROC_CALL_DISCARD $0]
@@ -1247,7 +1247,7 @@ machine inst = [DYNAMIC_CALL t tm] 10 [Inst [Call DYNAMIC_CALL $0:Return $1] :Ca
 machine inst = [DYNAMIC_CALL_DISCARD tm] 10 [Inst [Call DYNAMIC_CALL null $0] :CallD]
 
 machine inst = [PROC_CALL t] 10 [Inst [Call PROC_CALL $0:Return null] :CallR]
-// machine inst = [PROC_CALL_DISCARD t] 10 [Inst [Call PROC_CALL $0:Return null] :CallR]
+machine inst = [PROC_CALL_DISCARD t] 10 [Inst [Call PROC_CALL null $0:Return] :CallR]
 
 machine flags = t 0 [Reg $0.T MSet.Flags]
 

@@ -1594,7 +1594,7 @@ namespace Gen {
 		if( dest != null ) {
 		    return "call *" + Machine.WORD + "(" + dest + ") # result in " + dest;
 		} else {
-		    return "call *" + Machine.WORD + "(" + dest + ") # discard result";
+		    return "call *" + Machine.WORD + "(" + left + ") # discard result";
 		}
 	    } else {
 		IO.Std.err.println( "call instruction has stupid op: " + op );
