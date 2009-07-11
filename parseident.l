@@ -534,8 +534,8 @@ namespace Parse {
 		return new ITree( line_number, Op.CONST, 4, at.RegSize );
 	    } else if( k == Symbol.ATTRIBUTE_BOX ) {
 		at = getType(state);
-		IO.Std.err.println( "attribute type is: " + at );
-		IO.Std.err.println( "attribute type is: " + at + "," + at.Clazz );
+		// IO.Std.err.println( "attribute type is: " + at );
+		// IO.Std.err.println( "attribute type is: " + at + "," + at.Clazz );
 		// does boxed type contain a box method?
 		Symbol bm = at.findSymbol( "box", Symbol.FIND_ANY );
 		if( bm != null && bm.Kind == Symbol.STATIC_METHOD ) {

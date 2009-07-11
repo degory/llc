@@ -1,5 +1,8 @@
 
 import lock;
+
+pragma NoWarnUnsafe;
+
 namespace Util {
     /// Internal structure holding a pthread cond
     struct PThreadCond {

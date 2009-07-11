@@ -641,6 +641,18 @@ namespace Parse {
             this.statement = statement;
         }
 
+	void checkInline( CompileState state ) {
+            if( initializer != null ) {
+                initializer.checkInline( state );
+            }
+
+            if( increment != null ) {
+                increment.checkInline( state );
+            } 
+
+            statement.checkInline( state );	    
+	}
+
         void declareSymbols( CompileState state ) {
             if( initializer != null ) {
                 initializer.declareSymbols( state );

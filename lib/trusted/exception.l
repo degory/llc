@@ -215,7 +215,7 @@ namespace System is
 	end
 
 	void init() is
-	    super.init( "Not implemented exception" );
+	    super.init( "method not implemented" );
 	end
     end
 

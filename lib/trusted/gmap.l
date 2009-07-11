@@ -8,6 +8,8 @@ import giterator;
 
 import stream;
 
+pragma NoWarnHide;
+
 namespace Generic is
     /// Iterates over a Map and returns each MapPair comprising the Map in turn. Returns values in no particular order 
     /// \param K the key type
@@ -332,9 +334,9 @@ namespace Generic is
 	    return b;
 	end
 
-	/// Accessor: get MapValueIterator<K,T> Elements
+	/// Accessor: get MapValueIterator<K,T> Iterator
 	/// Get a new Iterator that returns each value in the Map in turn
-	get MapValueIterator<K,T> Elements is
+	get MapValueIterator<K,T> Iterator is
 	    return elements();
 	end
 

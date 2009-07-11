@@ -68,6 +68,7 @@ namespace Parse {
         
         void declareClassSymbols( CompileState state ) {
             state.beginPackage( file_name, null );
+
 	    setFileName();            
 	    state.setTrusted( is_trusted );
             

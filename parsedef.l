@@ -625,6 +625,8 @@ namespace Parse {
 		// provisional super class - may change if it turns out to be a template:
 		super_class = findSuperClass( state ); // , c.HumanName );
 	    }
+
+	    // IO.Std.err.println( "declare class symbols: " + c.HumanName );
 		
 	    if( body != null ) {
 		if( c.NeedsBody ) {
@@ -783,7 +785,6 @@ namespace Parse {
 
 	void checkInline( CompileState state ) {
 	    if( !is_generic ) {
-		// IO.Std.err.println( "check inline: " + c );
 		checkInline( state, c );
 	    } else {
 		foreach( Container d; generic_instances.elements() ) {
@@ -795,6 +796,7 @@ namespace Parse {
 	}
 
 	void checkInline( CompileState state, Container c ) {
+	    // IO.Std.err.println( "check inline: " + c.HumanName );
 	    state.beginCompileClass( this, c, name.Name );
 	    c.resetMethodIndex();
 	    body.checkInline( state );
@@ -1448,6 +1450,7 @@ namespace Parse {
         void declareClassSymbols( CompileState state ) {
             // IO.Std.err.println( "method def declare class symbols: " + name + " type: " + type );
 
+
 	    /*
 	    m = state.nextMethodByIndex( name.Name );
 	    if( m != null ) {
@@ -1485,6 +1488,9 @@ namespace Parse {
 
 	    String n = name.Name;
             m = cast<Container>( state.declareMethod( this, n, kind, actual_access, type.parseType(state), arg_types, decorate ) );
+
+	    // IO.Std.err.println( "declare class symbols: " + m.HumanName );
+
 	   
 	    if( n.Length > 3 ) {
 		if( n.startsWith( "get" ) || n.startsWith( "set" ) ) {
@@ -1661,8 +1667,9 @@ namespace Parse {
 
 	void checkInline( CompileState state ) {
 	    progress();
-	    // IO.Std.err.println( "check inline: " + name );
 	    m = state.nextMethodByIndex( name.Name );
+
+	    // IO.Std.err.println( "check inline: " + m.HumanName );
 
             StringBuffer human = new StringBuffer();
             StringBuffer decorated = new StringBuffer();
@@ -1697,7 +1704,10 @@ namespace Parse {
 		*/
 
 		body.checkInline( state );
+
+		// IO.Std.err.println( "maybe can inline: " + m.HumanName );
 	    } catch( CannotInlineException e ) {
+		// IO.Std.err.println( "cannot inline: " + m.HumanName );
 		m.markCannotInline();
 	    } finally {
 		state.endCompileMethod( m );
@@ -1784,7 +1794,9 @@ namespace Parse {
 		// IO.Std.err.println( "not leaf: " + human );
 		can_inline = false;
 	    } catch( CannotInlineException e ) {
+		IO.Std.err.println( "mark cannot inline: " + m.HumanName );
 		// encountered non-inlineable construct: do not try and inline this method again:
+		m.markCannotInline();
 
 		// IO.Std.err.println( "cannot inline: discarding inline intermediate code for " + decorated );
 		can_inline = false;

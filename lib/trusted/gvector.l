@@ -1,11 +1,13 @@
 #K
 
-pragma NoWarnUnsafe, NoMarkUnsafe;
+pragma NoWarnUnsafe, NoMarkUnsafe, NoWarnHide;
 
 import giterator;
 import glist;
 
 namespace Generic is
+    pragma NoWarnHide;
+
     use System.String;
     use System.StringBuffer;
     use System.Object;
@@ -247,6 +249,18 @@ namespace Generic is
 	/// Return a new Iterator that returns each element in the Vector from last to first in turn. Behaviour is undefined if the Vector is altered
 	/// before Iterator<T>.nextElement() returns false 
 	VectorReverseIterator<T> reverseElements() is
+	    return new VectorReverseIterator<T>( this );
+	end
+
+	/// Return a new Iterator that returns each element in the Vector from first to last in turn. Behaviour is undefined if the Vector is altered
+	/// before Iterator<T>.nextElement() returns false 
+	get VectorIterator<T> Iterator is
+	    return new VectorIterator<T>( this );
+	end
+
+	/// Return a new Iterator that returns each element in the Vector from last to first in turn. Behaviour is undefined if the Vector is altered
+	/// before Iterator<T>.nextElement() returns false 
+	get VectorReverseIterator<T> ReverseIterator is
 	    return new VectorReverseIterator<T>( this );
 	end
 

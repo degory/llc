@@ -1,5 +1,7 @@
 #K
 
+pragma NoWarnHide;
+
 namespace Generic is
     /// Interface. Iterator<T> over some collection of T returns each value in the collection in turn.
     interface Iterator<T> is
@@ -7,5 +9,9 @@ namespace Generic is
         bool hasMoreElements();
         /// Return the next value. Behaviour is undefined if nextElement() is called after hasMoreElements() has returned false
 	T nextElement();
+    end
+
+    interface Iterable<T> is
+	get Iterator<T> Iterator;
     end
 end

@@ -1,6 +1,8 @@
 
 import thread;
 
+pragma NoWarnUnsafe;
+
 namespace Util {
     /// Internal structure holding a pthread mutex
     struct PThreadMutex {

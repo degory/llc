@@ -782,14 +782,22 @@ namespace Parse {
 	}
 
         void error( String msg ) {
-	    newline();
-            IO.Std.err.println( file_name + ": " + line_number + ": error: " + msg + TemplateErrorString );
-            errors_occurred = true;
+	    if( !CompileState.Instance.IsInline ) {
+		newline();
+		IO.Std.err.println( file_name + ": " + line_number + ": error: " + msg + TemplateErrorString );
+		// } else {
+		// IO.Std.err.println( "hiding inline error message: " + file_name + ": " + line_number + ": error: " + msg + TemplateErrorString );
+	    }
+	    errors_occurred = true;
         }
 
         void warn( String msg ) {
-	    newline();
-            IO.Std.err.println( file_name + ": " + line_number + ": warn: " + msg + TemplateErrorString );
+	    if( !CompileState.Instance.IsInline ) {
+		newline();
+		IO.Std.err.println( file_name + ": " + line_number + ": warn: " + msg + TemplateErrorString );
+		//} else {
+		//IO.Std.err.println( "hiding inline warning message: " + file_name + ": " + line_number + ": warn: " + msg + TemplateErrorString );
+	    }
         }
 
 

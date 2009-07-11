@@ -3,6 +3,8 @@
 import gbag;
 import gmap;
 
+pragma NoWarnHide;
+
 namespace Generic is
     use System.Object;
     use System.String;
@@ -55,6 +57,10 @@ namespace Generic is
 	Iterator<T> elements() is
 	    return _map.keys();
 	end
+
+	get Iterator<T> Iterator is
+	    return _map.keys();
+        end
 
         String toString() is
 	    StringBuffer result = new StringBuffer( "[Set" );

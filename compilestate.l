@@ -557,6 +557,7 @@ namespace Parse {
 
 	void submit( Util.Work w ) {
 	    if( pool == null ) {
+		IO.Std.err.flush();
 		pool = new ProcessPool(this,WantJobs,master_class_list.Length);
 		pool.start();
 	    }
@@ -1208,7 +1209,7 @@ namespace Parse {
             pushState( STATE_OUTSIDE_CLASS, source_file_name );
             
             output = null;
-	    last_cleared_output_at = new System.Backtrace().toString();
+	    last_cleared_output_at = "begin package: " + source_file_name + " from: " + new System.Backtrace().toString();
             current_line = -1;
             seen_line_number = -1;
             last_line_number = -1;
@@ -1447,8 +1448,11 @@ namespace Parse {
             if( output != null ) {
                 return output;
             } else {
+		if( CurrentMethod != null ) {
+		    IO.Std.err.println( "no output for: " + CurrentMethod.HumanName );
+		}
 		IO.Std.err.println( "oops: no output stream: " + new System.Backtrace() );
-		IO.Std.err.println( "last cleared at: " + last_cleared_output_at );
+		IO.Std.err.println( "last cleared at: " + last_cleared_output_at + " from: " + new System.Backtrace() );
                 return IO.Std.err;
             }
         }
@@ -1542,7 +1546,7 @@ namespace Parse {
 		if( s.Kind == Symbol.ACCESSOR ) {
 		    return s;
 		} else {
-		    from.error( "redefining " + name + " as an accessor (creating accessor for method " + because + ")" );
+		    from.error( "redefining " + name + " as an accessor (creating accessor from method " + because + ")" );
 		}
 	    } else {
 		s = findSymbol( name, Symbol.FIND_NON_ACCESSOR );
@@ -1551,7 +1555,7 @@ namespace Parse {
 		symbol.Address = 0;
 
 		if( s != null && WantWarnHide ) {
-                    from.warn( "property " + symbol.HumanName + " hides symbol in outer scope " + s.HumanName );
+                    from.warn( "accessor " + symbol.HumanName + " hides symbol in outer scope " + s.HumanName );
 		}
 
 	    }
