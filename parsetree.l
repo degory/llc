@@ -622,6 +622,7 @@ namespace Parse {
 	}
 
 	void checkInline( CompileState state ) {
+	    state.countInline();
 	}
 
 	bool isProperty( CompileState state ) {

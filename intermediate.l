@@ -679,10 +679,11 @@ namespace Gen {
 	    }
 
 	    if( o == Op.LOCAL ||
+		/*
 		o == Op.PUSH || o == Op.POP ||
-		(o >= Op.CALL && op <= Op.STATIC_DYNAMIC_CALL_DISCARD) ||
-		(o >= Op.TRY && op <= Op.END_TRY) || 
-		(o >= Op.ARG0 && op <= Op.ARG5) ){
+		(o >= Op.CALL && op <= Op.STATIC_DYNAMIC_CALL_DISCARD) || */
+		(o >= Op.TRY && op <= Op.END_TRY) ) { /* || 
+						     (o >= Op.ARG0 && op <= Op.ARG5) ) { */
 		throw new Exception( "cannot inline: " + this );
 	    }
 

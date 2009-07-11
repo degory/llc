@@ -1655,7 +1655,6 @@ namespace Parse {
 		IO.Std.err.println( "oops: compiling call with op == Op.ERROR" );
 	    }
 
-
 	    if( inline_args != null ) {
 		if( symbol == null ) {
 		    IO.Std.err.println( "cannot call inline method with no symbol: " + name );
@@ -1698,13 +1697,15 @@ namespace Parse {
 		    state.notLeaf();
 		}
 	    } else {
+		if( state.IsInline && (symbol == null || symbol.Name !~ "init") ) {		    
 		// IO.Std.err.println( "would call not leaf here for call to: " + symbol.Owner.HumanName + "." + symbol.Name + "..." );
 		/*
-		if( state.IsInline ) {
+
 		    IO.Std.err.println( "attempting to inline call to: " + symbol.Owner.HumanName + "." + symbol.Name + "..." );
 		}
 		*/
-		state.notLeaf();
+		    state.notLeaf();
+		}
 	    }
 
 	    switch( o ) {
@@ -2224,15 +2225,13 @@ namespace Parse {
 			return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, size, inline_args );
                     }
                     
-                    IO.Std.err.println( "calling static method " + symbol.HumanName + " dynamically" );
-                    
-                    // else fall through
-                    throw new Exception( "need to fall through here" );
-                    
+		    error( "calling static method " + symbol.HumanName + " dynamically" );
+		    return new ITree( line_number, Op.ERROR, 0 );
+                                        
                 case Symbol.INSTANCE_METHOD:
                     if( !address ) {
                         error( "using method " + symbol.HumanName + " but not calling it" );
-			IO.Std.err.println( "here: " + new System.Backtrace() );
+			// IO.Std.err.println( "here: " + new System.Backtrace() );
 		    }
                     // source is object address
                     // into will whole call address

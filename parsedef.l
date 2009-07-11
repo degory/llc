@@ -1650,14 +1650,13 @@ namespace Parse {
             
             state.beginParseMethodBody(m);            
 
-	    /*
 	    if( state.WantReturnJumpElim && body.IsLastReturn ) {
 		// IO.Std.err.println( "method def: inline, last is return" );
                 
 		last_return = true;
 		body.markLastReturns();
 	    }
-	    */
+
 	    body.declareSymbols( state );
             // IO.Std.err.println( "local depth A: " + m.getLocalOffset() );
 
@@ -1677,6 +1676,7 @@ namespace Parse {
             dump( state, human, decorated );
 
 	    try {
+		state.clearInlineCount();
 		state.beginCompileMethod( this, m, decorated );
 		state.IsInline = true;
 		
@@ -1767,6 +1767,15 @@ namespace Parse {
 
             compileArguments(state, into, !m.IsStatic);
             // IO.Std.err.println( "local depth B: " + m.getLocalOffset() );           
+
+	    /*
+	    if( state.WantReturnJumpElim && body.IsLastReturn ) {
+		// IO.Std.err.println( "method def: inline, last is return" );
+                
+		last_return = true;
+		body.markLastReturns();
+	    }
+	    */
 
 	    bool can_inline = true;
 	    try {
@@ -1941,14 +1950,15 @@ namespace Parse {
                 error( "first statement in " + human + " is not a call to super.init() or this.init()" );
             }
 
-
+	    /*
 	    // FIXME: don't think template parameters can affect last return - it's a fixed property of
 	    // the parse tree and probably doesn't need to be clear()'d
 	    if( state.WantReturnJumpElim && body.IsLastReturn ) {
 		last_return = true;
 		body.markLastReturns();
-		// IO.Std.err.println( "method def: compile A last is return: " + last_return );
+		// IO.Std.err.println( "method def: compile " + m.HumanName + " last is return: " + last_return );
 	    }
+	    */
 
 	    Machine.emitStartUnwindInfo( state.Output, decorated, human, state.WantLineNumbers );
 

@@ -363,6 +363,9 @@ namespace Parse {
 	private const int
 	    DEFAULT_WARN_FLAGS = 15 | 32; // all warnings enabled, trusted flag not set
 
+	private const int
+	    INLINE_MAX = 100;    // approxiate maximum inline method size (in parse tree nodes)
+
 	static CompileState instance;
 
         SymbolList master_class_list;
@@ -453,6 +456,8 @@ namespace Parse {
 
 	// ThreadPool pool;
 	ProcessPool pool;
+
+	int inline_count;
 
 	CompileState copy() {
 	    // IO.Std.err.println( "before copy, this is: " + System.String.hex(cast int(this)) );
@@ -584,6 +589,23 @@ namespace Parse {
 	    return
 		name.startsWith( LIBRARY_DIR + "trusted/" ) ||
 		name.startsWith( LIBRARY_DIR + "safe/" );
+	}
+
+	void countInline() {
+	    if( State != STATE_INSIDE_METHOD ) {
+		return;
+	    }
+	    inline_count = inline_count + 1;
+	    if( inline_count > INLINE_MAX ) {
+		if( WantVeryVerbose ) {
+		    ParseTree.message( "too large to inline: " + CurrentMethod.HumanName );
+		}
+		throw new CannotInlineException();
+	    }
+	}
+
+	void clearInlineCount() {
+	    inline_count = 0;
 	}
 
 	static get CompileState Instance {
