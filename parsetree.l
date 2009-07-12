@@ -783,12 +783,12 @@ namespace Parse {
 	}
 
         void error( String msg ) {
-	    if( !CompileState.Instance.IsInline ) {
+	    // if( !CompileState.Instance.IsInline ) {
 		newline();
 		IO.Std.err.println( file_name + ": " + line_number + ": error: " + msg + TemplateErrorString );
 		// } else {
 		// IO.Std.err.println( "hiding inline error message: " + file_name + ": " + line_number + ": error: " + msg + TemplateErrorString );
-	    }
+		// }
 	    errors_occurred = true;
         }
 
@@ -819,6 +819,54 @@ namespace Parse {
 				  t );
 	    } else {
 		error( "cast from unexpected size: " + from_size );
+	    }
+	}
+
+	ITree loadGlobalNoGOT( CompileState state, String name ) {
+	    bool pic = true;
+
+	    if( pic ) {
+		// FIXME: assuming TLS not affected by PIC?
+		return new ITree( 0, Op.GLOBAL, Machine.WORD, name );
+	    } else {
+		return new ITree( 0, Op.GLOBAL, Machine.WORD, name );
+	    }
+	}
+
+	ITree loadGlobal( CompileState state, String name, int offset ) {
+	    bool pic = true;
+
+	    if( pic ) {
+		/*
+		if( offset == 0 ) {
+		    return new ITree( 0, Op.INDIRECT, Machine.WORD,
+				      new ITree( 0, Op.GLOBAL, Machine.WORD, name + "@GOTPCREL(%rip)" ) );
+		} else {
+		    return new ITree( 0, Op.ADD, Machine.WORD,
+				      new ITree( 0, Op.INDIRECT, Machine.WORD,
+						 new ITree( 0, Op.GLOBAL, Machine.WORD, name + "@GOTPCREL(%rip)" ) ),
+				      new ITree( 0, Op.CONST, Machine.WORD, offset ) );
+
+		}
+		*/
+
+		if( offset == 0 ) {
+		    return new ITree( 0, Op.INDIRECT, Machine.WORD,
+				      new ITree( 0, Op.GLOBAL, Machine.WORD, name + "@GOTPCREL(%rip)" ) );
+		} else {
+		    IO.Std.err.println( "load global '" + name + "' + " + offset );
+		    return new ITree( 0, Op.ADD, Machine.WORD,
+				      new ITree( 0, Op.INDIRECT, Machine.WORD,
+						 new ITree( 0, Op.GLOBAL, Machine.WORD, name + "@GOTPCREL(%rip)" ) ),
+				      new ITree( 0, Op.CONST, Machine.WORD, offset )
+				      );
+		}			
+	    } else {
+		if( offset == 0 ) {
+		    return new ITree( 0, Op.GLOBAL, Machine.WORD, name );
+		} else {
+		    return new ITree( 0, Op.GLOBAL, Machine.WORD, name + "+" + offset );
+		}
 	    }
 	}
     }
@@ -946,6 +994,10 @@ namespace Parse {
 	    return false;
 	}
 
+	get bool IsEmpty {
+	    return false;
+	}
+
 	void markLastReturns() {
 	}
 
@@ -977,6 +1029,10 @@ namespace Parse {
 	    if( !p.NoSemiColon ) {
 		p.println( ";" );
 	    }
+	}
+
+	get bool IsEmpty {
+	    return true;
 	}
     }
 
@@ -1027,7 +1083,7 @@ namespace Parse {
         }
 
 	void clear( CompileState state ) {
-	    no_code_after_return = false;
+	    // no_code_after_return = false;
 	    if( expression != null ) {
 		expression.clear( state );
 	    }
@@ -1319,6 +1375,16 @@ namespace Parse {
 	    }
 	}
 
+	get bool IsEmpty {
+	    foreach( Statement s; list.Iterator ) {
+		if( !s.IsEmpty ) {
+		    return false;
+		}
+	    }
+
+	    return true;
+	}
+
         void compile( CompileState state, IBlock into ) {
 	    state.enterBlock();
             // block_level = block_level + 1;
@@ -1349,9 +1415,6 @@ namespace Parse {
             }
         }
 
-	get bool IsEmpty {
-	    return false;
-	}
 
         String toString() {
             StringBuffer result = new StringBuffer();
@@ -1736,6 +1799,10 @@ namespace Parse {
         bool isFirstStatementSuperConstructorCall( CompileState state ) {
             return left != null && left.isSuperConstructorCall( state );
         }
+
+	get bool IsEmpty {
+	    return left.IsEmpty;
+	}
 
 	void checkInline( CompileState state ) {
 	    left.checkInline( state );

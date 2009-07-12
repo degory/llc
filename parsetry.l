@@ -43,6 +43,11 @@ namespace Parse {
             return;
         }
 
+	get bool IsLastReturn {
+	    // doesn't return at all
+	    return true;
+	}
+
 	void print( CompileState state, Printer p ) {
 	    pl(p);
 
@@ -241,7 +246,7 @@ namespace Parse {
 	    into.add( new ITree( line_number, Op.BRANCH, 0,
 				 new ITree( line_number, Op.NE, Machine.WORD,
 					    new ITree( line_number, Op.TEMP, Machine.WORD, vtable_temp ),
-					    new ITree( line_number, Op.GLOBAL, Machine.WORD, "vtable$__" + type.Clazz.DecoratedName )
+					    loadGlobal( state, "vtable$__" + type.Clazz.DecoratedName, 0 )
 					    ),
 				 m
 				 )
@@ -254,16 +259,16 @@ namespace Parse {
             into.add( new ITree( line_number, Op.COPY, Machine.WORD,
                                  new ITree( line_number, Op.REGISTER, Machine.WORD, Machine.R_STACK ),
 				 new ITree( line_number, Op.INDIRECT, Machine.WORD, 
-                                            new ITree( line_number, Op.GLOBAL, Machine.WORD, Machine.EXCEPTION_RSP )
+					    loadGlobalNoGOT( state, Machine.EXCEPTION_RSP )
 					    ) ) );
 
 	    // set up outer exception handler:
             into.add( new ITree( line_number, Op.COPY, Machine.WORD,
                                  new ITree( line_number, Op.INDIRECT, Machine.WORD,
-                                            new ITree( line_number, Op.GLOBAL, Machine.WORD, Machine.EXCEPTION_TOP )
+					    loadGlobalNoGOT( state, Machine.EXCEPTION_TOP )
 					    ),
 				 
-                                 new ITree( line_number, Op.GLOBAL, Machine.WORD, outer_descriptor.toString() )
+				 loadGlobal( state, outer_descriptor.toString(), 0 )
 				 )
 		      );
 	    
@@ -564,7 +569,7 @@ namespace Parse {
 						new ITree( line_number, Op.LOCAL, Machine.WORD, offset_exception_top )
 						),
 				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
-						new ITree( line_number, Op.GLOBAL, Machine.WORD, Machine.EXCEPTION_TOP )
+						loadGlobalNoGOT( state, Machine.EXCEPTION_TOP )
 						) ) );
 
 		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
@@ -572,7 +577,7 @@ namespace Parse {
 						new ITree( line_number, Op.LOCAL, Machine.WORD, offset_exception_rsp )
 						),
 				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
-						new ITree( line_number, Op.GLOBAL, Machine.WORD, Machine.EXCEPTION_RSP )
+						loadGlobalNoGOT( state, Machine.EXCEPTION_RSP )
 						) ) );
 
 
@@ -668,7 +673,7 @@ namespace Parse {
 		// save the current stack pointer so it can be restored if an exception is caught
 		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
 				 new ITree( line_number, Op.INDIRECT, Machine.WORD,
-					    new ITree( line_number, Op.GLOBAL, Machine.WORD, Machine.EXCEPTION_RSP )
+					    loadGlobalNoGOT( state, Machine.EXCEPTION_RSP )
 					    ),
 				 new ITree( line_number, Op.REGISTER, Machine.WORD, Machine.R_STACK ) ) );
 	    }
@@ -703,7 +708,7 @@ namespace Parse {
 	    into.add( new ITree( line_number, Op.COPY, Machine.WORD,
 				 new ITree( line_number, Op.REGISTER, Machine.WORD, Machine.R_STACK ),
 				 new ITree( line_number, Op.INDIRECT, Machine.WORD,
-					    new ITree( line_number, Op.GLOBAL, Machine.WORD, Machine.EXCEPTION_RSP )
+					    loadGlobalNoGOT( state, Machine.EXCEPTION_RSP )
 					    ) ) );
 	   
             state.ExceptionLevel = old_exception_level; 
@@ -712,7 +717,7 @@ namespace Parse {
 
 		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
 				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
-						new ITree( line_number, Op.GLOBAL, Machine.WORD, Machine.EXCEPTION_TOP )
+						loadGlobalNoGOT( state, Machine.EXCEPTION_TOP )
 						),
 				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
 						new ITree( line_number, Op.LOCAL, Machine.WORD, offset_exception_top )
@@ -720,7 +725,7 @@ namespace Parse {
 
 		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
 				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
-						new ITree( line_number, Op.GLOBAL, Machine.WORD, Machine.EXCEPTION_RSP )
+						loadGlobalNoGOT( state, Machine.EXCEPTION_RSP )
 						),
 				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
 						new ITree( line_number, Op.LOCAL, Machine.WORD, offset_exception_rsp )
@@ -732,9 +737,9 @@ namespace Parse {
 
 		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
 				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
-						new ITree( line_number, Op.GLOBAL, Machine.WORD, Machine.EXCEPTION_TOP )
+						loadGlobalNoGOT( state, Machine.EXCEPTION_TOP )
 						),
-				     new ITree( line_number, Op.GLOBAL, Machine.WORD, active_descriptor.toString() ) ) );
+				     loadGlobal( state, active_descriptor.toString(), 0 ) ) );
 	    }
 
 	    if( finally_statement != null ) {

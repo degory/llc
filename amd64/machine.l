@@ -560,7 +560,7 @@ namespace Gen {
         }
 
         static void emitRoDataSegment( IO.Writer f ) {
-            f.write( ".section .rodata\n" );
+            f.write( ".section .rodata.rel\n" );
         }
 
 	static void emitClassSegment( IO.Writer f ) {

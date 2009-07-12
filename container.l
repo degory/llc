@@ -36,6 +36,7 @@ namespace Parse {
 
         bool needs_body;
         bool tables_valid;
+	// bool is_empty;
 	// bool is_leaf;
 	bool cannot_inline;
         Container override;
@@ -170,6 +171,29 @@ namespace Parse {
 	set bool IsNative = n {
 	    is_native = n;
 	}
+
+	/*
+        get bool AreAllOverridesEmpty {
+	    if( !is_empty ) {
+		// IO.Std.err.println( "call to " + HumanName + " cannot be skipped" ); 
+		return false;
+	    } else if( override == null ) {
+		// IO.Std.err.println( "call to " + HumanName + " can be skipped" ); 
+		return true;
+	    } else {
+		// IO.Std.err.println( "call to " + HumanName + " check override" ); 
+		return override.AreAllOverridesEmpty;
+	    }
+	}
+
+	get bool IsEmpty {
+	    return is_empty;
+	}
+
+	set bool IsEmpty = e {
+	    is_empty = e;
+	}
+	*/
 
 	get bool AlreadyParsed {
 	    return already_parsed;

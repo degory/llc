@@ -119,16 +119,21 @@ namespace Parse {
 
 	    int op;
 
+	    ITree vtable;
+
             if( t.TypeKind == Type.VECTOR ) {
                 Type st = t.SubType;
 		op = Op.NEW_GENERIC_ARRAY;
 		var array_vtable = "vtable$__" + t.getBoxType(state).Clazz.DecoratedName;
 
+		vtable = loadGlobal( state, array_vtable, 0 );
+
 		return new ITree( line_number, op, 0,
 				  argument.compileValue( state,
 							 into ),
-				  new ITree( 0, Op.CONST, Machine.WORD, st.Size ),
-				  array_vtable );
+				  vtable,
+				  st.Size );
+
             } else if( t.TypeKind == Type.CLASS ) {
                 // int temp = TempFactory.nextTemp();
 		int result = TempFactory.nextTemp();
@@ -142,13 +147,14 @@ namespace Parse {
 
 		into.add( new ITree( line_number, Op.COMMENT, 0, "new " + class_symbol.DecoratedName + " size " + class_symbol.Size + " into T" + result ) );
 
-		ITree vtable;
 		op = Op.NEW;
 
 		if( class_symbol.IsStruct ) {
 		    vtable = new ITree( line_number, Op.CONST, Machine.WORD, "0" );
 		} else {
-		    vtable = new ITree( line_number, Op.GLOBAL, Machine.WORD, "vtable$__" + class_symbol.DecoratedName );
+		    vtable = loadGlobal( state, "vtable$__" + class_symbol.DecoratedName, 0 );
+
+		    // new ITree( line_number, Op.GLOBAL, Machine.WORD, 
 
 		    // does this class override Object.finalize()? If so need to register it's 
 		    // finalizer with the garbage collector:
@@ -176,32 +182,35 @@ namespace Parse {
 
 		into.add( makeStoreTemporary( result, Machine.WORD, makeLoadTemporary( temp, Machine.WORD ) ) );
 		*/
+		// if( (arguments.List != null && arguments.List.Length > 0) || !method.AreAllOverridesEmpty ) {
+		    ITree thiz = makeLoadTemporary( result, Machine.WORD );
 
-		ITree thiz = makeLoadTemporary( result, Machine.WORD );
-
-		// into.add( new ITree( line_number, Op.COMMENT, 0, "thiz: " + thiz ) );
+		    // into.add( new ITree( line_number, Op.COMMENT, 0, "thiz: " + thiz ) );
 		
-                int size = 0;
+		    int size = 0;
 
-		Util.IntVector inline_args;
-		if( state.InlineOK && method.IsInline ) {
-		    inline_args = new Util.IntVector();
-		}
+		    Util.IntVector inline_args;
+		    if( state.InlineOK && method.IsInline ) {
+			inline_args = new Util.IntVector();
+		    }
 
 
-		size = ExpressionList.compilePush( arguments,
-						   state,
-						   thiz,
-						   method.ArgTypes,
-						   into,
-						   true,
-						   false,
-						   inline_args);
+		    size = ExpressionList.compilePush( arguments,
+						       state,
+						       thiz,
+						       method.ArgTypes,
+						       into,
+						       true,
+						       false,
+						       inline_args);
 
-		into.add( new ITree( line_number, Op.COMMENT, 0, "constructor " + method.DecoratedName ) );
-
-		compileCall( state, into, null, Op.STATIC_CALL_DISCARD, method, method.DecoratedName, 0, size, inline_args );
-		addDummyExceptionHandlerJump( state, line_number, into );
+		    into.add( new ITree( line_number, Op.COMMENT, 0, "constructor " + method.DecoratedName ) );
+		    
+		    compileCall( state, into, null, Op.STATIC_CALL_DISCARD, method, method.DecoratedName, 0, size, inline_args );
+		    addDummyExceptionHandlerJump( state, line_number, into );
+		    //} else {
+		    // IO.Std.err.println( "not calling empty constructor " + method.HumanName + " (" + method.DecoratedName + ")" );
+		    // }
 
 		into.add( new ITree( line_number, Op.COMMENT, 0, "new result is T" + result ) );
 
@@ -462,6 +471,12 @@ namespace Parse {
 		return false;
 	    }
         }
+
+	get bool IsEmpty {
+	    bool result = isSuperConstructorCall( CompileState.Instance );
+
+	    return result;
+	}
 
 	void setIsCompareOperation( bool c ) {
 	    compare_operation = c;

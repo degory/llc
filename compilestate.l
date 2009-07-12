@@ -364,7 +364,7 @@ namespace Parse {
 	    DEFAULT_WARN_FLAGS = 15 | 32; // all warnings enabled, trusted flag not set
 
 	private const int
-	    INLINE_MAX = 100;    // approxiate maximum inline method size (in parse tree nodes)
+	    INLINE_MAX = 30;    // approxiate maximum inline method size (in parse tree nodes)
 
 	static CompileState instance;
 
@@ -1070,6 +1070,10 @@ namespace Parse {
 		    v.add( "-l" + t );
 		}
 	    }
+
+	    v.add( "-Xlinker" );
+	    v.add( "-E" );
+
 	    String[] args = new String[v.Length];
 	    for( int i = 0; i < v.Length; i = i + 1 ) {
 		b.append( v[i] );

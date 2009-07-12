@@ -1411,6 +1411,7 @@ namespace Parse {
         BlockStatement body;
         Container m;
 	bool last_return;
+	// bool is_empty;
 
         void init( int line_number, Identifier name, int access, TypeExpr type, ArgumentsDef args, BlockStatement  body ) {
             super.init( line_number );
@@ -1424,6 +1425,8 @@ namespace Parse {
 	    if( body == null ) {
 		IO.Std.err.println( "no body for: " + name );
 	    }
+	   
+	    // is_empty = body.IsEmpty;
         }
 
 	void clear( CompileState state ) {
@@ -1458,7 +1461,6 @@ namespace Parse {
 		return;
 	    }
 	    */
-
             
             int kind = 0;
             bool skip_this = true;
@@ -1488,6 +1490,8 @@ namespace Parse {
 
 	    String n = name.Name;
             m = cast<Container>( state.declareMethod( this, n, kind, actual_access, type.parseType(state), arg_types, decorate ) );
+
+	    // m.IsEmpty = is_empty;
 
 	    // IO.Std.err.println( "declare class symbols: " + m.HumanName );
 
@@ -1656,6 +1660,7 @@ namespace Parse {
 		last_return = true;
 		body.markLastReturns();
 	    }
+
 
 	    body.declareSymbols( state );
             // IO.Std.err.println( "local depth A: " + m.getLocalOffset() );
@@ -1835,7 +1840,7 @@ namespace Parse {
 
 	void compileProfileEntry( CompileState state, IBlock into, Container method ) {
 	    into.add( new ITree( 0, Op.RESULT_F, 0,
-				 new ITree( 0, Op.GLOBAL, Machine.WORD, method.DecoratedName ) 
+				 loadGlobal( state, method.DecoratedName, 0 )
 				 )
 		      );
 	    into.add( new ITree( 0, Op.STATIC_CALL_DISCARD, 0, "__prof_enter" ) );
@@ -1843,7 +1848,7 @@ namespace Parse {
 
 	void compileProfileExit(  CompileState state, IBlock into, Container method, int to_pop ) {
 	    into.add( new ITree( 0, Op.ARG0, Machine.WORD,
-				 new ITree( 0, Op.GLOBAL, Machine.WORD, method.DecoratedName ),
+				 loadGlobal( state, method.DecoratedName, 0 ),
 				 new ITree( 0, Op.COMMENT, 0, "last arg" )
 				 )
 		      );

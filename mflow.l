@@ -4668,7 +4668,7 @@ namespace Gen {
 		    mt.setITree( it );
 		    insertAfter( into, mt );
 		    mt.initOperands();
-		    makeComment( "SS converteds spilled T" + t + " to memory reference at offset " + offset );
+		    makeComment( "SS converted spilled T" + t + " to memory reference at offset " + offset );
 
 		    mem_number = mem_number + 1;
 		    return true; // re-wrote rather than spilled

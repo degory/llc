@@ -519,13 +519,13 @@ rewrite tvm = [TREAT_AS_8 tvm] 0 "$0"
 rewrite tvm = [TREAT_AS_4 tvm] 0 "$0"
 rewrite tvm = [TREAT_AS_1 tvm] 0 "$0"
 
-rewrite tv = [CAST_CHECK tv] 10
+rewrite tv = [CAST_CHECK tv tvi] 10
     [SEQ
 	[LIST
 	    [COPY $T $0]
 	    [*BRANCHZ $T $M]
 	    [LABEL $L]
-	    [*BRANCH [EQ [INDIRECT [ADD [CONST 0] $T]] [CONST $A.V]] $M]
+	    [*BRANCH [EQ [INDIRECT [ADD [CONST 0] $T]] $1] $M]
 	    [COPY $T [INDIRECT [ADD [CONST 0] $T]]]
 	    [*BRANCHNZ $T $L]
             [CALL "__throw_castexception"]
@@ -533,6 +533,7 @@ rewrite tv = [CAST_CHECK tv] 10
 	]
 	$0.T
     ]
+
 
 rewrite inst = [OBJ_EQ_0 [PAIR_8 tv tv] tv] 20 
     [LIST
@@ -754,11 +755,11 @@ rewrite inst = [BRANCHNZ_1 tvm] 10
 
 rewrite inst = JUMP 10 [JUMP $A.S]
 
-rewrite const = [RELOC_0 global const] 0 [RELOC_0 $0 $1]
-rewrite const = [RELOC_0 const global] 0 [RELOC_0 $1 $0]
+// rewrite const = [RELOC_0 global const] 0 [RELOC_0 $0 $1]
+// rewrite const = [RELOC_0 const global] 0 [RELOC_0 $1 $0]
 
-rewrite const = [ADD_8 global const] 0 [RELOC_0 $0 $1]
-rewrite const = [ADD_8 const global] 0 [RELOC_0 $1 $0]
+// rewrite const = [ADD_8 global const] 0 [RELOC_0 $0 $1]
+// rewrite const = [ADD_8 const global] 0 [RELOC_0 $1 $0]
 
 rewrite t = [BOX t] 0 
     [SEQ
@@ -769,7 +770,7 @@ rewrite t = [BOX t] 0
         $T
     ]
 
-rewrite immed = [CONST_STR] 0
+rewrite mem = [CONST_STR] 0
     [SEQ
 	[LIST
 	    [PUSHSEG]
@@ -782,10 +783,11 @@ rewrite immed = [CONST_STR] 0
 	    [DEFINT {node.getString().getLength()} ]
 	    [POPSEG]
 	]
-	[GLOBAL $M]
+	[INDIRECT { new ITree(0,Op.LABEL,0,".L"+temp_m + "@GOTPCREL(%%rip)") } ]
+	// [GLOBAL $M]
     ]
 
-rewrite immed = [CONST_CSTR] 0
+rewrite mem = [CONST_CSTR] 0
     [SEQ
 	[LIST
 	    [PUSHSEG]
@@ -794,7 +796,8 @@ rewrite immed = [CONST_CSTR] 0
 	    [CONST_CSTR $A.S]
 	    [POPSEG]
 	]
-	[GLOBAL $L]
+	[INDIRECT { new ITree(0,Op.LABEL,0,".L"+temp_l + "@GOTPCREL(%%rip)") } ]
+	//[GLOBAL $L]
     ]
 
 
@@ -880,24 +883,26 @@ rewrite inst = [END_FINALLY t t] 0
 
 rewrite inst = SUSPEND_CATCH 0 [COPY [INDIRECT [ADD [CONST 20] [REGISTER 8]]] [CONST "-1"]]
 
+rewrite mem = [INDIRECT [GLOBAL_8]] 0 "$0"
 
-
-rule global = GLOBAL_8 0 [Const $A.S]
-rule const = GLOBAL_8 0 [Const $A.S]
+// machine global = GLOBAL_8 0 [Const $A.S]
+// rule global = GLOBAL_8 0 [Const $A.S]
+machine const = GLOBAL_8 0 [Const $A.S]
 rule const = CONST_8 0 [Const $A.S]
 rule const = LABEL 50 [Const $A.S]
 rule const = DLABEL 50 [Const $A.S]
 
 rule const = [SEQ_8 inst const] 0 [Seq $0 $1]
 
-rule immed = GLOBAL_8 0 [Immediate $A.S]
+machine immed = GLOBAL_8 0 [Immediate $A.S]
+// rule immed = GLOBAL_8 0 [Immediate $A.S]
 rule immed = CONST_8 0 [Immediate $A.S]
 rule immed = CONST_4 0 [Immediate $A.S]
 rule immed = CONST_1 0 [Immediate $A.S]
 // rule immed = LABEL_4 0 [Immediate $A.S]
 
 rule immed = [SEQ_8 inst immed] 0 [Seq $0 $1]
-rule global = [SEQ_8 inst global] 0 [Seq $0 $1]
+// rule global = [SEQ_8 inst global] 0 [Seq $0 $1]
  
 rule mem = [INDIRECT_8 addr] 10 [Indirect $0]
 rule mem = [INDIRECT_4 addr] 10 [Indirect $0]
@@ -1132,7 +1137,7 @@ rewrite inst = [BOUNDS_L] 10
 	[CALL "__throw_arrayboundsexception"]
     ]
 
-rewrite t = [NEW t immed] 10
+rewrite t = [NEW t tvi] 10
     [SEQ
 	[LIST
 	    [COPY $T $1]
@@ -1142,7 +1147,7 @@ rewrite t = [NEW t immed] 10
         $U
     ]
 
-rewrite t = [NEW_FINALIZE t immed] 10
+rewrite t = [NEW_FINALIZE t tvi] 10
     [SEQ
         [LIST
 	    [COPY $T $1]
@@ -1172,12 +1177,15 @@ rewrite t = [NEW_ARRAY t] 10
         $T
     ]
 
-// element-size element-count vtable
-rewrite t = [NEW_GENERIC_ARRAY t t] 10
+// $0:element-count $1:vtable $A.S:element-size
+rewrite t = [NEW_GENERIC_ARRAY t tvi] 10
     [SEQ
         [LIST
-	    [COPY $U [GLOBAL $A.S]] // vtable
-	    [ARG2 $U [ARG1 $1 [ARG0 $0 [COMMENT "last arg"]]]]
+	    [COPY $U [CONST $A.S]] // element size
+	    // arg0/rdi:element count
+	    // arg1/rsi:element size
+	    // arg2/rdx:vtable
+	    [ARG2 $1 [ARG1 $U [ARG0 $0 [COMMENT "last arg"]]]]
 	    [STATIC_CALL $T "allocag"]
 	]
 	$T
@@ -1237,7 +1245,7 @@ rewrite inst = [THROW_8 t] 10
 rule inst = DUMMY_JUMP 10 [Inst [Jump DUMMY_JUMP null [Const $A.S]]]
 
 
-machine const = [RELOC_0 global const] 0 [Reloc ADD $0 $1]
+// machine const = [RELOC_0 global const] 0 [Reloc ADD $0 $1]
 
   
 machine inst = [CALL] 10 [Inst [Call STATIC_CALL null [Const $A.S]]]

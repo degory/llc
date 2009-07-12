@@ -799,11 +799,9 @@ namespace Gen {
             this.line_number = line_number;
             this.op = rawOp(op);
 
-	    /*
-	    if( this.op == Op.ERROR ) {
-		IO.Std.err.println( "creating ERROR ITree from " + new System.Backtrace() );
+	    if( this.op == Op.CONST && value == null ) {
+		IO.Std.err.println( "creating CONST ITree with null value from " + new System.Backtrace() );
 	    }
-	    */
 
             this.size = size;
 

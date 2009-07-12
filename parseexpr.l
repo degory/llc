@@ -259,7 +259,7 @@ namespace Parse {
 		    tr = makeLoadTemporary( t, Machine.WORD );
 		}
 		addDummyExceptionHandlerJump( state, line_number, into );
-                return new ITree( line_number, Op.CAST_CHECK, 0, tr, new IString(vtable));
+                return new ITree( line_number, Op.CAST_CHECK, 0, tr, loadGlobal( state, vtable, 0) );
             } else if( r.RegSize == getType(state).RegSize ) {
                 return right.compileValue( state, into );
             } else {
@@ -1569,6 +1569,10 @@ namespace Parse {
 	    return false;
 	}
 
+	get bool IsEmpty {
+	    return false;
+	}
+
 	/*
 	set bool WantProc = p {
 	    // do nothing
@@ -1780,7 +1784,7 @@ namespace Parse {
 	    
 	    into.add( new ITree( line_number, Op.TEXT, 0 ) );
 
-	    return new ITree( line_number, Op.GLOBAL, Machine.WORD, l );
+	    return loadGlobal( state, l.toString(), 0 ); 
 	}
 
 	ITree compileLoadDynamicProcRef(
@@ -1829,7 +1833,7 @@ namespace Parse {
 						       new ITree( line_number, Op.CONST, Machine.WORD, 0 * Machine.WORD )
 						       )
 					    ),
-				 new ITree( line_number, Op.GLOBAL, Machine.WORD, v )
+				 loadGlobal( state, v, 0 )
 				 )
 		      );
 
@@ -1842,7 +1846,7 @@ namespace Parse {
 						       new ITree( line_number, Op.CONST, Machine.WORD, 1 * Machine.WORD )
 						       )
 					    ),
-				 new ITree( line_number, Op.GLOBAL, Machine.WORD, b )
+				 loadGlobal( state, v, 0 )
 				 )
 		      );
 
@@ -1869,7 +1873,8 @@ namespace Parse {
 							   new ITree( line_number, Op.CONST, Machine.WORD, 3 * Machine.WORD )
 							   )
 						),
-				     new ITree( line_number, Op.CONST, Machine.WORD, symbol.DecoratedName )
+				     loadGlobal( state, symbol.DecoratedName, 0 )
+				     // new ITree( line_number, Op.CONST, Machine.WORD, symbol.DecoratedName )
 				     )
 			  );
 	    } else {				     
@@ -1967,18 +1972,6 @@ namespace Parse {
                 case Symbol.CLASS:
 		    error( "cannot use class " + symbol.HumanName + " here" );
 		    return new ITree( line_number, Op.ERROR, 0 );
-		    /*
-                    buffer = "vtable$__" + symbol.DecoratedName;
-                    if( address ) {
-                        throw new Exception( "oops: cannot load address of class " + symbol.QualifiedName );
-                        return new ITree( line_number, Op.ERROR, 0 );
-                    } else {
-			IO.Std.err.println( "compiling class " + symbol.QualifiedName + " value here: " + new System.Backtrace() );
-                        if( symbol.Owner != state.CurrentClass ) {
-                            into.add( new ITree( line_number, Op.EXTERN, 0, buffer ) );
-                        }
-                        return new ITree( line_number, Op.GLOBAL, Machine.WORD, buffer );
-			}*/
                     
                     
                 case Symbol.STATIC_VARIABLE:
@@ -1987,14 +1980,7 @@ namespace Parse {
                     if( symbol.Owner != state.CurrentClass ) {
                         into.add( new ITree( line_number, Op.EXTERN, 0, buffer ) );
                     }
-                    t = new ITree( line_number, Op.ADD, Machine.WORD,
-                                   new ITree( line_number,
-                                              Op.GLOBAL, Machine.WORD,
-                                              buffer ),
-                                   new ITree( line_number,
-                                              Op.CONST, Machine.WORD,
-                                              symbol.Address )
-                                   );
+                    t = loadGlobal( state, buffer, symbol.Address );
                     
                     if( reference ) {
 			// can't throw null pointer exception:
@@ -2158,15 +2144,8 @@ namespace Parse {
                     if( symbol.Owner != state.CurrentClass ) {
                         into.add( new ITree( line_number, Op.EXTERN, 0, buffer ) );
                     }
-                    t = new ITree( line_number, Op.ADD, Machine.WORD,
-                                   new ITree( line_number,
-                                              Op.GLOBAL, Machine.WORD,
-                                              buffer ),
-                                   new ITree( line_number,
-                                              Op.CONST, Machine.WORD,
-                                              symbol.Address )
-                                   );
-                    
+                    t = loadGlobal( state, buffer, symbol.Address );
+
                     if( reference ) {
 			// can't throw null pointer exception:
 			t = makeLoadIndirect( state, line_number, into, Machine.WORD, false, t );
