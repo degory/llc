@@ -808,6 +808,7 @@ namespace Parse {
             to_compile_list.add( p );
         }
 
+
 	void addLibrary( String name ) {
 	    if( WantVerbose ) {
 		ParseTree.message( "adding library: " + name );
@@ -1024,7 +1025,7 @@ namespace Parse {
 		f.close();
 		assembleFile( "entry" );
 		addLinkFile( getObjectFileName("entry", ".o") );
-	    } else {
+	    } else if( !WantPIC ) {
 		ParseTree.message( "*** no main class ***" );
 		return;
 	    }
@@ -1041,6 +1042,11 @@ namespace Parse {
         }
 
 	void linkObjectFiles() {
+	    if( WantPIC ) {
+		IO.Std.err.println( "not linking" );
+		return;
+	    }
+
 	    StringBuffer b = new StringBuffer();
 
 	    var p = new Util.Process();
@@ -1048,21 +1054,20 @@ namespace Parse {
 	    // IO.Std.err.println( "going to link. output: '" + executable_name + "'" );
 	    String exe;
 
-	    if( WantPIC ) {
-		exe = "ld";
-		v.add( "ld" );
-		v.add( "-shared" );
+	    exe = "gcc";
+	    v.add( "gcc" );
+	    v.add( Machine.GCC_SWITCH );
+	    v.add( LIBRARY_DIR + "lrt-" + Machine.NAME + ".o" );
+	    
+	    if( !WantLineNumbers ) {
+		v.add( "-s" );
 	    } else {
-		exe = "gcc";
-		v.add( "gcc" );
-		v.add( Machine.GCC_SWITCH );
-		v.add( LIBRARY_DIR + "lrt-" + Machine.NAME + ".o" );
+		// make executable re-linkable so we can dynamically load classes and link them into it
+		v.add( "-Xlinker" );
+		v.add( "-E" );
 	    }
 		
 	    v.add( "-L/usr/lang/lib/" );
-	    if( !WantLineNumbers ) {
-	    	v.add( "-s" );
-	    }
 
 	    v.add( "-o" );
 	    v.add( executable_name );

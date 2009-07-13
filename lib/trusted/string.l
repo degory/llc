@@ -290,6 +290,10 @@ namespace System is
 	    fi
 	end
 
+	bool startsWith( char c ) is
+	    return _length > 0 && [_buffer] == c;
+	end
+
 	/// Return true if the last character of this string equals the supplied character
 	bool endsWith( char c ) is
 	    return _length > 0 && [_buffer + _length - 1] == c;

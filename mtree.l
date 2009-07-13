@@ -1585,7 +1585,9 @@ namespace Gen {
 		    result = "xorq %rax,%rax; ";		    
 		}
 
-		if( pic ) {
+		// FIXME: this probably isn't the best place for this test but it would add a load of
+		// special cases to the machine definition to do it earlier:
+		if( Parse.CompileState.Instance.WantPIC ) {
 		    if( dest != null ) {
 			result = result + "call " + left + "@PLT # result in " + dest;
 		    } else {
@@ -1593,9 +1595,9 @@ namespace Gen {
 		    }
 		} else {
 		    if( dest != null ) {
-			result = result + "call " + left + "@PLT # result in " + dest;
+			result = result + "call " + left + " # result in " + dest;
 		    } else {
-			result = result + "call " + left + "@PLT # discard result";
+			result = result + "call " + left + " # discard result";
 		    }
 		}
 

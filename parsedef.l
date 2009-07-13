@@ -935,6 +935,8 @@ namespace Parse {
                     Machine.emitDefPointerLabel( f, l.Int );
                     Machine.emitLabel( f, "size$__" + c.DecoratedName );
                     Machine.emitDefLong( f, c.getSize() );
+		    Machine.emitWeak( f, "__vtable" );
+		    Machine.emitLabel( f, "__vtable" );
                     Machine.emitLabel( f, "vtable$__" + c.DecoratedName );
 
 
@@ -1495,6 +1497,7 @@ namespace Parse {
 
 	    // IO.Std.err.println( "declare class symbols: " + m.HumanName );
 
+	    m.IsPIC = state.WantPIC;
 	   
 	    if( n.Length > 3 ) {
 		if( n.startsWith( "get" ) || n.startsWith( "set" ) ) {

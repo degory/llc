@@ -480,7 +480,7 @@ rewrite t = tvmi 5 {            int size = children[0].getSize(); int temp_t = G
 // rewrite t = tvmi 10 	[SEQ [COPY $T $0] $T]
 rewrite t = addr 10 	[SEQ [LEA $T $0] $T]
 
-rewrite inst = [LEA_8 t addr] 10 [LEA $0 $1]
+rewrite inst = [LEA_8 tv addr] 10 [LEA $0 $1]
 
 rewrite immed = [CAST_FROM4_4 immed] 0 "$0"
 rewrite tv = [CAST_FROM4_4 tv] 0 "$0"
@@ -848,16 +848,16 @@ rule inst = [TEXT] 0 [Inst [Data TEXT]]
 rule inst = [DATA] 0 [Inst [Data DATA]]
 rule inst = [RODATA] 0 [Inst [Data RODATA]]
 
-rewrite inst = [TRY tvi] { ITree.wantPIC(0,32768) }
-    [LIST
-        [COPY $T [INDIRECT [GLOBAL "__exception_top@GOTPCREL(%%rip)"]]]
-	[COPY [INDIRECT [ADD [CONST "0"] $T]] $0]
-    ]
+//rewrite inst = [TRY tvi addr] { ITree.wantPIC(0,32768) }
+//    [LIST
+//        [COPY $T [INDIRECT $1]] // GLOBAL "__exception_top@GOTPCREL(%%rip)"]]]
+//	[COPY [INDIRECT [ADD [CONST "0"] $T]] $0]
+//    ]
 
-rewrite inst = [TRY tvi] { ITree.wantPIC(32768,0) }
-    [LIST
-        [COPY [INDIRECT [GLOBAL "%%fs:__exception_top@TPOFF"]] $0]
-    ]
+//rewrite inst = [TRY tvi addr] 0
+//    [LIST
+//        [COPY [INDIRECT $1] $0] // [GLOBAL "%%fs:__exception_top@TPOFF"]] $0]
+//    ]
 
 // end try block. throw a stop exception, which executes the immediately following
 // finally block and then falls through into the code following the try { } finally { } statement:
@@ -1149,16 +1149,16 @@ rewrite inst = [THROW_RETURN_8 tv] 10
 	[JUMP $A.V]
     ]
 
-rewrite inst = [START_CATCH] { ITree.wantPIC(0,32768) }
-    [LIST
-        [COPY $T [INDIRECT [GLOBAL "__exception_top@GOTPCREL(%%rip)"]]]
-	[COPY [INDIRECT [ADD [CONST "0"] $T]] [REGISTER 8]]
-    ]
+//rewrite inst = [START_CATCH] { ITree.wantPIC(0,32768) }
+//    [LIST
+//        [COPY $T [INDIRECT [GLOBAL "__exception_top@GOTPCREL(%%rip)"]]]
+//	[COPY [INDIRECT [ADD [CONST "0"] $T]] [REGISTER 8]]
+//    ]
 
-rewrite inst = [START_CATCH] { ITree.wantPIC(32768,0) }
-    [LIST
-        [COPY [INDIRECT [GLOBAL "%%fs:__exception_top@TPOFF"]] [REGISTER 8]]
-    ]
+//rewrite inst = [START_CATCH addr]
+//    [LIST
+//        [COPY [INDIRECT $0] [REGISTER 8]]
+//    ]
 
 
 rule inst = RET 10 [Inst [A0 RET]]

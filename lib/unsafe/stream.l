@@ -760,7 +760,7 @@ namespace IO {
 	void init( int handle ) {
 	    super.init();
 
-	    this.path = "handle #" + handle + " from " + new System.Backtrace();
+	    this.path = "handle #" + handle; // + " from " + new System.Backtrace();
 	    this.handle = handle;
 	}
 

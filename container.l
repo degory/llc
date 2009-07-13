@@ -60,6 +60,7 @@ namespace Parse {
 	int label;
 	bool is_native;
 	bool already_parsed;
+	bool is_pic;
 	Gen.MBitSet address_taken;
 
         void setup( Container parent ) {
@@ -148,6 +149,14 @@ namespace Parse {
 
 	get bool IsStatic {
 	    return Kind & Symbol.FLAG_STATIC != 0;
+	}
+
+	get bool IsPIC {
+	    return is_pic;
+	}
+
+	set bool IsPIC = p {
+	    is_pic = p;
 	}
 
 	/*
@@ -535,8 +544,12 @@ namespace Parse {
                 foreach( Symbol current; members.SymbolList.elements() ) {
                     int m = current.Kind; //  & Symbol.MASK;
                     if( !current.IsFinal ) {
-                        m = m | 32;
+                        m = m + 1 << 15;
                     }
+		    if( current.IsPIC ) {
+			m = m + 1 << 16;
+		    }
+
                     hash_ = Util.Hash.rotate(hash_) + m;
 
                     if( current.Kind == Symbol.ENUM ) {
@@ -547,6 +560,8 @@ namespace Parse {
                     
                     String s = current.DecoratedName;
                     hash_ = Util.Hash.rotate(hash_) + Util.Hash.hash(s);
+
+
 
 		    // IO.Std.err.println( HumanName + ": member " + s + "@" + current.Address + " hash " + hash_ );
                 }

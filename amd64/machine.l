@@ -36,11 +36,8 @@ namespace Gen {
 	public static System.String AS_SWITCH = "--64";
 	public static System.String GCC_SWITCH = "-m64";
 
-	public static System.String EXCEPTION_RSP = "%fs:__exception_rsp@TPOFF";
-	public static System.String EXCEPTION_TOP = "%fs:__exception_top@TPOFF";
-
-	public static System.String EXCEPTION_RSP_PIC = "__exception_rsp@GOTPCREL(%rip)";
-	public static System.String EXCEPTION_TOP_PIC = "__exception_top@GOTPCREL(%rip)";
+	public static System.String EXCEPTION_RSP = "__exception_rsp";
+	public static System.String EXCEPTION_TOP = "__exception_top";
 
 	public const int WORD = 8;
 	public const int RED_ZONE = 0; // 128;
@@ -585,6 +582,10 @@ namespace Gen {
         static void emitLabel( IO.Writer f, int n ) {
             f.write( ".L" + n + ":\n" );
         }
+
+	static void emitWeak( IO.Writer f, System.String s ) {
+	    f.write( ".weak " + s + "\n" );
+	}
 
         static void emitLabel( IO.Writer f, System.String s ) {
             f.write( s + ":\n" );

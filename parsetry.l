@@ -259,13 +259,13 @@ namespace Parse {
             into.add( new ITree( line_number, Op.COPY, Machine.WORD,
                                  new ITree( line_number, Op.REGISTER, Machine.WORD, Machine.R_STACK ),
 				 new ITree( line_number, Op.INDIRECT, Machine.WORD, 
-					    loadGlobalTLS( state, Machine.EXCEPTION_RSP, Machine.EXCEPTION_RSP_PIC )
+					    loadGlobalTLS( state, into, Machine.EXCEPTION_RSP )
 					    ) ) );
 
 	    // set up outer exception handler:
             into.add( new ITree( line_number, Op.COPY, Machine.WORD,
                                  new ITree( line_number, Op.INDIRECT, Machine.WORD,
-					    loadGlobalTLS( state, Machine.EXCEPTION_TOP, Machine.EXCEPTION_TOP_PIC )
+					    loadGlobalTLS( state, into, Machine.EXCEPTION_TOP )
 					    ),
 				 
 				 loadGlobal( state, outer_descriptor.toString(), 0 )
@@ -569,7 +569,7 @@ namespace Parse {
 						new ITree( line_number, Op.LOCAL, Machine.WORD, offset_exception_top )
 						),
 				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
-						loadGlobalTLS( state, Machine.EXCEPTION_TOP, Machine.EXCEPTION_TOP_PIC )
+						loadGlobalTLS( state, into, Machine.EXCEPTION_TOP )
 						) ) );
 
 		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
@@ -577,7 +577,7 @@ namespace Parse {
 						new ITree( line_number, Op.LOCAL, Machine.WORD, offset_exception_rsp )
 						),
 				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
-						loadGlobalTLS( state, Machine.EXCEPTION_RSP, Machine.EXCEPTION_TOP_PIC )
+						loadGlobalTLS( state, into, Machine.EXCEPTION_RSP )
 						) ) );
 
 
@@ -666,14 +666,22 @@ namespace Parse {
 	    ILabel active_descriptor = state.TopException.descriptor_label; // exception[exception_level-1].descriptor_label;
 
 	    // set up the active exception handler:
-	    into.add( new ITree( line_number, Op.TRY, 0, loadGlobal( state, active_descriptor.toString(), 0 ) ) );
+	    // into.add( new ITree( line_number, Op.TRY, 0, loadGlobal( state, active_descriptor.toString(), 0 ), loadGlobalTLS(Machine.EXCEPTION_TOP) ) );
+	    into.add( 
+		     new ITree( line_number, Op.COPY, Machine.WORD,
+				new ITree( line_number, Op.INDIRECT, Machine.WORD,
+					   loadGlobalTLS(state, into, Machine.EXCEPTION_TOP)
+					   ),
+				loadGlobal(state, active_descriptor.toString(), 0)
+				)
+		      );
 
 	    // is this the outer most exception handler in this method?
 	    if( bottom_level ) {
 		// save the current stack pointer so it can be restored if an exception is caught
 		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
 				 new ITree( line_number, Op.INDIRECT, Machine.WORD,
-					    loadGlobalTLS( state, Machine.EXCEPTION_RSP, Machine.EXCEPTION_RSP_PIC )
+					    loadGlobalTLS( state, into, Machine.EXCEPTION_RSP )
 					    ),
 				 new ITree( line_number, Op.REGISTER, Machine.WORD, Machine.R_STACK ) ) );
 	    }
@@ -708,7 +716,7 @@ namespace Parse {
 	    into.add( new ITree( line_number, Op.COPY, Machine.WORD,
 				 new ITree( line_number, Op.REGISTER, Machine.WORD, Machine.R_STACK ),
 				 new ITree( line_number, Op.INDIRECT, Machine.WORD,
-					    loadGlobalTLS( state, Machine.EXCEPTION_RSP, Machine.EXCEPTION_RSP_PIC )
+					    loadGlobalTLS( state, into, Machine.EXCEPTION_RSP )
 					    ) ) );
 	   
             state.ExceptionLevel = old_exception_level; 
@@ -717,7 +725,7 @@ namespace Parse {
 
 		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
 				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
-						loadGlobalTLS( state, Machine.EXCEPTION_TOP, Machine.EXCEPTION_TOP_PIC )
+						loadGlobalTLS( state, into, Machine.EXCEPTION_TOP )
 						),
 				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
 						new ITree( line_number, Op.LOCAL, Machine.WORD, offset_exception_top )
@@ -725,7 +733,7 @@ namespace Parse {
 
 		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
 				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
-						loadGlobalTLS( state, Machine.EXCEPTION_RSP, Machine.EXCEPTION_RSP_PIC )
+						loadGlobalTLS( state, into, Machine.EXCEPTION_RSP )
 						),
 				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
 						new ITree( line_number, Op.LOCAL, Machine.WORD, offset_exception_rsp )
@@ -737,7 +745,7 @@ namespace Parse {
 
 		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
 				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
-						loadGlobalTLS( state, Machine.EXCEPTION_TOP, Machine.EXCEPTION_TOP_PIC )
+						loadGlobalTLS( state, into, Machine.EXCEPTION_TOP )
 						),
 				     loadGlobal( state, active_descriptor.toString(), 0 ) ) );
 	    }

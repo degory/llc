@@ -822,18 +822,32 @@ namespace Parse {
 	    }
 	}
 
-	ITree loadGlobalTLS( CompileState state, String name, String name_pic ) {
+	static ITree loadGlobalTLS( CompileState state, IBlock into, String name ) {
 	    if( state.WantPIC ) {
-		// FIXME: TLS access with PIC required here:
-		return new ITree( 0, Op.INDIRECT, Machine.WORD,
-				  new ITree( 0, Op.GLOBAL, Machine.WORD, name_pic )
-				  );
+		int t = TempFactory.nextTemp();
+		int u = TempFactory.nextTemp();
+
+		into.add( new ITree( 0, Op.LEA, Machine.WORD, 
+			   new ITree( 0, Op.TEMP, Machine.WORD, u ),
+			   new ITree( 0, Op.GLOBAL, Machine.WORD, name + "@TLSGD(%rip)" )
+				     ) );
+
+		
+		into.add( new ITree( 0, Op.ARG0, Machine.WORD,
+				     makeLoadTemporary( u, Machine.WORD ),
+				     new ITree( 0, Op.COMMENT, 0, "# last arg" ) ) );
+
+		into.add( new ITree( 0, Op.STATIC_CALL, 0,
+			  new ITree( 0, Op.TEMP, Machine.WORD, t ),
+				     "__tls_get_addr" ) );
+
+                return makeLoadTemporary( t, Machine.WORD );
 	    } else {
-		return new ITree( 0, Op.GLOBAL, Machine.WORD, name );
+		return new ITree( 0, Op.GLOBAL, Machine.WORD, "%fs:" + name + "@TPOFF" );
 	    }
 	}
 
-	ITree loadGlobal( CompileState state, String name, int offset ) {
+	static ITree loadGlobal( CompileState state, String name, int offset ) {
 	    if( state.WantPIC ) {
 		/*
 		if( offset == 0 ) {
@@ -852,7 +866,6 @@ namespace Parse {
 		    return new ITree( 0, Op.INDIRECT, Machine.WORD,
 				      new ITree( 0, Op.GLOBAL, Machine.WORD, name + "@GOTPCREL(%rip)" ) );
 		} else {
-		    IO.Std.err.println( "load global '" + name + "' + " + offset );
 		    return new ITree( 0, Op.ADD, Machine.WORD,
 				      new ITree( 0, Op.INDIRECT, Machine.WORD,
 						 new ITree( 0, Op.GLOBAL, Machine.WORD, name + "@GOTPCREL(%rip)" ) ),
