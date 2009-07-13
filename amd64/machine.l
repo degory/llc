@@ -39,6 +39,9 @@ namespace Gen {
 	public static System.String EXCEPTION_RSP = "%fs:__exception_rsp@TPOFF";
 	public static System.String EXCEPTION_TOP = "%fs:__exception_top@TPOFF";
 
+	public static System.String EXCEPTION_RSP_PIC = "__exception_rsp@GOTPCREL(%rip)";
+	public static System.String EXCEPTION_TOP_PIC = "__exception_top@GOTPCREL(%rip)";
+
 	public const int WORD = 8;
 	public const int RED_ZONE = 0; // 128;
 	public const int INLINE_DEPTH = 3;
@@ -560,7 +563,7 @@ namespace Gen {
         }
 
         static void emitRoDataSegment( IO.Writer f ) {
-            f.write( ".section .rodata.rel\n" );
+            f.write( ".section .rodata\n" );
         }
 
 	static void emitClassSegment( IO.Writer f ) {
@@ -609,6 +612,27 @@ namespace Gen {
 	static char quote = '"';
 
 	static void emitEntryPoint( IO.Writer f, System.String main_class_decorated ) {		
+	    f.println( ".global entry$point\n" );
+	    f.println( "entry$point:" );
+	    f.println( "\tpushq %rbp" );
+	    f.println( "\tmovq %rsp,%rbp" );
+	    f.println( "\tmovq vtable$__" + main_class_decorated + "@GOTPCREL(%rip),%rsi" );
+	    f.println( "\tmovq size$__" + main_class_decorated + "@GOTPCREL(%rip),%rax" );
+	    f.println( "\tmovl 0(%rax),%edi" );
+	    f.println( "\tcall alloco@PLT" );	    
+	    f.println( "\tmovq %rax,%rdi" );
+	    //f.println( "\tmovq $vtable$__" + main_class_decorated + ",%rax" );
+	    //f.println( "\tmovq %rax,(%rdi)" );
+	    f.println( "\tcall run__Q26System7StartupQ26System6Object@PLT" );
+	    f.println( "\txorq %rax,%rax" );
+	    f.println( "\tpopq %rbp" );
+	    f.println( "\tret" );
+	    f.println( "\t.global __main_init" );
+	    f.println( "__main_init:" );
+	    f.println( "\tjmp init__" + main_class_decorated + "@PLT" );
+	}
+
+	static void emitEntryPointOrig( IO.Writer f, System.String main_class_decorated ) {		
 	    f.println( ".global entry$point\n" );
 	    f.println( "entry$point:" );
 	    f.println( "\tpushq %rbp" );

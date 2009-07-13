@@ -1569,6 +1569,8 @@ namespace Gen {
 	}
 
 	String toString() {
+	    bool pic = true;
+
 	    if( op == Op.DYNAMIC_CALL ) {
 		if( dest != null ) {
 		    return "call *" + left + " # result in " + dest;
@@ -1583,10 +1585,18 @@ namespace Gen {
 		    result = "xorq %rax,%rax; ";		    
 		}
 
-		if( dest != null ) {
-		    result = result + "call " + left + " # result in " + dest;
+		if( pic ) {
+		    if( dest != null ) {
+			result = result + "call " + left + "@PLT # result in " + dest;
+		    } else {
+			result = result + "call " + left + "@PLT # discard result";
+		    }
 		} else {
-		    result = result + "call " + left + " # discard result";
+		    if( dest != null ) {
+			result = result + "call " + left + "@PLT # result in " + dest;
+		    } else {
+			result = result + "call " + left + "@PLT # discard result";
+		    }
 		}
 
 		return result;

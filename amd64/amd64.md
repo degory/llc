@@ -770,7 +770,7 @@ rewrite t = [BOX t] 0
         $T
     ]
 
-rewrite mem = [CONST_STR] 0
+rewrite mem = [CONST_STR] { ITree.wantPIC(0,32768) }
     [SEQ
 	[LIST
 	    [PUSHSEG]
@@ -784,10 +784,25 @@ rewrite mem = [CONST_STR] 0
 	    [POPSEG]
 	]
 	[INDIRECT { new ITree(0,Op.LABEL,0,".L"+temp_m + "@GOTPCREL(%%rip)") } ]
-	// [GLOBAL $M]
     ]
 
-rewrite mem = [CONST_CSTR] 0
+rewrite const = [CONST_STR] { ITree.wantPIC(32768,0) }
+    [SEQ
+	[LIST
+	    [PUSHSEG]
+	    [RODATA]
+	    [DLABEL $L]
+	    [CONST_CSTR $A.S]
+	    [DLABEL $M]
+	    [DEFINT "vtable$$__Q26System6String"]
+	    [DEFINT $L]
+	    [DEFINT {node.getString().getLength()} ]
+	    [POPSEG]
+	]
+	[GLOBAL $M]
+    ]
+
+rewrite mem = [CONST_CSTR] { ITree.wantPIC(0,32768) }
     [SEQ
 	[LIST
 	    [PUSHSEG]
@@ -797,7 +812,18 @@ rewrite mem = [CONST_CSTR] 0
 	    [POPSEG]
 	]
 	[INDIRECT { new ITree(0,Op.LABEL,0,".L"+temp_l + "@GOTPCREL(%%rip)") } ]
-	//[GLOBAL $L]
+    ]
+
+rewrite const = [CONST_CSTR] { ITree.wantPIC(32768,0) }
+    [SEQ
+	[LIST
+	    [PUSHSEG]
+	    [RODATA]
+	    [DLABEL $L]
+	    [CONST_CSTR $A.S]
+	    [POPSEG]
+	]	
+	[GLOBAL $L]
     ]
 
 
@@ -822,8 +848,16 @@ rule inst = [TEXT] 0 [Inst [Data TEXT]]
 rule inst = [DATA] 0 [Inst [Data DATA]]
 rule inst = [RODATA] 0 [Inst [Data RODATA]]
 
-rewrite inst = TRY 0 [COPY [INDIRECT [GLOBAL "%%fs:__exception_top@TPOFF"]] [CONST $A.S]]
+rewrite inst = [TRY tvi] { ITree.wantPIC(0,32768) }
+    [LIST
+        [COPY $T [INDIRECT [GLOBAL "__exception_top@GOTPCREL(%%rip)"]]]
+	[COPY [INDIRECT [ADD [CONST "0"] $T]] $0]
+    ]
 
+rewrite inst = [TRY tvi] { ITree.wantPIC(32768,0) }
+    [LIST
+        [COPY [INDIRECT [GLOBAL "%%fs:__exception_top@TPOFF"]] $0]
+    ]
 
 // end try block. throw a stop exception, which executes the immediately following
 // finally block and then falls through into the code following the try { } finally { } statement:
@@ -886,7 +920,7 @@ rewrite inst = SUSPEND_CATCH 0 [COPY [INDIRECT [ADD [CONST 20] [REGISTER 8]]] [C
 rewrite mem = [INDIRECT [GLOBAL_8]] 0 "$0"
 
 // machine global = GLOBAL_8 0 [Const $A.S]
-// rule global = GLOBAL_8 0 [Const $A.S]
+rewrite const = GLOBAL_8 0 "$0"
 machine const = GLOBAL_8 0 [Const $A.S]
 rule const = CONST_8 0 [Const $A.S]
 rule const = LABEL 50 [Const $A.S]
@@ -895,7 +929,7 @@ rule const = DLABEL 50 [Const $A.S]
 rule const = [SEQ_8 inst const] 0 [Seq $0 $1]
 
 machine immed = GLOBAL_8 0 [Immediate $A.S]
-// rule immed = GLOBAL_8 0 [Immediate $A.S]
+rewrite immed = GLOBAL_8 0 "$0"
 rule immed = CONST_8 0 [Immediate $A.S]
 rule immed = CONST_4 0 [Immediate $A.S]
 rule immed = CONST_1 0 [Immediate $A.S]
@@ -1115,7 +1149,16 @@ rewrite inst = [THROW_RETURN_8 tv] 10
 	[JUMP $A.V]
     ]
 
-rewrite inst = [START_CATCH] 10 [COPY [INDIRECT [GLOBAL "%%fs:__exception_top@TPOFF"]] [REGISTER 8]]
+rewrite inst = [START_CATCH] { ITree.wantPIC(0,32768) }
+    [LIST
+        [COPY $T [INDIRECT [GLOBAL "__exception_top@GOTPCREL(%%rip)"]]]
+	[COPY [INDIRECT [ADD [CONST "0"] $T]] [REGISTER 8]]
+    ]
+
+rewrite inst = [START_CATCH] { ITree.wantPIC(32768,0) }
+    [LIST
+        [COPY [INDIRECT [GLOBAL "%%fs:__exception_top@TPOFF"]] [REGISTER 8]]
+    ]
 
 
 rule inst = RET 10 [Inst [A0 RET]]
@@ -1178,7 +1221,7 @@ rewrite t = [NEW_ARRAY t] 10
     ]
 
 // $0:element-count $1:vtable $A.S:element-size
-rewrite t = [NEW_GENERIC_ARRAY t tvi] 10
+rewrite t = [NEW_GENERIC_ARRAY t tv] 10
     [SEQ
         [LIST
 	    [COPY $U [CONST $A.S]] // element size
@@ -1260,11 +1303,11 @@ machine inst = [PROC_CALL_DISCARD t] 10 [Inst [Call PROC_CALL null $0:Return] :C
 machine flags = t 0 [Reg $0.T MSet.Flags]
 
 machine inst = [COPY_8 flags [CMP_8 tm ti]] 10 [Inst [Compare CMP_8 $0:Flags $1 $2]]
-machine inst = [COPY_8 flags [CMP_8 t tm]] 10 [Inst [Compare CMP_8 $0:Flags $1 $2]]
+machine inst = [COPY_8 flags [CMP_8 t tmi]] 10 [Inst [Compare CMP_8 $0:Flags $1 $2]]
 machine inst = [COPY_8 flags [CMP_4 tm ti]] 10 [Inst [Compare CMP_4 $0:Flags $1 $2]]
-machine inst = [COPY_8 flags [CMP_4 t tm]] 10 [Inst [Compare CMP_4 $0:Flags $1 $2]]
+machine inst = [COPY_8 flags [CMP_4 t tmi]] 10 [Inst [Compare CMP_4 $0:Flags $1 $2]]
 machine inst = [COPY_8 flags [CMP_1 tm ti]] 10 [Inst [Compare CMP_1 $0:Flags $1 $2]]
-machine inst = [COPY_8 flags [CMP_1 t tm]] 10 [Inst [Compare CMP_1 $0:Flags $1 $2]]
+machine inst = [COPY_8 flags [CMP_1 t tmi]] 10 [Inst [Compare CMP_1 $0:Flags $1 $2]]
 // machine flags = [SEQ_8 flags1 t] 0 [Seq $0:Flags $1:Flags]
 
 machine inst = [JE flags] 10 [Inst [Jump JE $0:Flags [Const $A.S]]]
@@ -1292,13 +1335,13 @@ machine inst = [SETLEU_1 t flags] 10 [Inst [CondSet SETLEU_1 $0 $1:Flags]]
 machine inst = [JUMP] 10 [Inst [Jump JUMP null [Const $A.S]]]
 
 machine inst = [COPY_8 tm ti] 5 [Inst [Move COPY_8 $0 $1]]
-machine inst = [COPY_8 t tm] 5 [Inst [Move COPY_8 $0 $1]]
+machine inst = [COPY_8 t tmi] 5 [Inst [Move COPY_8 $0 $1]]
 
 machine inst = [COPY_4 tm ti] 5 [Inst [Move COPY_4 $0 $1]]
-machine inst = [COPY_4 t tm] 5 [Inst [Move COPY_4 $0 $1]]
+machine inst = [COPY_4 t tmi] 5 [Inst [Move COPY_4 $0 $1]]
 
 machine inst = [COPY_1 tm ti] 5 [Inst [Move COPY_1 $0 $1]]
-machine inst = [COPY_1 t tm] 5 [Inst [Move COPY_1 $0 $1]]
+machine inst = [COPY_1 t tmi] 5 [Inst [Move COPY_1 $0 $1]]
 
 machine inst = [LEA_8 t addr] 10 [Inst [Move LEA_8 $0 $1]]
 

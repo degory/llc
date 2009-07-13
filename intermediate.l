@@ -811,9 +811,7 @@ namespace Gen {
 		throw new Exception( "creating ITree op " + op + " of size " + size + " > " + Machine.WORD );
 	    }
 	    
-	    if( (op == Op.BRANCHZ || op == Op.BRANCHNZ) && left != null && left.RawOp == Op.CONST && left.value == null ) {
-		IO.Std.err.println( "creating ITree BRANCHZ op " + op + " with null const value: " + left + " from: " + new System.Backtrace() );
-	    }
+
 
             this.left = left;
             this.right = right;
@@ -827,7 +825,6 @@ namespace Gen {
 	    }
 	    */
 	    next_id = next_id + 1;
-
         }
 
         void init( int line_number, int op, int size ) {
@@ -1196,6 +1193,14 @@ namespace Gen {
 		return t;
 	    } else {
 		// IO.Std.err.println( "mem2mem: FALSE: returning " + f );
+		return f;
+	    }
+	}
+
+	static int wantPIC( int t, int f ) {
+	    if( Parse.CompileState.Instance.WantPIC ) {
+		return t;
+	    } else {
 		return f;
 	    }
 	}

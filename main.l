@@ -14,7 +14,7 @@ namespace Parse {
     use Generic.Vector;
 
     class Main {
-	const int BUILD = 1156;
+	const int BUILD = 1157;
 
 	CompileState state;
 
@@ -185,6 +185,12 @@ namespace Parse {
 			    
 			    case 'p':
 				state.WantProfile = false;
+
+			    case 'L':
+				state.WantPIC = true;
+
+			    case 'l':
+				state.WantPIC = false;
 				    
 			    case '1':
 				// state.WantCoalesce = true;

@@ -358,7 +358,8 @@ namespace Parse {
     	    MARK_UNSAFE = 3,
 	    IS_TRUSTED = 4,
             WANT_DEBUG = 5,
-	    WANT_PROFILE = 6;
+	    WANT_PROFILE = 6,
+	    WANT_PIC = 7;
 
 	private const int
 	    DEFAULT_WARN_FLAGS = 15 | 32; // all warnings enabled, trusted flag not set
@@ -1045,8 +1046,75 @@ namespace Parse {
 	    var p = new Util.Process();
 	    var v = new Vector<String>();
 	    // IO.Std.err.println( "going to link. output: '" + executable_name + "'" );
+	    String exe;
+
+	    if( WantPIC ) {
+		exe = "ld";
+		v.add( "ld" );
+		v.add( "-shared" );
+	    } else {
+		exe = "gcc";
+		v.add( "gcc" );
+		v.add( Machine.GCC_SWITCH );
+		v.add( LIBRARY_DIR + "lrt-" + Machine.NAME + ".o" );
+	    }
+		
+	    v.add( "-L/usr/lang/lib/" );
+	    if( !WantLineNumbers ) {
+	    	v.add( "-s" );
+	    }
+
+	    v.add( "-o" );
+	    v.add( executable_name );
+
+	    foreach( String s; to_link_set.elements() ) {
+		v.add( s );
+	    }
+	    // v.add( "-nostartfiles" );
+
+	    v.add( "-lgc" );
+	    v.add( "-ldl" );
+
+	    foreach( String t; libraries.elements() ) {
+		if( t.endsWith(".o") ) {
+		    v.add( t ); 
+		} else {
+		    v.add( "-l" + t );
+		}
+	    }
+
+	    // v.add( "-Xlinker" );
+	    // v.add( "-shared" );
+
+	    String[] args = new String[v.Length];
+	    for( int i = 0; i < v.Length; i = i + 1 ) {
+		b.append( v[i] );
+		b.append( ' ' );
+		args[i] = cast<String>(v[i]);
+	    }
+
+	    // IO.Std.err.println( "linking: " + b );	    
+		
+	    int result = p.run( exe, args );
+	    if( result != 0 ) {
+		throw new Exception( "link failed with exit status " + result );
+	    }
+	}
+
+
+	void linkObjectFilesOrig() {
+	    StringBuffer b = new StringBuffer();
+
+	    var p = new Util.Process();
+	    var v = new Vector<String>();
+	    // IO.Std.err.println( "going to link. output: '" + executable_name + "'" );
 	    v.add( "gcc" );
 	    v.add( Machine.GCC_SWITCH );
+	    if( WantPIC ) {
+		v.add( "-shared" );
+		v.add( "-fPIC" );
+	    }
+
 	    v.add( "-L/usr/lang/lib/" );
 	    if( !WantLineNumbers ) {
 	    	v.add( "-s" );
@@ -1071,8 +1139,11 @@ namespace Parse {
 		}
 	    }
 
-	    v.add( "-Xlinker" );
-	    v.add( "-E" );
+	    if( WantPIC ) {
+		IO.Std.err.println( "linking PIC shared exe" );
+		v.add( "-Xlinker" );
+		v.add( "-shared" );
+	    }
 
 	    String[] args = new String[v.Length];
 	    for( int i = 0; i < v.Length; i = i + 1 ) {
@@ -2460,6 +2531,14 @@ namespace Parse {
 
 	set bool WantProfile = p {
 	    WarnFlag[WANT_PROFILE] = p;
+	}
+
+        get bool WantPIC {
+	    return WarnFlag[WANT_PIC];
+        }
+
+	set bool WantPIC = p {
+	    WarnFlag[WANT_PIC] = p;
 	}
 
 	get bool WantInline {

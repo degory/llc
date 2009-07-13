@@ -822,21 +822,19 @@ namespace Parse {
 	    }
 	}
 
-	ITree loadGlobalNoGOT( CompileState state, String name ) {
-	    bool pic = true;
-
-	    if( pic ) {
-		// FIXME: assuming TLS not affected by PIC?
-		return new ITree( 0, Op.GLOBAL, Machine.WORD, name );
+	ITree loadGlobalTLS( CompileState state, String name, String name_pic ) {
+	    if( state.WantPIC ) {
+		// FIXME: TLS access with PIC required here:
+		return new ITree( 0, Op.INDIRECT, Machine.WORD,
+				  new ITree( 0, Op.GLOBAL, Machine.WORD, name_pic )
+				  );
 	    } else {
 		return new ITree( 0, Op.GLOBAL, Machine.WORD, name );
 	    }
 	}
 
 	ITree loadGlobal( CompileState state, String name, int offset ) {
-	    bool pic = true;
-
-	    if( pic ) {
+	    if( state.WantPIC ) {
 		/*
 		if( offset == 0 ) {
 		    return new ITree( 0, Op.INDIRECT, Machine.WORD,
