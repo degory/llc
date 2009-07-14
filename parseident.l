@@ -245,7 +245,7 @@ namespace Parse {
 		// IO.Std.err.println( "no symbol and no method call found for " + name );
 		type = undefined_type;
 		symbol = null;
-		error( "undefined symbol " + getQualifiedName(state) + " (1) from " + new System.Backtrace() );
+		error( "undefined symbol " + getQualifiedName(state) );
             }
 
 	    // IO.Std.err.println( "\n" );
@@ -434,7 +434,7 @@ namespace Parse {
 		    checkAccess( result, state );
 		} else {
 		    if( complain ) {
-			error( "undefined symbol " + getQualifiedName(state) + " (2)" );
+			error( "undefined symbol " + getQualifiedName(state) );
 		    }
 		}
 
@@ -446,7 +446,7 @@ namespace Parse {
                     checkAccess( result, state );
                 } else {
 		    if( complain ) {
-			error( "undefined symbol " + name /*getName()*/ + " (3)" );
+			error( "undefined symbol " + name /*getName()*/ );
 		    }
 		    // IO.Std.err.println( "undefined symbol " + getQualifiedName(state) );
                 }

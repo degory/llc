@@ -546,9 +546,11 @@ namespace Parse {
                     if( !current.IsFinal ) {
                         m = m + 1 << 15;
                     }
+		    /*
 		    if( current.IsPIC ) {
 			m = m + 1 << 16;
 		    }
+		    */
 
                     hash_ = Util.Hash.rotate(hash_) + m;
 

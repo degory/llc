@@ -884,6 +884,7 @@ namespace Parse {
 
     class Pragma extends Statement {
 	IdentifierList settings;
+	bool warned;
 
 	void init( int line_number, IdentifierList s ) {
 	    super.init( line_number );
@@ -907,7 +908,23 @@ namespace Parse {
 		state.WantMarkUnsafe = false;
 	    } else if( name.Name =~ "NoProfile" ) {
 		state.WantProfile = false;
+	    } else if( name.Name =~ "NoFinal" ) {
+		IO.Std.err.println( "pragma no-final..." );
+		if( state.CurrentMethod != null ) {
+		    IO.Std.err.println( "current method is: " +state.CurrentMethod.HumanName );
+		    state.CurrentMethod.IsFinal = false;
+		    if( !warned ) {
+			warn( "force not final: " + state.CurrentMethod.HumanName );
+		    }
+		} else {
+		    IO.Std.err.println( "no current method" );
+
+		    state.WantVirtual = true;
+		}
+	    } else if( !warned ) {
+		warn( "ignoring undefined pragma " + name );
 	    }
+	    warned = true;
 	}
 
         void declareGlobalSymbols( CompileState state ) {

@@ -648,11 +648,10 @@ namespace Parse {
 		state.declareClass( this, super_class, null, name.Name, Access, false );
 	    }
 
-	    if( !IsInterface ) {
+	    if( !IsInterface && !state.WantPIC ) {
 		state.addLinkFile( state.getObjectFileName( c.QualifiedName, ".o" ) );
 	    }
 	}
-
 
 	Container findSuperClass( CompileState state ) { // , String class_name ) {
 	    if( super_ident != null ) {
@@ -1032,6 +1031,10 @@ namespace Parse {
                         state.assembleFile( c.FileName );
 			state.dumpActiveClasses( c.FileName );
 			state.addHashFile( c.FileName, c.Hash );
+
+			if( state.WantPIC ) {
+			    state.addLinkFile( state.getObjectFileName( c.QualifiedName, ".o" ) );
+			}
                     } else {
 		        // IO.Std.err.println( "removing output file: " + c.getQualifiedName() );
                         state.removeOutput( c.FileName );
@@ -1498,6 +1501,11 @@ namespace Parse {
 	    // IO.Std.err.println( "declare class symbols: " + m.HumanName );
 
 	    m.IsPIC = state.WantPIC;
+
+	    if( state.WantVirtual ) {
+		m.IsFinal = false;
+		warn( "force not final: " + m.HumanName );
+	    }
 	   
 	    if( n.Length > 3 ) {
 		if( n.startsWith( "get" ) || n.startsWith( "set" ) ) {

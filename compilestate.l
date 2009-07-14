@@ -359,7 +359,8 @@ namespace Parse {
 	    IS_TRUSTED = 4,
             WANT_DEBUG = 5,
 	    WANT_PROFILE = 6,
-	    WANT_PIC = 7;
+	    WANT_PIC = 7,
+	    WANT_VIRTUAL = 8;
 
 	private const int
 	    DEFAULT_WARN_FLAGS = 15 | 32; // all warnings enabled, trusted flag not set
@@ -1015,19 +1016,21 @@ namespace Parse {
 		return;
 	    }
 
-	    if( main_class_decorated != null ) {
-		// IO.Std.err.println( "writing out entry point for main class " + main_class_decorated );
-		
-		IO.Writer f = IO.File.openCreate( this.CacheDir + "entry.s" );
-
-		Machine.emitEntryPoint( f, main_class_decorated );
-
-		f.close();
-		assembleFile( "entry" );
-		addLinkFile( getObjectFileName("entry", ".o") );
-	    } else if( !WantPIC ) {
-		ParseTree.message( "*** no main class ***" );
-		return;
+	    if( !WantPIC ) {
+		if( main_class_decorated != null ) {
+		    // IO.Std.err.println( "writing out entry point for main class " + main_class_decorated );
+		    
+		    IO.Writer f = IO.File.openCreate( this.CacheDir + "entry.s" );
+		    
+		    Machine.emitEntryPoint( f, main_class_decorated );
+		    
+		    f.close();
+		    assembleFile( "entry" );
+		    addLinkFile( getObjectFileName("entry", ".o") );
+		} else {
+		    ParseTree.message( "*** no main class ***" );
+		    return;
+		}
 	    }
 
 	    // wait(0);
@@ -1042,10 +1045,6 @@ namespace Parse {
         }
 
 	void linkObjectFiles() {
-	    if( WantPIC ) {
-		IO.Std.err.println( "not linking" );
-		return;
-	    }
 
 	    StringBuffer b = new StringBuffer();
 
@@ -1054,20 +1053,29 @@ namespace Parse {
 	    // IO.Std.err.println( "going to link. output: '" + executable_name + "'" );
 	    String exe;
 
-	    exe = "gcc";
-	    v.add( "gcc" );
-	    v.add( Machine.GCC_SWITCH );
-	    v.add( LIBRARY_DIR + "lrt-" + Machine.NAME + ".o" );
-	    
-	    if( !WantLineNumbers ) {
-		v.add( "-s" );
+	    if( WantPIC ) {
+		exe = "ld";
+		v.add( "ld" );
+		v.add( "-shared" );
+		IO.Std.err.println( "including PIC prolog in shared object" );
+		v.add( LIBRARY_DIR + "ldn-" + Machine.NAME + ".o" );
 	    } else {
-		// make executable re-linkable so we can dynamically load classes and link them into it
-		v.add( "-Xlinker" );
-		v.add( "-E" );
+		exe = "gcc";
+		v.add( "gcc" );
+		v.add( Machine.GCC_SWITCH );
+		v.add( LIBRARY_DIR + "lrt-" + Machine.NAME + ".o" );
+	    
+		if( !WantLineNumbers ) {
+		    v.add( "-s" );
+		} else {
+		    // make executable re-linkable so we can dynamically load classes and link them into it
+		    v.add( "-Xlinker" );
+		    v.add( "-E" );
+		}
+
+		v.add( "-L/usr/lang/lib/" );
 	    }
 		
-	    v.add( "-L/usr/lang/lib/" );
 
 	    v.add( "-o" );
 	    v.add( executable_name );
@@ -2113,7 +2121,7 @@ namespace Parse {
             Machine.emitLabel( Output, l.getInt() );
 	    */
         }
-    
+
         void beginParseMethodArgs( ParseTree from, Container method ) {
             if( this.State != STATE_INSIDE_CLASS ) {
                 throw new Exception( "oops: trying to beginParseMethodArgs from compile state " + this.State );
@@ -2544,6 +2552,14 @@ namespace Parse {
 
 	set bool WantPIC = p {
 	    WarnFlag[WANT_PIC] = p;
+	}
+
+        get bool WantVirtual {
+	    return WarnFlag[WANT_VIRTUAL];
+	}
+
+	set bool WantVirtual = b {
+	    WarnFlag[WANT_VIRTUAL] = b;
 	}
 
 	get bool WantInline {

@@ -71,6 +71,9 @@ namespace Parse {
                     compiled_hash = f.readInt();
                     f.close();
 		} catch( IO.IOException ie1 ) {
+		    if( state.WantPIC ) {
+			IO.Std.err.println( "compiling " + class_name + " because no hash file present" );
+		    }
                     // IO.Std.err.println( "CCCCCC: no hash file present/problem reading hash for: " + class_name + ": " + ie1 );
 		    return true;
 		}
@@ -103,11 +106,18 @@ namespace Parse {
 		    IO.Std.err.println( "CCCCCC: problem checking dependancies for: " + class_name + ": " + ie );
 		    // could not check dependency hashes - need to compile
                 }
+
+		if( state.WantPIC ) {
+		    IO.Std.err.println( "compiling " + class_name + " because of dependancy change" );
+		}
 		/*
 	    } else {
-	     	IO.Std.err.println( "CCCCCC: no object file or object file out of date: " + class_name );
+	        IO.Std.err.println( "CCCCCC: no object file or object file out of date: " + class_name );
 		*/
+	    } else if( state.WantPIC ) {
+		IO.Std.err.println( "compiling " + class_name + " because of source change" );
 	    }
+		
 
 	    // source file changed since object file was last written - need to recompile.
 	    // write out the current class defition hash:

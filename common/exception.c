@@ -555,6 +555,12 @@ typedef struct _UnwindRecord {
 
 extern UnwindRecord *__unwind_start;
 
+typedef struct _UnwindList {
+  UnwindRecord *head;
+  struct _UnwindList *tail;
+} UnwindList;
+
+static UnwindList *unwind_head = 0;
 
 typedef struct _BacktraceRecord {
   WORD rip;
@@ -626,24 +632,49 @@ void __find_line_numbers( void *buffer, BacktraceRecord *backtrace ) {
   }
 }
 
+void __add_unwind_info( UnwindRecord **u ) {
+  UnwindList *list;
+
+  printf( "adding unwind info %p\n", u );
+
+  list = (UnwindList *)GC_malloc( sizeof(UnwindList) );
+
+  list->head = *u;
+  list->tail = unwind_head;
+
+  unwind_head = list;
+}
+
 UnwindRecord *findUnwindInfo( WORD rip, BacktraceRecord *backtrace ) {
   int result = 0;
   UnwindRecord *p;
   D( "looking for method containing %p\n", (void *)rip );
 
-  for( p = __unwind_start; p->method_start != 0; p = p + 1 ) {
-    // D( "have record %p, %p..%p %s\n", p, (void *)p->method_start, (void *)p->method_end, p->method_name );
+  UnwindRecord *start = __unwind_start;
+  UnwindList *next = unwind_head;
 
-    if( rip >= p->method_start && rip < p->method_end ) {
-      D( "method %s at %p, unwind flags %lx\n", p->method_name, (void *)rip, p->flags );
-      if( backtrace != 0 ) {
-	backtrace->rip = rip;
-	backtrace->method_name = p->method_name;
-	backtrace->line_number_info = p->line_numbers;
+  do {
+    for( p = start; p->method_start != 0; p = p + 1 ) {
+      // D( "have record %p, %p..%p %s\n", p, (void *)p->method_start, (void *)p->method_end, p->method_name );
+
+      if( rip >= p->method_start && rip < p->method_end ) {
+	D( "method %s at %p, unwind flags %lx\n", p->method_name, (void *)rip, p->flags );
+	if( backtrace != 0 ) {
+	  backtrace->rip = rip;
+	  backtrace->method_name = p->method_name;
+	  backtrace->line_number_info = p->line_numbers;
+	}
+	return p;
       }
-      return p;
     }
-  }
+
+    if( next != 0 ) {
+      start = next->head;
+      next = next->tail;
+    } else {
+      start = 0;
+    }
+  } while( start != 0 );
 
   // D( "count not find rip\n" );
   return 0;
