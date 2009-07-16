@@ -152,9 +152,9 @@ namespace Gen {
 	    Op.setAsName(Op.COPY_8,"movq");
 	    Op.setAsName(Op.COPY_4,"movl");
 	    Op.setAsName(Op.COPY_1,"movb");
-	    Op.setAsName(Op.EXTERN_0,".extern");
-	    Op.setAsName(Op.GLOBAL_4,".global");
-	    Op.setAsName(Op.GLOBAL_8,".global");
+	    Op.setAsName(Op.EXTERN_0,".globl");
+	    Op.setAsName(Op.GLOBAL_4,".globl");
+	    Op.setAsName(Op.GLOBAL_8,".globl");
 	    Op.setAsName(Op.RET_0,"ret");
 	    Op.setAsName(Op.JUMP_0,"jmp");
 	    Op.setAsName(Op.ENTER_0,"# enter frame" );
@@ -552,11 +552,23 @@ namespace Gen {
         }
 
         static void emitExtern( IO.Writer f, System.String s ) {
-            f.write( ".extern " + s + "\n" );
+	    //            f.write( ".extern " + s + "\n" );
+	    f.write( ".globl " + s + "\n" );
         }
 
-        static void emitGlobal( IO.Writer f, System.String s ) {
-            f.write( ".global " + s + "\n" );
+        static void emitGlobalData( IO.Writer f, System.String s, int size ) {
+            f.write( ".globl " + s + "\n" );
+	    f.write( ".type " + s + ", @object\n" );
+	    f.write( ".size " + s + ", " + size + "\n" );
+        }
+
+	static void emitGlobalData( IO.Writer f, System.String s ) {
+	    emitGlobalData( f, s, 8 );
+	}
+
+        static void emitGlobalFunction( IO.Writer f, System.String s ) {
+            f.write( ".globl " + s + "\n" );
+	    f.write( ".type " + s + ", @function\n" );
         }
 
         static void emitRoDataSegment( IO.Writer f ) {

@@ -492,7 +492,7 @@ namespace Parse {
 	    Type at;
             ITree result = null;
 	    if( k & Symbol.FLAG_METHOD != 0 ) {
-		error( "not calling method " + symbol + " here" );
+		error( "not calling method " + symbol.HumanName + " here" );
 		return new ITree( 0, Op.ERROR, 0 );
 	    } else if( k == Symbol.ATTRIBUTE_LENGTH ) {
 		// need to allow for null pointer exception to be thrown here:

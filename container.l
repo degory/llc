@@ -46,6 +46,7 @@ namespace Parse {
 	Vector<Container> implements_list;
         int vtable_offset;
         int itable_offset;
+	int stable_offset;
         int stack_offset;
 	int local_offset;
 	int method_index;
@@ -60,7 +61,8 @@ namespace Parse {
 	int label;
 	bool is_native;
 	bool already_parsed;
-	bool is_pic;
+
+	CompileStatus compile_status;
 	Gen.MBitSet address_taken;
 
         void setup( Container parent ) {
@@ -151,12 +153,21 @@ namespace Parse {
 	    return Kind & Symbol.FLAG_STATIC != 0;
 	}
 
-	get bool IsPIC {
-	    return is_pic;
+	get int StaticSize {
+	    return stable_offset;
 	}
 
-	set bool IsPIC = p {
-	    is_pic = p;
+	get int VTableSize {
+	    return vtable_offset;
+	}
+
+	get CompileStatus CompileStatus {
+	    return compile_status;
+	}
+
+	set CompileStatus CompileStatus = s {
+	    IO.Std.err.println( "compile status for class: " + HumanName + " is " + cast int(s) );
+	    compile_status = s;
 	}
 
 	/*
@@ -1263,9 +1274,12 @@ namespace Parse {
                     // throw new Exception( "weird: ignoring symbol " + current.Name + " of kind " + current.Kind );
                 }
             }
+
+	    
         
             itable_offset = address.itable_offset;
             vtable_offset = address.vtable_offset;
+	    this.stable_offset = stable_offset;
         
             tables_valid = true;
         }
@@ -1401,7 +1415,7 @@ namespace Parse {
                                     Machine.emitExtern( state.Output,
                                                         candidate.DecoratedName );
                                 } else {
-                                    Machine.emitGlobal( state.Output,
+                                    Machine.emitGlobalFunction( state.Output,
                                                         candidate.DecoratedName );
                                 }
 				state.Output.println( "# ca: " + ca + ", sa: " + candidate.Address );

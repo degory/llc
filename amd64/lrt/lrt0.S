@@ -19,6 +19,7 @@
 __data_begin:	
 	
 .section x_static_begin,"ax"
+.global static$begin
 static$begin:
 	pushq %rbp
 	movq %rsp,%rbp
@@ -217,7 +218,8 @@ alloca:
 
 	mov %rax, %rcx  # save pointer to allocated array
 
-	movq $vtable$__Q26System5Array, %rax # load 64 bit constant
+	// mov vtable$__Q26System5Array@GOTPCREL(%rip), %rax
+	movq vtable$__Q26System5Array, %rax
 	movq %rax, (%rcx)  # initialize vtable
 	movq %r12, 8(%rcx) # initialize element count
 	
@@ -243,7 +245,7 @@ allocao:
 	
 	mov %rax, %rcx  # save pointer to allocated array
 
-	movq $vtable$__Q26System5Array, %rax # load 64 bit constant
+	mov vtable$__Q26System5Array, %rax # load 64 bit constant
 	movq %rax, (%rcx)  # initialize vtable
 	movq %r12, 8(%rcx) # initialize element count
 	
@@ -308,12 +310,12 @@ main:
 .extern GC_parallel
 .extern GC_enable_incremental
 .extern __install_segv_handler
-	call __install_segv_handler
+	# call __install_segv_handler
 	
 	
 #	movl $1,GC_print_stats
-	movl $1,GC_parallel
-	call GC_init
+#	movl $1,GC_parallel
+#	call GC_init
 
 #	call GC_enable_incremental
 

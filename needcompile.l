@@ -12,13 +12,32 @@ namespace Parse {
     use System.String;
     use System.StringBuffer;
     use System.Exception;
-    
+
+    use Generic.Vector;
+
+    enum CompileStatus {
+        CURRENT,
+	LIBRARY,
+        STALE,
+        BAD_HASH
+    }
+
     class NeedCompile {
+
         CompileState state;
+
+	Vector<LibraryHashFile> libraries;
 
         void init( CompileState state ) {
             this.state = state;
+
+	    libraries = new Vector<LibraryHashFile>();
         }
+
+	void addLibraryHashFile( LibraryHashFile l ) {
+	    IO.Std.err.println( "add library hash file: " + l );
+	    libraries.add( l );
+	}
 
         // check classes that this_class depends on against the stored hashes in this_class's .depend file
         // return true if this_class needs to be compiled, false otherwise
@@ -39,15 +58,42 @@ namespace Parse {
             }
         }
 
-        bool needCompile( String source_name, String class_name, int hash ) {
-	    var result = needCompile2( source_name, class_name, hash );
+	bool isInLibrary( String class_name ) {
+	    foreach( var l; libraries.Iterator ) {
+		if( l.Hash[class_name] != 0 ) {
+		    return true;
+		}
+	    }
+
+	    return false;
+	}
+
+        CompileStatus needCompile( String source_name, String class_name, int hash ) {
+	    foreach( var l; libraries.Iterator ) {
+		var h = l.Hash[class_name];
+		if( h != 0 ) {
+		    if( h == hash ) {
+			IO.Std.err.println( "no need to compile " + class_name + " in library " + l );
+			return CompileStatus.LIBRARY;
+		    } else {
+			IO.Std.err.println( "bad hash " + class_name + " is in library " + l );
+			return CompileStatus.BAD_HASH;
+		    }
+		}
+	    }
+
+	    if( needCompile2( source_name, class_name, hash ) ) {
+		IO.Std.err.println( "stale " + class_name + " in current project" );
+		return CompileStatus.STALE;
+	    } else {
+		IO.Std.err.println( "up to date " + class_name + " in current project" );
+		return CompileStatus.CURRENT;
+	    }
 	    /*
 	    if( result ) { 
 		IO.Std.err.println( "CCCCCC: need compile: " + source_name + "," + class_name + "," + hash + ": " + result );
 	    } 
 	    */
-
-	    return result;
 	}
 
         bool needCompile2( String source_name, String class_name, int hash ) {

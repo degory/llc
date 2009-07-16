@@ -134,7 +134,7 @@ namespace Parse {
 		if( from < 0 ) {
 		    from = 0;
 		}
-		String s = state.LCacheDir + file_name.substring( from, file_name.Length-2 ) + ".h";
+		String s = state.CacheDir + file_name.substring( from, file_name.Length-2 ) + ".h";
 		IO.Std.out.println( "would output to: '" + s + "'" );
 
 		IO.Writer o = IO.File.openCreate( s );

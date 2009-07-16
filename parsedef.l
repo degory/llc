@@ -555,7 +555,13 @@ namespace Parse {
 	    generic_instances.add( concrete );
 
 	    makeImplementsConcrete( state );
-	    makeSuperClassConcrete( state, concrete, super_class );
+	    try {
+		makeSuperClassConcrete( state, concrete, super_class );
+	    } catch( System.Exception se ) {
+		error( "problem with superclass " + concrete.HumanName + " " + super_class.HumanName );
+		throw se;
+	    }
+
 	    body.declareGlobalSymbols( state );
 	    state.exitClass( concrete );
 	    // declareSymbols( state, concrete );
@@ -648,8 +654,8 @@ namespace Parse {
 		state.declareClass( this, super_class, null, name.Name, Access, false );
 	    }
 
-	    if( !IsInterface && !state.WantPIC ) {
-		state.addLinkFile( state.getObjectFileName( c.QualifiedName, ".o" ) );
+	    if( !IsInterface ) {
+		state.addObject( c );
 	    }
 	}
 
@@ -826,6 +832,10 @@ namespace Parse {
 		}
 
                 state.beginCompileClass( this, c, name.Name );
+		var s = state.needCompile( state.CurrentSourceFileName, c.FileName, c.Hash );
+
+                c.CompileStatus = s;
+
                 body.prepareInline( state );
                 state.endCompileClass( c );
             }
@@ -891,9 +901,11 @@ namespace Parse {
 		// c.referenceSelf();
 
 		// IO.Std.err.println( "compile class " + c.HumanName + " symbol table: " + state.symbol_table );                
-                int hash = c.Hash;
-                
-                if( state.needCompile( state.CurrentSourceFileName, c.FileName, hash ) ) {
+                var s = state.needCompile( state.CurrentSourceFileName, c.FileName, c.Hash );
+
+		if( s == CompileStatus.BAD_HASH ) {
+		    error( "class " + c.HumanName + " in library not compatible with source definition" );
+		} else if( s == CompileStatus.STALE ) {
 		    if( state.WantVerbose ) {
 			message( "compile class: " + c.HumanName );
 		    }
@@ -915,13 +927,14 @@ namespace Parse {
                     Machine.emitDefPointerLabel( f, l.Int );
 		    Machine.emitDefPointer( f, "vtable$__" + c.DecoratedName );
                     
-                    Machine.emitRoDataSegment( f );
+                    // Machine.emitRoDataSegment( f );
+		    Machine.emitDataSegment( f );
 
                     Machine.emitAlign( f, Machine.WORD );
-                    Machine.emitGlobal( f, "type$__" + c.DecoratedName );
-                    Machine.emitGlobal( f, "name$__" + c.DecoratedName );
-                    Machine.emitGlobal( f, "size$__" + c.DecoratedName );
-                    Machine.emitGlobal( f, "vtable$__" + c.DecoratedName );
+                    Machine.emitGlobalData( f, "type$__" + c.DecoratedName );
+                    Machine.emitGlobalData( f, "name$__" + c.DecoratedName );
+                    Machine.emitGlobalData( f, "size$__" + c.DecoratedName );
+                    Machine.emitGlobalData( f, "vtable$__" + c.DecoratedName, c.VTableSize );
         
                     Machine.emitLabel( f, l.Int );
                     Machine.emitDefAsciiz( f, c.HumanName );
@@ -964,7 +977,7 @@ namespace Parse {
                     Machine.emitDataSegment( f );
                     Machine.emitAlign( f, Machine.WORD );
                     String st = "stable$__" + c.DecoratedName;
-                    Machine.emitGlobal( f, st );
+                    Machine.emitGlobalData( f, st, c.StaticSize );
                     Machine.emitLabel( f, st );
                                        
                     c.emitStaticTables( state );
@@ -1029,12 +1042,8 @@ namespace Parse {
                     if( !errors_occurred ) {
 		        // IO.Std.err.println( "assembling: " + c.getQualifiedName() );
                         state.assembleFile( c.FileName );
+			IO.Std.err.println( "will dump active classes: " + c.FileName );
 			state.dumpActiveClasses( c.FileName );
-			state.addHashFile( c.FileName, c.Hash );
-
-			if( state.WantPIC ) {
-			    state.addLinkFile( state.getObjectFileName( c.QualifiedName, ".o" ) );
-			}
                     } else {
 		        // IO.Std.err.println( "removing output file: " + c.getQualifiedName() );
                         state.removeOutput( c.FileName );
@@ -1042,6 +1051,10 @@ namespace Parse {
                     
 		    // } else {
 		    // IO.Std.err.println( "did not need to compile: " + c.getQualifiedName() );
+		}
+
+		if( !errors_occurred ) {
+		    state.addHashFile( c, s );
 		}
 
 		// state.addLinkFile( state.getObjectFileName( c.QualifiedName, ".o" ) );
@@ -1500,7 +1513,7 @@ namespace Parse {
 
 	    // IO.Std.err.println( "declare class symbols: " + m.HumanName );
 
-	    m.IsPIC = state.WantPIC;
+	    // m.IsPIC = state.WantPIC;
 
 	    if( state.WantVirtual ) {
 		m.IsFinal = false;

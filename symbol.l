@@ -147,9 +147,11 @@ namespace Parse {
 	    return kind & FLAG_METHOD != 0;
 	}
 
+	/*
 	get bool IsPIC {
 	    return false;
 	}
+	*/
 
 	get bool IsNative {
 	    return false;

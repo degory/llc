@@ -1152,3 +1152,7 @@ long __get_nanotime() {
   }
 
 }
+
+void __static_begin( void (*f)() ) {
+  f();
+}

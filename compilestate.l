@@ -21,6 +21,7 @@ namespace Parse {
     use System.Exception;
 
     use Generic.Vector;
+    use Generic.Map;
 
     use Gen.ILabel;
     use Gen.IString;
@@ -29,6 +30,40 @@ namespace Parse {
     use Gen.MBitSet;
     use Gen.TempFactory;
     // use Util.ThreadPool;
+
+
+    class LibraryHashFile {
+        String name;
+
+        Map<String,int> hashes;
+
+        void init( String name, IO.Reader in ) {
+	    IO.Std.err.println( "read library hash file: " + name + " from " + in + "..." );
+            this.name = name;
+            hashes = new Map<String,int>();
+
+            var s = in.readAll().split(' ');
+
+	    IO.Std.err.println( "read: " + s );
+
+	    var last = s.length - 1;
+            for( int i = 0; i < last; i = i + 2 ) {
+		IO.Std.err.println( s[i] + " <- " + s[i+1] );
+                hashes[s[i]] = s[i+1].toInt();
+            }
+
+            IO.Std.err.println( "read: " + this.hashes );
+        }
+
+        get String Name {
+            return name;
+        }
+
+        get int Hash[ String name ] {
+            return hashes[ name ];
+        }
+    }
+
 
     class Template extends Object {
 	public State[] saved_state;
@@ -446,6 +481,8 @@ namespace Parse {
         String main_class_name;
         String main_class_decorated;
 	String executable_name;
+	IO.Writer library_hash_file;
+
 	String project_name;
 
         int exception_level;
@@ -619,9 +656,11 @@ namespace Parse {
 	    return loop_stack;
 	}
 
+	/*
 	get String LCacheDir {
 	    return lcache_dir;
 	}
+	*/
 
 	// FIXME: this is mad - stack top is level - 1
 	get int ExceptionLevel {
@@ -825,8 +864,25 @@ namespace Parse {
             to_link_set.add( name );
         }
 
-        void addHashFile( String file_name, int hash ) {
-            write_hash_files.add( new WriteHashFile(lcache_dir + file_name, hash) );
+	void addObject( Container c ) {
+	    IO.Std.err.println( "add object: " + c );
+	    if( !need_compile.isInLibrary( c.QualifiedName ) ) {
+		IO.Std.err.println( "need link: " + c + " lcache_dir is: " + CacheDir );
+		addLinkFile( CacheDir + c.QualifiedName + ".o" );
+	    }
+	}
+
+        void addHashFile( Container c, CompileStatus s ) {
+	    var hash = c.Hash;
+	    var name = c.QualifiedName;
+	    if( s != CompileStatus.LIBRARY ) {
+		IO.Std.err.println( "writing to " + library_hash_file + ": '" + name + ' ' + hash + ' ' + "'" );
+		library_hash_file.print( name + ' ' + hash + ' ' );
+	    }
+
+	    if( s == CompileStatus.STALE ) {
+		write_hash_files.add( new WriteHashFile(lcache_dir + name, hash) );
+	    }
         }
 
 	void writeHashFiles() {
@@ -835,12 +891,29 @@ namespace Parse {
 		c.getHash();
 	    }
 	    */
-	    WriteHashFile.write( write_hash_files );	  
+	    WriteHashFile.write( write_hash_files );
+	    
+	    library_hash_file.close();
+	}
+
+	void openLibraryHashFile() {
+	    var file_name = ExecutableName;
+	    var i = file_name.lastIndexOf('.');
+	    if( i >= 0 ) {
+		file_name = file_name.substring(0,i);
+	    }
+
+	    file_name = file_name + ".ll";
+
+	    IO.File.deleteQuiet( file_name );
+	    library_hash_file = IO.File.openAppend( file_name );
 	}
 
         void compilePending() {
             int i, j;
             Package p;
+
+	    openLibraryHashFile();
 
 	    // recursively visit all imported files building parse trees until every
 	    // imported package has been parsed:
@@ -880,7 +953,7 @@ namespace Parse {
 	    }
 
 	    if( WantVeryVerbose ) {
-		ParseTree.message( "declaring templace instances..." );
+		ParseTree.message( "declaring template instances..." );
 	    }
 
 	    int instance_count;
@@ -1000,8 +1073,8 @@ namespace Parse {
             }
 
 	    if( WantJobs <= 1 && !InChildProcess ) {
-		writeHashFiles();
-	    }
+		writeHashFiles();		
+	    }	    
 
 	    if( InChildProcess ) {
 		writeHashFiles();
@@ -1031,6 +1104,8 @@ namespace Parse {
 		    ParseTree.message( "*** no main class ***" );
 		    return;
 		}
+	    } else {
+		IO.Std.err.println( "PIC output - do not need entry point" );
 	    }
 
 	    // wait(0);
@@ -1044,6 +1119,7 @@ namespace Parse {
 	    ParseTree.message( "done" );
         }
 
+
 	void linkObjectFiles() {
 
 	    StringBuffer b = new StringBuffer();
@@ -1052,6 +1128,8 @@ namespace Parse {
 	    var v = new Vector<String>();
 	    // IO.Std.err.println( "going to link. output: '" + executable_name + "'" );
 	    String exe;
+
+	    IO.Std.err.println( "want pic is: " + WantPIC );
 
 	    if( WantPIC ) {
 		exe = "ld";
@@ -1106,68 +1184,9 @@ namespace Parse {
 		args[i] = cast<String>(v[i]);
 	    }
 
-	    // IO.Std.err.println( "linking: " + b );	    
+	    IO.Std.err.println( "linking: " + b );	    
 		
 	    int result = p.run( exe, args );
-	    if( result != 0 ) {
-		throw new Exception( "link failed with exit status " + result );
-	    }
-	}
-
-
-	void linkObjectFilesOrig() {
-	    StringBuffer b = new StringBuffer();
-
-	    var p = new Util.Process();
-	    var v = new Vector<String>();
-	    // IO.Std.err.println( "going to link. output: '" + executable_name + "'" );
-	    v.add( "gcc" );
-	    v.add( Machine.GCC_SWITCH );
-	    if( WantPIC ) {
-		v.add( "-shared" );
-		v.add( "-fPIC" );
-	    }
-
-	    v.add( "-L/usr/lang/lib/" );
-	    if( !WantLineNumbers ) {
-	    	v.add( "-s" );
-	    }
-
-	    v.add( "-o" );
-	    v.add( executable_name );
-	    v.add( LIBRARY_DIR + "lrt-" + Machine.NAME + ".o" );
-	    foreach( String s; to_link_set.elements() ) {
-		v.add( s );
-	    }
-	    // v.add( "-nostartfiles" );
-
-	    v.add( "-lgc" );
-	    v.add( "-ldl" );
-
-	    foreach( String t; libraries.elements() ) {
-		if( t.endsWith(".o") ) {
-		    v.add( t ); 
-		} else {
-		    v.add( "-l" + t );
-		}
-	    }
-
-	    if( WantPIC ) {
-		IO.Std.err.println( "linking PIC shared exe" );
-		v.add( "-Xlinker" );
-		v.add( "-shared" );
-	    }
-
-	    String[] args = new String[v.Length];
-	    for( int i = 0; i < v.Length; i = i + 1 ) {
-		b.append( v[i] );
-		b.append( ' ' );
-		args[i] = cast<String>(v[i]);
-	    }
-
-	    // IO.Std.err.println( "linking: " + b );
-		
-	    int result = p.run( "gcc", args );
 	    if( result != 0 ) {
 		throw new Exception( "link failed with exit status " + result );
 	    }
@@ -1208,6 +1227,8 @@ namespace Parse {
                 return false;
             }
 
+	    IO.Std.err.println( "visit file: '" + name + "'" );
+
             // current_file_name = name;
             // current_input_line = 1;
 
@@ -1227,14 +1248,25 @@ namespace Parse {
 		    s = s + '/';
 		}
 
-		if( name.endsWith(".l") ) {
+		if( name.endsWith(".l") || name.endsWith(".ll") ) {
+		    IO.Std.err.println( "l or ll extension, try open '" + name + "' directly" );
 		    in = tryOpen( s, name, "" );
 		    if( in != null ) {
 			file_name = name;
 			break;
 		    }
 		} else {
+		    IO.Std.err.println( "other extension, try open '" + name + "' + '.l'" );
+
 		    in = tryOpen( s, name, ".l" );
+		    if( in != null ) {
+			file_name = name;
+			break;
+		    }
+
+		    IO.Std.err.println( "other extension, try open '" + name + "' + '.ll'" );
+
+		    in = tryOpen( s, name, ".ll" );
 		    if( in != null ) {
 			file_name = name;
 			break;
@@ -1246,9 +1278,39 @@ namespace Parse {
                 throw new Exception( "could not open input file " + name + " in any of " + search + " lcache: " + this.CacheDir );
             }
 
-            parseFile( file_name, in );
+	    IO.Std.err.println( "input file: '" + file_name + "'" );
+
+	    if( file_name.endsWith(".ll" ) ) {
+		IO.Std.err.println( "input file is a library hash file..." );
+		addLibraryHashFile( name, in );
+	    } else {
+		parseFile( file_name, in );
+	    }
             return true;
         }
+
+	void addLibraryHashFile( String name, IO.Reader in ) {
+	    if( name.endsWith( ".ll" ) ) {
+		name = name.substring( 0, name.Length - 3 ); // + ".so";
+	    }
+
+	    var dir = "";
+	    int l = name.lastIndexOf('/');
+	    if( l >= 0 ) {
+		dir = name.substring(l+1);
+		name = name.substring(l+1,name.Length);
+		IO.Std.err.println( "split: " + dir + " : " + name );
+	    }
+
+	    if( name.startsWith( "lib" ) ) {
+		name = name.substring( 3 );
+	    }
+
+	    need_compile.addLibraryHashFile( new LibraryHashFile(name,in) );
+
+	    IO.Std.err.println( "will link L library: " + name );
+	    libraries.add( name );
+	}
 
 	set String ExecutableName = s {
 	    executable_name = s;
@@ -1262,8 +1324,8 @@ namespace Parse {
 	    project_name = s;
 	}
 
-        bool needCompile( String source_name, String class_name, int hash ) {
-            bool result = need_compile.needCompile( source_name, class_name, hash );
+        CompileStatus needCompile( String source_name, String class_name, int hash ) {
+            var result = need_compile.needCompile( source_name, class_name, hash );
 
 	    // IO.Std.err.println( "need compile " + source_name + ": " + class_name + ": " + result );
 	    return result;
@@ -1488,7 +1550,7 @@ namespace Parse {
                 } else {
                     buffer.append( ".e" );
                 }
-                native.unlink(buffer.toCString() );
+		IO.File.deleteQuiet( buffer );
             }
         }
 
@@ -2551,6 +2613,7 @@ namespace Parse {
         }
 
 	set bool WantPIC = p {
+	    IO.Std.err.println( "want pic now " + WantPIC );
 	    WarnFlag[WANT_PIC] = p;
 	}
 

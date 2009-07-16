@@ -14,7 +14,7 @@ namespace Parse {
     use Generic.Vector;
 
     class Main {
-	const int BUILD = 1159;
+	const int BUILD = 1160;
 
 	CompileState state;
 
@@ -75,6 +75,26 @@ namespace Parse {
 			usage( args[0] );
 		        return;
 
+			/*
+		    case 'A':
+			if( name.Length > 2 ) {
+			    CompileState.LibraryName = name.substring(2);
+			} else {
+			    i = i + 1;
+			    CompileState.LibraryName = args[i];
+			}
+			*/
+
+			/*
+		    case 'a':
+			if( name.Length > 2 ) {
+			    CompileState.useLibrary( name.substring(2) );
+			} else {
+			    i = i + 1;
+			    CompileState.useLibrary( args[i] );
+			}
+			*/
+
 		    case 'j':
 			if( name.Length > 2 ) {
 			    CompileState.WantJobs = name.substring(2).toInt();
@@ -118,10 +138,10 @@ namespace Parse {
 
 		    case 'o':
 			if( name.getLength() > 2 ) {
-			    setExecutableName( name.substring(2) );
+			    ExecutableName = name.substring(2);
 			} else {
 			    i = i + 1;
-			    setExecutableName( args[i] );
+			    ExecutableName = args[i];
 			}
 			set_executable_name = true;
 
@@ -190,8 +210,8 @@ namespace Parse {
 				state.WantPIC = true;
 
 			    case 'l':
-				state.WantPIC = false;
-				    
+				state.WantPIC = false;				
+    
 			    case '1':
 				// state.WantCoalesce = true;
 				state.WantInline = true;
@@ -264,7 +284,7 @@ namespace Parse {
 		    if( first_file ) {
 			first_file = false;
 			if( !set_executable_name ) {
-			    setExecutableName( args[i] );
+			    ExecutableName = args[i];
 			}
 		    }
 		    input_files.add( args[i] );

@@ -2,10 +2,19 @@
 	
 .data
 .global __data_begin
-__data_begin:	
+__data_begin:
+
+.text
+.global _init
+_init:  leaq 2f(%rip),%rdi
+	call __add_unwind_info@PLT
+	call 1f@PLT
+	ret
 	
 .section x_static_begin,"ax"
-static$begin:
+// .global static$begin
+1:	
+// static$begin:
 	pushq %rbp
 	movq %rsp,%rbp
 .section x_static_init,"ax"
@@ -15,16 +24,13 @@ static$begin:
 	ret
 .text
 
-_init:
-	call static$begin
-	ret
-	
 .data
-.global __unwind_start
-__unwind_start:
-	.quad 1f
+// .global __unwind_start
+
+// __unwind_start:
+2:	.quad 1f
 .section z_backtrace_begin,"a"
-1:
+1:	
 .section z_backtrace_info,"a"
 .section z_backtrace_end,"a"
 	.quad 0

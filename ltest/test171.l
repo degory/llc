@@ -72,6 +72,11 @@ namespace Dynamic {
 
 	    word u = cast word(native.dlsym(h,`__unwind_start`));
 	    native.__add_unwind_info(u);
+
+	    u = cast word(native.dlsym(h,`static$begin`));
+
+	    native.printf( `u is %p\n`, u );
+	    native.__static_begin(u);
 	}
 
 	Class loadClass( String vtable ) {
