@@ -125,7 +125,10 @@ namespace System is
 	String toString() is
 	    StringBuffer result;
 	    int i;
-	    result = new StringBuffer( getClassNameC() );
+	    result = new StringBuffer();
+	    result.append( "testing testing: " );
+	    result.append( getClassNameC() );
+	    // result = new StringBuffer( getClassNameC() );
 	    result.append( ` @` );
 	    result.append( hash(), 16 );
 	

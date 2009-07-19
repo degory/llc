@@ -688,6 +688,11 @@ namespace Gen {
 		result.append( ',' );
 		result.append( right );
 	    }
+
+	    if( op == Op.CONST_STR || op == Op.CONST_CSTR ) {
+		result.append( "\n.align 8" );
+	    }
+
 	    return result;
 	}
 

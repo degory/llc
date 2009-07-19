@@ -124,9 +124,10 @@ namespace Parse {
             if( t.TypeKind == Type.VECTOR ) {
                 Type st = t.SubType;
 		op = Op.NEW_GENERIC_ARRAY;
-		var array_vtable = "vtable$__" + t.getBoxType(state).Clazz.DecoratedName;
 
-		vtable = loadGlobal( state, array_vtable, 0 );
+		Container c = t.getBoxType(state).Clazz;
+
+		vtable = loadVTable( state, c );
 
 		return new ITree( line_number, op, 0,
 				  argument.compileValue( state,
@@ -140,11 +141,6 @@ namespace Parse {
 
                 class_symbol = getType(state).Clazz;
 
-                if( class_symbol != state.CurrentClass ) {
-                    into.add( new ITree( line_number, Op.EXTERN, 0, "vtable$__" + class_symbol.DecoratedName ) );
-                    into.add( new ITree( line_number, Op.EXTERN, 0, method.DecoratedName ) );
-                }
-
 		into.add( new ITree( line_number, Op.COMMENT, 0, "new " + class_symbol.DecoratedName + " size " + class_symbol.Size + " into T" + result ) );
 
 		op = Op.NEW;
@@ -152,7 +148,7 @@ namespace Parse {
 		if( class_symbol.IsStruct ) {
 		    vtable = new ITree( line_number, Op.CONST, Machine.WORD, "0" );
 		} else {
-		    vtable = loadGlobal( state, "vtable$__" + class_symbol.DecoratedName, 0 );
+		    vtable = loadVTable( state, class_symbol );
 
 		    // new ITree( line_number, Op.GLOBAL, Machine.WORD, 
 

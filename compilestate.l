@@ -1136,12 +1136,12 @@ namespace Parse {
 		v.add( "ld" );
 		v.add( "-shared" );
 		IO.Std.err.println( "including PIC prolog in shared object" );
-		v.add( LIBRARY_DIR + "ldn-" + Machine.NAME + ".o" );
+		v.add( LIBRARY_DIR + "ldn-" + Machine.NAME + "-1.o" );
 	    } else {
 		exe = "gcc";
 		v.add( "gcc" );
 		v.add( Machine.GCC_SWITCH );
-		v.add( LIBRARY_DIR + "lrt-" + Machine.NAME + ".o" );
+		v.add( LIBRARY_DIR + "lrt-" + Machine.NAME + "-1.o" );
 	    
 		if( !WantLineNumbers ) {
 		    v.add( "-s" );

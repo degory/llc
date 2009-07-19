@@ -218,8 +218,7 @@ alloca:
 
 	mov %rax, %rcx  # save pointer to allocated array
 
-	// mov vtable$__Q26System5Array@GOTPCREL(%rip), %rax
-	movq vtable$__Q26System5Array, %rax
+	call __get_vtable$__Q26System5Array
 	movq %rax, (%rcx)  # initialize vtable
 	movq %r12, 8(%rcx) # initialize element count
 	
@@ -245,7 +244,7 @@ allocao:
 	
 	mov %rax, %rcx  # save pointer to allocated array
 
-	mov vtable$__Q26System5Array, %rax # load 64 bit constant
+	call __get_vtable$__Q26System5Array
 	movq %rax, (%rcx)  # initialize vtable
 	movq %r12, 8(%rcx) # initialize element count
 	

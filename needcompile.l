@@ -76,7 +76,7 @@ namespace Parse {
 			IO.Std.err.println( "no need to compile " + class_name + " in library " + l );
 			return CompileStatus.LIBRARY;
 		    } else {
-			IO.Std.err.println( "bad hash " + class_name + " is in library " + l );
+			IO.Std.err.println( "bad hash " + class_name + ": library hash " + h + " versus source hash " + hash );
 			return CompileStatus.BAD_HASH;
 		    }
 		}

@@ -822,6 +822,17 @@ namespace Parse {
 	    }
 	}
 
+
+	const int VTABLE_FIXED_SIZE = 3;
+
+	static ITree loadVTable( CompileState state, Container c ) {
+	    return loadGlobal( state, "ctable$__" + c.DecoratedName, (c.IFaceOffset + VTABLE_FIXED_SIZE) * Machine.WORD );
+	}
+
+	static String getVTableAsString( CompileState state, Container c ) {
+	    return "ctable$__" + c.DecoratedName + "+" + (c.IFaceOffset + VTABLE_FIXED_SIZE) * Machine.WORD;
+	}
+
 	static ITree loadGlobalTLS( CompileState state, IBlock into, String name ) {
 	    if( state.WantPIC ) {
 		int t = TempFactory.nextTemp();

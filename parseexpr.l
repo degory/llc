@@ -246,20 +246,27 @@ namespace Parse {
             Type r = right.getType( state );
             
             if( requires_runtime_check ) {
+		int t;
 
-                String vtable = "vtable$__" + type.Clazz.DecoratedName;
-                
-                if( type.Clazz != state.CurrentClass ) {
-                    into.add( new ITree(line_number, Op.EXTERN, 0, new IString(vtable) ) ); 
-                }
 		ITree tr = right.compileValue(state, into);
 		if( !tr.isSimple() && state.InExceptionHandler ) { // make sure right completely evaluated before dummy jump to exception handler
-		    int t = TempFactory.nextTemp();
+		    t = TempFactory.nextTemp();
 		    into.add( makeStoreTemporary( t, Machine.WORD, tr ) );
 		    tr = makeLoadTemporary( t, Machine.WORD );
 		}
 		addDummyExceptionHandlerJump( state, line_number, into );
-                return new ITree( line_number, Op.CAST_CHECK, 0, tr, loadGlobal( state, vtable, 0) );
+		ITree compare_vtable = loadVTable( state, type.Clazz);
+
+		if( !compare_vtable.isPrettySimple() ) {
+		    // FIXME: CAST_CHECK want's to rewrite it's right operand and this will fail for PIC loadVTable ITree so copy into a
+		    // temporary:
+		    t = TempFactory.nextTemp();
+
+		    into.add( makeStoreTemporary( t, Machine.WORD, compare_vtable ) );
+		    compare_vtable = makeLoadTemporary( t, Machine.WORD );
+		}
+
+                return new ITree( line_number, Op.CAST_CHECK, 0, tr, compare_vtable );
             } else if( r.RegSize == getType(state).RegSize ) {
                 return right.compileValue( state, into );
             } else {
@@ -1779,7 +1786,8 @@ namespace Parse {
 	    into.add( new ITree( line_number, Op.RODATA, 0 ) );
 	    into.add( new ITree( line_number, Op.LABEL, 0, l ) );
 	    into.add( new ITree( line_number, Op.DEFINT, Machine.WORD, 
-				 "vtable$__" + proc_type.getBoxType(state).Clazz.DecoratedName ) );
+				 getVTableAsString( state, proc_type.getBoxType(state).Clazz ) ) );
+
 	    into.add( new ITree( line_number, Op.DEFINT, Machine.WORD, symbol.DecoratedName ) );
 	    
 	    into.add( new ITree( line_number, Op.TEXT, 0 ) );
@@ -1817,7 +1825,7 @@ namespace Parse {
 		return new ITree( line_number, Op.ERROR, 0 );
 	    }
 
-	    var v = "vtable$__" + proc_type.getBoxType(state).Clazz.DecoratedName;
+	    Container c = proc_type.getBoxType(state).Clazz;
 	    var b = "__proc_thunk" + num_args;
 	   
 	    int r = TempFactory.nextTemp();
@@ -1833,7 +1841,7 @@ namespace Parse {
 						       new ITree( line_number, Op.CONST, Machine.WORD, 0 * Machine.WORD )
 						       )
 					    ),
-				 loadGlobal( state, v, 0 )
+				 loadVTable( state, c )
 				 )
 		      );
 
@@ -1846,7 +1854,7 @@ namespace Parse {
 						       new ITree( line_number, Op.CONST, Machine.WORD, 1 * Machine.WORD )
 						       )
 					    ),
-				 loadGlobal( state, v, 0 )
+				 loadVTable( state, c )
 				 )
 		      );
 

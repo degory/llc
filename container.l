@@ -50,6 +50,7 @@ namespace Parse {
         int stack_offset;
 	int local_offset;
 	int method_index;
+	int iface_offset;
         int hash_;
         String decorated;
         String qualified;
@@ -159,6 +160,10 @@ namespace Parse {
 
 	get int VTableSize {
 	    return vtable_offset;
+	}
+
+	get int IFaceOffset {
+	    return iface_offset;
 	}
 
 	get CompileStatus CompileStatus {
@@ -948,14 +953,15 @@ namespace Parse {
                 return null;
             }
         }
-        
+
         void emitStaticTables( CompileState  state ) {
             foreach( Symbol current; members.SymbolList.elements() ) {
                 if( current.Kind == Symbol.STATIC_VARIABLE ) {
-                    Machine.emitDefLong( state.Output, 0 );
+                    Machine.emitDefLongZero( state.Output );
                 }
             }
         }
+
 
         void emitTypeTables( CompileState  state ) {
             if( parent != null ) {
@@ -1175,7 +1181,7 @@ namespace Parse {
 		// IO.Std.err.println( "final now: " + c.IsFinal + " for " + c.HumanName );
 
 		c.Address = -(Machine.INTERFACE_OFFSET + Machine.WORD * slot_index);
-		// IO.Std.err.println( "interface slot #" + slot_index + ": " + c.HumanName + " @ " + c.Address );
+		IO.Std.err.println( "interface slot #" + slot_index + ": " + c.HumanName + " @ " + c.Address );
 
 		Container o = c.Override;
 		if( o != null ) {
@@ -1283,9 +1289,12 @@ namespace Parse {
         
             tables_valid = true;
         }
-
+ 
 	void emitInterfaceTables( CompileState state, ParseTree from ) {
 	    if( implements_list == null ) {
+		Machine.emitGlobalData( state.Output, "ctable$__" + DecoratedName, VTableSize + (3 * Machine.WORD) );
+		Machine.emitLabel( state.Output, "ctable$__" + DecoratedName );
+
 		return;
 	    }
 
@@ -1347,6 +1356,16 @@ namespace Parse {
 		}
 	    }
 
+	    iface_offset = slots.Length;
+	    int total_ctable_size = (iface_offset + 3) * Machine.WORD + VTableSize;
+
+	    // When Linux loader dynamically loads a shared library it does not appear to place global symbols consecutively in memory even if they
+	    // are consecutive in the object file. This completely stuffs up implementation of combined interface + virtual method dispatch tables
+	    // and class name and type information. To get around this define the entire class table for one class as a single shared symbol. As a
+	    // result client code now needs to know the offset of the vtable given the interface table address:
+	    Machine.emitGlobalData( state.Output, "ctable$__" + DecoratedName, total_ctable_size );
+	    Machine.emitLabel( state.Output, "ctable$__" + DecoratedName );
+
 	    foreach( Container d; slots.reverseElements() ) {
 		if( d == null ) {
 		    Machine.emitDefPointer( state.Output, "0" );
@@ -1362,6 +1381,7 @@ namespace Parse {
 		    Machine.emitDefPointer( state.Output, d.DecoratedName );
 		}
 	    }
+
 	}
 
 	Container findImplementedMethod( Container interface_method ) {
@@ -1411,6 +1431,7 @@ namespace Parse {
                             }
                         
                             if( o == null || o == this ) {
+				/*
                                 if( owner != for_class ) {
                                     Machine.emitExtern( state.Output,
                                                         candidate.DecoratedName );
@@ -1418,7 +1439,8 @@ namespace Parse {
                                     Machine.emitGlobalFunction( state.Output,
                                                         candidate.DecoratedName );
                                 }
-				state.Output.println( "# ca: " + ca + ", sa: " + candidate.Address );
+				// state.Output.println( "# ca: " + ca + ", sa: " + candidate.Address );
+				*/
 
                                 Machine.emitDefPointer( state.Output, candidate.DecoratedName );
                             }

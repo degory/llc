@@ -904,8 +904,10 @@ namespace Parse {
                 var s = state.needCompile( state.CurrentSourceFileName, c.FileName, c.Hash );
 
 		if( s == CompileStatus.BAD_HASH ) {
-		    error( "class " + c.HumanName + " in library not compatible with source definition" );
-		} else if( s == CompileStatus.STALE ) {
+		    warn( "class " + c.HumanName + " in library not compatible with source definition" );
+		}
+
+		if( s == CompileStatus.STALE /* || s == CompileStatus.BAD_HASH */ ) {
 		    if( state.WantVerbose ) {
 			message( "compile class: " + c.HumanName );
 		    }
@@ -925,36 +927,28 @@ namespace Parse {
 		    Machine.emitClassSegment( f );
 		    // class name$__... is a variable, we want direct pointer to name string here:
                     Machine.emitDefPointerLabel( f, l.Int );
-		    Machine.emitDefPointer( f, "vtable$__" + c.DecoratedName );
                     
-                    // Machine.emitRoDataSegment( f );
-		    Machine.emitDataSegment( f );
+		    Machine.emitRoDataSegment( f );
 
                     Machine.emitAlign( f, Machine.WORD );
-                    Machine.emitGlobalData( f, "type$__" + c.DecoratedName );
-                    Machine.emitGlobalData( f, "name$__" + c.DecoratedName );
-                    Machine.emitGlobalData( f, "size$__" + c.DecoratedName );
-                    Machine.emitGlobalData( f, "vtable$__" + c.DecoratedName, c.VTableSize );
-        
+
                     Machine.emitLabel( f, l.Int );
                     Machine.emitDefAsciiz( f, c.HumanName );
                     Machine.emitAlign( f, Machine.WORD );
 
+                    Machine.emitGlobalData( f, "size$__" + c.DecoratedName );
+                    Machine.emitGlobalFunction( f, "__get_vtable$__" + c.DecoratedName ); // , c.VTableSize );
+		    
 		    c.emitInterfaceTables( state, this );
-                    Machine.emitLabel( f, "type$__" + c.DecoratedName );
-                    Machine.emitDefPointerLabel( f, m.Int );
-                    Machine.emitLabel( f, "name$__" + c.DecoratedName );
-                    Machine.emitDefPointerLabel( f, l.Int );
-                    Machine.emitLabel( f, "size$__" + c.DecoratedName );
-                    Machine.emitDefLong( f, c.getSize() );
-		    Machine.emitWeak( f, "__vtable" );
-		    Machine.emitLabel( f, "__vtable" );
-                    Machine.emitLabel( f, "vtable$__" + c.DecoratedName );
+		    Machine.emitDefLong( f, 0 );
 
+		    Machine.emitLabel( f, m.Int );
+
+                    Machine.emitDefPointerLabel( f, l.Int );
+                    Machine.emitDefLong( f, c.getSize() );
 
                     if( c.Super != null ) {
-                        String svt = "vtable$__" + c.Super.DecoratedName;
-                        Machine.emitExtern( f, svt );
+			String svt = getVTableAsString( state, c.Super );
 
                         Machine.emitDefPointer( f, svt );
 
@@ -966,20 +960,33 @@ namespace Parse {
                     c.emitClassTables( state, c );
 
 		    Machine.emitDefLong( f, 0 );
-                    
-                    Machine.emitLabel( f, m.Int );
+
+                    Machine.emitLabel( f, "size$__" + c.DecoratedName );
+                    Machine.emitDefLong( f, c.getSize() );
+
+		    Machine.emitTextSegment( f );
+		    Machine.emitLabel( f, "__get_vtable$__" + c.DecoratedName ); 
+		    if( state.WantPIC ) {
+			Machine.emitVTableFunctionPIC( f, m );
+		    } else {
+			Machine.emitVTableFunction( f, m );
+                    }
+
+                    // Machine.emitLabel( f, m.Int );
                     // state.cg.emitLabel( m );
                     
-                    Machine.emitDefByte( f, 0 );
+                    // Machine.emitDefByte( f, 0 );
                     // state.cg.emit( ".byte 0 # vtable\n" );
-                    c.emitTypeTables( state );
+                    // c.emitTypeTables( state );
                     
-                    Machine.emitDataSegment( f );
+                    Machine.emitBSSSegment( f );
+		    // Machine.emitDataSegment( f );
                     Machine.emitAlign( f, Machine.WORD );
                     String st = "stable$__" + c.DecoratedName;
+
                     Machine.emitGlobalData( f, st, c.StaticSize );
                     Machine.emitLabel( f, st );
-                                       
+                             
                     c.emitStaticTables( state );
                     
                     Machine.emitTextSegment( f );
@@ -1314,13 +1321,14 @@ namespace Parse {
                                 
                 Symbol symbol = state.findSymbol( name, Symbol.FIND_ANY );
 		if( symbol == null ) {
-		    IO.Std.err.println( "could not find previous defitition of " + name );
+		    error( "could not find previous defitition of " + name );
 		    if( state.CurrentClass != null ) {
-			IO.Std.err.println( "in class " + state.CurrentClass.HumanName );
+			error( "in class " + state.CurrentClass.HumanName );
 		    }
 		    if( state.CurrentMethod != null ) {
-			IO.Std.err.println( "in method " + state.CurrentMethod.HumanName );
+			error( "in method " + state.CurrentMethod.HumanName );
 		    }
+		    IO.Std.err.flush();
 		}
 
                 symbol.Defined = state.BlockLevel;
@@ -1967,6 +1975,8 @@ namespace Parse {
 	    Machine.emitRoDataSegment( f );
 	    Machine.emitLabel( f, ro_start.Int );
 	    Machine.emitTextSegment( f );
+
+	    Machine.emitGlobalFunction( f, decorated );
 
             state.beginCompileMethod( this, m, decorated );
                       

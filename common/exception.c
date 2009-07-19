@@ -778,7 +778,7 @@ ExRecord *findMethodHandler( ExRecord *r ) {
 
 
 extern WORD size$__Q26System12StringBuffer;
-extern WORD vtable$__Q26System12StringBuffer[];
+extern WORD **__get_vtable$__Q26System12StringBuffer();
 
 
 void __flush_stdout() {
@@ -938,16 +938,16 @@ void __segv_handler( int signal, long *context0, long *context1 ) {
 extern WORD size$__Q26System9Exception;
 
 extern WORD size$__Q26System20NullPointerException;
-extern WORD vtable$__Q26System20NullPointerException[];
+extern WORD **__get_vtable$__Q26System20NullPointerException();
 
 extern WORD size$__Q26System13CastException;
-extern WORD vtable$__Q26System13CastException[];
+extern WORD **__get_vtable$__Q26System13CastException();
 
 extern WORD size$__Q26System20ArrayBoundsException;
-extern WORD vtable$__Q26System20ArrayBoundsException[];
+extern WORD **__get_vtable$__Q26System20ArrayBoundsException();
 
 extern WORD size$__Q26System25MemoryProtectionException;
-extern WORD vtable$__Q26System25MemoryProtectionException[];
+extern WORD **__get_vtable$__Q26System25MemoryProtectionException();
 
 /*
 
@@ -964,7 +964,7 @@ Exception *makeNullPointerException() {
 
 Exception *__make_castexception() {
   Exception *result = (Exception *)GC_MALLOC(size$__Q26System13CastException);
-  result->vtable = vtable$__Q26System13CastException;
+  result->vtable = __get_vtable$__Q26System13CastException();
 
   init__Q26System15MemoryExceptionPc(result,"illegal cast");
 
@@ -973,7 +973,7 @@ Exception *__make_castexception() {
 
 Exception *__make_arrayboundsexception() {
   Exception *result = (Exception *)GC_MALLOC(size$__Q26System20ArrayBoundsException);
-  result->vtable = vtable$__Q26System20ArrayBoundsException;
+  result->vtable = __get_vtable$__Q26System20ArrayBoundsException();
 
   init__Q26System15MemoryExceptionPc(result,"array bounds");
 
@@ -982,7 +982,7 @@ Exception *__make_arrayboundsexception() {
 
 Exception *__make_memoryprotectionexception() {
   Exception *result = (Exception *)calloc(1,size$__Q26System25MemoryProtectionException);
-  result->vtable = vtable$__Q26System25MemoryProtectionException;
+  result->vtable = __get_vtable$__Q26System25MemoryProtectionException();
 
   init__Q26System25MemoryProtectionExceptionPc(result,"memory protection");
 
@@ -993,7 +993,7 @@ Exception *__make_memoryprotectionexception() {
 Exception *__make_nullpointerexception() {
   // Exception *result = (Exception *)malloc(size$__Q26System20NullPointerException);
   Exception *result = (Exception *)calloc(1,size$__Q26System20NullPointerException);
-  result->vtable = vtable$__Q26System20NullPointerException;
+  result->vtable = __get_vtable$__Q26System20NullPointerException();
   
   init__Q26System20NullPointerExceptionPc(result,"null pointer");
 

@@ -111,13 +111,6 @@ namespace Parse {
                 return;
             }
             
-            System.String vtable = "vtable$__" + type.Clazz.DecoratedName;
-
-          
-            if( type.Clazz.Owner != state.CurrentClass ) {
-                into.add( new ITree( line_number, Op.EXTERN, 0, vtable ) );
-            }
-
             System.String match_name = match.FirstName;
 
             if( match_name == null ) {
@@ -149,7 +142,7 @@ namespace Parse {
 	    // catch type: 2 (catch)
 	    Machine.emitDefPointer( f, 2 );
 	    // catch vtable: 
-	    Machine.emitDefPointer( f, "vtable$__" + type.Clazz.DecoratedName );
+	    Machine.emitDefPointer( f, getVTableAsString( state, type.Clazz ) );
 	    // catch handler:
 	    Machine.emitDefPointerLabel( f, this_handler.getInt() );
 	    // back link:
@@ -240,13 +233,13 @@ namespace Parse {
 		into.add( new ITree( line_number, Op.LABEL, 0, l ) );
 	    }
 
-	
+
 	    // does the exception vtable match our catch? If not loop and test exception's super
 	    // class vtable:
 	    into.add( new ITree( line_number, Op.BRANCH, 0,
 				 new ITree( line_number, Op.NE, Machine.WORD,
-					    new ITree( line_number, Op.TEMP, Machine.WORD, vtable_temp ),
-					    loadGlobal( state, "vtable$__" + type.Clazz.DecoratedName, 0 )
+					    new ITree( line_number, Op.TEMP, Machine.WORD, vtable_temp ),					    
+					    loadVTable( state, type.Clazz )
 					    ),
 				 m
 				 )

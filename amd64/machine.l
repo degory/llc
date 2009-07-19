@@ -535,6 +535,10 @@ namespace Gen {
             f.write( ".int " + i + "\n" );
         }
 
+	static void emitDefLongZero( IO.Writer f ) {
+	    f.write( ".zero 8\n" );
+	}
+
         static void emitDefLong( IO.Writer f, int i ) {
             f.write( ".quad " + i + "\n" );
         }
@@ -566,17 +570,39 @@ namespace Gen {
 	    emitGlobalData( f, s, 8 );
 	}
 
+	static void emitGlobalUnsized( IO.Writer f, System.String s ) {
+	    f.write( ".globl " + s + "\n" );
+	}
+
         static void emitGlobalFunction( IO.Writer f, System.String s ) {
             f.write( ".globl " + s + "\n" );
 	    f.write( ".type " + s + ", @function\n" );
         }
 
+	static void emitVTableFunctionPIC( IO.Writer f, ILabel l ) {
+	    f.write( "leaq " + l + "(%rip),%rax\n" );
+	    f.write( "retq\n" );
+      	}
+
+	static void emitVTableFunction( IO.Writer f, ILabel l ) {
+	    f.write( "movq $" + l + ",%rax\n" );
+	    f.write( "retq\n" );
+      	}
+
         static void emitRoDataSegment( IO.Writer f ) {
             f.write( ".section .rodata\n" );
         }
 
+	static void emitVTableSegment( IO.Writer f, System.String n ) {
+	    f.write( ".section v_" + n + ",\"a\"\n" );
+	}
+
 	static void emitClassSegment( IO.Writer f ) {
 	    f.write( ".section y_classes_info,\"a\"\n" );
+	}
+
+	static void emitBSSSegment( IO.Writer f ) {
+	    f.write( ".section .bss\n" );
 	}
 
         static void emitDataSegment( IO.Writer f ) {
@@ -604,7 +630,7 @@ namespace Gen {
         }
 
         static void emitDefAsciiz( IO.Writer f, System.String s ) {
-            f.write( ".ascii " + '\"' + s + '\"' + "\n.byte 0\n" );
+	    f.write( ".string " + '\"' + s + '\"' + "\n" );
         }
 
 	/*
@@ -629,13 +655,12 @@ namespace Gen {
 	    f.println( "entry$point:" );
 	    f.println( "\tpushq %rbp" );
 	    f.println( "\tmovq %rsp,%rbp" );
-	    f.println( "\tmovq vtable$__" + main_class_decorated + "@GOTPCREL(%rip),%rsi" );
+	    f.println( "\tcall __get_vtable$__" + main_class_decorated + "@PLT" );
+	    f.println( "\tmovq %rax,%rsi" );
 	    f.println( "\tmovq size$__" + main_class_decorated + "@GOTPCREL(%rip),%rax" );
 	    f.println( "\tmovl 0(%rax),%edi" );
 	    f.println( "\tcall alloco@PLT" );	    
 	    f.println( "\tmovq %rax,%rdi" );
-	    //f.println( "\tmovq $vtable$__" + main_class_decorated + ",%rax" );
-	    //f.println( "\tmovq %rax,(%rdi)" );
 	    f.println( "\tcall run__Q26System7StartupQ26System6Object@PLT" );
 	    f.println( "\txorq %rax,%rax" );
 	    f.println( "\tpopq %rbp" );
@@ -643,27 +668,6 @@ namespace Gen {
 	    f.println( "\t.global __main_init" );
 	    f.println( "__main_init:" );
 	    f.println( "\tjmp init__" + main_class_decorated + "@PLT" );
-	}
-
-	static void emitEntryPointOrig( IO.Writer f, System.String main_class_decorated ) {		
-	    f.println( ".global entry$point\n" );
-	    f.println( "entry$point:" );
-	    f.println( "\tpushq %rbp" );
-	    f.println( "\tmovq %rsp,%rbp" );
-	    f.println( "\tmovq $vtable$__" + main_class_decorated + ",%rax" );
-	    f.println( "\tmovq %rax,%rsi" );
-	    f.println( "\tmovl size$__" + main_class_decorated + ",%edi" );
-	    f.println( "\tcall alloco" );	    
-	    f.println( "\tmovq %rax,%rdi" );
-	    f.println( "\tmovq $vtable$__" + main_class_decorated + ",%rax" );
-	    f.println( "\tmovq %rax,(%rdi)" );
-	    f.println( "\tcall run__Q26System7StartupQ26System6Object" );
-	    f.println( "\txorq %rax,%rax" );
-	    f.println( "\tpopq %rbp" );
-	    f.println( "\tret" );
-	    f.println( "\t.global __main_init" );
-	    f.println( "__main_init:" );
-	    f.println( "\tjmp init__" + main_class_decorated );
 	}
 
 	static void emitStartUnwindInfo(
