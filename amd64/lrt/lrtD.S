@@ -5,15 +5,33 @@
 __data_begin:
 
 .text
-.global _init
-_init:  leaq 2f(%rip),%rdi
+ .global _init
+ _init:
+	push %rbp
+	movq %rsp,%rbp
+	
+	pushq %rbx
+	pushq %r12
+	pushq %r13
+	pushq %r14
+	pushq %r15
+	
+	leaq 2f(%rip),%rdi
 	call __add_unwind_info@PLT
-	call 1f@PLT
+	call __static_begin
+
+	popq %r15
+	popq %r14
+	popq %r13
+	popq %r12
+	popq %rbx
+	
+	popq %rbp
 	ret
 	
 .section x_static_begin,"ax"
 // .global static$begin
-1:	
+__static_begin:	
 // static$begin:
 	pushq %rbp
 	movq %rsp,%rbp

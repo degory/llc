@@ -574,6 +574,7 @@ namespace Parse {
 	}
 
 	void makeImplementsConcrete( CompileState state ) {
+	    IO.Std.err.println( "make implements complete..." );
 	    if( implements_list != null ) { 
 		foreach( TypeExpr t; implements_list.List.elements() ) {
 		    t.checkTemplates( state );
@@ -595,10 +596,12 @@ namespace Parse {
 		// this could recurse but not indefinitely?
 		Type st = gst.parseType( state );
 		clazz.Super = st.Clazz;
-		// IO.Std.err.println( "GGGGGG: setting concrete parent class " + concrete.Super + " for concrete " + concrete );
 	    } else {		
-		// IO.Std.err.println( "GGGGGG: no type arguments given for " + super_class + " for concrete " + concrete );
 		clazz.Super = super_class;
+	    }
+	    
+	    if( clazz.Super != null ) {
+		IO.Std.err.println( "concrete super for " + clazz.HumanName + " is " + clazz.Super.HumanName );
 	    }
 	}
 
@@ -756,16 +759,17 @@ namespace Parse {
 
 	    c.resetMethodIndex();
 	    body.declareSymbols( state );
+
 	    state.endCompileClass( c );
 	}
 
 	void addImplementedInterfaces( CompileState state, Container c ) {
-	    // IO.Std.err.println( "add implemented interfaces: " + implements_list );
+	    IO.Std.err.println( "add implemented interfaces: " + implements_list );
 	    if( implements_list != null ) { 
 		foreach( TypeExpr te; implements_list.List.elements() ) {
 		    // IO.Std.err.println( "type expr:   " + te );
 		    Type t = te.parseType( state );
-		    // IO.Std.err.println( "parsed type: " + t );
+		    IO.Std.err.println( "parsed type: " + t );
 		    if( t.TypeKind != Type.CLASS ) {
 			error( "cannot implement non-class type: " + t );
 		    } else {		      
@@ -779,7 +783,7 @@ namespace Parse {
 			c.addImplements( p );
 
 			do {			    
-			    // IO.Std.err.println( "interface: " + p.HumanName );
+			    IO.Std.err.println( "interface: " + p.HumanName );
 			    state.registerInterface( p );
 			    p = p.Super;
 			} while( p != null );
@@ -896,7 +900,7 @@ namespace Parse {
 		resetTemporary();
 
                 state.beginCompileClass( this, c, name.Name );
-                c.buildClassTables( state );
+                // c.buildClassTables( state );
 
 		// c.referenceSelf();
 
@@ -952,7 +956,7 @@ namespace Parse {
 
                         Machine.emitDefPointer( f, svt );
 
-                        Machine.emitExtern( f, "stable$__" + c.Super.DecoratedName );
+                        // Machine.emitExtern( f, "stable$__" + c.Super.DecoratedName );
                     } else {
                         Machine.emitDefPointer( f, 0 );
                     }
@@ -978,17 +982,20 @@ namespace Parse {
                     // Machine.emitDefByte( f, 0 );
                     // state.cg.emit( ".byte 0 # vtable\n" );
                     // c.emitTypeTables( state );
-                    
-                    Machine.emitBSSSegment( f );
-		    // Machine.emitDataSegment( f );
-                    Machine.emitAlign( f, Machine.WORD );
-                    String st = "stable$__" + c.DecoratedName;
 
-                    Machine.emitGlobalData( f, st, c.StaticSize );
-                    Machine.emitLabel( f, st );
+		    if( c.StaticSize > 0 ) {                    
+			Machine.emitBSSSegment( f );
+			// Machine.emitDataSegment( f );
+			Machine.emitAlign( f, Machine.WORD );
+
+			String st = "stable$__" + c.DecoratedName;
+
+			Machine.emitGlobalData( f, st, c.StaticSize );
+			Machine.emitLabel( f, st );
                              
-                    c.emitStaticTables( state );
-                    
+			c.emitStaticTables( state );
+                    }
+
                     Machine.emitTextSegment( f );
 
 		    ILabel dummy_exit = TempFactory.nextLabel();
@@ -1055,9 +1062,6 @@ namespace Parse {
 		        // IO.Std.err.println( "removing output file: " + c.getQualifiedName() );
                         state.removeOutput( c.FileName );
                     }
-                    
-		    // } else {
-		    // IO.Std.err.println( "did not need to compile: " + c.getQualifiedName() );
 		}
 
 		if( !errors_occurred ) {

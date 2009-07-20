@@ -92,6 +92,7 @@ namespace Parse {
 
             itable_offset = 0;
             vtable_offset = 0;
+	    iface_offset = -1; // not yet calculated
         }
 
         void init( Container parent, Container owner, String name, int kind, int access, Type type ) {
@@ -104,6 +105,7 @@ namespace Parse {
             
             itable_offset = 0;
             vtable_offset = 0;
+	    iface_offset = -1;
             // this.arguments = arguments;
         }
 
@@ -118,6 +120,8 @@ namespace Parse {
 	    }
 
 	    implements_list.add( c );
+
+	    IO.Std.err.println( "add interface " + c.HumanName + " to " + HumanName + ": " + implements_list );
 	}
 
 	get Vector<Container> ImplementsList {
@@ -163,6 +167,11 @@ namespace Parse {
 	}
 
 	get int IFaceOffset {
+	    if( iface_offset < 0 ) {
+		// if iface offset not yet calculated, calculate it now:
+		iface_offset = calcIFaceOffset();
+	    }
+
 	    return iface_offset;
 	}
 
@@ -987,7 +996,6 @@ namespace Parse {
         void buildClassTables( CompileState state ) {
             if( !tables_valid ) {
                 Addresses a = new Addresses();
-		buildInterfaceTables( state, a );
                 buildClassTables( state, a );
             }
         }
@@ -995,11 +1003,11 @@ namespace Parse {
 	void populateAllImplementedInterfaces( Vector<Container> all_implemented ) {
 	    all_implemented.clear();
 
-	    // IO.Std.err.println( "find all implemented interfaces for " + HumanName + "..." );
+	    IO.Std.err.println( "find all implemented interfaces for " + HumanName + "..." );
 
 	    Container p = this;
 	    do {
-		// IO.Std.err.println( "interfaces in " + p.HumanName + "..." );
+		IO.Std.err.println( "interfaces in " + p.HumanName + "..." );
 
 		if( p.implements_list != null ) {
 		    foreach( Container ik; p.implements_list.elements() ) {
@@ -1011,7 +1019,7 @@ namespace Parse {
 			    }
 
 			    all_implemented.add( q );
-			    // IO.Std.err.println( "implements: " + q.HumanName );
+			    IO.Std.err.println( "implements: " + q.HumanName );
 			    q = q.Super;
 			} while( q != null );
 		    }
@@ -1019,6 +1027,11 @@ namespace Parse {
 		}
 		 
 		p = p.Super;
+		if( p != null ) {
+		    IO.Std.err.println( "super is: " + p.HumanName );
+		} else {
+		    IO.Std.err.println( "super is null" );
+		}
 	    } while( p != null );
 	}
 
@@ -1191,14 +1204,6 @@ namespace Parse {
 	    }
 	}
 
-	void buildInterfaceTables( CompileState state, Addresses address ) {
-	    if( implements_list != null ) {
-		foreach( Container c; implements_list.elements() ) {
-		    IO.Std.err.println( "reference interface tables for: " + c );
-		}
-	    }
-	}
-
         void buildClassTables( CompileState state, Addresses address ) {
             if( tables_valid ) {
                 address.vtable_offset = vtable_offset;
@@ -1294,7 +1299,6 @@ namespace Parse {
 	    if( implements_list == null ) {
 		Machine.emitGlobalData( state.Output, "ctable$__" + DecoratedName, VTableSize + (3 * Machine.WORD) );
 		Machine.emitLabel( state.Output, "ctable$__" + DecoratedName );
-
 		return;
 	    }
 
@@ -1304,11 +1308,7 @@ namespace Parse {
 
 	    Container i;
 
-	    // IO.Std.err.println( "emit interface dispatch table for: " + HumanName + "..." );
-
 	    foreach( Container c; implemented.elements() ) {
-		// IO.Std.err.println( "find methods implementing interface: " + c.HumanName + "..." );
-
 		foreach( Symbol s; c.members.SymbolList.elements() ) {
 		    if( !s.IsMethod ) {
 			if( !s.IsType && !s.IsAccessor ) { 
@@ -1318,13 +1318,13 @@ namespace Parse {
 		    }
 
 		    Container e = cast Container(s);
-
+		    var slot = (-e.Address - Machine.INTERFACE_OFFSET) / Machine.WORD;
 		    // IO.Std.err.println( "looking for method: " + s.HumanName + "..." );
-			
+
 		    if( e.IsFinal ) {
 			IO.Std.err.println( "weird: interface member '" + e.HumanName + "' is final" );			
 		    } 
-		    
+			
 		    i = findImplementedMethod(e);
 		    if( i == null ) { 
 			from.error( HumanName + " must implement " + e.HumanName );
@@ -1343,20 +1343,17 @@ namespace Parse {
 			continue;
 		    }
 		    
-		    var slot = (-e.Address - Machine.INTERFACE_OFFSET) / Machine.WORD;
-		    
 		    slots.lengthen(slot+1);
 		    
 		    if( slots[slot] != null ) {
 			IO.Std.err.println( "weird: already implemented: " + slots[slot].HumanName + " versus " + i.HumanName );
 		    }
-
+		    
 		    // IO.Std.err.println( "implement slot #" + slot + ": " + i.HumanName );
 		    slots[slot] = i;
 		}
 	    }
 
-	    iface_offset = slots.Length;
 	    int total_ctable_size = (iface_offset + 3) * Machine.WORD + VTableSize;
 
 	    // When Linux loader dynamically loads a shared library it does not appear to place global symbols consecutively in memory even if they
@@ -1383,6 +1380,37 @@ namespace Parse {
 	    }
 
 	}
+
+	int calcIFaceOffset() {
+	    if( implements_list == null || implements_list.Length == 0 ) {
+		return 0;
+	    }
+
+	    var implemented = new Vector<Container>();
+	    populateAllImplementedInterfaces( implemented );
+
+	    Container i;
+	    int io = -1;
+
+	    foreach( Container c; implemented.elements() ) {
+		foreach( Symbol s; c.members.SymbolList.elements() ) {
+		    if( !s.IsMethod ) {
+			continue;
+		    }
+
+		    Container e = cast Container(s);
+		    var slot = (-e.Address - Machine.INTERFACE_OFFSET) / Machine.WORD;
+		    // IO.Std.err.println( "looking for method: " + s.HumanName + "..." );
+
+		    if( slot > io ) {
+			io = slot;
+		    }
+		}
+	    }
+
+	    return io + 1;
+	}
+
 
 	Container findImplementedMethod( Container interface_method ) {
 	    Container result = members.findMethod( interface_method.Name, interface_method.ArgTypes, true );
