@@ -738,6 +738,15 @@ namespace System is
 	    return _buffer;
 	end
 
+        StringBuffer append( bool b ) is
+	    if b then
+	        append( "true" );
+  	    else
+	        append( "false" );
+	    fi
+        end
+	        
+
 	StringBuffer append( char c ) is
 	    _reserve( _length + 1 );
 

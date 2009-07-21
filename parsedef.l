@@ -906,10 +906,10 @@ namespace Parse {
                 var s = state.needCompile( state.CurrentSourceFileName, c.FileName, c.Hash );
 
 		if( s == CompileStatus.BAD_HASH ) {
-		    warn( "class " + c.HumanName + " in library not compatible with source definition" );
+		    // warn( "class " + c.HumanName + " in library not compatible with source definition" );
 
 		    for( var ci = c; ci != null; ci = ci.Super ) {
-			IO.Std.err.println( "" + ci.HumanName + ": sc: " + ci.Hash + " lc: " + state.Hash[ci.QualifiedName] );
+			// IO.Std.err.println( "" + ci.HumanName + ": sc: " + ci.Hash + " lc: " + state.Hash[ci.QualifiedName] );
 
 			foreach( Symbol si; ci.Members.Iterator ) {
 			    if( si.IsMethod ) {
@@ -918,8 +918,8 @@ namespace Parse {
 				if( si.Address != la ) {
 				    error( "genuinely bad offset found: " + si.HumanName );
 				    IO.Std.err.println( "BAD: " + si.HumanName + ": sa: " + si.Address + " la: " + la );
-				} else {
-				    IO.Std.err.println( " ok: " + si.HumanName + ": sa: " + si.Address + " la: " + la );
+				    //} else {
+				    // IO.Std.err.println( " ok: " + si.HumanName + ": sa: " + si.Address + " la: " + la );
 				}
 			    }
 			}
@@ -988,7 +988,7 @@ namespace Parse {
 
 		    var offset = (c.IFaceOffset + VTABLE_FIXED_SIZE) * Machine.WORD;
 
-		    IO.Std.err.println( "vtable offset for " + c.HumanName + " is " + offset );
+		    // IO.Std.err.println( "vtable offset for " + c.HumanName + " is " + offset );
 		    if( state.WantPIC ) {
 			Machine.emitVTableFunctionPIC( f, c.DecoratedName, offset );
 		    } else {

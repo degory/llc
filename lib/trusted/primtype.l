@@ -235,6 +235,10 @@ namespace System is
 	    return _value == c.Value;
 	end
 
+        static int opCompare( char b, char c ) is
+	    return cast int(c - b);
+	end
+
 	String toString() is
 	    return toString(_value);
 	end
