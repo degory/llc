@@ -574,7 +574,7 @@ namespace Parse {
 	}
 
 	void makeImplementsConcrete( CompileState state ) {
-	    IO.Std.err.println( "make implements complete..." );
+	    // IO.Std.err.println( "make implements complete..." );
 	    if( implements_list != null ) { 
 		foreach( TypeExpr t; implements_list.List.elements() ) {
 		    t.checkTemplates( state );
@@ -599,11 +599,7 @@ namespace Parse {
 	    } else {		
 		clazz.Super = super_class;
 	    }
-	    
-	    if( clazz.Super != null ) {
-		IO.Std.err.println( "concrete super for " + clazz.HumanName + " is " + clazz.Super.HumanName );
-	    }
-	}
+     	}
 
 	void addConcreteArguments( CompileState state, Container c, Vector<Type> args ) {
 	    c.ArgTypes = args;
@@ -764,12 +760,12 @@ namespace Parse {
 	}
 
 	void addImplementedInterfaces( CompileState state, Container c ) {
-	    IO.Std.err.println( "add implemented interfaces: " + implements_list );
+	    // IO.Std.err.println( "add implemented interfaces: " + implements_list );
 	    if( implements_list != null ) { 
 		foreach( TypeExpr te; implements_list.List.elements() ) {
 		    // IO.Std.err.println( "type expr:   " + te );
 		    Type t = te.parseType( state );
-		    IO.Std.err.println( "parsed type: " + t );
+		    // IO.Std.err.println( "parsed type: " + t );
 		    if( t.TypeKind != Type.CLASS ) {
 			error( "cannot implement non-class type: " + t );
 		    } else {		      
@@ -783,7 +779,7 @@ namespace Parse {
 			c.addImplements( p );
 
 			do {			    
-			    IO.Std.err.println( "interface: " + p.HumanName );
+			    // IO.Std.err.println( "interface: " + p.HumanName );
 			    state.registerInterface( p );
 			    p = p.Super;
 			} while( p != null );
@@ -836,9 +832,11 @@ namespace Parse {
 		}
 
                 state.beginCompileClass( this, c, name.Name );
+		/*
 		var s = state.needCompile( state.CurrentSourceFileName, c.FileName, c.Hash );
 
                 c.CompileStatus = s;
+		*/
 
                 body.prepareInline( state );
                 state.endCompileClass( c );
@@ -909,6 +907,23 @@ namespace Parse {
 
 		if( s == CompileStatus.BAD_HASH ) {
 		    warn( "class " + c.HumanName + " in library not compatible with source definition" );
+
+		    for( var ci = c; ci != null; ci = ci.Super ) {
+			IO.Std.err.println( "" + ci.HumanName + ": sc: " + ci.Hash + " lc: " + state.Hash[ci.QualifiedName] );
+
+			foreach( Symbol si; ci.Members.Iterator ) {
+			    if( si.IsMethod ) {
+				int la = state.Hash[si.DecoratedName];
+				
+				if( si.Address != la ) {
+				    error( "genuinely bad offset found: " + si.HumanName );
+				    IO.Std.err.println( "BAD: " + si.HumanName + ": sa: " + si.Address + " la: " + la );
+				} else {
+				    IO.Std.err.println( " ok: " + si.HumanName + ": sa: " + si.Address + " la: " + la );
+				}
+			    }
+			}
+		    }
 		}
 
 		if( s == CompileStatus.STALE /* || s == CompileStatus.BAD_HASH */ ) {
@@ -921,7 +936,6 @@ namespace Parse {
                     state.dumpActiveClasses( null );
                     
                     ILabel l = TempFactory.nextLabel();
-                    ILabel m = TempFactory.nextLabel();
 
 		    int frame_flags;
 
@@ -940,13 +954,10 @@ namespace Parse {
                     Machine.emitDefAsciiz( f, c.HumanName );
                     Machine.emitAlign( f, Machine.WORD );
 
-                    Machine.emitGlobalData( f, "size$__" + c.DecoratedName );
-                    Machine.emitGlobalFunction( f, "__get_vtable$__" + c.DecoratedName ); // , c.VTableSize );
-		    
+		    Machine.emitVTableSegment( f, c.DecoratedName );
+ 
 		    c.emitInterfaceTables( state, this );
 		    Machine.emitDefLong( f, 0 );
-
-		    Machine.emitLabel( f, m.Int );
 
                     Machine.emitDefPointerLabel( f, l.Int );
                     Machine.emitDefLong( f, c.getSize() );
@@ -965,15 +976,23 @@ namespace Parse {
 
 		    Machine.emitDefLong( f, 0 );
 
+
+                    Machine.emitGlobalData( f, "size$__" + c.DecoratedName );
                     Machine.emitLabel( f, "size$__" + c.DecoratedName );
                     Machine.emitDefLong( f, c.getSize() );
 
 		    Machine.emitTextSegment( f );
-		    Machine.emitLabel( f, "__get_vtable$__" + c.DecoratedName ); 
+
+                    Machine.emitGlobalFunction( f, "__get_vtable__" + c.DecoratedName ); // , c.VTableSize );		    
+		    Machine.emitLabel( f, "__get_vtable__" + c.DecoratedName ); 
+
+		    var offset = (c.IFaceOffset + VTABLE_FIXED_SIZE) * Machine.WORD;
+
+		    IO.Std.err.println( "vtable offset for " + c.HumanName + " is " + offset );
 		    if( state.WantPIC ) {
-			Machine.emitVTableFunctionPIC( f, m );
+			Machine.emitVTableFunctionPIC( f, c.DecoratedName, offset );
 		    } else {
-			Machine.emitVTableFunction( f, m );
+			Machine.emitVTableFunction( f, c.DecoratedName, offset );
                     }
 
                     // Machine.emitLabel( f, m.Int );
@@ -1056,7 +1075,7 @@ namespace Parse {
                     if( !errors_occurred ) {
 		        // IO.Std.err.println( "assembling: " + c.getQualifiedName() );
                         state.assembleFile( c.FileName );
-			IO.Std.err.println( "will dump active classes: " + c.FileName );
+
 			state.dumpActiveClasses( c.FileName );
                     } else {
 		        // IO.Std.err.println( "removing output file: " + c.getQualifiedName() );
@@ -2099,7 +2118,7 @@ namespace Parse {
 	    }
 
 	    // IO.Std.err.println( "finished compile: " + human );
-	    Machine.emitEndUnwindInfo( state.Output, frame_flags, ro_start, ro_end );
+	    Machine.emitEndUnwindInfo( state.Output, decorated, human, state.WantLineNumbers, frame_flags, ro_start, ro_end );
 
 	    Machine.emitRoDataSegment( f );
 	    Machine.emitLabel( f, ro_end.Int );

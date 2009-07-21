@@ -19,11 +19,11 @@ namespace Parse {
         CURRENT,
 	LIBRARY,
         STALE,
+        METHOD,
         BAD_HASH
     }
 
     class NeedCompile {
-
         CompileState state;
 
 	Vector<LibraryHashFile> libraries;
@@ -35,9 +35,20 @@ namespace Parse {
         }
 
 	void addLibraryHashFile( LibraryHashFile l ) {
-	    IO.Std.err.println( "add library hash file: " + l );
+	    // IO.Std.err.println( "add library hash file: " + l );
 	    libraries.add( l );
 	}
+
+	get int Hash[String name] {
+	    foreach( var l; libraries.Iterator ) {
+		int h = l.Hash[name];
+		if( h != 0 ) {
+		    return h;
+		}
+	    }
+
+	    return 0;
+	}	    
 
         // check classes that this_class depends on against the stored hashes in this_class's .depend file
         // return true if this_class needs to be compiled, false otherwise
@@ -59,13 +70,7 @@ namespace Parse {
         }
 
 	bool isInLibrary( String class_name ) {
-	    foreach( var l; libraries.Iterator ) {
-		if( l.Hash[class_name] != 0 ) {
-		    return true;
-		}
-	    }
-
-	    return false;
+	    return Hash[class_name] != 0;
 	}
 
         CompileStatus needCompile( String source_name, String class_name, int hash ) {
@@ -73,7 +78,7 @@ namespace Parse {
 		var h = l.Hash[class_name];
 		if( h != 0 ) {
 		    if( h == hash ) {
-			IO.Std.err.println( "no need to compile " + class_name + " in library " + l );
+			// IO.Std.err.println( "no need to compile " + class_name + " in library " + l );
 			return CompileStatus.LIBRARY;
 		    } else {
 			IO.Std.err.println( "bad hash " + class_name + ": library hash " + h + " versus source hash " + hash );
@@ -83,10 +88,10 @@ namespace Parse {
 	    }
 
 	    if( needCompile2( source_name, class_name, hash ) ) {
-		IO.Std.err.println( "stale " + class_name + " in current project" );
+		// IO.Std.err.println( "stale " + class_name + " in current project" );
 		return CompileStatus.STALE;
 	    } else {
-		IO.Std.err.println( "up to date " + class_name + " in current project" );
+		// IO.Std.err.println( "up to date " + class_name + " in current project" );
 		return CompileStatus.CURRENT;
 	    }
 	    /*
@@ -117,9 +122,11 @@ namespace Parse {
                     compiled_hash = f.readInt();
                     f.close();
 		} catch( IO.IOException ie1 ) {
+		    /*
 		    if( state.WantPIC ) {
 			IO.Std.err.println( "compiling " + class_name + " because no hash file present" );
 		    }
+		    */
                     // IO.Std.err.println( "CCCCCC: no hash file present/problem reading hash for: " + class_name + ": " + ie1 );
 		    return true;
 		}
@@ -153,16 +160,19 @@ namespace Parse {
 		    // could not check dependency hashes - need to compile
                 }
 
+		/*
 		if( state.WantPIC ) {
 		    IO.Std.err.println( "compiling " + class_name + " because of dependancy change" );
 		}
+		*/
+
 		/*
 	    } else {
 	        IO.Std.err.println( "CCCCCC: no object file or object file out of date: " + class_name );
 		*/
-	    } else if( state.WantPIC ) {
+	    } /* else if( state.WantPIC ) {
 		IO.Std.err.println( "compiling " + class_name + " because of source change" );
-	    }
+		} */
 		
 
 	    // source file changed since object file was last written - need to recompile.

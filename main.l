@@ -14,7 +14,7 @@ namespace Parse {
     use Generic.Vector;
 
     class Main {
-	const int BUILD = 1162;
+	const int BUILD = 1163;
 
 	CompileState state;
 
@@ -30,7 +30,6 @@ namespace Parse {
 	}
 
 	set String ProjectName = name {
-	    IO.Std.err.println( "project name: '" + name + "'" );
 	    state.ProjectName = name;
 	}
 

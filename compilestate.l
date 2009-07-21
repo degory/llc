@@ -38,21 +38,15 @@ namespace Parse {
         Map<String,int> hashes;
 
         void init( String name, IO.Reader in ) {
-	    IO.Std.err.println( "read library hash file: " + name + " from " + in + "..." );
             this.name = name;
             hashes = new Map<String,int>();
 
             var s = in.readAll().split(' ');
 
-	    IO.Std.err.println( "read: " + s );
-
 	    var last = s.length - 1;
             for( int i = 0; i < last; i = i + 2 ) {
-		IO.Std.err.println( s[i] + " <- " + s[i+1] );
                 hashes[s[i]] = s[i+1].toInt();
             }
-
-            IO.Std.err.println( "read: " + this.hashes );
         }
 
         get String Name {
@@ -865,9 +859,9 @@ namespace Parse {
         }
 
 	void addObject( Container c ) {
-	    IO.Std.err.println( "add object: " + c );
+	    // IO.Std.err.println( "add object: " + c );
 	    if( !need_compile.isInLibrary( c.QualifiedName ) ) {
-		IO.Std.err.println( "need link: " + c + " lcache_dir is: " + CacheDir );
+		// IO.Std.err.println( "need link: " + c + " lcache_dir is: " + CacheDir );
 		addLinkFile( CacheDir + c.QualifiedName + ".o" );
 	    }
 	}
@@ -875,9 +869,16 @@ namespace Parse {
         void addHashFile( Container c, CompileStatus s ) {
 	    var hash = c.Hash;
 	    var name = c.QualifiedName;
+
 	    if( s != CompileStatus.LIBRARY ) {
-		IO.Std.err.println( "writing to " + library_hash_file + ": '" + name + ' ' + hash + ' ' + "'" );
+		// IO.Std.err.println( "writing to " + library_hash_file + ": '" + name + ' ' + hash + ' ' + "'" );
 		library_hash_file.print( name + ' ' + hash + ' ' );
+
+		foreach( Symbol t; c.Members.Iterator ) {
+		    if( t.IsMethod ) {
+			library_hash_file.print( t.DecoratedName + ' ' + t.Address + ' ' );
+		    }
+		}
 	    }
 
 	    if( s == CompileStatus.STALE ) {
@@ -1104,8 +1105,6 @@ namespace Parse {
 		    ParseTree.message( "*** no main class ***" );
 		    return;
 		}
-	    } else {
-		IO.Std.err.println( "PIC output - do not need entry point" );
 	    }
 
 	    // wait(0);
@@ -1129,14 +1128,18 @@ namespace Parse {
 	    // IO.Std.err.println( "going to link. output: '" + executable_name + "'" );
 	    String exe;
 
-	    IO.Std.err.println( "want pic is: " + WantPIC );
+	    // IO.Std.err.println( "want pic is: " + WantPIC );
 
 	    if( WantPIC ) {
 		exe = "ld";
 		v.add( "ld" );
 		v.add( "-shared" );
-		IO.Std.err.println( "including PIC prolog in shared object" );
+		// IO.Std.err.println( "including PIC prolog in shared object" );
 		v.add( LIBRARY_DIR + "ldn-" + Machine.NAME + "-1.o" );
+
+		v.add( "-o" );
+		v.add( executable_name + ".so" );
+
 	    } else {
 		exe = "gcc";
 		v.add( "gcc" );
@@ -1152,11 +1155,12 @@ namespace Parse {
 		}
 
 		v.add( "-L/usr/lang/lib/" );
+
+		v.add( "-o" );
+		v.add( executable_name );
 	    }
 		
 
-	    v.add( "-o" );
-	    v.add( executable_name );
 
 	    foreach( String s; to_link_set.elements() ) {
 		v.add( s );
@@ -1184,8 +1188,10 @@ namespace Parse {
 		args[i] = cast<String>(v[i]);
 	    }
 
-	    IO.Std.err.println( "linking: " + b );	    
-		
+	    if( WantVeryVerbose ) {
+		ParseTree.message( "linking: " + b );	    
+	    }
+
 	    int result = p.run( exe, args );
 	    if( result != 0 ) {
 		throw new Exception( "link failed with exit status " + result );
@@ -1227,7 +1233,7 @@ namespace Parse {
                 return false;
             }
 
-	    IO.Std.err.println( "visit file: '" + name + "'" );
+	    // IO.Std.err.println( "visit file: '" + name + "'" );
 
             // current_file_name = name;
             // current_input_line = 1;
@@ -1249,21 +1255,21 @@ namespace Parse {
 		}
 
 		if( name.endsWith(".l") || name.endsWith(".ll") ) {
-		    IO.Std.err.println( "l or ll extension, try open '" + name + "' directly" );
+		    // IO.Std.err.println( "l or ll extension, try open '" + name + "' directly" );
 		    in = tryOpen( s, name, "" );
 		    if( in != null ) {
 			file_name = name;
 			break;
 		    }
 		} else {
-		    IO.Std.err.println( "other extension, try open '" + name + "' + '.l'" );
+		    // IO.Std.err.println( "other extension, try open '" + name + "' + '.l'" );
 
 		    in = tryOpen( s, name, ".l" );
 		    if( in != null ) {
 			file_name = name;
 			break;
 		    }
-
+		    /*
 		    IO.Std.err.println( "other extension, try open '" + name + "' + '.ll'" );
 
 		    in = tryOpen( s, name, ".ll" );
@@ -1271,6 +1277,7 @@ namespace Parse {
 			file_name = name;
 			break;
 		    }
+		    */
 		}
             }
 
@@ -1278,10 +1285,10 @@ namespace Parse {
                 throw new Exception( "could not open input file " + name + " in any of " + search + " lcache: " + this.CacheDir );
             }
 
-	    IO.Std.err.println( "input file: '" + file_name + "'" );
+	    //IO.Std.err.println( "input file: '" + file_name + "'" );
 
 	    if( file_name.endsWith(".ll" ) ) {
-		IO.Std.err.println( "input file is a library hash file..." );
+		// IO.Std.err.println( "input file is a library hash file..." );
 		addLibraryHashFile( name, in );
 	    } else {
 		parseFile( file_name, in );
@@ -1297,19 +1304,22 @@ namespace Parse {
 	    var dir = "";
 	    int l = name.lastIndexOf('/');
 	    if( l >= 0 ) {
-		dir = name.substring(l+1);
+		dir = name.substring(0,l+1);
 		name = name.substring(l+1,name.Length);
-		IO.Std.err.println( "split: " + dir + " : " + name );
+		// IO.Std.err.println( "split: " + dir + " : " + name );
 	    }
 
+	    /*
 	    if( name.startsWith( "lib" ) ) {
 		name = name.substring( 3 );
 	    }
+	    */
 
 	    need_compile.addLibraryHashFile( new LibraryHashFile(name,in) );
 
-	    IO.Std.err.println( "will link L library: " + name );
-	    libraries.add( name );
+	    // IO.Std.err.println( "will link L library: " + name );
+	    // libraries.add( dir + name + ".so" );
+	    addLinkFile( dir + name + ".so" );
 	}
 
 	set String ExecutableName = s {
@@ -1330,6 +1340,10 @@ namespace Parse {
 	    // IO.Std.err.println( "need compile " + source_name + ": " + class_name + ": " + result );
 	    return result;
         }
+
+	get int Hash[String name] {
+	    return need_compile.Hash[name];
+	}
 
         void parseFile( String file_name, IO.Reader f ) {
 	    if( WantVeryVerbose ) {
@@ -2613,7 +2627,6 @@ namespace Parse {
         }
 
 	set bool WantPIC = p {
-	    IO.Std.err.println( "want pic now " + WantPIC );
 	    WarnFlag[WANT_PIC] = p;
 	}
 

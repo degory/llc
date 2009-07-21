@@ -121,7 +121,7 @@ namespace Parse {
 
 	    implements_list.add( c );
 
-	    IO.Std.err.println( "add interface " + c.HumanName + " to " + HumanName + ": " + implements_list );
+	    // IO.Std.err.println( "add interface " + c.HumanName + " to " + HumanName + ": " + implements_list );
 	}
 
 	get Vector<Container> ImplementsList {
@@ -350,6 +350,10 @@ namespace Parse {
 	void setLastMethodIndex() {
 	    // IO.Std.err.println( "OOOOOO: set last method method index to " + members.Length + " from: " + new System.Backtrace() );
 	    method_index = members.Length;
+	}
+
+	get Vector<Symbol> Members {
+	    return members.SymbolList;
 	}
 
 	void markCannotInline() {
@@ -1003,12 +1007,10 @@ namespace Parse {
 	void populateAllImplementedInterfaces( Vector<Container> all_implemented ) {
 	    all_implemented.clear();
 
-	    IO.Std.err.println( "find all implemented interfaces for " + HumanName + "..." );
+	    // IO.Std.err.println( "find all implemented interfaces for " + HumanName + "..." );
 
 	    Container p = this;
 	    do {
-		IO.Std.err.println( "interfaces in " + p.HumanName + "..." );
-
 		if( p.implements_list != null ) {
 		    foreach( Container ik; p.implements_list.elements() ) {
 			Container q = ik;
@@ -1019,7 +1021,6 @@ namespace Parse {
 			    }
 
 			    all_implemented.add( q );
-			    IO.Std.err.println( "implements: " + q.HumanName );
 			    q = q.Super;
 			} while( q != null );
 		    }
@@ -1027,11 +1028,6 @@ namespace Parse {
 		}
 		 
 		p = p.Super;
-		if( p != null ) {
-		    IO.Std.err.println( "super is: " + p.HumanName );
-		} else {
-		    IO.Std.err.println( "super is null" );
-		}
 	    } while( p != null );
 	}
 
@@ -1194,7 +1190,9 @@ namespace Parse {
 		// IO.Std.err.println( "final now: " + c.IsFinal + " for " + c.HumanName );
 
 		c.Address = -(Machine.INTERFACE_OFFSET + Machine.WORD * slot_index);
-		IO.Std.err.println( "interface slot #" + slot_index + ": " + c.HumanName + " @ " + c.Address );
+		if( CompileState.Instance.WantVeryVerbose ) {
+		    ParseTree.message( "interface slot #" + slot_index + ": " + c.HumanName + " @ " + c.Address );
+		}
 
 		Container o = c.Override;
 		if( o != null ) {
@@ -1297,8 +1295,9 @@ namespace Parse {
  
 	void emitInterfaceTables( CompileState state, ParseTree from ) {
 	    if( implements_list == null ) {
-		Machine.emitGlobalData( state.Output, "ctable$__" + DecoratedName, VTableSize + (3 * Machine.WORD) );
-		Machine.emitLabel( state.Output, "ctable$__" + DecoratedName );
+		// Machine.emitWeak( state.Output, "__ctable__" + DecoratedName );
+		Machine.emitGlobalData( state.Output, "__ctable_" + DecoratedName, VTableSize + (3 * Machine.WORD) );
+		Machine.emitLabel( state.Output, "__ctable_" + DecoratedName );
 		return;
 	    }
 
@@ -1360,8 +1359,9 @@ namespace Parse {
 	    // are consecutive in the object file. This completely stuffs up implementation of combined interface + virtual method dispatch tables
 	    // and class name and type information. To get around this define the entire class table for one class as a single shared symbol. As a
 	    // result client code now needs to know the offset of the vtable given the interface table address:
-	    Machine.emitGlobalData( state.Output, "ctable$__" + DecoratedName, total_ctable_size );
-	    Machine.emitLabel( state.Output, "ctable$__" + DecoratedName );
+	    // Machine.emitWeak( state.Output, "__ctable__" + DecoratedName );
+	    Machine.emitGlobalData( state.Output, "__ctable_" + DecoratedName, total_ctable_size );
+	    Machine.emitLabel( state.Output, "__ctable_" + DecoratedName );
 
 	    foreach( Container d; slots.reverseElements() ) {
 		if( d == null ) {

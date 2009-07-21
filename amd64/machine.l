@@ -4,6 +4,7 @@ import amd64;
 import amd64rewrite;
 
 namespace Gen {
+    use System.String;
 
     enum MSet {
 	None = 0,
@@ -31,13 +32,13 @@ namespace Gen {
         Byte = 14 // not used
     }
 
-    class Machine extends System.Object {
-	public static System.String NAME = "amd64";
-	public static System.String AS_SWITCH = "--64";
-	public static System.String GCC_SWITCH = "-m64";
+    class Machine {
+	public static String NAME = "amd64";
+	public static String AS_SWITCH = "--64";
+	public static String GCC_SWITCH = "-m64";
 
-	public static System.String EXCEPTION_RSP = "__exception_rsp";
-	public static System.String EXCEPTION_TOP = "__exception_top";
+	public static String EXCEPTION_RSP = "__exception_rsp";
+	public static String EXCEPTION_TOP = "__exception_top";
 
 	public const int WORD = 8;
 	public const int RED_ZONE = 0; // 128;
@@ -233,7 +234,7 @@ namespace Gen {
 	}
 
 
-	public static System.String[] set_name = {
+	public static String[] set_name = {
 	    "None",     // 0
 
 	    // use/hold sets
@@ -331,7 +332,7 @@ namespace Gen {
 	    M_EAX | M_ECX | M_EDX | M_ESI | M_EDI | M_R8 | M_R9 | M_R10 | M_R11 | M_EFLAGS, // Call with result
 	};
 
-	public static System.String[] name_8 = {
+	public static String[] name_8 = {
 	    "None",
 	    "%rax",
 	    "%rbx",
@@ -352,7 +353,7 @@ namespace Gen {
 	    "rflags"
 	};
 
-	public static System.String[] name_4 = {
+	public static String[] name_4 = {
 	    "None",
 	    "%eax",
 	    "%ebx",
@@ -373,7 +374,7 @@ namespace Gen {
 	    "eflags"
 	};
 
-	public static System.String[] name_byte = {
+	public static String[] name_byte = {
 	    "None",
 	    "%al",
 	    "%bl",
@@ -394,7 +395,7 @@ namespace Gen {
 	    "eflags-byte"
 	};
 
-	static System.String file_name = "unknown";
+	static String file_name = "unknown";
 	static int line_info_label;
 
 	static bool isSingleReg( MSet s ) {
@@ -456,7 +457,7 @@ namespace Gen {
 	}
 
 
-	static System.String getRegName( int r, int s ) {
+	static String getRegName( int r, int s ) {
 	    try {
 		if( s == 8 ) {
 		    return name_8[r];
@@ -470,7 +471,7 @@ namespace Gen {
 	    }
 	}
 	    
-	static System.String getSetName( MSet s ) {
+	static String getSetName( MSet s ) {
 	    int i = cast<int>(s);
 	    return set_name[ i ];
 	}
@@ -531,7 +532,7 @@ namespace Gen {
             f.write( ".int " + i + "\n" );
         }
 
-        static void emitDefInt( IO.Writer f, System.String i ) {
+        static void emitDefInt( IO.Writer f, String i ) {
             f.write( ".int " + i + "\n" );
         }
 
@@ -543,7 +544,7 @@ namespace Gen {
             f.write( ".quad " + i + "\n" );
         }
 
-        static void emitDefLong( IO.Writer f, System.String i ) {
+        static void emitDefLong( IO.Writer f, String i ) {
             f.write( ".quad " + i + "\n" );
         }
 
@@ -551,41 +552,42 @@ namespace Gen {
             f.write( ".quad " + i + "\n" );
         }
 
-        static void emitDefPointer( IO.Writer f, System.String i ) {
+        static void emitDefPointer( IO.Writer f, String i ) {
             f.write( ".quad " + i + "\n" );
         }
 
-        static void emitExtern( IO.Writer f, System.String s ) {
+        static void emitExtern( IO.Writer f, String s ) {
 	    //            f.write( ".extern " + s + "\n" );
 	    f.write( ".globl " + s + "\n" );
         }
 
-        static void emitGlobalData( IO.Writer f, System.String s, int size ) {
+        static void emitGlobalData( IO.Writer f, String s, int size ) {
             f.write( ".globl " + s + "\n" );
 	    f.write( ".type " + s + ", @object\n" );
 	    f.write( ".size " + s + ", " + size + "\n" );
         }
 
-	static void emitGlobalData( IO.Writer f, System.String s ) {
+	static void emitGlobalData( IO.Writer f, String s ) {
 	    emitGlobalData( f, s, 8 );
 	}
 
-	static void emitGlobalUnsized( IO.Writer f, System.String s ) {
+	static void emitGlobalUnsized( IO.Writer f, String s ) {
 	    f.write( ".globl " + s + "\n" );
 	}
 
-        static void emitGlobalFunction( IO.Writer f, System.String s ) {
+        static void emitGlobalFunction( IO.Writer f, String s ) {
             f.write( ".globl " + s + "\n" );
 	    f.write( ".type " + s + ", @function\n" );
         }
 
-	static void emitVTableFunctionPIC( IO.Writer f, ILabel l ) {
-	    f.write( "leaq " + l + "(%rip),%rax\n" );
+	static void emitVTableFunctionPIC( IO.Writer f, String name, int offset ) {
+	    f.write( "movq __ctable_" + name + "@GOTPCREL(%rip),%rax\n" );
+	    f.write( "addq $" + offset + ",%rax\n" );
 	    f.write( "retq\n" );
       	}
 
-	static void emitVTableFunction( IO.Writer f, ILabel l ) {
-	    f.write( "movq $" + l + ",%rax\n" );
+	static void emitVTableFunction( IO.Writer f, String name, int offset ) {
+	    f.write( "movq $__ctable_" + name + "+" + offset + ",%rax\n" );
 	    f.write( "retq\n" );
       	}
 
@@ -593,8 +595,9 @@ namespace Gen {
             f.write( ".section .rodata\n" );
         }
 
-	static void emitVTableSegment( IO.Writer f, System.String n ) {
-	    f.write( ".section v_" + n + ",\"a\"\n" );
+	static void emitVTableSegment( IO.Writer f, String n ) {
+	    // f.write( ".section .data.rel.ro." + n + ",\"awG\",@progbits," + n + ",comdat\n" );
+	    f.write( ".data\n" );
 	}
 
 	static void emitClassSegment( IO.Writer f ) {
@@ -621,15 +624,15 @@ namespace Gen {
             f.write( ".L" + n + ":\n" );
         }
 
-	static void emitWeak( IO.Writer f, System.String s ) {
+	static void emitWeak( IO.Writer f, String s ) {
 	    f.write( ".weak " + s + "\n" );
 	}
 
-        static void emitLabel( IO.Writer f, System.String s ) {
+        static void emitLabel( IO.Writer f, String s ) {
             f.write( s + ":\n" );
         }
 
-        static void emitDefAsciiz( IO.Writer f, System.String s ) {
+        static void emitDefAsciiz( IO.Writer f, String s ) {
 	    f.write( ".string " + '\"' + s + '\"' + "\n" );
         }
 
@@ -643,19 +646,19 @@ namespace Gen {
 	    f.write( ".quad .L" + n + "\n" );
 	}
 
-        static void emitFile( IO.Writer f, System.String n ) {
+        static void emitFile( IO.Writer f, String n ) {
             f.write( ".file 1 " + '\"' + n + '\"' + "\n" );
 	    file_name = n;
         }
 
 	static char quote = '"';
 
-	static void emitEntryPoint( IO.Writer f, System.String main_class_decorated ) {		
+	static void emitEntryPoint( IO.Writer f, String main_class_decorated ) {		
 	    f.println( ".global entry$point\n" );
 	    f.println( "entry$point:" );
 	    f.println( "\tpushq %rbp" );
 	    f.println( "\tmovq %rsp,%rbp" );
-	    f.println( "\tcall __get_vtable$__" + main_class_decorated + "@PLT" );
+	    f.println( "\tcall __get_vtable__" + main_class_decorated + "@PLT" );
 	    f.println( "\tmovq %rax,%rsi" );
 	    f.println( "\tmovq size$__" + main_class_decorated + "@GOTPCREL(%rip),%rax" );
 	    f.println( "\tmovl 0(%rax),%edi" );
@@ -672,53 +675,63 @@ namespace Gen {
 
 	static void emitStartUnwindInfo(
 					IO.Writer f, 
-					System.String decorated_name, 
-					System.String human_name, 
+					String decorated_name, 
+					String human_name, 
 					bool want_line_numbers ) {
 
 	    line_info_label = line_info_label + 1;
 
 	    // start new line number list
 	    f.println( ".section w_line_info," + quote + "a" + quote );
-	    f.println( "1:" );
-	    
+	    f.println( ".LM" + line_info_label + ":" );
+	    f.println( ".text" );
+	    // beginning of method label:
+	    f.println( ".LB" + line_info_label + ":" );
+	}
+       
+	static void emitEndUnwindInfo(
+            IO.Writer f,
+	    String decorated_name,
+	    String human_name,
+	    bool want_line_numbers,
+	    int flags,
+	    ILabel ro_start,
+	    ILabel ro_end ) {
+
+	    // mark end of line number info table for this method with a zero:
+	    f.println( ".section w_line_info," + quote + "a" + quote );
+	    f.println( ".quad 0" );
+
+	    // size of method for linker:
+	    f.println( ".section .text" );
+	    f.println( ".size " + decorated_name + ",.-" + decorated_name );
+	    f.println( ".byte 0" );
+
+	    // end of method label:
+	    f.println( ".LE" + line_info_label + ":" );
+
+	    f.println( ".align 16" );
+
 	    // backtrace record
 	    f.println( ".section z_backtrace_info," + quote + "a" + quote );
+
 	    // f.println( "2:" );
 	    f.println( ".quad " + decorated_name ); // method start
-	    f.println( ".quad .LM" + line_info_label ); // method end
-	    f.println( ".quad 3f" ); // method name
+	    f.println( ".quad .LE" + line_info_label + "-.LB" + line_info_label ); // method length
+	    f.println( ".quad 1f" ); // method name
 	    if( want_line_numbers ) {
-		f.println( ".quad 1b" ); // line number chain
+		f.println( ".quad .LM" + line_info_label );
 	    } else {
 		f.println( ".quad 0" );
 	    }
 
-	    // method name
-	    f.println( ".section .rodata" );
-	    f.println( "3: .ascii " + quote + human_name + " " + file_name + quote );
-	    f.println( ".byte 0" );
-	    
-	    // unwind key
-	    f.println( ".section .text" );
-	    f.println( ".align 16" );
-	    f.println( ".quad 0, 0" );
-	}
-       
-	static void emitEndUnwindInfo(
-            IO.Writer f, int flags,
-	    ILabel ro_start,
-	    ILabel ro_end ) {
-
-	    f.println( ".section z_backtrace_info," + quote + "a" + quote );
 	    f.println( ".quad " + flags );
 	    f.println( ".quad " + ro_end + "-" + ro_start );
 
-	    f.println( ".section w_line_info," + quote + "a" + quote );
-	    f.println( ".quad 0" );
-	    f.println( ".section .text" );
-	    f.println( ".byte 0" ); // displace label so exception or fault rip always < label 
-	    f.println( ".LM" + line_info_label + ":" );
+	    // method name
+	    f.println( ".section .rodata" );
+	    f.println( "1: .ascii " + quote + human_name + " " + file_name + quote );
+	    f.println( ".byte 0" );	    
 	}
     }
 }

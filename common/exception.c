@@ -27,7 +27,6 @@ typedef void ExFunc(int type, void *ex);
 #define THROW_FINALLY 5
 #define THROW_STOP 6
 
-
 // #define D(e...) { printf(e); fflush(stdout); }
 #define D(e...)
 
@@ -546,7 +545,7 @@ typedef struct _LineRecord {
 
 typedef struct _UnwindRecord {
   WORD        method_start;
-  WORD        method_end;
+  WORD        method_length;
   char       *method_name;
   LineRecord *line_numbers;
   WORD        flags;
@@ -653,12 +652,15 @@ UnwindRecord *findUnwindInfo( WORD rip, BacktraceRecord *backtrace ) {
   UnwindRecord *start = __unwind_start;
   UnwindList *next = unwind_head;
 
-  do {
-    for( p = start; p->method_start != 0; p = p + 1 ) {
-      // D( "have record %p, %p..%p %s\n", p, (void *)p->method_start, (void *)p->method_end, p->method_name );
+  D( "initial unwind table %p...\n", start );
 
-      if( rip >= p->method_start && rip < p->method_end ) {
-	D( "method %s at %p, unwind flags %lx\n", p->method_name, (void *)rip, p->flags );
+  do {
+    D( "unwind table %p, method start %p...\n", start, start->method_start );
+    for( p = start; p->method_start != 0; p = p + 1 ) {
+      long method_end = p->method_start + p->method_length;
+      D( "have record %p, %p +%ld (%p) %s\n", p, (void *)p->method_start, p->method_length, method_end, p->method_name );
+      if( rip >= p->method_start && rip < method_end ) {
+	D( "match %p in method %s between %p and %p, unwind flags %lx\n", (void *)rip, p->method_name, (void*)p->method_start, (void*)method_end, p->flags );
 	if( backtrace != 0 ) {
 	  backtrace->rip = rip;
 	  backtrace->method_name = p->method_name;
@@ -674,6 +676,7 @@ UnwindRecord *findUnwindInfo( WORD rip, BacktraceRecord *backtrace ) {
     } else {
       start = 0;
     }
+    D( "next unwind list is %p\n", start );
   } while( start != 0 );
 
   // D( "count not find rip\n" );
@@ -778,7 +781,7 @@ ExRecord *findMethodHandler( ExRecord *r ) {
 
 
 extern WORD size$__Q26System12StringBuffer;
-extern WORD **__get_vtable$__Q26System12StringBuffer();
+extern WORD **__get_vtable__Q26System12StringBuffer();
 
 
 void __flush_stdout() {
@@ -836,12 +839,12 @@ void catchException( WORD type, void *e, ExRecord *r, WORD rbp, WORD rip, Regist
     D( "about to catch %lx, %p, %p, %p...\n", type, e, r->func, regs );
     __catch_exception( type, e, r->func, regs );
   } else {
-    D( "get backtrace string from %p\n", backtrace );
+    // D( "get backtrace string from %p\n", backtrace );
     
-    char *s = (char *)toCString__Q26System12StringBuffer( backtrace );
+    // char *s = (char *)toCString__Q26System12StringBuffer( backtrace );
     // }
     D( "failed to catch %p\n", e );
-    D( "%s\n", s );
+    // D( "%s\n", s );
   }
   exit(1);
 }
@@ -938,16 +941,16 @@ void __segv_handler( int signal, long *context0, long *context1 ) {
 extern WORD size$__Q26System9Exception;
 
 extern WORD size$__Q26System20NullPointerException;
-extern WORD **__get_vtable$__Q26System20NullPointerException();
+extern WORD **__get_vtable__Q26System20NullPointerException();
 
 extern WORD size$__Q26System13CastException;
-extern WORD **__get_vtable$__Q26System13CastException();
+extern WORD **__get_vtable__Q26System13CastException();
 
 extern WORD size$__Q26System20ArrayBoundsException;
-extern WORD **__get_vtable$__Q26System20ArrayBoundsException();
+extern WORD **__get_vtable__Q26System20ArrayBoundsException();
 
 extern WORD size$__Q26System25MemoryProtectionException;
-extern WORD **__get_vtable$__Q26System25MemoryProtectionException();
+extern WORD **__get_vtable__Q26System25MemoryProtectionException();
 
 /*
 
@@ -964,7 +967,7 @@ Exception *makeNullPointerException() {
 
 Exception *__make_castexception() {
   Exception *result = (Exception *)GC_MALLOC(size$__Q26System13CastException);
-  result->vtable = __get_vtable$__Q26System13CastException();
+  result->vtable = __get_vtable__Q26System13CastException();
 
   init__Q26System15MemoryExceptionPc(result,"illegal cast");
 
@@ -973,7 +976,7 @@ Exception *__make_castexception() {
 
 Exception *__make_arrayboundsexception() {
   Exception *result = (Exception *)GC_MALLOC(size$__Q26System20ArrayBoundsException);
-  result->vtable = __get_vtable$__Q26System20ArrayBoundsException();
+  result->vtable = __get_vtable__Q26System20ArrayBoundsException();
 
   init__Q26System15MemoryExceptionPc(result,"array bounds");
 
@@ -982,7 +985,7 @@ Exception *__make_arrayboundsexception() {
 
 Exception *__make_memoryprotectionexception() {
   Exception *result = (Exception *)calloc(1,size$__Q26System25MemoryProtectionException);
-  result->vtable = __get_vtable$__Q26System25MemoryProtectionException();
+  result->vtable = __get_vtable__Q26System25MemoryProtectionException();
 
   init__Q26System25MemoryProtectionExceptionPc(result,"memory protection");
 
@@ -993,7 +996,7 @@ Exception *__make_memoryprotectionexception() {
 Exception *__make_nullpointerexception() {
   // Exception *result = (Exception *)malloc(size$__Q26System20NullPointerException);
   Exception *result = (Exception *)calloc(1,size$__Q26System20NullPointerException);
-  result->vtable = __get_vtable$__Q26System20NullPointerException();
+  result->vtable = __get_vtable__Q26System20NullPointerException();
   
   init__Q26System20NullPointerExceptionPc(result,"null pointer");
 

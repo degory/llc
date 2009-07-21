@@ -218,7 +218,7 @@ alloca:
 
 	mov %rax, %rcx  # save pointer to allocated array
 
-	call __get_vtable$__Q26System5Array
+	call __get_vtable__Q26System5Array
 	movq %rax, (%rcx)  # initialize vtable
 	movq %r12, 8(%rcx) # initialize element count
 	
@@ -244,7 +244,7 @@ allocao:
 	
 	mov %rax, %rcx  # save pointer to allocated array
 
-	call __get_vtable$__Q26System5Array
+	call __get_vtable__Q26System5Array
 	movq %rax, (%rcx)  # initialize vtable
 	movq %r12, 8(%rcx) # initialize element count
 	
@@ -309,7 +309,7 @@ main:
 .extern GC_parallel
 .extern GC_enable_incremental
 .extern __install_segv_handler
-	# call __install_segv_handler
+#	call __install_segv_handler
 	
 	
 #	movl $1,GC_print_stats
@@ -357,7 +357,7 @@ __class_start:
 
 .section z_backtrace_info,"a"
 	.quad __throw_memoryexception
-	.quad 4f
+	.quad 4f-__throw_memoryexception
 	.quad 3f
 	.quad 0
 	.quad 0xFFFFFFFFFFFFFFFF
@@ -411,7 +411,7 @@ __throw_memoryexception:
 
 .section z_backtrace_info,"a"
 	.quad __throw_exception
-	.quad 4f	
+	.quad 4f-__throw_exception
 	.quad 3f	
 	.quad 0
 	.quad 0xFFFFFFFFFFFFFFFF
@@ -440,7 +440,7 @@ __throw_exception:
 
 .section z_backtrace_info,"a"
 	.quad __throw_return
-	.quad 4f
+	.quad 4f-__throw_return
 	.quad 3f
 	.quad 0
 	.quad 0xFFFFFFFFFFFFFFFF
@@ -472,7 +472,7 @@ __throw_return:
 
 .section z_backtrace_info,"a"
 	.quad __throw_endcatch
-	.quad 4f
+	.quad 4f-__throw_endcatch
 	.quad 3f
 	.quad 0
 	.quad 0xFFFFFFFFFFFFFFFF
@@ -505,7 +505,7 @@ __throw_endcatch:
 
 .section z_backtrace_info,"a"
 	.quad __throw_endfinally
-	.quad 4f
+	.quad 4f-__throw_endfinally
 	.quad 3f
 	.quad 0
 	.quad 0xFFFFFFFFFFFFFFFF
@@ -547,7 +547,7 @@ __throw_endfinally:
 
 .section z_backtrace_info,"a"
 	.quad __throw_endfinally
-	.quad 4f
+	.quad 4f-__throw_endfinally
 	.quad 3f
 	.quad 0
 	.quad 0xFFFFFFFFFFFFFFFF
@@ -591,7 +591,7 @@ __throw_endtry:
 
 .section z_backtrace_info,"a"
 	.quad __throw_arrayboundsexception
-	.quad 4f
+	.quad 4f-__throw_arrayboundsexception
 	.quad 3f
 	.quad 0
 	.quad 0xFFFFFFFFFFFFFFFF
@@ -631,7 +631,7 @@ __throw_arrayboundsexception:
 
 .section z_backtrace_info,"a"
 	.quad __throw_castexception
-	.quad 4f
+	.quad 4f-__throw_castexception
 	.quad 3f
 	.quad 0	
 	.quad 0xFFFFFFFFFFFFFFFF
