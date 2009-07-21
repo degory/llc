@@ -1145,7 +1145,7 @@ namespace Parse {
 		v.add( "gcc" );
 		v.add( Machine.GCC_SWITCH );
 		v.add( LIBRARY_DIR + "lrt-" + Machine.NAME + "-1.o" );
-	    
+		// v.add( LIBRARY_DIR + "lrt0.o" );
 		if( !WantLineNumbers ) {
 		    v.add( "-s" );
 		} else {
@@ -1165,18 +1165,30 @@ namespace Parse {
 	    foreach( String s; to_link_set.elements() ) {
 		v.add( s );
 	    }
+
+	    foreach( String u; libraries.elements() ) {
+		if( u.endsWith( ".so" ) ) {
+		    v.add( u );
+		}
+	    }
 	    // v.add( "-nostartfiles" );
 
+	    if( !WantPIC ) {
+		v.add( LIBRARY_DIR + "exception.so" );
+	    }
+
 	    v.add( "-lgc" );
-	    v.add( "-ldl" );
+	    v.add( "-ldl" );	    
 
 	    foreach( String t; libraries.elements() ) {
 		if( t.endsWith(".o") ) {
 		    v.add( t ); 
-		} else {
+		} else if( !t.endsWith(".so") ) {
 		    v.add( "-l" + t );
 		}
 	    }
+
+
 
 	    // v.add( "-Xlinker" );
 	    // v.add( "-shared" );
@@ -1319,7 +1331,7 @@ namespace Parse {
 
 	    // IO.Std.err.println( "will link L library: " + name );
 	    // libraries.add( dir + name + ".so" );
-	    addLinkFile( dir + name + ".so" );
+	    addLibrary( dir + name + ".so" );
 	}
 
 	set String ExecutableName = s {

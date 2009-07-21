@@ -55,6 +55,21 @@ static$begin:
 # saved rdx		    8
 # saved rcx		<-- 0
 
+	.globl __exception_top
+	.section        .tbss,"awT",@nobits
+	.align 8
+	.type   __exception_top, @object
+	.size   __exception_top, 8
+__exception_top:
+	.zero   8
+	.globl __exception_rsp
+	.align 8
+	.type   __exception_rsp, @object
+	.size   __exception_rsp, 8
+__exception_rsp:
+	.zero   8
+
+	.text
 
 .global divide
 

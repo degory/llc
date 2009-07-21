@@ -119,8 +119,8 @@ typedef struct _Stat {
   int size;
 } Stat;
 
-__thread ExRecord *__exception_top = 0;
-__thread void     *__exception_rsp = 0;
+extern __thread ExRecord *__exception_top;
+extern __thread void     *__exception_rsp;
 
 extern int GC_print_stats;
 extern int GC_quiet;
@@ -634,7 +634,7 @@ void __find_line_numbers( void *buffer, BacktraceRecord *backtrace ) {
 void __add_unwind_info( UnwindRecord **u ) {
   UnwindList *list;
 
-  printf( "adding unwind info %p\n", u );
+  D("adding unwind info %p\n", u );
 
   list = (UnwindList *)GC_malloc( sizeof(UnwindList) );
 
