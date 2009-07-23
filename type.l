@@ -205,19 +205,8 @@ namespace Parse {
             dumpDecorate( decorate );
         }
 
-	String dumpTemplate() {
-	    StringBuffer b = new StringBuffer();
-
-	    dumpHuman(b, true);
-
-	    return b;
-	}
 
 	void dumpHuman( StringBuffer human ) {
-	    dumpHuman( human, false );
-	}
-
-        void dumpHuman( StringBuffer human, bool template ) {
 	    // IO.Std.err.println( "dumping type to: " + human );
             switch ( type_kind ) {
             case Type.NONE:
@@ -245,36 +234,20 @@ namespace Parse {
 		human.append( "long" );
 
             case Type.VECTOR:
-                sub_type.dumpHuman( human, template );
-		if( template ) {
-		    human.append( "$V" );
-		} else {
-		    human.append( "[]" );
-		}
+                sub_type.dumpHuman( human );
+		human.append( "[]" );
 
             case Type.REFERENCE:
-                sub_type.dumpHuman( human, template );
-		if( template ) {
-		    human.append( "$r" );
-		} else {
-		    human.append( " ref" );
-		}
+                sub_type.dumpHuman( human );
+		human.append( " ref" );
 
             case Type.POINTER:
-                sub_type.dumpHuman( human, template );
-		if( template ) {
-		    human.append( "$p" );
-		} else {
-		    human.append( " ptr" );
-		}
+                sub_type.dumpHuman( human );
+		human.append( " ptr" );
 
             case Type.CLASS,Type.STRUCT,Type.ENUM,Type.PROC:
 		// IO.Std.err.println( "dumping class, get qualified name..." );
-		if( template ) {
-		    human.append( c.QualifiedName );
-		} else {
-		    human.append( c.HumanName );
-		}
+		human.append( c.HumanName );
 
             case Type.STRING:
                 human.append( "string" );
@@ -329,7 +302,7 @@ namespace Parse {
 		   
                 
             case Type.VECTOR:
-                decorate.append( 'P' );
+                decorate.append( "A_" );
                 sub_type.dumpDecorate( decorate );
                 
             case Type.REFERENCE:

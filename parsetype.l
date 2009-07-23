@@ -156,10 +156,12 @@ namespace Parse {
 	}
 
         void dump( CompileState  state, StringBuffer  buffer ) {
+	    throw new System.Exception( "dump unknown type: " + Class.Name );
             buffer.append("<unknown type>");
         }
 
-        void dump( StringBuffer  human, StringBuffer  decorate ) {
+        void dump( StringBuffer human, StringBuffer  decorate ) {
+	    throw new System.Exception( "dump unknown type: " + Class.Name );
             human.append("<unknown type>");
             decorate.append('v');
         }
@@ -290,11 +292,7 @@ namespace Parse {
 		throw new Exception( "parse named type: identifier is null" );
 	    }
 
-	    // IO.Std.err.println( "before parsing type: " + name.getQualifiedName(state) );
 	    name.clear( state );
-
-            // IO.Std.err.println( "parsing type: " + name.getQualifiedName(state) );
-	    // IO.Std.err.println( "symbol table: " + state.SymbolTable );
 
 	    // do not report errors and only search for type symbols here:
             Symbol type_symbol = name.getSymbol(state, false, Symbol.FIND_TYPE);
@@ -319,13 +317,14 @@ namespace Parse {
 		    return undefined_type;
 		}
 	    } else {
-		error( "type " + name.getQualifiedName(state) + " is not defined" );
+		error( "type " + name.getHumanName(state) + " is not defined" );
 		return undefined_type;
 	    }
         }
         
         void dump( StringBuffer  human, StringBuffer decorate ) {
             String n = name.Name;
+	    // IO.Std.err.println( "named type " + n + " dump from: " + new System.Backtrace() );
             human.append( n );
             decorate.append( n.Length );
             decorate.append( n );
@@ -360,6 +359,7 @@ namespace Parse {
 	}
 
         void dump( StringBuffer human, StringBuffer decorate ) {
+	    IO.Std.err.println( "no state dump called: " + new System.Backtrace() );
             Type t = new Type( type );
             t.dump( human, decorate );
         }
@@ -530,6 +530,13 @@ namespace Parse {
 	    super.init( line_number );
 	    this.type = type;
 	    this.arguments = arguments;
+
+	    if( type.Clazz.Template != null ) {
+		IO.Std.err.println( "creating generic type expression where type is already a template: " + type + " from: " + new System.Backtrace() );
+	    } else {
+		IO.Std.err.println( "creating generic type expression: " + type + " ( " + arguments + " )" );
+
+	    }
 	}
 
 	Type parseType( CompileState state ) {
@@ -539,11 +546,15 @@ namespace Parse {
 	Type parseType( CompileState state, bool find_only ) {
 	    Type t;
 	    if( type_expr != null ) {
-		// IO.Std.err.println( "parse generic type expression: " + type_expr );
+		IO.Std.err.println( "parse generic type expression: " + type_expr );
 		t = type_expr.parseType( state, arguments );
 	    } else {
-		// IO.Std.err.println( "parse generic type expr, using supplied type: " + type );
+		IO.Std.err.println( "parse generic type expr, using supplied type: " + type );
 		t = type;
+
+		if( t.Clazz.Template != null ) {
+		    IO.Std.err.println( "already has template, expect trouble: " + t );
+		}
 	    }
 
 	    /*
@@ -559,16 +570,20 @@ namespace Parse {
 		return undefined_type;
 	    } 
 	    Container c = t.Clazz;
+
+	    if( c.Template != null ) {
+		IO.Std.err.println( "generic type expression now has template: " + c.HumanName + " from: " + new System.Backtrace() );
+	    }
 	    
 	    var a = new Vector<Type>();
 	    foreach( TypeExpr e; arguments.List.elements() ) {
 		t = e.parseType( state );
-		// IO.Std.err.println( "type argument: " + t + " from " + e );
+		IO.Std.err.println( "type argument: " + t + " from " + e );
 		a.add( t );
 	    }
 	    
 	    t = state.findGeneric( c, a, find_only );
-	    // IO.Std.err.println( "result is: " + t );
+	    IO.Std.err.println( "result is: " + t );
 
 	    t.Clazz.markReferenced();
 
@@ -665,6 +680,7 @@ namespace Parse {
 	}
 
         void dump( StringBuffer human, StringBuffer decorate ) {
+	    IO.Std.err.println( "no state dump called: " + new System.Backtrace() );
             decorate.append('P');
             type.dump( human, decorate );
             human.append("[]");
@@ -700,6 +716,7 @@ namespace Parse {
 	}
         
         void dump( StringBuffer  human, StringBuffer  decorate ) {
+	    IO.Std.err.println( "no state dump called: " + new System.Backtrace() );
             decorate.append( 'R' );
             type.dump( human, decorate );
             human.append( " ref" );
@@ -735,6 +752,7 @@ namespace Parse {
 	}
 
         void dump( StringBuffer  human, StringBuffer  decorate ) {
+	    IO.Std.err.println( "no state dump called: " + new System.Backtrace() );
             decorate.append( 'P' );
             type.dump( human, decorate );
             human.append( " ptr" );

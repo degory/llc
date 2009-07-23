@@ -41,7 +41,7 @@ namespace Parse {
 	    }
 	}
         
-        void dump( CompileState state, StringBuffer  human, StringBuffer decorate ) {
+        void dump( CompileState state, StringBuffer human, StringBuffer decorate ) {
             for( var i = list.elements(); i.hasMoreElements(); ) {
                 VariableDef v = i.nextElement();
                 v.getType( state ).dump( human, decorate );
@@ -53,6 +53,7 @@ namespace Parse {
         }
         
         void dump( StringBuffer human, StringBuffer decorate ) {
+	    IO.Std.err.println( "no state dump called: " + new System.Backtrace() );
             for( var i = list.elements(); i.hasMoreElements(); ) {
                 VariableDef v = cast<VariableDef>(i.nextElement());
                 v.dump( human, decorate );
@@ -444,7 +445,8 @@ namespace Parse {
             if( a == 0 ) {
                 a = Symbol.ACCESS_PUBLIC;
             }
-            c = state.declareClass( this, null, state.CurrentNameSpace, name.Name, a, is_internal_definition );
+
+            c = state.declareClass( this, null, state.CurrentNameSpace, name.Name, null, a, is_internal_definition );
 	    // IO.Std.err.println( "declared class: " + c );
             c.IsStruct = IsStruct;
 	    c.IsInterface = IsInterface;
@@ -515,29 +517,13 @@ namespace Parse {
 	    */
 
 	    Container super_class = findSuperClass( state );
-	    StringBuffer n = new StringBuffer(name.Name);
-
+	    
 	    /*
 	    n.append('$');
 	    n.append( generic_count );
-	    */
+	    */    
 
-	    n.append( "$L" );
-	    bool seen_any = false;
-	    foreach( Type u; args.elements() ) {
-		// IO.Std.err.println( "concrete type arg: " + u );
-
-		if( seen_any ) {
-		    n.append("$C");
-		} else {
-		    seen_any = true;
-		}
-		n.append(u.dumpTemplate());
-	    }
-
-	    n.append( "$R" );	    
-
-	    Container concrete = state.declareClass( this, null, state.CurrentNameSpace, n, a, false );
+	    Container concrete = state.declareClass( this, null, state.CurrentNameSpace, name.Name, args, a, false );
             c.IsStruct = IsStruct;
 	    concrete.Template = c;
 
@@ -555,12 +541,12 @@ namespace Parse {
 	    generic_instances.add( concrete );
 
 	    makeImplementsConcrete( state );
-	    try {
+	    // try {
 		makeSuperClassConcrete( state, concrete, super_class );
-	    } catch( System.Exception se ) {
-		error( "problem with superclass " + concrete.HumanName + " " + super_class.HumanName );
-		throw se;
-	    }
+		// } catch( System.Exception se ) {
+		// error( "problem with superclass " + concrete.HumanName + " " + super_class.HumanName );
+		// throw se;
+		// }
 
 	    body.declareGlobalSymbols( state );
 	    state.exitClass( concrete );
@@ -584,6 +570,8 @@ namespace Parse {
 
 	void makeSuperClassConcrete( CompileState state, Container clazz, Container super_class ) {
 	    if( super_arguments != null ) {
+		IO.Std.err.println( "make super class concrete: " + clazz.HumanName + " extends " + super_class.HumanName );
+
 		if( super_class == null ) {
 		    IO.Std.err.println( "oops: arguments supplied but super class is null: " + clazz + ", " + this + " from: " + new System.Backtrace() );
 		}
@@ -591,10 +579,13 @@ namespace Parse {
 		GenericType gst = new GenericType( line_number, new Type( Type.CLASS, super_class ), super_arguments );
 		// GenericType gst = new GenericType( line_number, new NamedType( line_number, super_ident), super_arguments );
 
+		IO.Std.err.println( "check templates for: " + gst );
 		gst.checkTemplates( state );
 
 		// this could recurse but not indefinitely?
 		Type st = gst.parseType( state );
+		IO.Std.err.println( "parse type gives: " + st );
+
 		clazz.Super = st.Clazz;
 	    } else {		
 		clazz.Super = super_class;
@@ -650,7 +641,7 @@ namespace Parse {
 		}
 	    } else {
 		error( "class definition for " + c.HumanName + " with no body" );
-		state.declareClass( this, super_class, null, name.Name, Access, false );
+		state.declareClass( this, super_class, null, name.Name, null, Access, false );
 	    }
 
 	    if( !IsInterface ) {
@@ -864,8 +855,7 @@ namespace Parse {
 		if( block.genMethod( a, state.Output, null, null, 0, address_taken, frame_flags ) ) {
 		    return;
 		}
-		// IO.Std.err.println( "pass " + i + " code generation for static initializers in class " + c.QualifiedName + " failed, simplifying..." );
-		// }
+
 	    throw new Exception( "code generation for static initializers in class " + c.HumanName + " failed" );
 	}
 
@@ -909,7 +899,7 @@ namespace Parse {
 		    // warn( "class " + c.HumanName + " in library not compatible with source definition" );
 
 		    for( var ci = c; ci != null; ci = ci.Super ) {
-			// IO.Std.err.println( "" + ci.HumanName + ": sc: " + ci.Hash + " lc: " + state.Hash[ci.QualifiedName] );
+			// IO.Std.err.println( "" + ci.HumanName + ": sc: " + ci.Hash + " lc: " + state.Hash[ci.DecoratedName] );
 
 			foreach( Symbol si; ci.Members.Iterator ) {
 			    if( si.IsMethod ) {
@@ -930,7 +920,7 @@ namespace Parse {
 		    if( state.WantVerbose ) {
 			message( "compile class: " + c.HumanName );
 		    }
-		    // IO.Std.err.println( "compiling: "+ c.getQualifiedName() );
+		    // IO.Std.err.println( "compiling: "+ c.getDecoratedName() );
                     state.openOutput( c.FileName, false );
                     
                     state.dumpActiveClasses( null );
@@ -977,14 +967,14 @@ namespace Parse {
 		    Machine.emitDefLong( f, 0 );
 
 
-                    Machine.emitGlobalData( f, "size$__" + c.DecoratedName );
-                    Machine.emitLabel( f, "size$__" + c.DecoratedName );
+                    Machine.emitGlobalData( f, "__size_" + c.DecoratedName );
+                    Machine.emitLabel( f, "__size_" + c.DecoratedName );
                     Machine.emitDefLong( f, c.getSize() );
 
 		    Machine.emitTextSegment( f );
 
-                    Machine.emitGlobalFunction( f, "__get_vtable__" + c.DecoratedName ); // , c.VTableSize );		    
-		    Machine.emitLabel( f, "__get_vtable__" + c.DecoratedName ); 
+                    Machine.emitGlobalFunction( f, "__get_vtable_" + c.DecoratedName ); // , c.VTableSize );		    
+		    Machine.emitLabel( f, "__get_vtable_" + c.DecoratedName ); 
 
 		    var offset = (c.IFaceOffset + VTABLE_FIXED_SIZE) * Machine.WORD;
 
@@ -1073,12 +1063,12 @@ namespace Parse {
                     }
                     
                     if( !errors_occurred ) {
-		        // IO.Std.err.println( "assembling: " + c.getQualifiedName() );
+		        // IO.Std.err.println( "assembling: " + c.getHumanName() );
                         state.assembleFile( c.FileName );
 
 			state.dumpActiveClasses( c.FileName );
                     } else {
-		        // IO.Std.err.println( "removing output file: " + c.getQualifiedName() );
+		        // IO.Std.err.println( "removing output file: " + c.getHumanName() );
                         state.removeOutput( c.FileName );
                     }
 		}
@@ -1087,8 +1077,8 @@ namespace Parse {
 		    state.addHashFile( c, s );
 		}
 
-		// state.addLinkFile( state.getObjectFileName( c.QualifiedName, ".o" ) );
-		// IO.Std.err.println( "compilation complete: " + c.getQualifiedName() );
+		// state.addLinkFile( state.getObjectFileName( c.DecoratedName, ".o" ) );
+		// IO.Std.err.println( "compilation complete: " + c.getHumanName() );
 
                 state.endCompileClass( c );
             }
@@ -1304,9 +1294,6 @@ namespace Parse {
 
                 Symbol symbol = state.declareVariable( this, ident.Name, kind, actual_access, use_type );
 
-		/* if( symbol.isAddressValid() ) {
-		    IO.Std.err.println( "symbol " + symbol.getQualifiedName() + " address: " + symbol.getAddress() );
-		    } */
                 if( kind == Symbol.CONST ) {
                     if( e == null ) {
                         error( "const " + symbol.HumanName + " has no initializer" );
@@ -1400,6 +1387,7 @@ namespace Parse {
 
 
         void dump( StringBuffer human, StringBuffer decorate ) {
+	    IO.Std.err.println( "no state dump called: " + new System.Backtrace() );
             if( type_expr != null ) {
                 type_expr.dump( human, decorate );
             }
@@ -1426,6 +1414,7 @@ namespace Parse {
         }
 
         void dump( CompileState state, StringBuffer human ) {
+	    IO.Std.err.println( "no state dump called: " + new System.Backtrace() );
             StringBuffer dummy;
             type_expr.parseType( state ).dump( human, dummy );
             human.append( ' ' );
@@ -1531,15 +1520,16 @@ namespace Parse {
             if( args != null ) {
                 arg_types = args.getTypes( state );
             }
+
+	    IO.Std.err.println( "current class: " + state.CurrentClass.HumanName );
             
-            StringBuffer human = new StringBuffer();
-            StringBuffer decorate = new StringBuffer();
-            
-            dump( state, human, decorate );
+
 
 	    String n = name.Name;
-            m = cast<Container>( state.declareMethod( this, n, kind, actual_access, type.parseType(state), arg_types, decorate ) );
+            m = cast<Container>( state.declareMethod( this, n, kind, actual_access, type.parseType(state), arg_types, null ) );
 
+
+	    IO.Std.err.println( "declare method: " + m.HumanName + " decorated: " + m.DecoratedName );
 	    // m.IsEmpty = is_empty;
 
 	    // IO.Std.err.println( "declare class symbols: " + m.HumanName );
@@ -1695,10 +1685,7 @@ namespace Parse {
 
 	    checkOverride( state );
 
-            StringBuffer human = new StringBuffer();
-            StringBuffer decorated = new StringBuffer();
-            
-            dump( state, human, decorated );
+            var decorated = m.DecoratedName;
 
             state.beginCompileMethod( this, m, decorated );
             state.IsInline = true;
@@ -1730,10 +1717,7 @@ namespace Parse {
 
 	    // IO.Std.err.println( "check inline: " + m.HumanName );
 
-            StringBuffer human = new StringBuffer();
-            StringBuffer decorated = new StringBuffer();
-            
-            dump( state, human, decorated );
+            var decorated = m.DecoratedName;
 
 	    try {
 		state.clearInlineCount();
@@ -1781,12 +1765,7 @@ namespace Parse {
 	    // IO.Std.err.println( "attempt to prepare inline: " + name );
 	    m = state.nextMethodByIndex( name.Name );
 	    // IO.Std.err.println( "method def inline: " + m );
-	    /*
-	    IO.Std.err.println( "try inline: " + m.Owner.QualifiedName + "." + m.QualifiedName );
-	    IO.Std.err.println( "already inlined: " + m.IsInline );
-	    IO.Std.err.println( "is final: " + m.IsFinal );
-	    IO.Std.err.println( "cannot inline: " + m.CannotInline );
-	    */ 
+
 	    if( m.IsInline || !m.IsFinal || m.CannotInline ) {
 		return;
 	    }
@@ -1801,11 +1780,10 @@ namespace Parse {
 		inline_count = inline_count + 1;
 	    }
 
-            StringBuffer human = new StringBuffer();
-            StringBuffer decorated = new StringBuffer();
-	    dump( state, human, decorated );
+            var decorated = m.DecoratedName;
+
 	    if( state.WantVeryVerbose ) {
-		message( "prepare inline version of method: " + human );
+		message( "prepare inline version of method: " + m.HumanName );
 	    }
 
             int saved_label = TempFactory.CurrentLabel;
@@ -1879,7 +1857,7 @@ namespace Parse {
 
 		m.InlineBlock = into;
 	        if( state.WantVeryVerbose ) {
-		    message( "will inline: " + human );
+		    message( "will inline: " + m.HumanName );
 		}
 		inline_method_count = inline_method_count + 1;
 	    }
@@ -1940,7 +1918,6 @@ namespace Parse {
 		    return true;
 		}
 
-		IO.Std.err.println( "pass " + i + " code generation for method " + m.Owner.QualifiedName + "." + m.Name + " failed" );
 	    }
 	    */
 
@@ -1972,12 +1949,12 @@ namespace Parse {
 
 	    progress();
 
-            StringBuffer human = new StringBuffer();
-            StringBuffer decorated = new StringBuffer();
+            var human = m.HumanName;
+            var decorated = m.DecoratedName;
+
+	    IO.Std.err.println( "actual compile method human: " + human + " decorated: " + decorated );
             
             resetTemporary();
-            
-            dump( state, human, decorated );
 
 	    // message( human );
 
@@ -2127,18 +2104,21 @@ namespace Parse {
             state.endCompileMethod(m);
         }
 
+	/*
         void dump( CompileState state, StringBuffer human, StringBuffer decorated ) {
             decorated.append( name.Name );
             decorated.append( "__" );
             
-            StringBuffer dummy = new StringBuffer();
+            // StringBuffer dummy = new StringBuffer();
             
-            Type t = new Type( Type.CLASS, state.CurrentClass );
-            t.dump( dummy, decorated );
-            type.dump( human, dummy );
+            var class_type = new Type( Type.CLASS, state.CurrentClass );
+            class_type.dumpDecorate( decorated );
+
+	    var return_type = type.parseType( state );
+	    return_type.dumpHuman( human );
             
             human.append( ' ' );
-            t.dump( human, dummy );
+	    class_type.dumpHuman( human );
                     
             human.append( '.' );
             human.append( name.Name );
@@ -2150,6 +2130,7 @@ namespace Parse {
             
             human.append( ')' );
         }
+	*/
 
         String toString() {
             StringBuffer result = new StringBuffer();
@@ -2236,7 +2217,7 @@ namespace Parse {
             }
             
             m = cast<Container>(
-                    state.declareMethod( this, name.Name, kind, actual_access, type.parseType( state ), arg_types, name.Name )
+				state.declareMethod( this, name.Name, kind, actual_access, type.parseType( state ), arg_types, name.Name  )
                     );
 
 	    if( m == null ) {

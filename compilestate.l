@@ -474,6 +474,8 @@ namespace Parse {
 
         String main_class_name;
         String main_class_decorated;
+	String main_class_init;
+
 	String executable_name;
 	IO.Writer library_hash_file;
 
@@ -860,15 +862,15 @@ namespace Parse {
 
 	void addObject( Container c ) {
 	    // IO.Std.err.println( "add object: " + c );
-	    if( !need_compile.isInLibrary( c.QualifiedName ) ) {
+	    if( !need_compile.isInLibrary( c.DecoratedName ) ) {
 		// IO.Std.err.println( "need link: " + c + " lcache_dir is: " + CacheDir );
-		addLinkFile( CacheDir + c.QualifiedName + ".o" );
+		addLinkFile( CacheDir + c.DecoratedName + ".o" );
 	    }
 	}
 
         void addHashFile( Container c, CompileStatus s ) {
 	    var hash = c.Hash;
-	    var name = c.QualifiedName;
+	    var name = c.DecoratedName;
 
 	    if( s != CompileStatus.LIBRARY ) {
 		// IO.Std.err.println( "writing to " + library_hash_file + ": '" + name + ' ' + hash + ' ' + "'" );
@@ -1096,7 +1098,7 @@ namespace Parse {
 		    
 		    IO.Writer f = IO.File.openCreate( this.CacheDir + "entry.s" );
 		    
-		    Machine.emitEntryPoint( f, main_class_decorated );
+		    Machine.emitEntryPoint( f, main_class_decorated, main_class_init );
 		    
 		    f.close();
 		    assembleFile( "entry" );
@@ -1440,7 +1442,6 @@ namespace Parse {
             
             if( symbol != null && symbol.Kind == Symbol.NAMESPACE ) {
                 // FIXME: what if namespace is nested inside another with the same name?
-                // fprintf( stderr, "extend name space %s in scope %d\n", symbol.getQualifiedName(), sp );
                 return cast<Container>(symbol);
             } else {
                 Container current_namespace = CurrentNameSpace;
@@ -1506,7 +1507,6 @@ namespace Parse {
                 return;
             }
 
-            // fprintf( stderr, "enter class %p %s scope %p\n", c, c.getQualifiedName(), c.getScope() );
             symbol_table.enterScope( c.Scope );
             
             pushState( STATE_INSIDE_CLASS, c, null );
@@ -1518,7 +1518,6 @@ namespace Parse {
                 throw new Exception( "oops: mis-nested classes\n" );
             }
             
-            // fprintf( stderr, "exit class %s scope %p/%p\n", c.getQualifiedName(), c.getScope(), symbol_table.getCurrentScope() );
             
             CurrentClass.SymbolList = symbol_table.CurrentScope;
             symbol_table.exitScope();
@@ -1766,24 +1765,67 @@ namespace Parse {
 	    int flags, 
 	    int access, 
 	    Type type, 
-	    Vector<Type> arguments,
-	    String decorate )
+	    Vector<Type> args,
+	    String force_decorate )
 	{
             flags = flags | Symbol.FLAG_METHOD | Symbol.FLAG_CLASS;
 
             if( this.State != STATE_INSIDE_CLASS ) {
                 from.error( "cannot declare method " + name + " outside of a class" );
             }
+
+	    var decorate = new StringBuffer();
+	    var human = new StringBuffer();
+
+	    type.dumpHuman( human );
+	    human.append( ' ' );
+
+	    human.append( CurrentClass.HumanName );
+	    human.append( '.' );
+	    human.append( name );
+	    human.append( "(" );
+
+	    decorate.append( "_Z" );
+	    
+	    decorate.append( CurrentClass.DecoratedName );
+	    decorate.Length = decorate.Length - 1; // remove trailing 'E'
+	    decorate.append( name.Length );
+	    decorate.append( name );
+	    decorate.append( 'E' );
+
+	    if( args != null && args.Length > 0 ) {
+		bool seen_any = false;
+		foreach( Type u; args.elements() ) {
+		    // IO.Std.err.println( "concrete type arg: " + u );
+		    
+		    if( seen_any ) {
+			human.append(",");
+		    } else {
+			seen_any = true;
+		    }
+		    u.dump( human, decorate );
+		}
+	    } else {
+		decorate.append( 'v' );
+	    }
+
+	    human.append( ")" );
+
+	    if( force_decorate != null ) {
+		decorate = new StringBuffer(force_decorate);
+	    }
+
+	    IO.Std.err.println( "decorated method name: " + decorate );
             
             Container current_class = CurrentClass;
-            if( current_class.Scope.findDecorated( decorate ) != null ) {
+            if( current_class.Scope.findMethodDecorated( decorate ) != null ) {
                 from.error( "duplicate method definition " + decorate );
             }
 
-            Container override = current_class.findMethod( name, arguments, false );
+            Container override = current_class.findMethod( name, args, false );
             if( override != null ) {
-                if( !override.matches( arguments, true ) ) {
-                    String this_args = ParseTree.dumpArguments( arguments );
+                if( !override.matches( args, true ) ) {
+                    String this_args = ParseTree.dumpArguments( args );
                     String that_args = ParseTree.dumpArguments( override.ArgTypes );
 		    if( WantWarnHide ) {
 			if( override.Owner == current_class.Owner) {
@@ -1803,13 +1845,14 @@ namespace Parse {
 
             Container symbol = cast<Container>( declareSymbol( from, current_class, name, flags, access, 1, type ) );
             symbol.setDecoratedName( decorate );
-            symbol.setArgTypes( arguments );
+	    symbol.setHumanName( human );
+            symbol.setArgTypes( args );
 	    CurrentClass.setLastMethodIndex();
             
             return symbol;
         }
 
-        String getNameSpaceQualifiers( String class_name ) {
+        StringBuffer getNameSpaceQualifiers( String class_name ) {
             StringBuffer b = new StringBuffer();
             
             for( int i = 0; i <= sp; i = i + 1 ) {
@@ -1825,68 +1868,84 @@ namespace Parse {
         }
 
 
-        String getNameSpaceDecorated( String class_name ) {
-            StringBuffer b = new StringBuffer();
+	StringBuffer getNameSpaceDecorated( String name ) {
+	    var b = new StringBuffer();
+	    b.append( 'N');
+	    populateNameSpaceDecorated( b, name );
+	    b.append( 'E' );
+
+	    return b;
+	}
+
+        void populateNameSpaceDecorated( StringBuffer b, String name ) {
             
             int qualifier_count = 0;
             int i;
+
             for( i = 0; i <= sp; i = i + 1 ) {
-                if( state[i].State == STATE_INSIDE_NAMESPACE ) {
-                    qualifier_count = qualifier_count + 1;
-                }
-            }
-            
-            if( qualifier_count == 0 ) {
-                b.append( class_name.Length );
-                b.append( class_name );
-                return b;
-            }
-            
-            qualifier_count = qualifier_count + 1;
-            
-            if( qualifier_count < 9 ) {
-                b.append( 'Q' );
-                b.append( qualifier_count );
-            } else {
-                b.append( "Q_" );
-                b.append( qualifier_count );
-                b.append( '_' );
-            }
-            
-            for( i = 0; i <= sp; i = i + 1 ) {
-                if( state[i].State == STATE_INSIDE_NAMESPACE ) {
+		var st = state[i].State;
+                if( st == STATE_INSIDE_NAMESPACE || st == STATE_INSIDE_CLASS ) {            
                     String s = state[i].CurrentClass.Name;
                     b.append( s.Length );
                     b.append( s );
                 }
             }
             
-            b.append( class_name.Length );
-            b.append( class_name );
-            
-            return b;
+            b.append( name.Length );
+            b.append( name );
         }
-        
-        Container declareClass( ParseTree from, Container parent, Container owner, String name, int access, bool allow_redefine ) {
+
+        Container declareClass( ParseTree from, Container parent, Container owner, String name, Vector<Type> args, int access, bool allow_redefine ) {
             Container class_symbol = null;
-            Symbol symbol = symbol_table.findInCurrentScope( name, Symbol.FIND_ANY );
-            
+
+	    StringBuffer human, decorate;
+	    String search_name = name;
+
+	    if( args != null && args.Length > 0 ) {
+		human = getNameSpaceQualifiers( name );
+		decorate = new StringBuffer("N");
+		populateNameSpaceDecorated( decorate, name );
+		decorate.append( "I" );
+		human.append( "<" );
+
+		bool seen_any = false;
+		foreach( Type u; args.elements() ) {
+		    // IO.Std.err.println( "concrete type arg: " + u );
+		    
+		    if( seen_any ) {
+			human.append(",");
+		    } else {
+			seen_any = true;
+		    }
+		    u.dump( human, decorate );
+		}
+		
+		human.append( ">" );	    
+		decorate.append( "EE" );
+
+		search_name = name + human;
+
+		IO.Std.err.println( "template instance name: " + human + " decorated: " + decorate );
+	    } else {
+		human = getNameSpaceQualifiers(name);
+		decorate = getNameSpaceDecorated(name);
+	    }
+
+            Symbol symbol = symbol_table.findInCurrentScope( search_name, Symbol.FIND_ANY );
+
             if( symbol != null ) {
 		if( !(allow_redefine || symbol.NeedsBody) ) {
 		    // FIXME: allow re-defining class as class because of predefined classes - need better solution
 		    if( symbol.Kind != Symbol.CLASS ) {
-			from.error( "redefining " + symbol.QualifiedName + " as class" );
+			from.error( "redefining " + symbol.HumanName + " as class" );
 			return null;
 		    } else {
-			from.error( "redefining class " + symbol.QualifiedName );
+			from.error( "redefining class " + symbol.HumanName );
 		    }
-		    /*
-		    } else if(  symbol.Access != access ) {
-			from.error( "access for class " + symbol.QualifiedName + " has changed to " + access );
-			return null;
-			} */
+
 		}
                 class_symbol = cast<Container>(symbol);
+		IO.Std.err.println( "previous definition: " + class_symbol.HumanName + " decorated: " + class_symbol.DecoratedName );
             } else {
                 symbol = findSymbol(name, Symbol.FIND_ANY);
 
@@ -1905,19 +1964,22 @@ namespace Parse {
                     from.warn( "class " + class_symbol.HumanName + " hides symbol in outer scope " + symbol.HumanName );
                 }
             }
-                // fprintf( stderr, "declare %s in %s at scope %d\n", name, owner ? owner.getQualifiedName() : "global scope", sp );
-            
-            class_symbol.setQualifiedName( getNameSpaceQualifiers(name) );
-            class_symbol.setDecoratedName( getNameSpaceDecorated(name) );
+
+	    class_symbol.setDecoratedName( decorate );
+	    class_symbol.setHumanName( human );
+
+	    IO.Std.err.println( "decorated class name: " + class_symbol.DecoratedName );
+	    IO.Std.err.println( "human class name: " + class_symbol.HumanName );
+
             class_symbol.setDefined( 1 );
             
             if( class_symbol.Name.equals("Main") ) {
                 if( main_class_name == null ) {
-                    // fprintf( stderr, "main class is %s\n", class_symbol.getQualifiedName() );
-                    main_class_name = class_symbol.QualifiedName;
+                    main_class_name = class_symbol.HumanName;
                     main_class_decorated = class_symbol.DecoratedName;
+		    main_class_init = "_Z" + main_class_decorated.substring(0,main_class_decorated.Length-1) + "4initEv";
                 } else {
-                    from.error( "duplicate Main class: " + class_symbol.QualifiedName + " versus " + main_class_name );
+                    from.error( "duplicate Main class: " + class_symbol.HumanName + " versus " + main_class_name );
                 }
             } 
             
@@ -1974,7 +2036,7 @@ namespace Parse {
             }
             
             if( !enum_symbol.NeedsBody ) {
-                from.error( enum_symbol.QualifiedName + " already has a body" );
+                from.error( enum_symbol.HumanName + " already has a body" );
                 return;
             }
             
@@ -2022,7 +2084,7 @@ namespace Parse {
             }
             
             if( symbol != null ) {
-                from.error( "redefining " + symbol.QualifiedName + " as enum" );
+                from.error( "redefining " + symbol.HumanName + " as enum" );
                 return null;
             } else {
                 symbol = findSymbol(name, Symbol.FIND_ANY);
@@ -2034,7 +2096,7 @@ namespace Parse {
                 
                 symbol_table.add( enum_symbol );
                 
-                enum_symbol.setQualifiedName( getNameSpaceQualifiers(name) );
+                enum_symbol.setHumanName( getNameSpaceQualifiers(name) );
                 enum_symbol.setDecoratedName( getNameSpaceDecorated(name) );
 
                 if( symbol != null && WantWarnHide ) {
@@ -2070,7 +2132,7 @@ namespace Parse {
                 
                 symbol_table.add( type_symbol );
                 
-                type_symbol.setQualifiedName( getNameSpaceQualifiers(name) );
+                type_symbol.setHumanName( getNameSpaceQualifiers(name) );
                 type_symbol.setDecoratedName( getNameSpaceDecorated(name) );
 
 		// FIXME: hash of type probably more appropriate?
@@ -2260,12 +2322,11 @@ namespace Parse {
 	}
 
 	Type findGeneric( Container c, Vector<Type> arguments, bool find_only ) {
-	    // IO.Std.err.println( "searching for instance of template " + c + " with arguments: " + arguments );
+	    IO.Std.err.println( "searching for instance of template " + c + " with arguments: " + arguments );
 
 	    if( c.Template != null ) {
-		IO.Std.err.println( "is already an instance??: " + c + ", " + c.Template );
-		return c.Type;
-		// return new Type( Type.CLASS, c );
+		IO.Std.err.println( "already an instance: " + c );
+		throw new Exception( "is already an instance??: " + c );
 	    }
 
 	    foreach( Container d; generic_instances.elements() ) {
@@ -2328,28 +2389,30 @@ namespace Parse {
 
 	    var decorated = new StringBuffer();
 	    var human = new StringBuffer();
-            decorated.append( "proc$__" );
+            decorated.append( "F" );
             
 	    want_return.dumpDecorate( decorated );
 	    foreach( Type t; want_arguments.elements() ) {
 		t.dumpDecorate( decorated );
 	    }
 
-	    c.DecoratedName = "" + decorated.Length + decorated;
+	    decorated.append( "E" );
+
+	    c.DecoratedName = "" + decorated;
 
 	    want_return.dumpHuman( human );
-	    human.append( "$Sproc$l" );
+	    human.append( " proc(" );
 	    bool seen_any;
 	    foreach( Type u; want_arguments.elements() ) {
 		if( seen_any ) {
-		    human.append( "$C" );
+		    human.append( "," );
 		}
 		u.dumpHuman( human );
 		seen_any = true;
 	    }
-	    human.append( "$r" );
+	    human.append( ")" );
 
-	    c.QualifiedName = human;
+	    c.HumanName = human;
 
 	    // IO.Std.err.println( "created proc container: " + c );
 	    
@@ -2430,7 +2493,7 @@ namespace Parse {
         }
 
         Container findClass( String qualified_name ) {
-            return cast<Container>(master_class_list.findQualified( qualified_name ));
+            return cast<Container>(master_class_list.findDecorated( qualified_name ));
         }
 
         Container findMethod( String name, Vector<Type> arguments, bool exact ) {
@@ -2470,10 +2533,10 @@ namespace Parse {
 	    return null;
         }
     
-        Symbol findDecoratedSymbol( String name ) {
+        Symbol findDecorated( String name ) {
             Container current_class = CurrentClass;
             if( current_class != null ) {
-                return current_class.findDecoratedSymbol( name );
+                return current_class.findDecorated( name );
             }
             
             return null;

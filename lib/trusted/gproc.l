@@ -5,8 +5,14 @@ namespace System {
 	word d;
 	word f1;
 
-	void init(P p) {
-	    
+	void init(P p) {	    
+	}
+
+	void init(word f) {
+	    f0 = f;
+	}
+
+	void init() {
 	}
 
 	get P Proc {

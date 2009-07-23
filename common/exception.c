@@ -241,34 +241,35 @@ int __get_time() {
 extern __catch_exception( WORD type, void *e, void *rip, Registers *regs );
 
 // L calling convention on 32 bit x86 is fastcall - first two parameters in ecx and edx and callee pops arguments from stack:
-extern __attribute__((fastcall)) void __set_pthread_id__Q26System6Threadl( void *thread, WORD id );
-extern __attribute__((fastcall)) void *__thread_entry__Q26System6Thread( void *thread );
-extern __attribute__((fastcall)) char *toCString__Q26System12StringBuffer( void *lstring );
-extern __attribute__((fastcall)) void *getBacktraceInfo__Q26System9Exception( void *e );
-extern __attribute__((fastcall)) void *append__Q26System12StringBufferPc( void *buffer, char *s );
-extern __attribute__((fastcall)) void *append__Q26System12StringBufferi( void *buffer, int i );
-extern __attribute__((fastcall)) void *append__Q26System12StringBufferc( void *buffer, char c );
-extern __attribute__((fastcall)) void setBacktraceInfo__Q26System9Exceptionl( void *exception, WORD info );
+extern __attribute__((fastcall)) void _ZN6System6Thread16__set_pthread_idEl( void *thread, WORD id );
+extern __attribute__((fastcall)) void _ZN6System6Thread14__thread_entryEv( void *thread );
+extern __attribute__((fastcall)) char *_ZN6System12StringBuffer9toCStringEv( void *lstring );
+extern __attribute__((fastcall)) void *_ZN6System9Exception16getBacktraceInfoEv( void *e );
+extern __attribute__((fastcall)) void *_ZN6System12StringBuffer6appendEPc( void *buffer, char *s );
+extern __attribute__((fastcall)) void *_ZN6System12StringBuffer6appendEi( void *buffer, int i );
+extern __attribute__((fastcall)) void *_ZN6System12StringBuffer6appendEc( void *buffer, char c );
+extern __attribute__((fastcall)) void _ZN6System9Exception16setBacktraceInfoEl( void *exception, WORD info );
 
-extern __attribute__((fastcall)) void init__Q26System15MemoryExceptionPc( void *e, char *m );
-extern __attribute__((fastcall)) void init__Q26System25MemoryProtectionExceptionPc( void *e, char *m );
-extern __attribute__((fastcall)) void init__Q26System20NullPointerExceptionPc( void *e, char *m );
+extern __attribute__((fastcall)) void _ZN6System15MemoryException4initEPc( void *e, char *m );
+
+extern __attribute__((fastcall)) void _ZN6System25MemoryProtectionException4initEPc( void *e, char *m );
+extern __attribute__((fastcall)) void _ZN6System20NullPointerException4initEPc( void *e, char *m );
 
 #else
 extern __catch_exception( WORD type, void *e, void *rip, Registers *regs );
 
-extern void __set_pthread_id__Q26System6Threadl( void *thread, WORD id );
-extern void *__thread_entry__Q26System6Thread( void *thread );
-extern char *toCString__Q26System12StringBuffer( void *lstring );
-extern void *getBacktraceInfo__Q26System9Exception( void *e );
-extern void *append__Q26System12StringBufferPc( void *buffer, char *s );
-extern void *append__Q26System12StringBufferi( void *buffer, int i );
-extern void *append__Q26System12StringBufferc( void *buffer, char c );
-extern void setBacktraceInfo__Q26System9Exceptionl( void *exception, WORD info );
+extern void _ZN6System6Thread16__set_pthread_idEl( void *thread, WORD id );
+extern void _ZN6System6Thread14__thread_entryEv( void *thread );
+extern char *_ZN6System12StringBuffer9toCStringEv( void *lstring );
+extern void *_ZN6System9Exception16getBacktraceInfoEv( void *e );
+extern void *_ZN6System12StringBuffer6appendEPc( void *buffer, char *s );
+extern void *_ZN6System12StringBuffer6appendEi( void *buffer, int i );
+extern void *_ZN6System12StringBuffer6appendEc( void *buffer, char c );
+extern void _ZN6System9Exception16setBacktraceInfoEl( void *exception, WORD info );
 
-extern void init__Q26System15MemoryExceptionPc( void *e, char *m );
-extern void init__Q26System25MemoryProtectionExceptionPc( void *e, char *m );
-extern void init__Q26System20NullPointerExceptionPc( void *e, char *m );
+extern void _ZN6System15MemoryException4initEPc( void *e, char *m );
+extern void _ZN6System25MemoryProtectionException4initEPc( void *e, char *m );
+extern void _ZN6System20NullPointerException4initEPc( void *e, char *m );
 #endif
 
 extern __throw_memoryexception();
@@ -278,8 +279,7 @@ extern __throw_memoryexception();
 void *__thread_entry( void *thread_object ) {
   __exception_top = 0;
   __exception_rsp = 0;
-
-  __thread_entry__Q26System6Thread( thread_object );
+  _ZN6System6Thread14__thread_entryEv( thread_object );
   return 0;
 }
 
@@ -357,7 +357,7 @@ void __thread_start( void *thread_object ) {
 
   // printf( "creating thread...\n" );
   int result = GC_pthread_create( &thread, &attr, __thread_entry, thread_object );
-  __set_pthread_id__Q26System6Threadl( thread_object, thread );
+  _ZN6System6Thread16__set_pthread_idEl( thread_object, thread );
   // printf( "result is %d, thread is %p\n", result, (void *)thread );
 
   // GC_pthread_detach( thread );
@@ -575,11 +575,11 @@ void findLineNumber( void *buffer, BacktraceRecord *backtrace ) {
     return;
   }
 
-  append__Q26System12StringBufferc( buffer, '\t' );
+  _ZN6System12StringBuffer6appendEc( buffer, '\t' );
   if( backtrace->method_name != 0 ) {
-    append__Q26System12StringBufferPc( buffer, backtrace->method_name );
+    _ZN6System12StringBuffer6appendEPc( buffer, backtrace->method_name );
   } else {
-    append__Q26System12StringBufferPc( buffer, "unknown\n" );
+    _ZN6System12StringBuffer6appendEPc( buffer, "unknown\n" );
     return;
   }
 
@@ -588,8 +588,7 @@ void findLineNumber( void *buffer, BacktraceRecord *backtrace ) {
 
   if( line_number == 0 ) {
     D("no line number information available\n");
-    // append__Q26System12StringBufferPc( buffer, ": unknown line\n" );
-    append__Q26System12StringBufferc( buffer, '\n' );
+    _ZN6System12StringBuffer6appendEc( buffer, '\n' );
     return;
   }
 
@@ -611,12 +610,11 @@ void findLineNumber( void *buffer, BacktraceRecord *backtrace ) {
 
   if( previous_line != -1 ) {
     D( "appending line to backtrace\n" );
-    append__Q26System12StringBufferPc( buffer, ": " );
-    append__Q26System12StringBufferi( buffer, previous_line );
-    append__Q26System12StringBufferc( buffer, '\n' );
+    _ZN6System12StringBuffer6appendEPc( buffer, ": " );
+    _ZN6System12StringBuffer6appendEi( buffer, previous_line );
+    _ZN6System12StringBuffer6appendEc( buffer, '\n' );
   } else {
-
-    append__Q26System12StringBufferPc( buffer, ": outside method\n" );
+    _ZN6System12StringBuffer6appendEPc( buffer, ": outside method\n" );
   }
 }
 
@@ -723,11 +721,7 @@ int unwindStack( WORD rbp, WORD rip, WORD stop_at_rip, Registers *regs, Backtrac
     } else {
       if( stop_at_rip == u->method_start ) {
 	D( "stop unwinding here but continue filling backtrace...\n" );
-	/*
-	if( backtrace != 0 ) {
-	  append__Q26System12StringBufferPc( backtrace, "(handled)\n" );
-	}
-	*/
+
 	found_frame = 1;
       }
 
@@ -779,9 +773,8 @@ ExRecord *findMethodHandler( ExRecord *r ) {
 }
 
 
-
-extern WORD size$__Q26System12StringBuffer;
-extern WORD **__get_vtable__Q26System12StringBuffer();
+extern WORD __size_N6System12StringBufferE;
+extern WORD **__get_vtable_N6System12StringBufferE();
 
 
 void __flush_stdout() {
@@ -797,9 +790,9 @@ void catchException( WORD type, void *e, ExRecord *r, WORD rbp, WORD rip, Regist
   D( "catch exception %ld, %p\n", type, e );
   
   if( type == THROW_EXCEPTION ) {
-    if( getBacktraceInfo__Q26System9Exception(e) == 0 ) {
+    if( _ZN6System9Exception16getBacktraceInfoEv(e) == 0 ) {
         backtrace = (BacktraceRecord*)GC_malloc_atomic( sizeof(BacktraceRecord)*BACKTRACE_LENGTH );
-	setBacktraceInfo__Q26System9Exceptionl( e, (WORD)backtrace );
+	_ZN6System9Exception16setBacktraceInfoEl( e, (WORD)backtrace );
       }
   } else {
     fprintf( stderr, "runtime does not expect to see exception of type %ld\n", type );
@@ -938,19 +931,17 @@ void __segv_handler( int signal, long *context0, long *context1 ) {
 }
 */
 
-extern WORD size$__Q26System9Exception;
+extern WORD  __size_N6System20NullPointerExceptionE;
+extern WORD **__get_vtable_N6System20NullPointerExceptionE();
 
-extern WORD size$__Q26System20NullPointerException;
-extern WORD **__get_vtable__Q26System20NullPointerException();
+extern WORD __size_N6System13CastExceptionE;
+extern WORD **__get_vtable_N6System13CastExceptionE();
 
-extern WORD size$__Q26System13CastException;
-extern WORD **__get_vtable__Q26System13CastException();
+extern WORD __size_N6System15BoundsExceptionE;
+extern WORD **__get_vtable_N6System15BoundsExceptionE();
 
-extern WORD size$__Q26System20ArrayBoundsException;
-extern WORD **__get_vtable__Q26System20ArrayBoundsException();
-
-extern WORD size$__Q26System25MemoryProtectionException;
-extern WORD **__get_vtable__Q26System25MemoryProtectionException();
+extern WORD  __size_N6System25MemoryProtectionExceptionE;
+extern WORD **__get_vtable_N6System25MemoryProtectionExceptionE();
 
 /*
 
@@ -966,28 +957,28 @@ Exception *makeNullPointerException() {
 
 
 Exception *__make_castexception() {
-  Exception *result = (Exception *)GC_MALLOC(size$__Q26System13CastException);
-  result->vtable = __get_vtable__Q26System13CastException();
+  Exception *result = (Exception *)GC_MALLOC(__size_N6System13CastExceptionE);
+  result->vtable = __get_vtable_N6System13CastExceptionE();
 
-  init__Q26System15MemoryExceptionPc(result,"illegal cast");
+  _ZN6System15MemoryException4initEPc(result,"illegal cast");
 
   return result;
 }
 
 Exception *__make_arrayboundsexception() {
-  Exception *result = (Exception *)GC_MALLOC(size$__Q26System20ArrayBoundsException);
-  result->vtable = __get_vtable__Q26System20ArrayBoundsException();
+  Exception *result = (Exception *)GC_MALLOC(__size_N6System15BoundsExceptionE);
+  result->vtable = __get_vtable_N6System15BoundsExceptionE();
 
-  init__Q26System15MemoryExceptionPc(result,"array bounds");
+  _ZN6System15MemoryException4initEPc(result,"array bounds");
 
   return result;
 }
 
 Exception *__make_memoryprotectionexception() {
-  Exception *result = (Exception *)calloc(1,size$__Q26System25MemoryProtectionException);
-  result->vtable = __get_vtable__Q26System25MemoryProtectionException();
+  Exception *result = (Exception *)calloc(1,__size_N6System25MemoryProtectionExceptionE);
+  result->vtable = __get_vtable_N6System25MemoryProtectionExceptionE();
 
-  init__Q26System25MemoryProtectionExceptionPc(result,"memory protection");
+  _ZN6System25MemoryProtectionException4initEPc(result,"memory protection");
 
   return result;
 }
@@ -995,10 +986,10 @@ Exception *__make_memoryprotectionexception() {
 
 Exception *__make_nullpointerexception() {
   // Exception *result = (Exception *)malloc(size$__Q26System20NullPointerException);
-  Exception *result = (Exception *)calloc(1,size$__Q26System20NullPointerException);
-  result->vtable = __get_vtable__Q26System20NullPointerException();
+  Exception *result = (Exception *)calloc(1,__size_N6System20NullPointerExceptionE);
+  result->vtable = __get_vtable_N6System20NullPointerExceptionE();
   
-  init__Q26System20NullPointerExceptionPc(result,"null pointer");
+  _ZN6System20NullPointerException4initEPc(result,"null pointer");
 
   return result;
 }

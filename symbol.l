@@ -256,10 +256,6 @@ namespace Parse {
             return Name;
         }
 
-        get String QualifiedName {
-            return Name;
-        }
-
 	get String HumanName {
 	    return Name;
 	}
@@ -318,7 +314,7 @@ namespace Parse {
 	}
 
         Symbol findSymbol( String name, bool want_type ) {
-            throw new Exception( "oops: looking for symbol " + name + " in non-container symbol " + getQualifiedName() );
+            throw new Exception( "oops: looking for symbol " + name + " in non-container symbol " + getHumanName() );
             return null;
         }
 
@@ -381,7 +377,7 @@ namespace Parse {
                 // what class or namespace owns this object?
                 o = Owner;
                 if( o == null ) {
-                    throw new Exception( "weird: private " + o.QualifiedName + " has no owner\n" );
+                    throw new Exception( "weird: private " + o.HumanName + " has no owner\n" );
                     return false;
                 }
                 
@@ -403,7 +399,7 @@ namespace Parse {
                     // context must be same class
                     return from == o;
                 }
-                throw new Exception( "unexpected owner: " + o.QualifiedName );
+                throw new Exception( "unexpected owner: " + o.HumanName );
                 return false;
             } else if( access & Symbol.ACCESS_PROTECTED != 0 ) {
                 if( from == null ) {
@@ -412,7 +408,7 @@ namespace Parse {
                 
                 o = Owner;
                 if( o == null ) {
-                    throw new Exception( "weird: private symbol " + o.getQualifiedName() + " has no owner" );
+                    throw new Exception( "weird: private symbol " + o.getHumanName() + " has no owner" );
                     return false;
                 }
                 
@@ -443,7 +439,7 @@ namespace Parse {
                 } else if( owner_kind == Symbol.CLASS ) {
                     return o.isParentOf( from );
                 }
-                throw new Exception( "unexpected owner: " + o.QualifiedName );
+                throw new Exception( "unexpected owner: " + o.HumanName );
             } else {
                 throw new Exception( "oops: symbol " + Name + " has no access from any context" );
                 return false;
@@ -452,7 +448,7 @@ namespace Parse {
 
 	String toString() {
 	    StringBuffer b = new StringBuffer("Symbol(");
-	    b.append( this.QualifiedName );
+	    b.append( this.HumanName );
 	    
 	    if( type != null ) {
 		b.append( ": " );
@@ -486,7 +482,7 @@ namespace Parse {
         void dump() {
             IO.Std.err.println( "symbol list: " );
 	    foreach( Symbol s; list.elements() ) {
-		IO.Std.err.println( s.getName() + "/" + s.getQualifiedName() );
+		IO.Std.err.println( s.getName() + "/" + s.getHumanName() );
 	    }
         }
 
@@ -592,7 +588,7 @@ namespace Parse {
             return null;
         }
 
-        Symbol findDecorated( String name ) {
+        Symbol findMethodDecorated( String name ) {
             if( name == null ) {
                 throw new Exception( "oops: can't lookup null name in symbol list" );
             }
@@ -606,14 +602,14 @@ namespace Parse {
             return null;
         }
         
-        Symbol findQualified( String name ) {
+        Symbol findDecorated( String name ) {
             if( name == null ) {
                 throw new Exception( "oops: can't lookup null name in symbol list" );
                 return null;
             }
 
 	    foreach( Symbol s; list.elements() ) {
-		if( name.equals( s.QualifiedName ) ) {
+		if( name.equals( s.DecoratedName ) ) {
 		    return s;
 		}
 	    }
@@ -720,8 +716,7 @@ namespace Parse {
 
 		if( s.Kind == Symbol.CLASS && s.getAndClearIsReferenced() ) {
 		    if( f != null ) {
-			// fprintf( f, "%08X %s\n", ((Container *)symbol).getHash(), symbol.getQualifiedName() );
-			f.write( "" + cast<Container>(s).Hash + " " + s.QualifiedName + "\n" );
+			f.write( "" + cast<Container>(s).Hash + " " + s.DecoratedName + "\n" );
 			// } else {
 			// fprintf( stderr, "cleared %s\n", symbol.getName() );
 		    }

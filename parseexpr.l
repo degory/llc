@@ -96,19 +96,23 @@ namespace Parse {
             int t = TempFactory.nextTemp();
             Vector<Expression> l = list.List;
 
-            int kind = getType(state).SubType.TypeKind;
-            int size = getType(state).SubType.Size;
-            if( kind == Type.CLASS || kind == Type.VECTOR ) {
-                into.add( makeStoreTemporary( t, Machine.WORD,
-                                              new ITree( line_number, Op.NEW_OBJ_ARRAY, 0,
-                                                         new ITree( line_number, Op.CONST, Machine.WORD, l.Length ), null,
-                                                         new IString( size ) ) ) );
-            } else {
-                into.add( makeStoreTemporary( t, Machine.WORD,
-                                              new ITree( line_number, Op.NEW_ARRAY, 0,
-                                                         new ITree( line_number, Op.CONST, Machine.WORD, l.Length ), null,
-                                                         new IString( size ) ) ) );
-            }
+	    var at = getType(state);
+	    var st = at.SubType;
+
+            int kind = st.TypeKind;
+            int size = st.Size;
+
+	    var c = at.getBoxType(state).Clazz;
+	    
+	    var vtable = loadVTable( state, c );
+
+	    into.add( makeStoreTemporary( t, Machine.WORD,
+					  new ITree( line_number, Op.NEW_GENERIC_ARRAY, 0,
+						     new ITree( line_number, Op.CONST, Machine.WORD, l.Length ),
+						     vtable,
+						     size ) ) );
+
+
             int i = 0;
 	    ITree tree;
             
@@ -1854,7 +1858,8 @@ namespace Parse {
 						       new ITree( line_number, Op.CONST, Machine.WORD, 1 * Machine.WORD )
 						       )
 					    ),
-				 loadVTable( state, c )
+				 new ITree( line_number, Op.GLOBAL, Machine.WORD, b )
+				 // loadVTable( state, c )
 				 )
 		      );
 
@@ -2094,7 +2099,7 @@ namespace Parse {
                         if( symbol.Owner != state.CurrentClass ) {
                             into.add( new ITree( line_number, Op.EXTERN, 0, symbol.DecoratedName ) );
                         }
-                        // fprintf( stderr, "static call to final method: %X %s %s\n", symbol, symbol.getOwner().getQualifiedName(), symbol.getDecoratedName() );
+
                         if( no_discard ) {
                             o = Op.STATIC_CALL;
                         } else {

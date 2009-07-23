@@ -2,12 +2,14 @@
 
 import args;
 import stream;
+import gproc;
 import "dl";
 
 namespace Dynamic {
     use System.Object;
     use System.Class;
     use System.String;
+    use System.Proc;
 
     class LoadTest {
 
@@ -69,29 +71,28 @@ namespace Dynamic {
 	    if( h == 0w ) {
 		throw new System.Exception( "could not open library " + so_name + ": " + dlerror() );
 	    }
-
-	    word u = cast word(native.dlsym(h,`__unwind_start`));
-	    native.__add_unwind_info(u);
-
-	    u = cast word(native.dlsym(h,`static$begin`));
-
-	    native.printf( `u is %p\n`, u );
-	    native.__static_begin(u);
 	}
 
 	Class loadClass( String vtable ) {
 	    if( vtable == null ) {
-		vtable = "__vtable";
+		throw new System.Exception( "no get vtable function supplied" );
 	    }
 
+	    // look up get vtable function in the just loaded library:
 	    word v = cast word( native.dlsym( h, vtable.toCString() ) );
 
 	    if( v == 0w ) {
-		v = cast word( native.dlsym( 0,  vtable.toCString() ) ); // not found - search all libraries
+		// failing that search all libraries:
+		v = cast word( native.dlsym( 0, vtable.toCString() ) );
 	    }
 
 	    if( v != 0w ) {
-		Class c = new Class( cast int ptr ptr(v) );
+		// make a new proc reference from the get vtable function that returns the odd type
+		// expected by System.Class.init():
+		var p = new Proc<int ptr ptr proc()>(v);
+
+		// create a new class from the vtable returned by the get vtable function:
+		Class c = new Class( p() );
 
 		return c; 
 	    } else {

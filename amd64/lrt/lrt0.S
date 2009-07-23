@@ -221,51 +221,51 @@ allocag:
 
 # rdi - element count
 # rsi - element size
-alloca:
-	pushq %r12	
-	
-	movq %rdi,%r12	# save element count
-
-	imulq %rsi,%rdi	# total size = element count * element size
-	addq $16, %rdi  #              + 8 bytes for vtable + 8 bytes for stored size
-
-	call NON_OBJECT_ARRAY_ALLOC
-
-	mov %rax, %rcx  # save pointer to allocated array
-
-	call __get_vtable__Q26System5Array
-	movq %rax, (%rcx)  # initialize vtable
-	movq %r12, 8(%rcx) # initialize element count
-	
-	movq %rcx,%rax
-	popq %r12
-	ret
-
-.global allocao
+#alloca:
+#	pushq %r12	
+#	
+#	movq %rdi,%r12	# save element count
+#
+#	imulq %rsi,%rdi	# total size = element count * element size
+#	addq $16, %rdi  #              + 8 bytes for vtable + 8 bytes for stored size
+#
+#	call NON_OBJECT_ARRAY_ALLOC
+#
+#	mov %rax, %rcx  # save pointer to allocated array
+#
+#	call __get_vtable__Q26System5Array
+#	movq %rax, (%rcx)  # initialize vtable
+#	movq %r12, 8(%rcx) # initialize element count
+#	
+#	movq %rcx,%rax
+#	popq %r12
+#	ret
+#
+#.global allocao
 
 
 #
 # vtable	0      
 # length	4     
 # first cell <- 8     
-allocao:
-	pushq %r12	
+#allocao:
+#	pushq %r12	
+#	
+#	movq %rdi,%r12	# save element count
+#
+#	imulq $8,%rdi	# total size = element count * element size
+#	addq $16,%rdi   #              + 8 bytes for vtable + 8 bytes for stored size
+#	call OBJECT_ARRAY_ALLOC
 	
-	movq %rdi,%r12	# save element count
+#	mov %rax, %rcx  # save pointer to allocated array
 
-	imulq $8,%rdi	# total size = element count * element size
-	addq $16,%rdi   #              + 8 bytes for vtable + 8 bytes for stored size
-	call OBJECT_ARRAY_ALLOC
+#	call __get_vtable__Q26System5Array
+#	movq %rax, (%rcx)  # initialize vtable
+#	movq %r12, 8(%rcx) # initialize element count
 	
-	mov %rax, %rcx  # save pointer to allocated array
-
-	call __get_vtable__Q26System5Array
-	movq %rax, (%rcx)  # initialize vtable
-	movq %r12, 8(%rcx) # initialize element count
-	
-	movq %rcx,%rax
-	popq %r12
-	ret	
+#	movq %rcx,%rax
+#	popq %r12
+#	ret	
 	
 
 	
@@ -297,7 +297,7 @@ __geterrno:
 	movq (%rax),%rax
 	ret
 
-.extern entry$point
+.extern __entry_point
 
 
 .global __get_argv
@@ -336,7 +336,7 @@ main:
 		
 	call static$begin
 
-	call entry$point
+	call __entry_point
 
 	mov $0, %edi
 	call exit

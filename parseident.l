@@ -245,7 +245,7 @@ namespace Parse {
 		// IO.Std.err.println( "no symbol and no method call found for " + name );
 		type = undefined_type;
 		symbol = null;
-		error( "undefined symbol " + getQualifiedName(state) );
+		error( "undefined symbol " + getHumanName(state) );
             }
 
 	    // IO.Std.err.println( "\n" );
@@ -324,7 +324,7 @@ namespace Parse {
             return name;
         }
         
-        String getQualifiedName( CompileState state ) {
+        String getHumanName( CompileState state ) {
             StringBuffer buffer = new StringBuffer();
             dump( state, buffer );
             return buffer;
@@ -351,11 +351,6 @@ namespace Parse {
             if( symbol != null ) {
 		// IO.Std.err.println( "returning cached symbol: " + symbol );
 
-		/*
-		if( symbol.Kind == Symbol.ATTRIBUTE_SIZE ) {
-		    IO.Std.err.println( "returning cached sizeof attribute symbol " + symbol.QualifiedName + " for lookup " + name );
-		}
-		*/		
                 return symbol;
             }
             
@@ -434,7 +429,7 @@ namespace Parse {
 		    checkAccess( result, state );
 		} else {
 		    if( complain ) {
-			error( "undefined symbol " + getQualifiedName(state) );
+			error( "undefined symbol " + getHumanName(state) );
 		    }
 		}
 
@@ -448,7 +443,6 @@ namespace Parse {
 		    if( complain ) {
 			error( "undefined symbol " + name /*getName()*/ );
 		    }
-		    // IO.Std.err.println( "undefined symbol " + getQualifiedName(state) );
                 }
             }
             

@@ -175,6 +175,18 @@ namespace System is
     end
 
     /// Exception thrown when runtime detects an out of bounds array index
+    class BoundsException extends RuntimeException is
+	void init( System.String m ) is
+	    super.init( m );
+	end
+
+	void init( char ptr s ) is
+	    super.init( s );
+	end
+    end
+
+    /// Exception thrown when runtime detects an out of bounds array index
+    /// \deprecated 
     class ArrayBoundsException extends RuntimeException is
 	void init( System.String m ) is
 	    super.init( m );
@@ -193,18 +205,6 @@ namespace System is
 
 	void init( char ptr s ) is
 	    super.init( s );
-	end
-    end
-
-    /// Exception thrown when runtime cannot clone an object
-    /// \deprecated
-    class CannotCloneException extends Exception is
-	void init( String message ) is
-	    super.init( message );
-	end
-
-	void init( char ptr message ) is
-	    super.init( message );
 	end
     end
 

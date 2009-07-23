@@ -53,7 +53,7 @@ namespace Parse {
 	int iface_offset;
         int hash_;
         String decorated;
-        String qualified;
+        String human;
         bool is_final;
         bool is_struct;
 	bool is_generic;
@@ -87,7 +87,7 @@ namespace Parse {
            super.init( owner, name, Symbol.CLASS, 0, null );
             setup( parent );
             decorated = null;
-            qualified = null;
+            human = null;
             members = null;
 
             itable_offset = 0;
@@ -100,7 +100,7 @@ namespace Parse {
             setup( parent );
 
             decorated = null;
-            qualified = null;
+            human = null;
             members = null;
             
             itable_offset = 0;
@@ -409,6 +409,11 @@ namespace Parse {
 	}
 
 	set Container Template = template {
+	    var tn = "null";
+	    if( this.template != null ) {
+		tn = this.template.Name;
+	    }
+	    IO.Std.err.println( "" + this.HumanName + " template " + tn + " <- " + template.Name );
 	    this.template = template;
 	}
 
@@ -674,11 +679,6 @@ namespace Parse {
             result.quality = 0;
             result.score = -1;
 
-	    /*
-	    IO.Std.err.println( "compare: " + this.QualifiedName + "(" + this.arguments + ") versus" );
-	    IO.Std.err.println( "(" + arguments + ")" );
-            */
-
             bool this_no_args, that_no_args;
             
             this_no_args = this.arg_types == null || this.arg_types.Length == 0;
@@ -849,75 +849,36 @@ namespace Parse {
 
         get String DecoratedName {
             if( decorated == null ) {
-                IO.Std.err.println( "get decorated " + QualifiedName + ": null" );
+                IO.Std.err.println( "get decorated " + HumanName + ": null" );
                 return Name;
             } else {
                 return decorated;
             }
         }
         
-        get String QualifiedName {
-            if( qualified == null ) {
+        get String HumanName {
+            if( human == null ) {
+                IO.Std.err.println( "get human " + Name + ": null" );
 		StringBuffer result = new StringBuffer();
 		Symbol o = Owner; 
 		if( o != null ) {
-		    result.append( o.QualifiedName );
+		    result.append( o.HumanName );
 		    result.append( '.' );
 		}
 		result.append( Name );
 		return result;
             } else {
-                return qualified;
+                return human;
             }
         }
 
-	get String HumanName {
-	    StringBuffer b = new StringBuffer();
-	    String s = QualifiedName;
-	    
-	    for( int i = 0; i < s.Length; i = i + 1 ) {
-		char c = s[i];
-
-		if( c == '$' ) {
-		    i = i + 1;
-		    c = s[i];
-		    if( c == 'L' ) {
-			b.append( '<' );
-		    } else if( c == 'R' ) {
-			b.append( '>' );
-		    } else if( c == 'C' ) {
-			b.append( ',' );
-		    } else if( c == 'S' ) {
-			b.append( ' ' );
-		    } else if( c == 'l' ) {
-			b.append( '(' );
-		    } else if( c == 'r' ) {
-			b.append( ')' );
-		    } else if( c == 'V' ) {
-			b.append( "[]" );
-		    } else if( c == 'p' ) {
-			b.append( " ptr" );
-		    } else if( c == 'r' ) {
-			b.append( " ref" );
-		    } else {
-			b.append( '$' );
-			b.append( c );
-		    }
-		} else {
-		    b.append( c );
-		}
-	    }
-
-	    // IO.Std.err.println( "human name: '" + s + "' -> '" + b + "'" );
-	    return b;
-	}
-
 	get String FileName {
-	    return QualifiedName;
+	    IO.Std.err.println( "file name for: " + HumanName + ": " + DecoratedName );
+	    return DecoratedName;
 	}
         
-        set String QualifiedName = qn {
-            qualified = qn;
+        set String HumanName = hn {
+	    human = hn;
         }
         
         
@@ -937,7 +898,6 @@ namespace Parse {
             if( members != null ) {
                 result = members.find( name, find_what );
                 if( result != null ) {
-                    // fprintf( stderr, "found %s in %s members\n", result.getQualifiedName(), getQualifiedName() );
                     return result;
                 }
             }
@@ -952,7 +912,7 @@ namespace Parse {
             return null;
         }
         
-        Symbol findDecoratedSymbol( String name )     {
+        Symbol findDecorated( String name )     {
             if( members == null ) {
                 return null;
             }
@@ -961,7 +921,7 @@ namespace Parse {
             if( result != null ) {
                 return result;
             } else if( parent != null ) {
-                return parent.findDecoratedSymbol( name );
+                return parent.findDecorated( name );
             } else {
                 return null;
             }
@@ -1218,7 +1178,7 @@ namespace Parse {
             int stable_offset = 0;
         
             if( members == null ) {
-                throw new Exception( "weird: build class tables for class with no member list: " + QualifiedName );
+                throw new Exception( "weird: build class tables for class with no member list: " + HumanName );
             }
         
             foreach( Symbol current; members.SymbolList.elements() ) { 
@@ -1242,12 +1202,11 @@ namespace Parse {
                         address.vtable_offset = address.vtable_offset + Machine.WORD;
                     } else {
                         ancestor.IsFinal = false;
-                        // fprintf( stderr, "overrides %s in %s\n", ancestor.getDecoratedName(), ancestor.getOwner().getQualifiedName() );
+
                         Container t = ancestor.Owner.Super;
                         while( t != null ) {
                             t = t.findMethod( ancestor );
                             if( t != null ) {
-                                // fprintf( stderr, "overrides %s in %s\n", t.getDecoratedName(), t.getOwner().getQualifiedName() );
                                 ancestor = t;
                                 ancestor.IsFinal = false;
                                 t = t.Owner.Super;
@@ -1486,7 +1445,7 @@ namespace Parse {
 
 	String toString() {
 	    StringBuffer b = new StringBuffer("Container(");
-	    b.append( this.QualifiedName );
+	    b.append( this.HumanName );
 
 	    if( this.Type != null ) {
 		b.append( ": " );

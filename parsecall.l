@@ -1120,6 +1120,11 @@ namespace Parse {
                     super_class = scope;
                 }
 
+		if( method.IsStatic ) {
+		    error( "cannot make bound reference to static method here" );
+		    return new ITree( 0, Op.ERROR, 0 );
+		}
+
 		/*
 		IO.Std.err.println( "method call calling load: " + method );
 		IO.Std.err.println( "IIIIII: kind is " + method.Kind + " versus " + Symbol.STATIC_METHOD );
@@ -1131,12 +1136,25 @@ namespace Parse {
 		// Std.err.println( "call B..." );
                 if( left_value.isClass( state ) ) {
 		    instance = false;
+		    if( !method.IsStatic ) {
+			error( "cannot make bound reference to instance method here" );
+			return new ITree( 0, Op.ERROR, 0 );
+		    }
+		} else {
+		    if( method.IsStatic ) {
+			error( "cannot make bound reference to static method here" );
+			return new ITree( 0, Op.ERROR, 0 );
+		    }
 		}
 
                 t = compileLoadProcRef( state, into, method, type, method.ArgTypes, null, instance, null );
             } else {
+		if( state.CurrentMethod == null || state.CurrentMethod.IsStatic ) {
+		    error( "cannot make bound reference to instance method here" );
+		    return new ITree( 0, Op.ERROR, 0 );
+		}
 		// Std.err.println( "call C..." );
-                if( state.CurrentMethod.IsStatic ) {
+                if( method.IsStatic ) {
                     instance = false;
 		}
 

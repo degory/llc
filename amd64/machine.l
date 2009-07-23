@@ -653,24 +653,25 @@ namespace Gen {
 
 	static char quote = '"';
 
-	static void emitEntryPoint( IO.Writer f, String main_class_decorated ) {		
-	    f.println( ".global entry$point\n" );
-	    f.println( "entry$point:" );
+	static void emitEntryPoint( IO.Writer f, String main_class_decorated, String main_class_init ) {
+	    f.println( ".global __entry_point\n" );
+	    f.println( ".type __entry_point,@function\n" );
+	    f.println( "__entry_point:" );
 	    f.println( "\tpushq %rbp" );
 	    f.println( "\tmovq %rsp,%rbp" );
-	    f.println( "\tcall __get_vtable__" + main_class_decorated + "@PLT" );
+	    f.println( "\tcall __get_vtable_" + main_class_decorated + "@PLT" );
 	    f.println( "\tmovq %rax,%rsi" );
-	    f.println( "\tmovq size$__" + main_class_decorated + "@GOTPCREL(%rip),%rax" );
+	    f.println( "\tmovq __size_" + main_class_decorated + "@GOTPCREL(%rip),%rax" );
 	    f.println( "\tmovl 0(%rax),%edi" );
-	    f.println( "\tcall alloco@PLT" );	    
+	    f.println( "\tcall __alloc_object@PLT" );	    
 	    f.println( "\tmovq %rax,%rdi" );
-	    f.println( "\tcall run__Q26System7StartupQ26System6Object@PLT" );
+	    f.println( "\tcall _ZN6System7Startup3runEN6System6ObjectE@PLT" );
 	    f.println( "\txorq %rax,%rax" );
 	    f.println( "\tpopq %rbp" );
 	    f.println( "\tret" );
 	    f.println( "\t.global __main_init" );
 	    f.println( "__main_init:" );
-	    f.println( "\tjmp init__" + main_class_decorated + "@PLT" );
+	    f.println( "\tjmp " + main_class_init + "@PLT" );
 	}
 
 	static void emitStartUnwindInfo(

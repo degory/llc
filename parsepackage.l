@@ -150,7 +150,7 @@ namespace Parse {
     }
 
     class NameSpace extends Statement {
-        String qualified_name;
+        // String qualified_name;
         Identifier name;
         Statement body;
         Container n;
@@ -165,7 +165,7 @@ namespace Parse {
         }
 
         void declareGlobalSymbols( CompileState state ) {
-            this.qualified_name = name.getQualifiedName( state );
+            // this.qualified_name = name.getHumanName( state );
             n = state.declareNameSpace( name, name.Name );
             state.enterNameSpace( n );
 	    state.UseList = use_list;
@@ -176,7 +176,7 @@ namespace Parse {
         }
 
 	void useTypes( CompileState state ) {
-            this.qualified_name = name.getQualifiedName( state );
+            // this.qualified_name = name.getHumanName( state );
             n = state.declareNameSpace( name, name.Name );
             state.enterNameSpace( n );
 	    state.UseList = use_list;
@@ -277,7 +277,6 @@ namespace Parse {
 
 	void useTypes( CompileState state ) {
             // Symbol symbol = state.findSymbol( name.getName() );
-            //  fprintf( stderr, "USING %s\n", symbol ? symbol.getQualifiedName() : "undefined namespace" );
 	    // do not report errors, search only for types:
             Symbol symbol = name.getSymbol(state,false,Symbol.FIND_TYPE);
             if( symbol == null ) {
