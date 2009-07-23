@@ -1815,8 +1815,6 @@ namespace Parse {
 		decorate = new StringBuffer(force_decorate);
 	    }
 
-	    IO.Std.err.println( "decorated method name: " + decorate );
-            
             Container current_class = CurrentClass;
             if( current_class.Scope.findMethodDecorated( decorate ) != null ) {
                 from.error( "duplicate method definition " + decorate );
@@ -1924,8 +1922,6 @@ namespace Parse {
 		decorate.append( "EE" );
 
 		search_name = name + human;
-
-		IO.Std.err.println( "template instance name: " + human + " decorated: " + decorate );
 	    } else {
 		human = getNameSpaceQualifiers(name);
 		decorate = getNameSpaceDecorated(name);
@@ -1945,7 +1941,7 @@ namespace Parse {
 
 		}
                 class_symbol = cast<Container>(symbol);
-		IO.Std.err.println( "previous definition: " + class_symbol.HumanName + " decorated: " + class_symbol.DecoratedName );
+		
             } else {
                 symbol = findSymbol(name, Symbol.FIND_ANY);
 
@@ -1967,9 +1963,6 @@ namespace Parse {
 
 	    class_symbol.setDecoratedName( decorate );
 	    class_symbol.setHumanName( human );
-
-	    IO.Std.err.println( "decorated class name: " + class_symbol.DecoratedName );
-	    IO.Std.err.println( "human class name: " + class_symbol.HumanName );
 
             class_symbol.setDefined( 1 );
             
@@ -2322,11 +2315,8 @@ namespace Parse {
 	}
 
 	Type findGeneric( Container c, Vector<Type> arguments, bool find_only ) {
-	    IO.Std.err.println( "searching for instance of template " + c + " with arguments: " + arguments );
-
 	    if( c.Template != null ) {
-		IO.Std.err.println( "already an instance: " + c );
-		throw new Exception( "is already an instance??: " + c );
+		throw new Exception( c.HumanName + "is already an specialization of " + c.Template.HumanName );
 	    }
 
 	    foreach( Container d; generic_instances.elements() ) {

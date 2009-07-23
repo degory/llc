@@ -409,12 +409,11 @@ namespace Parse {
 	}
 
 	set Container Template = template {
-	    var tn = "null";
-	    if( this.template != null ) {
-		tn = this.template.Name;
+	    if( this.template == null ) {
+		this.template = template;
+	    } else {
+		throw new Exception( "overwriting template: " + this.HumanName + " template " + this.template.HumanName + " <- " + template.HumanName );
 	    }
-	    IO.Std.err.println( "" + this.HumanName + " template " + tn + " <- " + template.Name );
-	    this.template = template;
 	}
 
 	get int TypeArgsRequiredLength {
@@ -858,7 +857,6 @@ namespace Parse {
         
         get String HumanName {
             if( human == null ) {
-                IO.Std.err.println( "get human " + Name + ": null" );
 		StringBuffer result = new StringBuffer();
 		Symbol o = Owner; 
 		if( o != null ) {
@@ -873,7 +871,6 @@ namespace Parse {
         }
 
 	get String FileName {
-	    IO.Std.err.println( "file name for: " + HumanName + ": " + DecoratedName );
 	    return DecoratedName;
 	}
         

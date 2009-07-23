@@ -14,7 +14,7 @@ namespace Parse {
     use Generic.Vector;
 
     class Main {
-	const int BUILD = 1166;
+	const int BUILD = 1167;
 
 	CompileState state;
 

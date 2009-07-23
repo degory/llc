@@ -530,13 +530,6 @@ namespace Parse {
 	    super.init( line_number );
 	    this.type = type;
 	    this.arguments = arguments;
-
-	    if( type.Clazz.Template != null ) {
-		IO.Std.err.println( "creating generic type expression where type is already a template: " + type + " from: " + new System.Backtrace() );
-	    } else {
-		IO.Std.err.println( "creating generic type expression: " + type + " ( " + arguments + " )" );
-
-	    }
 	}
 
 	Type parseType( CompileState state ) {
@@ -546,10 +539,8 @@ namespace Parse {
 	Type parseType( CompileState state, bool find_only ) {
 	    Type t;
 	    if( type_expr != null ) {
-		IO.Std.err.println( "parse generic type expression: " + type_expr );
 		t = type_expr.parseType( state, arguments );
 	    } else {
-		IO.Std.err.println( "parse generic type expr, using supplied type: " + type );
 		t = type;
 
 		if( t.Clazz.Template != null ) {
@@ -571,19 +562,14 @@ namespace Parse {
 	    } 
 	    Container c = t.Clazz;
 
-	    if( c.Template != null ) {
-		IO.Std.err.println( "generic type expression now has template: " + c.HumanName + " from: " + new System.Backtrace() );
-	    }
 	    
 	    var a = new Vector<Type>();
 	    foreach( TypeExpr e; arguments.List.elements() ) {
 		t = e.parseType( state );
-		IO.Std.err.println( "type argument: " + t + " from " + e );
 		a.add( t );
 	    }
 	    
 	    t = state.findGeneric( c, a, find_only );
-	    IO.Std.err.println( "result is: " + t );
 
 	    t.Clazz.markReferenced();
 

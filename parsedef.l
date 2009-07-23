@@ -570,7 +570,6 @@ namespace Parse {
 
 	void makeSuperClassConcrete( CompileState state, Container clazz, Container super_class ) {
 	    if( super_arguments != null ) {
-		IO.Std.err.println( "make super class concrete: " + clazz.HumanName + " extends " + super_class.HumanName );
 
 		if( super_class == null ) {
 		    IO.Std.err.println( "oops: arguments supplied but super class is null: " + clazz + ", " + this + " from: " + new System.Backtrace() );
@@ -579,12 +578,10 @@ namespace Parse {
 		GenericType gst = new GenericType( line_number, new Type( Type.CLASS, super_class ), super_arguments );
 		// GenericType gst = new GenericType( line_number, new NamedType( line_number, super_ident), super_arguments );
 
-		IO.Std.err.println( "check templates for: " + gst );
 		gst.checkTemplates( state );
 
 		// this could recurse but not indefinitely?
 		Type st = gst.parseType( state );
-		IO.Std.err.println( "parse type gives: " + st );
 
 		clazz.Super = st.Clazz;
 	    } else {		
@@ -1521,15 +1518,9 @@ namespace Parse {
                 arg_types = args.getTypes( state );
             }
 
-	    IO.Std.err.println( "current class: " + state.CurrentClass.HumanName );
-            
-
-
 	    String n = name.Name;
             m = cast<Container>( state.declareMethod( this, n, kind, actual_access, type.parseType(state), arg_types, null ) );
 
-
-	    IO.Std.err.println( "declare method: " + m.HumanName + " decorated: " + m.DecoratedName );
 	    // m.IsEmpty = is_empty;
 
 	    // IO.Std.err.println( "declare class symbols: " + m.HumanName );
@@ -1952,8 +1943,6 @@ namespace Parse {
             var human = m.HumanName;
             var decorated = m.DecoratedName;
 
-	    IO.Std.err.println( "actual compile method human: " + human + " decorated: " + decorated );
-            
             resetTemporary();
 
 	    // message( human );
