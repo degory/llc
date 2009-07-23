@@ -392,7 +392,7 @@ namespace Parse {
 	    WANT_VIRTUAL = 8;
 
 	private const int
-	    DEFAULT_WARN_FLAGS = 15 | 32; // all warnings enabled, trusted flag not set
+	    DEFAULT_WARN_FLAGS = 13 | 32; // all warnings enabled, trusted flag not set
 
 	private const int
 	    INLINE_MAX = 30;    // approxiate maximum inline method size (in parse tree nodes)

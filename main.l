@@ -3,6 +3,7 @@
 import args;
 import stream;
 
+import compiler;
 import compilestate;
 import mtree;
 
@@ -14,7 +15,17 @@ namespace Parse {
     use Generic.Vector;
 
     class Main {
-	const int BUILD = 1167;
+	void init() {
+	    var args = System.Arguments.ProgramArguments;
+
+	    var c = new Compiler();
+
+	    c.run(args);
+	}
+    }
+
+    class Compiler extends System.Compiler {
+	const int BUILD = 1168;
 
 	CompileState state;
 
@@ -46,8 +57,11 @@ namespace Parse {
 	  
 	    Gen.TempFactory.setInstance( temp_factory );
 	}
+	
+	void init() {
+	}
 
-        void init() {
+        void run( String[] args ) {
 	    // initForThreads();
 
 	    state = new CompileState();
@@ -58,13 +72,13 @@ namespace Parse {
 
 	    Gen.Machine.initOpNames();
             
-            String[] args = System.Arguments.ProgramArguments;
 
-	    state.WantRegVars = true;
+	    state.WantRegVars = false;
 	    state.WantWarnResolve = false;
 
 	    bool set_executable_name = false;
 	    bool want_stats = false;
+	    bool want_standard_library = true;
 
             for( i = 1; i < args.length; i = i + 1 ) {
                 name = args[i];
@@ -209,7 +223,13 @@ namespace Parse {
 				state.WantPIC = true;
 
 			    case 'l':
-				state.WantPIC = false;				
+				state.WantPIC = false;
+
+			    case 'S':
+				want_standard_library = true;
+
+			    case 's':
+				want_standard_library = false;
     
 			    case '1':
 				// state.WantCoalesce = true;
@@ -337,6 +357,14 @@ namespace Parse {
 		foreach( String s; input_files.elements() ) {
 		    last_file = s;
 		    state.visitFile( s );
+
+		    if( s =~ "lang.ll" ) {
+			want_standard_library = false;
+		    }
+		}
+
+		if( want_standard_library ) {
+		    state.visitFile( "lang.ll" );
 		}
 
 		state.compilePending();
@@ -412,8 +440,8 @@ namespace Parse {
 	    IO.Std.err.println( "    -W<warn options> warning message options" );
 	    IO.Std.err.println();
 	    IO.Std.err.println( "code generation options:" );
-	    IO.Std.err.println( "    V                enable register variables (default)" );
-	    IO.Std.err.println( "    v                disable register variables" );
+	    IO.Std.err.println( "    V                enable register variables" );
+	    IO.Std.err.println( "    v                disable register variables (default)" );
 	    IO.Std.err.println( "    I                inline methods where possible" );
 	    IO.Std.err.println( "    i                do not inline methods (default)" );
 	    IO.Std.err.println( "    C                coalesce redundant register moves" );
