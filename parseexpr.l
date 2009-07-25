@@ -28,6 +28,8 @@ namespace Parse {
         }
 
         void calcType( CompileState state ) {
+	    // IO.Std.err.println( "VectorList calcType in pass #" + cast int(state.Pass) );
+	    // IO.Std.err.println( "list is: " + this );
             Type t, u;
             if( element_type != null ) {
                 t = element_type.parseType(state);
@@ -87,6 +89,10 @@ namespace Parse {
 	}
 
 	void checkTemplates( CompileState state ) {
+	    if( element_type != null ) {
+		new VectorType( line_number, element_type ).checkTemplates( state );
+	    }
+
             foreach( Expression f; list.List.elements() ) {
 		f.checkTemplates( state );
 	    }
@@ -171,6 +177,10 @@ namespace Parse {
 	get int Depth {
 	    int result = 0;
 	    return list.Depth + 1;
+	}
+
+	String toString() {
+	    return "{" + list + "}";
 	}
 
 	void print( CompileState state, Printer p ) {
@@ -2567,6 +2577,20 @@ namespace Parse {
 	    }
 
 	    return result + 1;
+	}
+
+	String toString() {
+	    var buffer = new StringBuffer();
+            for( var i = list.elements(); i.hasMoreElements(); ) {
+                Expression e = i.nextElement();
+		buffer.append( e );
+                
+                if( i.hasMoreElements() ) {
+                    buffer.append( ',' );
+                }
+	    }
+
+	    return buffer;
 	}
 
 	void print( CompileState state, Printer p ) {

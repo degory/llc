@@ -155,13 +155,22 @@ namespace System is
 		char ptr compare = cast char ptr([p]);
 
 		if compare == null then
+		    IO.Std.err.println( "not found: " + name );
 		    return null;
 		fi
+
+		IO.Std.err.println( "try '" + name + "' =~ '" + compare + "'..." );
 
 		// native.printf( `comparing against class name '%s'...\n`, compare );
 
 		if name =~ compare then
-		    return new Class( cast int ptr ptr([p+1]) );
+		    // make a pointer to the get vtable function:
+		    var f = new Proc<int ptr ptr proc()>([p+1]);
+		    IO.Std.err.println( "match, vtable is: " + f );
+
+		    var result = new Class( f() );
+		    IO.Std.err.println( "returning " + result );
+		    return result;
 		fi
 		p = p + 2;
 	    od

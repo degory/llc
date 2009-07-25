@@ -17,5 +17,9 @@ namespace System is
 	static get int HeapUsed is
 	    return HeapSize - HeapFree;
         end
+
+	static void collect() is
+	    native.GC_gcollect();
+	end    
     end
 end

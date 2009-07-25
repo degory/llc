@@ -126,7 +126,6 @@ namespace System is
 	    StringBuffer result;
 	    int i;
 	    result = new StringBuffer();
-	    result.append( "testing testing: " );
 	    result.append( getClassNameC() );
 	    // result = new StringBuffer( getClassNameC() );
 	    result.append( ` @` );

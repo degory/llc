@@ -567,17 +567,22 @@ namespace Parse {
 	 
 	    interfaces_set = new Generic.Set<Container>();
  
-	    ParseTree.initUndefinedSymbols(this);
-	    if( instance == null ) {
-		instance = this;
-	    } else {
-		throw new Exception( "attempting to create second CompileState instance" );
+	    if( instance != null ) {
+		IO.Std.err.println( "creating another compiler instance overwrites static values in previous instance" );
 	    }
+	    instance = this;
+
+	    ParseTree.initUndefinedSymbols(this);
+
 
 	    // pool = new ThreadPool(2);
 	    // pool.start();
 	}
-
+	
+	static void resetStatic() {
+	    instance = null;
+	    System.GC.collect();
+	}
 
 	void wait( int load ) {
 	    // IO.Std.err.println( "wait " + active_processes + ", " + load );
@@ -846,10 +851,14 @@ namespace Parse {
 
 
 	void addLibrary( String name ) {
-	    if( WantVerbose ) {
-		ParseTree.message( "adding library: " + name );
+	    if( !WantPIC ) {
+		if( WantVerbose ) {
+		    ParseTree.message( "adding library: " + name );
+		}
+		libraries.add( name );
+	    } else {
+		ParseTree.message( "ignoring library '" + name + "' in PIC mode" );
 	    }
-	    libraries.add( name );
 	}
 
         void addLinkFile( String name ) {
@@ -1115,6 +1124,7 @@ namespace Parse {
 	    if( WantVerbose ) {
 		ParseTree.message( "linking objects..." );
 	    }
+	   
 	    linkObjectFiles();
 
 	    ParseTree.message( "done" );
@@ -1129,6 +1139,8 @@ namespace Parse {
 	    var v = new Vector<String>();
 	    // IO.Std.err.println( "going to link. output: '" + executable_name + "'" );
 	    String exe;
+
+	    IO.Std.err.flush();
 
 	    // IO.Std.err.println( "want pic is: " + WantPIC );
 
@@ -2327,6 +2339,11 @@ namespace Parse {
 		    return d.Type;
 		    // return new Type( Type.CLASS, d );
 		}
+	    }
+
+	    if( pass > CompilePass.CHECK_TEMPLATES ) {
+		IO.Std.err.println( "find generic " + c + " " + arguments + ": wrong pass should have been done earlier" );
+		throw new System.Exception( "find generic " + c + " " + arguments + ": wrong pass should have been done earlier" ); 
 	    }
 
 	    //	    if( !find_only ) {

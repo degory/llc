@@ -250,7 +250,7 @@ namespace Parse {
         public static int inline_call_count;
 
         protected static Type
-            undefined_type = new Type( Type.ERROR ),
+            undefined_type,
             string_type,
             object_type,
 	    bool_type,
@@ -303,6 +303,10 @@ namespace Parse {
 
 	static void resetLastComment() {
 	    last_comment = null;
+	}
+
+	static void staticReset() {
+	    
 	}
 
 	get String Comment {
@@ -506,9 +510,21 @@ namespace Parse {
         }
  
         static void initUndefinedSymbols( CompileState state ) {
+	    undefined_variable = new Symbol( null, "#undefined variable#",
+					     Symbol.LOCAL_VARIABLE,
+					     Symbol.ACCESS_PUBLIC | Symbol.ACCESS_STATIC,
+					     undefined_type );
+	    
+	    undefined_method = new Container( null, null, "#undefined method#", Symbol.INSTANCE_METHOD,
+					      Symbol.ACCESS_PUBLIC | Symbol.ACCESS_STATIC,
+					      undefined_type );
+
+	    undefined_class = new Container( null, null, "#undefined class#" );
+
             undefined_variable.Owner = undefined_method;
             undefined_method.Owner = undefined_class;
             undefined_method.DecoratedName = "undefined_method";
+	    undefined_type = new Type( Type.ERROR );
             undefined_type.SubType = undefined_type;
             undefined_variable.Address = 0;
             undefined_variable.Defined = 1;
@@ -587,7 +603,7 @@ namespace Parse {
 
         void init( int line_number ) {
             super.init();
-	    // IO.Std.err.println( "initialize ParseTree..." );
+
             file_name = current_file_name;
             this.line_number = line_number;
 
@@ -1545,33 +1561,35 @@ namespace Parse {
 
         void compile( CompileState state, IBlock into ) {
 	    left_value.wantSetProperty( state, right_value );
-            Type tl = left_value.getType( state );
-            Type tr = right_value.getType( state );
-
+	    Type tl = left_value.getType( state );
+	    Type tr = right_value.getType( state );
+	    
 	    /*
-	    IO.Std.err.println( "assign left value:  " + left_value + " type: " + tl );
-	    IO.Std.err.println( "assign right value: " + right_value + " type: " + tr );
+	      IO.Std.err.println( "assign left value:  " + left_value + " type: " + tl );
+	      IO.Std.err.println( "assign right value: " + right_value + " type: " + tr );
 	    */
-
+	    
 	    if( !left_value.isProperty(state) && !left_value.isLeftValue(state) ) {
 		error( "cannot assign to non lvalue " + left_value.dump(state) );
 	    }
-		
+	    
 	    if( left_value.isProperty(state) ) {
 		left_value.compileValue( state, into );
 	    } else {
 		if( !tl.isAssignableFrom( tr ) && tl.TypeKind != Type.ERROR ) {
 		    /*
-		    IO.Std.err.println( "assign left value:  " + left_value + " type: " + tl );
-		    IO.Std.err.println( "assign right value: " + right_value + " type: " + tr );
+		      IO.Std.err.println( "assign left value:  " + left_value + " type: " + tl );
+		      IO.Std.err.println( "assign right value: " + right_value + " type: " + tr );
 		    */
 		    error( tl.dump() + " is not assignable from " + tr.dump() );
 		}
-
+		
 		ITree l = left_value.compileAddress( state, into );
 		ITree r = right_value.compileValue( state, into );
 		addStoreIndirect( state, line_number, into, tl.RegSize, true, l, r );
 	    }
+	    
+
 	    // into.add( new ITree( line_number, Op.COPY, tl.getRegSize(), makeLoadIndirect( line_number, into, Op.INDIRECT, tl.getRegSize(), l ), r ) );
         }
 

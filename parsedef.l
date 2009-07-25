@@ -820,11 +820,6 @@ namespace Parse {
 		}
 
                 state.beginCompileClass( this, c, name.Name );
-		/*
-		var s = state.needCompile( state.CurrentSourceFileName, c.FileName, c.Hash );
-
-                c.CompileStatus = s;
-		*/
 
                 body.prepareInline( state );
                 state.endCompileClass( c );
@@ -903,7 +898,7 @@ namespace Parse {
 				int la = state.Hash[si.DecoratedName];
 				
 				if( si.Address != la ) {
-				    error( "genuinely bad offset found: " + si.HumanName );
+				    error( "class source definition does not match compiled library class for method " + si.HumanName );
 				    IO.Std.err.println( "BAD: " + si.HumanName + ": sa: " + si.Address + " la: " + la );
 				    //} else {
 				    // IO.Std.err.println( " ok: " + si.HumanName + ": sa: " + si.Address + " la: " + la );
@@ -932,6 +927,7 @@ namespace Parse {
 		    Machine.emitClassSegment( f );
 		    // class name$__... is a variable, we want direct pointer to name string here:
                     Machine.emitDefPointerLabel( f, l.Int );
+		    Machine.emitDefPointer( f, "__get_vtable_" + c.DecoratedName );
                     
 		    Machine.emitRoDataSegment( f );
 
@@ -1328,6 +1324,9 @@ namespace Parse {
                                 
                 Symbol symbol = state.findSymbol( name, Symbol.FIND_ANY );
 		if( symbol == null ) {
+		    IO.Std.err.println( "looking for " + name );
+		    IO.Std.err.flush();
+
 		    error( "could not find previous defitition of " + name );
 		    if( state.CurrentClass != null ) {
 			error( "in class " + state.CurrentClass.HumanName );

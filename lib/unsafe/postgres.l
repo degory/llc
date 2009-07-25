@@ -287,7 +287,7 @@ namespace SQL {
 	    /// Construct a new SQL.PostgreSQL.Connection
 	    /// \param connect_string a PostgreSQL connect string describing the database to connect to
 	    void init( System.String connect_string ) {
-		// IO.Std.err.println( "connecting to: " + connect_string );
+		IO.Std.err.println( "connecting to: " + connect_string );
 
 		connection = PQconnectdb( connect_string.toCString() );
 

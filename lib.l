@@ -3,6 +3,18 @@ import gvector;
 import gset;
 import gmap;
 import gllist;
+//import postgres;
+import gc;
+import environment;
+import unwind;
+import klass;
+import library;
+import thread;
+import lock;
+import signal;
+import stat;
+import args;
+
 
 namespace System {
     use Generic.Vector;
@@ -27,7 +39,7 @@ namespace System {
 
 	    var d0 = new Set<String>();
 	    var d1 = new Set<int>();
-	    var d2 = new Set<char>();
+	    var d2 = new Set<char>();	    
 	}
     }
 }

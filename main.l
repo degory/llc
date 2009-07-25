@@ -7,6 +7,8 @@ import compiler;
 import compilestate;
 import mtree;
 
+import gc;
+
 namespace Parse { 
     use System.Object;
     use System.String;
@@ -18,14 +20,16 @@ namespace Parse {
 	void init() {
 	    var args = System.Arguments.ProgramArguments;
 
+	    CompileState.resetStatic();
+
 	    var c = new Compiler();
 
-	    c.run(args);
+	    System.Exit.exit( c.run2(args) );
 	}
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1168;
+	const int BUILD = 1169;
 
 	CompileState state;
 
@@ -59,9 +63,15 @@ namespace Parse {
 	}
 	
 	void init() {
+            native.GC_set_max_heap_size(512*1024*1024);
 	}
 
-        void run( String[] args ) {
+	int run( String[] args ) {
+	    var result = run2( args );
+	    CompileState.resetStatic();
+	}
+
+        int run2( String[] args ) {
 	    // initForThreads();
 
 	    state = new CompileState();
@@ -86,7 +96,7 @@ namespace Parse {
                     switch( name[1] ) {
 		    case 'h', 'H', '?':
 			usage( args[0] );
-		        return;
+		        return 1;
 
 			/*
 		    case 'A':
@@ -247,7 +257,7 @@ namespace Parse {
 				
 			    default:
 				IO.Std.err.println( "unexpected code generation switch: '" + name[j] );
-				return;
+				return 1;
 			    }
 			}
 
@@ -292,7 +302,7 @@ namespace Parse {
 
 		    default:
 			IO.Std.err.println( "unexpected switch: '" + name[1] );
-			return;
+			return 1;
                     }
 
 		    if( state.WantInline && !state.WantRegVars ) {
@@ -312,7 +322,7 @@ namespace Parse {
 
 	    if( input_files.Length == 0 ) {
 		usage( args[0] );
-		return;
+		return -1;
 	    }
 
 	    if( state.WantVerbose ) {
@@ -403,19 +413,19 @@ namespace Parse {
 		    IO.Std.err.println( "        " + Gen.MInst.mem_number + " spills converted to direct memory references" );
 		}
 		if( ParseTree.didErrorsOccur() ) {
-		    System.Exit.exit(1);
+		    return 1;
 		} else {
-		    System.Exit.exit(0);
+		    return 0;
 		}
 	    } catch( ParseException pe ) {
 		ParseTree.newline();
 		IO.Std.err.println( "*** unrecoverable parse error ***" );
-		System.Exit.exit(1);
+		return 1;
 	    } catch( Exception se ) {
 		ParseTree.newline();
 		IO.Std.err.println( "*** fatal error ***" );
 		IO.Std.err.println( se );
-		System.Exit.exit(1);
+		return 1;
 	    }
         }
 
