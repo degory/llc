@@ -3,6 +3,7 @@ CFLAGS=-DB64 -g
 install: lrt-amd64-1.o ldn-amd64-1.o exception.so
 	cp lrt-amd64-1.o /usr/lang/lib
 	cp ldn-amd64-1.o /usr/lang/lib
+	cp exception.o /usr/lang/lib
 	cp exception.so /usr/lang/lib
 
 # all: lrtx.o

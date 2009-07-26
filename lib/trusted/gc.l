@@ -8,6 +8,10 @@ namespace System is
             return cast int(native.GC_get_heap_size());
 	end
 
+	static set int MaxHeapSize = s is
+	    native.GC_set_max_heap_size(s);
+	end
+
 	/// Return amount of free space in the heap in bytes
         static get int HeapFree is
 	    return cast int(native.GC_get_free_bytes());

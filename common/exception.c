@@ -404,6 +404,7 @@ void __report_dispose( WORD *object ) {
 void *__alloc_object( WORD size, WORD *vtable ) {
   // GC_find_leak = 1;
   WORD *result = GC_MALLOC_IGNORE_OFF_PAGE( size );
+
   result[0] = (WORD)vtable;
 
 #ifdef TRACE_ALLOC
@@ -1034,8 +1035,8 @@ void __segv_handler(int sig, siginfo_t *si, SigContext *uc) {
   int i;
   D("caught SIGSEGV referencing address: 0x%lx\n", (long) si->si_addr); 
 
-  fprintf( stderr, "Content-type: text/plain\r\n\r\n" );
-  fprintf( stderr, "SIGSEGV referencing address: 0x%p\n", (void *)si->si_addr );
+  // fprintf( stderr, "Content-type: text/plain\r\n\r\n" );
+  // fprintf( stderr, "SIGSEGV referencing address: 0x%p\n", (void *)si->si_addr );
 
   Exception *e;
 
@@ -1180,6 +1181,3 @@ long __get_nanotime() {
 
 }
 
-void __static_begin( void (*f)() ) {
-  f();
-}

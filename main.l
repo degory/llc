@@ -23,13 +23,15 @@ namespace Parse {
 	    CompileState.resetStatic();
 
 	    var c = new Compiler();
+	    var result = c.run2(args);
 
-	    System.Exit.exit( c.run2(args) );
+	    IO.Std.err.flush();
+	    System.Exit.exit( result );
 	}
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1169;
+	const int BUILD = 1170;
 
 	CompileState state;
 
@@ -51,7 +53,6 @@ namespace Parse {
 	static Gen.TempFactory temp_factory;
 
 	void initForThreads() {
-	    native.GC_set_max_heap_size(512*1024*1024);
 	    // native.GC_expand_hp(512*1024*1024);
 
 	    // native.GC_enable_incremental();
@@ -63,7 +64,7 @@ namespace Parse {
 	}
 	
 	void init() {
-            native.GC_set_max_heap_size(512*1024*1024);
+
 	}
 
 	int run( String[] args ) {
@@ -77,12 +78,16 @@ namespace Parse {
 	    state = new CompileState();
 	    bool first_file = true;
 	    int i, j;
+
+	    int max_heap = 512;
+
 	    String name;
 	    var input_files = new Vector<String>();
 
 	    Gen.Machine.initOpNames();
             
 
+	    state.WantSharedStandardLibrary = true;
 	    state.WantRegVars = false;
 	    state.WantWarnResolve = false;
 
@@ -180,6 +185,14 @@ namespace Parse {
 		    case 's':
 			want_stats = true;
 
+		    case 'M':
+			if( name.Length >= 2 ) { 
+			    max_heap = name.substring(2).toInt();
+			} else {
+			    i = i + 1;
+			    max_heap = args[i].toInt();
+			}
+
 		    case 'O':
 			if( name.Length == 2 ) {
 			    name = name + '1';
@@ -236,10 +249,10 @@ namespace Parse {
 				state.WantPIC = false;
 
 			    case 'S':
-				want_standard_library = true;
+				state.WantSharedStandardLibrary = true;
 
 			    case 's':
-				want_standard_library = false;
+				state.WantSharedStandardLibrary = false;
     
 			    case '1':
 				// state.WantCoalesce = true;
@@ -320,6 +333,10 @@ namespace Parse {
                 }
             }
 
+	    if( max_heap > 0 ) {
+		System.GC.MaxHeapSize = max_heap * 1024 * 1024;
+	    }
+
 	    if( input_files.Length == 0 ) {
 		usage( args[0] );
 		return -1;
@@ -363,17 +380,19 @@ namespace Parse {
 		state.initSearchPaths(state.WantSafe);
 
 		state.visitFile( "lang.l" );
+
+		bool visit_standard_library = state.WantSharedStandardLibrary;
 		
 		foreach( String s; input_files.elements() ) {
 		    last_file = s;
 		    state.visitFile( s );
 
 		    if( s =~ "lang.ll" ) {
-			want_standard_library = false;
+			visit_standard_library = false;			
 		    }
 		}
 
-		if( want_standard_library ) {
+		if( visit_standard_library ) {
 		    state.visitFile( "lang.ll" );
 		}
 
@@ -438,6 +457,7 @@ namespace Parse {
 	    IO.Std.err.println( "usage: " + name + " [options] source-file..." );
 	    IO.Std.err.println( "    -o <file name>   write the output executable to <file name>" );
 	    IO.Std.err.println( "    -l <directory>   add <directory> to path to search for source files" );
+	    IO.Std.err.println( "    -L <library>     link executable against <library>" );
 	    IO.Std.err.println( "    -p <name>        set the project name - object files will be stored in /tmp/lcache-<name>" );
 	    IO.Std.err.println( "    -j <jobs>        set number of parallel compile processes" );
 	    IO.Std.err.println( "    -v               verbose output" );
@@ -445,7 +465,8 @@ namespace Parse {
             IO.Std.err.println( "    -S               create sandboxed executable" );
 	    IO.Std.err.println( "    -s               output code generation statistics" );
 	    IO.Std.err.println( "    -d               do not generate debugging information" );
-	    IO.Std.err.println( "    -O               shorthand for -OVIBR" );
+	    IO.Std.err.println( "    -M <heap size>   limit compiler heap size to <heap size> megabytes" );
+	    IO.Std.err.println( "    -O1              shorthand for -OVIBR" );
 	    IO.Std.err.println( "    -O<code options> code generation options" );
 	    IO.Std.err.println( "    -W<warn options> warning message options" );
 	    IO.Std.err.println();
@@ -460,6 +481,8 @@ namespace Parse {
             IO.Std.err.println( "    b                regular bounds check sequence (default)" );
 	    IO.Std.err.println( "    R                eliminate redundant return jumps" );
 	    IO.Std.err.println( "    r                always jump to epilog on return (default)" );
+	    IO.Std.err.println( "    S                build executable linked against shared standard library (default)" );
+	    IO.Std.err.println( "    s                build statically linked executable" );
 	    IO.Std.err.println();
 	    IO.Std.err.println( "warning message options:" );
 	    IO.Std.err.println( "    S                warn for every unsafe construct encountered" );

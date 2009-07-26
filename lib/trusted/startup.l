@@ -13,7 +13,7 @@ namespace System is
         /// \param se uncaught exception to handle
         static void uncaughtException( System.Exception se ) is
 	    if http_mode then
-	        native.printf( `Content-type: text/plain\n` );
+	        native.printf( `Content-type: text/plain\r\n\r\n` );
 	    fi
             if se != null then
 		native.printf( `uncaught exception %s\n`, se.Class.Name.toCString() );

@@ -19,8 +19,8 @@
 __data_begin:	
 	
 .section x_static_begin,"ax"
-.global static$begin
-static$begin:
+.global __static_begin
+__static_begin:
 	pushq %rbp
 	movq %rsp,%rbp
 .section x_static_init,"ax"
@@ -324,7 +324,7 @@ main:
 .extern GC_parallel
 .extern GC_enable_incremental
 .extern __install_segv_handler
-#	call __install_segv_handler
+	call __install_segv_handler
 	
 	
 #	movl $1,GC_print_stats
@@ -334,7 +334,7 @@ main:
 #	call GC_enable_incremental
 
 		
-	call static$begin
+	call __static_begin
 
 	call __entry_point
 

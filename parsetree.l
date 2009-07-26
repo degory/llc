@@ -309,6 +309,10 @@ namespace Parse {
 	    
 	}
 
+	static get Type UndefinedType {
+	    return undefined_type;
+	}
+
 	get String Comment {
 	    return comment;
 	}
@@ -925,6 +929,8 @@ namespace Parse {
 	}
 
 	void apply( CompileState state, Identifier name ) {
+	    // IO.Std.err.println( "pass: " + cast int(state.Pass) + ", name: " + name );
+
 	    if( name.Name =~ "NoWarnHide" ) {
 		state.WantWarnHide = false;
 	    } else if( name.Name =~ "NoWarnResolve" ) {
@@ -936,22 +942,38 @@ namespace Parse {
 	    } else if( name.Name =~ "NoProfile" ) {
 		state.WantProfile = false;
 	    } else if( name.Name =~ "NoFinal" ) {
-		IO.Std.err.println( "pragma no-final..." );
+		if( state.Pass == CompilePass.CHECK_TEMPLATES ) {
+		    // current method not set in this pass so cannot apply pragma now:
+		    return;
+		}
+
 		if( state.CurrentMethod != null ) {
-		    IO.Std.err.println( "current method is: " +state.CurrentMethod.HumanName );
+		    // IO.Std.err.println( "no final: " + state.CurrentMethod.HumanName + ", warned: " + warned + ", pass: " + cast int(state.Pass) );
 		    state.CurrentMethod.IsFinal = false;
 		    if( !warned ) {
 			warn( "force not final: " + state.CurrentMethod.HumanName );
 		    }
-		} else {
-		    IO.Std.err.println( "no current method" );
-
+		} else if( state.CurrentClass != null ) {
+		    // IO.Std.err.println( "no final: "+ state.CurrentClass.HumanName + ", warned: " + warned + ", pass: " + cast int(state.Pass) );
 		    state.WantVirtual = true;
+		    if( !warned ) {
+			warn( "force not final remaining methods in: " + state.CurrentClass.HumanName );
+		    }		    
+		} else {
+		    // IO.Std.err.println( "no final: current file, warned: " + warned + ", pass: " + cast int(state.Pass) );
+		    state.WantVirtual = true;
+		    if( !warned ) { 
+			warn( "force not final remaining methods in this file" );
+		    }
 		}
 	    } else if( !warned ) {
 		warn( "ignoring undefined pragma " + name );
 	    }
-	    warned = true;
+
+	    // warnings supressed when inlining methods so don't set warned in that case:
+	    if( !state.IsInline ) {
+		warned = true;
+	    }
 	}
 
         void declareGlobalSymbols( CompileState state ) {
@@ -989,6 +1011,10 @@ namespace Parse {
         void compile( CompileState state ) {
 	    apply( state );
         }	
+
+        void compile( CompileState state, IBlock into ) {
+	    apply( state );
+	}
     }
 
     class DocComment extends ParseTree {

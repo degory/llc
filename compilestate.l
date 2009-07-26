@@ -458,6 +458,7 @@ namespace Parse {
 	bool want_print;
 	bool want_safe;
 	bool want_line_numbers;
+	bool want_shared_standard_library;
 
 	int default_warn_flags;
 
@@ -1188,7 +1189,11 @@ namespace Parse {
 	    // v.add( "-nostartfiles" );
 
 	    if( !WantPIC ) {
-		v.add( LIBRARY_DIR + "exception.so" );
+		if( WantSharedStandardLibrary ) {
+		    v.add( LIBRARY_DIR + "exception.so" );
+		} else {
+		    v.add( LIBRARY_DIR + "exception.o" );
+		}
 	    }
 
 	    v.add( "-lgc" );
@@ -2348,6 +2353,10 @@ namespace Parse {
 
 	    //	    if( !find_only ) {
 	    Container e = makeConcrete( c, arguments );
+
+	    if( e == null ) {
+		return ParseTree.UndefinedType;
+	    }
 	    // e.markReferenced();
 	    // IO.Std.err.println( "created new instance: " + e + " from template " + e.Template );
 	    
@@ -2451,7 +2460,7 @@ namespace Parse {
 
 		    return r;
 		}
-	    }
+	    }	    
 	}
 
         Symbol findSymbol( String name, int find_what ) {
@@ -2573,6 +2582,14 @@ namespace Parse {
 
 	static set int WantJobs = j {
 	    this.want_jobs = j;
+	}
+
+        get bool WantSharedStandardLibrary {
+	    return want_shared_standard_library;
+	}
+
+	set bool WantSharedStandardLibrary = s {
+	    want_shared_standard_library = s;
 	}
 
 	get bool WantSafe {
