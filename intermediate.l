@@ -244,9 +244,9 @@ namespace Gen {
     }
 
     class ILocalUseCounter extends Object {
-	bool inline;
 	MBitSet address_taken;
 	Generic.Vector<ILocalUseCount> use_count;
+	bool inline;
 
 	void init(bool inline, MBitSet address_taken) {
 	    super.init();
@@ -479,22 +479,24 @@ namespace Gen {
 
     class ITree extends Object {
 	static int next_id = 0;
+
+        IValue value;
+        ITree left, right;
+
+        Object state;
+
+        MSet rset_;
 	// static bool allow_three_address = false;
 
         int id;
         int op;
         int size;
         int reg;
-        MSet rset_;
+
         int line_number;
         int block_number;
         
         int ref_count;
-
-        IValue value;
-        ITree left, right;
-
-        Object state;
 
         get State GenState {
             return cast<State>(state);

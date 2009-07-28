@@ -35,6 +35,8 @@ namespace Util is
 	    if cpid < 0 then
 		int e = cast int(native.__geterrno());
 		IO.Std.err.println( "fork failed: " + e );
+		IO.Std.err.flush();
+
 		if e == ENOMEM then
 		    System.Thread.sleep(3);
 		    return fork();
@@ -162,7 +164,7 @@ namespace Util is
 	/// \return child exit status if wait, otherwise zero
 	int run( System.String name, System.String[] args, System.String[] env, bool want_wait ) is
 	    native.GC_disable();
-	    fork();
+	    vfork();
 	    if isChild() then
 		spawn( name, args, env );
 	    else

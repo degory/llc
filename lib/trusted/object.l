@@ -9,6 +9,15 @@ namespace System is
     /// Root of the standard L class heirarchy
 
     class Object is
+        public const char
+	    TYPE_UNKNOWN = 0c,
+	    TYPE_1BYTE = 1c,
+	    TYPE_4BYTE = 4c,
+	    TYPE_8BYTE = 8c,
+	    TYPE_OBJECT = 128c,
+	    TYPE_ARRAY = 129c,
+	    TYPE_POINTER = 130c;
+    
         /// Internal interface for garbage collector. Ensures that any exceptions thrown by dispose() are caught
 	// DO NOT MOVE: runtime depends on the _dispose() method occupying the first slot in the vtable:
 	void _dispose() is
@@ -107,10 +116,10 @@ namespace System is
 	end
 
 	/// Return a pointer to this Object's type table
-	get word ptr TypeTable is
+	get char ptr TypeTable is
 	    int ptr ptr _vtable = _get_vtable();
 	    if _vtable != null then
-		return cast word ptr([_vtable - 3]);
+		return cast char ptr([_vtable - 3]);
 	    else
 		return null;
 	    fi
@@ -213,6 +222,18 @@ namespace System is
 	    //native.printf( `'%s' is instance of '%s': NO\n`, toCString(), o.toCString() );
 	    //native.__flush_stdout();
 	    return false;
+	end
+
+	get Object ptr ObjectValuesPointer is
+	    return null;
+        end
+
+	get int ObjectValuesLength is
+	    return 0;
+	end
+
+	get int MemoryUse is
+	    return ObjectSize;
 	end
     end
 end

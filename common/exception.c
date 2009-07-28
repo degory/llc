@@ -747,7 +747,7 @@ int unwindStack( WORD rbp, WORD rip, WORD stop_at_rip, Registers *regs, Backtrac
       if( found_frame ) {
 	break;
       } else {
-	fprintf( stderr, "cannot unwind through non-L code" );
+	fprintf( stderr, "exception in non-L code" );
 	exit(1);
       }
 

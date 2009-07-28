@@ -6,7 +6,7 @@ namespace System {
 
 	void init() { }
 	int run( String[] args ) {
-	    pragma NoFinal;
+	    pragma Virtual;
 	}
 
 	static get Compiler Create {

@@ -219,14 +219,16 @@ namespace Gen {
 
     // represents a temporary referenced by a particular instruction
     class MOperand extends Object {
+	public MReg[] mr;   // link to MReg(s) for this operand in the instructions machine code tree
+	public MSet rset;   // what sort of register should be assigned to this reference
+
 	public int mode;    // how is this temporary used?
 	public int reg;     // what register is this temporary in for this instruction (0 == not yet assigned)
 	public int ssa_write;  // SSA number for temporary if written 
 	public int ssa_read;   // SSA number for temporary if read
 	public int temp;    // temporary referenced by this operand
-	public MSet rset;   // what sort of register should be assigned to this reference
 	public int size;    // what size is this reference in bytes (FIXME: is this still used anywhere?)
-	public MReg[] mr;   // link to MReg(s) for this operand in the instructions machine code tree
+
 
 	void init( int mode, int reg, int temp, MSet rset, int size, MReg r ) {
 	    super.init();
@@ -443,12 +445,16 @@ namespace Gen {
     // this describes a temporary that is a node in the temporary interference
     // graph during register allocation
     class MCandidate extends Object {
+	// holds a list of adjacent temporaries:
+	public MCandidate[] adjacent;
+        private MSet rset;         // what kind of register this node needs
+
         public int refs;           // weighted number of references to this temporary
 	public int cost;           // weighted number of clobbers by method calls of this temporary
         public int temp;           // temporary number
 	public int range;          // measure of size of live range of this temporary
 	// public int last_node;
-        private MSet rset;         // what kind of register this node needs
+
 	public int offset;         // address of slot on the stack for this temporary if it is spilled
 
 	public int reg;            // register assigned to this temporary
@@ -456,9 +462,6 @@ namespace Gen {
 	private int count_general;  // how many interfering registers of any type are adjacent to this temporary
 	private int count_preserve; // how many interfering callee preserve registers are adjacent to this temporary
         
-
-	// holds a list of adjacent temporaries:
-	public MCandidate[] adjacent;
 
 	// bit mask of registers clobbered over this temporaries lifetime:
 	int clobber;
@@ -853,9 +856,10 @@ namespace Gen {
 
     // an edge in the control flow graph:
     class MEdge extends Object {
-        int n;
         public MNode from;
         public MNode to;
+
+        int n;
         
         void init( MFlow mflow, MNode from, MNode to ) {
 	    super.init();
@@ -876,21 +880,6 @@ namespace Gen {
         Util.Vector edge;  // edges connecting basic blocks to their successors
 
 	MNode[] df_node;   // depth first ordered nodes
-        
-	int local_offset;  // at what stack offset should next spilled temporary be placed
-	int size;          // how many temporaries are we allocating registers for
-
-	int next_edge;
-
-	// statistics for debugging purposes:
-	public static int color_count;
-	public static int coalesce_count;
-	public static int instruction_count;
-	public static int method_count;
-	public static int temporary_count;
-
-	static int c_count;
-	static int max_coalesce_copies;
 
         MBitSet potential_spills;    // temporaries that we may not be able to find a register for
 	MBitSet actual_spills;       // temporaries that we could not find a register for
@@ -906,8 +895,24 @@ namespace Gen {
 	                             // counts for temporaries
 
 	int[] regs;                  // indexed by temporary number, holds register to assign for each temporary
+        
+	int local_offset;  // at what stack offset should next spilled temporary be placed
+	int size;          // how many temporaries are we allocating registers for
+
+	int next_edge;
 
 	bool debug;
+
+
+	// statistics for debugging purposes:
+	public static int color_count;
+	public static int coalesce_count;
+	public static int instruction_count;
+	public static int method_count;
+	public static int temporary_count;
+
+	static int c_count;
+	static int max_coalesce_copies;
 
 	// code generation flags:
 	public const int             
@@ -978,6 +983,7 @@ namespace Gen {
 
 
 	// do simple local common subexpression elimination using available expressions (not currently used):
+	/*
 	bool calcSimpleCSE() {
 	    bool result = false;
 	    if( node.Length == 0 ) {
@@ -1014,8 +1020,6 @@ namespace Gen {
 	    return result;
 	}
 
-
-	// do simple local common subexpression elimination using available expressions (not currently used):
 	bool calcSimpleJumpElim() {
 	    bool result = false;
 	    if( node.Length == 0 ) {
@@ -1051,6 +1055,7 @@ namespace Gen {
 
 	    return result;
 	}
+	*/
 
 	void setDebug( bool debug ) {
 	    this.debug = debug;
@@ -1158,6 +1163,7 @@ namespace Gen {
 	    IO.Std.err.println( "max coalesce copies: " + max_coalesce_copies );
 	}
 
+	/*
 	// calculate depth first numbering for control flow graph and return array of
 	// nodes in depth first order:
 	MNode[] calcDFN() {
@@ -1232,15 +1238,6 @@ namespace Gen {
 		}
 
 		v.initSources();
-		/*
-		for( k = 0; k < v.target.length; k = k + 1 ) {
-		    if( v.target[k] != null ) {
-			IO.Std.err.println( "target " + k + " is " + v.target[k].dfn );
-		    } else {
-			IO.Std.err.println( "target " + k + " is null" );
-		    }
-		}
-		*/
 
 		v.s = new Util.Vector();
 
@@ -1596,28 +1593,6 @@ namespace Gen {
 	    return v;
 	}
 
-	/*
-	    if( v.ancestor == null ) {
-		return v;
-	    } else {
-		compress(v);
-		return v.label;
-	    }
-	}
-
-	MNode compress( MNode v ) {
-	    if( v.ancestor.ancestor != null ) {
-		compress( v.ancestor );
-		if( v.ancestor.label.semi.dfn < v.label.semi.dfn ) {
-		    v.label = v.ancestor.label;
-		}
-		v.ancestor = v.ancestor.ancestor;
-	    }
-	}
-
-	*/  
-
-	/*
 	bool calcRangeSizes() {
 	    bool result = true;
 
@@ -1835,22 +1810,9 @@ namespace Gen {
 	    // IO.Std.err.println( "edges: " + edge );
 	}
 
+	/*
 	// put the control flow graph into SSA form (not currently used):
-	void ssa(/*MInst head*/) {
-	    /*
-	    if( head == null ) {
-		return;
-	    }
-
-	    // IO.Std.err.println( "fill..." );
-	    fill( head );
-
-	    // IO.Std.err.println( "enumerate..." );
-
-	    // IO.Std.err.println( "assign registers, local offset: " + local_offset );
-
-	    enumerate();
-	    */
+	void ssa() {
 	    IO.Std.err.println( "calc SSA for " + size + " temporaries..." );
 
 	    calcDominators();
@@ -1860,12 +1822,11 @@ namespace Gen {
 
 	    clearIneffectivePhis();
 
-	    /*
-	    renameSSATemps();
-	    initialize();
-	    reset();
-	    */
+	    //renameSSATemps();
+	    //initialize();
+	    //reset();
 	}
+	*/
 
 	// is it safe to coalesce a copy involving temporary t?
 	bool canCoalesce( int t ) {
@@ -2056,11 +2017,13 @@ namespace Gen {
 	    }
 	}
 
+	/*
 	void renameSSATemps() {
 	    foreach( MNode n; node.elements() ) {	       
 		n.renameSSATemps();
 	    }
 	}
+	*/
 
 	
 	// assign registers and optionally coalesce copies:
@@ -3389,9 +3352,6 @@ namespace Gen {
             MAX_NODE_TARGET = 2,
             MAX_NODE_SOURCE = 16;
 
-        bool is_visited;
-        bool is_removed;
-        public int weight;
         // int n;
         // int last_temp;
         public String[] name;
@@ -3406,6 +3366,7 @@ namespace Gen {
 	public MBitSet bs_out;
 	public MBitSet bs_in;
 
+	/*
 	// Dominator tree:
         public int dfn;
 	public MNode parent;
@@ -3423,7 +3384,12 @@ namespace Gen {
 	public MBitSet bs_written;
 	public int has_already;
 	public int work;
+	*/
 
+        public int weight;
+
+        bool is_visited;
+        bool is_removed;
 
 	// public MBitSet idom;
 
@@ -3432,7 +3398,7 @@ namespace Gen {
 	    super.init();
             // n = next_node;
             // next_node = next_node + 1;
-            dfn = 0;
+            
             is_visited = false;
             is_removed = false;
 
@@ -3458,7 +3424,7 @@ namespace Gen {
 	    bs_use = new MBitSet(size);
 	    bs_out = new MBitSet(size);
 	    bs_in = new MBitSet(size);
-	    bs_written = new MBitSet(size);
+	    // bs_written = new MBitSet(size);
 	}
 
 	void reset() {
@@ -3478,11 +3444,11 @@ namespace Gen {
 	    bs_use.clear();
 	    bs_out.clear();
 	    bs_in.clear();
-	    bs_written.clear();
+	    // bs_written.clear();
 	}
 
 
-
+	/*
 	int findSource( MNode y ) {
 	    for( int j = 0; j < source.length; j = j + 1 ) {
 		IO.Std.err.println( "source[" + j + "] " + source[j].dfn + " == " + y.dfn + "?" );
@@ -3497,10 +3463,8 @@ namespace Gen {
 	    }
 	    throw new Exception( "node #" + y.dfn + " not source #" + this.dfn );
 	}
-
-
-
-	void calcSSANames( Util.IntVector[] s, int[] c /*, Util.IntVector renamed */ ) {
+       
+	void calcSSANames( Util.IntVector[] s, int[] c ) {
 	    int v, k, l;
 
 	    MNode y;
@@ -3671,6 +3635,17 @@ namespace Gen {
 	    s = null;
 	}
 
+	void renameSSATemps() {
+            MInst i, next;
+
+            for( i = inst; i != null; i = next ) {
+		next = i.next;
+		i.renameSSATemps();
+	    }
+	}
+
+
+	*/
         bool calcAdjacent( MBitSet[] matrix, MCandidate[] reg_cost ) {
 	    // IO.Std.err.println( "mark adjacent..." );
 
@@ -3754,15 +3729,6 @@ namespace Gen {
 	}
 
 
-	void renameSSATemps() {
-            MInst i, next;
-
-            for( i = inst; i != null; i = next ) {
-		next = i.next;
-		i.renameSSATemps();
-	    }
-	}
-
 	void countInstructions() {
             for( MInst i = inst; i != null; i = i.next ) {
 		MFlow.instruction_count = MFlow.instruction_count + 1;
@@ -3824,14 +3790,16 @@ namespace Gen {
 	    // IO.Std.err.println( "removed tail. tail now: " + tail );
         }
 
-        void calcUse(bool all_definitions) {
+        void calcUse( bool all_definitions ) {
 	    bs_def.clear();
 	    bs_use.clear();
 	    MBitSet written = null;
+	    /*
 	    if( all_definitions ) {
 		written = bs_written;
 		written.clear();
 	    }
+	    */
 	    // IO.Std.err.println( "MNode: calcUse: " + bs_def.original_size );
             for( MInst i = inst; i != null; i = i.next ) {
 		// IO.Std.err.print( "calc use: " + i );
@@ -3867,7 +3835,7 @@ namespace Gen {
 			    b.append( ", " );
 			}
 
-			b.append( target[j].dfn );		   
+			// b.append( target[j].dfn );		   
 			seen_any = true;
 		    }
 		}
@@ -3883,6 +3851,7 @@ namespace Gen {
 
 	    // throw new Exception( "arse" );
 
+	    /*
 	    b.append( "node #" + dfn + "\n" );
 
 	    if( idom != null ) {
@@ -3900,7 +3869,7 @@ namespace Gen {
 	    if( ancestor != null ) {
 		b.append( "ancestor #" + ancestor.dfn + "\n" );
 	    }
-
+	    */
 	    dumpTargets( b, source, "sources " );
 	    dumpTargets( b, target, "targets " );
 
@@ -3980,6 +3949,7 @@ namespace Gen {
 	    return result;
 	}
 
+	/*
 	bool calcSimpleCSE( MNode previous, MExpressionTable expressions ) {
 	    bool result = false;
 
@@ -4015,7 +3985,6 @@ namespace Gen {
 	    return result;
 	}
 
-
 	bool calcSimpleJumpElim( MNode previous, MExpressionTable expressions ) {
 	    bool result = false;
 
@@ -4050,44 +4019,7 @@ namespace Gen {
 
 	    return result;
 	}
-
-	/*
-        bool insertFixups( int[] reg, MBitSet spilled ) {
-	    bool result = false;
-            MBitSet live = new MBitSet( bs_in );        // known live on entry
-
-            MInst i, next;
-
-            for( i = inst; i != null; i = next ) {
-		next = i.next;
-                i.markLive( Mode.READ, live, null );
-                i.markDead( Mode.READ, live );
-
-                // IO.Std.err.println( "about to fix up inst: " + i );
-                if( i.insertFixups( this, reg, live, spilled ) ) {
-		    IO.Std.err.println( "node now: " + this );
-		}
-                i.markLive( Mode.WRITE, live, null );
-                i.markDead( Mode.WRITE, live );
-            }
-        }
 	*/
-
-	bool regen( Util.Vector list ) {
-	    bool result = false;
-
-	    Util.Vector values = new Util.Vector();
-
-	    MInst next = null;
-	    for( MInst i = inst; i != null; i = next ) {
-		next = i.next;
-		if( i.regen( this, list ) ) {
-		    result = true;
-		}
-	    }
-
-	    return result;
-	}
 
 	void peephole( /*int[] reg, MBitSet spilled*/ ) {
             MBitSet live = new MBitSet( bs_in );        // known live on entry

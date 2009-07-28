@@ -941,7 +941,28 @@ namespace Parse {
 		state.WantMarkUnsafe = false;
 	    } else if( name.Name =~ "NoProfile" ) {
 		state.WantProfile = false;
-	    } else if( name.Name =~ "NoFinal" ) {
+	    } else if( name.Name =~ "Pack" || name.Name =~ "NoPack" ) {
+		bool want_pack;
+		String message;
+		if( name.Name.startsWith('P') ) {
+		    want_pack = true;
+		    message = "pack";
+		} else {
+		    message = "no pack";
+		}
+
+		if( state.CurrentClass != null ) {
+		    state.CurrentClass.WantPack = want_pack;
+		    if( !warned ) {
+			warn( "force " + message + ": " + state.CurrentMethod.HumanName );
+		    }
+		} else {
+		    state.WantPack = true;
+		    if( !warned ) {
+			warn( "force " + message + " for remaining classes in this file" );
+		    }
+		}
+	    } else if( name.Name =~ "Virtual" ) {
 		if( state.Pass == CompilePass.CHECK_TEMPLATES ) {
 		    // current method not set in this pass so cannot apply pragma now:
 		    return;
@@ -951,19 +972,19 @@ namespace Parse {
 		    // IO.Std.err.println( "no final: " + state.CurrentMethod.HumanName + ", warned: " + warned + ", pass: " + cast int(state.Pass) );
 		    state.CurrentMethod.IsFinal = false;
 		    if( !warned ) {
-			warn( "force not final: " + state.CurrentMethod.HumanName );
+			warn( "force virtual: " + state.CurrentMethod.HumanName );
 		    }
 		} else if( state.CurrentClass != null ) {
 		    // IO.Std.err.println( "no final: "+ state.CurrentClass.HumanName + ", warned: " + warned + ", pass: " + cast int(state.Pass) );
 		    state.WantVirtual = true;
 		    if( !warned ) {
-			warn( "force not final remaining methods in: " + state.CurrentClass.HumanName );
+			warn( "force virtual remaining methods in: " + state.CurrentClass.HumanName );
 		    }		    
 		} else {
 		    // IO.Std.err.println( "no final: current file, warned: " + warned + ", pass: " + cast int(state.Pass) );
 		    state.WantVirtual = true;
 		    if( !warned ) { 
-			warn( "force not final remaining methods in this file" );
+			warn( "force virtual remaining methods in this file" );
 		    }
 		}
 	    } else if( !warned ) {

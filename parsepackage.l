@@ -126,6 +126,8 @@ namespace Parse {
 	    print( state );
             state.endPackage();	    
 	    // IO.Std.err.println( "<<< " + file_name );
+
+	    // state.walk( this );
         }
 
 	void print( CompileState state ) {

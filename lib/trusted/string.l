@@ -2,15 +2,21 @@
 import object;
 import integer;
 
-namespace System is
-    pragma NoWarnUnsafe, NoMarkUnsafe;
+import gset;
 
+namespace System is
+    use Generic.Map;
+
+    pragma NoWarnUnsafe, NoMarkUnsafe;
+   
     /// A string of characters. String is immutable, its child StringBuffer is not.
     class String extends Object is
 	pragma NoWarnHide;
 
 	protected char ptr _buffer;
 	protected int _length;
+
+        static Map<String,String> pool = new Map<String,String>(65419);
 
 	/// Return a formatted copy of supplied string with supplied arguments substituted for '%'
 	static StringBuffer format( String s, Object[] args ) is
@@ -528,7 +534,7 @@ namespace System is
 
 	/// Return a copy of this string.
 	String copy() is
-	    return new String(_buffer);
+	    return this;
 	end
 
 	/// Returns a substring of this string comprised of characters from and including the supplied position up to and including the last character 
@@ -654,6 +660,19 @@ namespace System is
 		fi
 	    od
 	    return result;
+	end
+
+	get int MemoryUse is 
+	    return ObjectSize + _length;
+	end
+
+	get String Freeze is
+	    var f = pool[this];
+	    if f == null then
+	        f = this.copy();
+		pool[f] = f;
+	    fi
+	    return f;
 	end
     end
 
@@ -940,6 +959,10 @@ namespace System is
 	    StringBuffer result;
 	    result = new StringBuffer( toCString() );
 	    return result;
+	end
+
+	get int MemoryUse is 
+	    return ObjectSize + _allocated_length;
 	end
     end
 

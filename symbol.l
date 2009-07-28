@@ -76,29 +76,30 @@ namespace Parse {
 	    TYPE = 0x500,
 	    PROC = 0x600,
             ATTRIBUTE = 0x700,
-            ATTRIBUTE_LENGTH = 0x800,
-            ATTRIBUTE_ARRAY = 0x900,
-            ATTRIBUTE_STRUCT = 0xA00,
-	    ATTRIBUTE_ADDRESS = 0xB00,
-	    ATTRIBUTE_SIZE = 0xC00,
-	    ATTRIBUTE_TYPE = 0xD00,
-	    ATTRIBUTE_BOX = 0xE00,
-	    ATTRIBUTE_PASS = 0xF00,
-	    ATTRIBUTE_NONE = 0x1000;
-	    
+            ATTRIBUTE_LENGTH =  0x0800,
+            ATTRIBUTE_ARRAY =   0x0900,
+            ATTRIBUTE_STRUCT =  0x0A00,
+	    ATTRIBUTE_ADDRESS = 0x0B00,
+	    ATTRIBUTE_SIZE =    0x0C00,
+	    ATTRIBUTE_TYPE =    0x0D00,
+	    ATTRIBUTE_BOX =     0x0E00,
+	    ATTRIBUTE_PASS =    0x0F00,
+	    ATTRIBUTE_NONE =    0x1000,
+	    ATTRIBUTE_ISOBJECT =0x1100;	    
 
         Container owner;
-        bool is_address_valid;
-	bool is_value_valid;
-        bool is_referenced;
+        String name;
+        Type type;
+
         int kind;
         int access;
         int address;
         int defined;
-        String name;
-        Type type;
 
-        
+        bool is_address_valid;
+	bool is_value_valid;
+        bool is_referenced;
+
         bool isParentOf( Container c ) {
             return false;
         }
@@ -468,7 +469,7 @@ namespace Parse {
 
 
     class SymbolList extends Object {
-	const int MAX_LEN = 31;
+	const int MAX_LEN = 15;
         SymbolList parent;
 	Vector<Symbol> list;
         Vector<Symbol>[] by_length; // one list per possible length of symbol upto maximum length, longer lengths stored in last bucket

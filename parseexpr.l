@@ -512,7 +512,7 @@ namespace Parse {
 		    value = value.substring( 0, value.Length-1 );
 		    this.type = new Type( Type.LONG );
 		    // IO.Std.err.println( "long literal: '" + value + "'" );
-		} else if( last == 'c' || last == 'C' ) {
+		} else if( (l < 2 || (value[1] != 'x' && value[1] != 'X')) && (last == 'c' || last == 'C') ) {
 		    value = value.substring( 0, value.Length-1 );
 		    this.type = new Type( Type.CHAR );
 		} else {
@@ -673,6 +673,7 @@ namespace Parse {
 	    if( right != null ) {
 		right.clear( state );
 	    }
+	    method_call = null;
 	}
 
 	get int Operation {

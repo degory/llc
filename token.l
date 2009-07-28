@@ -538,12 +538,12 @@ namespace Parse {
 		    }
 		    // IO.Std.err.println( "read hex const: '" + buffer + "'" );
 		} else {
-		    while( (c >= '0' && c <= '9') || c == 'x' || c == 'w' || c == 'W' || c == 'l' || c == 'L' ) {
+		    while( (c >= '0' && c <= '9') || c == 'x' || c == 'w' || c == 'W' || c == 'l' || c == 'L' || c == 'c' || c == 'C' ) {
 			buffer.append(c);
 			c = nextChar();
 		    }
 		}
-                token_string = buffer;
+                token_string = buffer.Freeze;
                 prevChar(c);
 		// IO.Std.err.println( "read const int: '" + token_string + "'" );
                 return Token.CONST_INT;
@@ -554,7 +554,7 @@ namespace Parse {
                     buffer.append(c);
                     c = nextChar();
                 }
-                token_string = buffer;
+                token_string = buffer.Freeze;
                 prevChar(c);
 		r = symbol_tokens[token_string];
 
@@ -587,7 +587,7 @@ namespace Parse {
 			break;
 		    }
                 }
-                token_string = buffer;
+                token_string = buffer.Freeze;
                 return Token.CONST_STRING;
 
             case cast<char>(39): // single quote
@@ -610,7 +610,7 @@ namespace Parse {
 		if( buffer.Length < 1 ) {
 		    error( "zero length character literal" );
 		}
-                token_string = buffer;
+                token_string = buffer.Freeze;
 		// IO.Std.err.println( "const char: '" + token_string + "'" );
                 return Token.CONST_CHAR;
 
@@ -631,7 +631,7 @@ namespace Parse {
 			break;
 		    }
 		}
-		token_string = buffer;
+		token_string = buffer.Freeze;
 		return Token.CONST_CSTRING;
                     
             case '=':
@@ -852,6 +852,9 @@ namespace Parse {
 		}
 		*/
 		return Token.END_STATEMENT;
+
+	    case '@':
+		return Token.PRAGMA;
             }
             
             // IO.Std.out.println( "unknown: '" + c + "'" );

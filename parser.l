@@ -1,5 +1,7 @@
 // copyright (C) 2009 degs <junk@giantblob.com> all rights reserved
 
+import walk;
+
 import token;
 import synskel;
 import syntaxl;
@@ -7,11 +9,14 @@ import syntaxk;
 import parsetree;
 
 namespace Parse {
+    use System.Object;
+    use System.String;
 
     class Parser {
         Tokenizer tokenizer;
+	int memory_usage;
 
-        void init( System.String file_name, IO.Reader in, CompileState state ) {
+        void init( String file_name, IO.Reader in, CompileState state ) {
             Token t;
             tokenizer = new Tokenizer(file_name,in);
             // tokenizer.nextToken();

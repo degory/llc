@@ -714,8 +714,8 @@ namespace IO {
 
     /// A read write CharStream over an operating system handle (typically a file handle but can be a pipe etc.)
     class FileStream extends CharStream {
-	private int handle;
 	private System.String path;
+	private int handle;
 	private bool is_at_end;
 
 	const int
@@ -924,11 +924,11 @@ namespace IO {
 	    EAGAIN = 11,
 	    EINVAL = 22;
 
-	bool mode_set;    // has a mode been explicitly set?
-	bool read, write; // UNIX modes are not sane so store read + write separately
+	private System.String path;
 	private int mode; // append, creat, excl, trunc
 	private int prot;
-	private System.String path;
+	bool mode_set;    // has a mode been explicitly set?
+	bool read, write; // UNIX modes are not sane so store read + write separately
 
 	/// Construct a File object with the supplied path
 	/// \param path a path name, either absolute or relative to current working directory

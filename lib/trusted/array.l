@@ -16,14 +16,12 @@ namespace System is
 end
 
 namespace Generic is
-
-
+    use System.Object;
     /// Native array types (type[]) can be converted to and from specializations of this template class
     /// Arrays are fixed length and bounds checked. Valid indexes are 0..length-1 inclusive. 
     /// \param T element type of the array
     class Array<T> implements List<T> is
 	int length;
-        T ptr values;
 
         /// Construct an Array<T> object
         /// \attention not implemented - create arrays with new T[n]
@@ -57,6 +55,12 @@ namespace Generic is
 	/// \return the number of values in this array
 	get int Length is
 	    return length;
+	end
+
+	/// accessor: get int ValueSize
+	/// \return the size of each value in this array
+	get int ValueSize is
+	    return T.sizeof;
 	end
 
 	/// \attention: not implemented
@@ -105,6 +109,22 @@ namespace Generic is
         /// \return an ArrayIterator<T> that returns each element of this array in increasing index order
 	ArrayIterator<T> elements() is
 	    return new ArrayIterator<T>(cast T[](this));
+	end
+
+	get Object ptr ObjectValuesPointer is
+	    if !T.isobject then
+		return null;
+            fi
+
+	    return cast Object ptr(this) + 2;
+	end
+
+	get int ObjectValuesLength is
+	    return length;
+	end
+
+	get int MemoryUse is 
+	    return System.Environment.WORD_BYTES * 3 + T.sizeof * Length;
 	end
     end
 

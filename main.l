@@ -31,7 +31,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1170;
+	const int BUILD = 1171;
 
 	CompileState state;
 
@@ -90,6 +90,7 @@ namespace Parse {
 	    state.WantSharedStandardLibrary = true;
 	    state.WantRegVars = false;
 	    state.WantWarnResolve = false;
+	    state.WantPack = true;
 
 	    bool set_executable_name = false;
 	    bool want_stats = false;
@@ -236,11 +237,17 @@ namespace Parse {
 			    case 'e':
 				state.WantCSE = false;
 
-			    case 'P':
+			    case 'Q':
 				state.WantProfile = true;
 			    
-			    case 'p':
+			    case 'q':
 				state.WantProfile = false;
+
+			    case 'P':
+				state.WantPack = true;
+
+			    case 'p':
+				state.WantPack = false;
 
 			    case 'L':
 				state.WantPIC = true;
@@ -483,6 +490,10 @@ namespace Parse {
 	    IO.Std.err.println( "    r                always jump to epilog on return (default)" );
 	    IO.Std.err.println( "    S                build executable linked against shared standard library (default)" );
 	    IO.Std.err.println( "    s                build statically linked executable" );
+	    IO.Std.err.println( "    P                pack instance variables (default)" );
+	    IO.Std.err.println( "    p                do not pack instance variables" );
+	    IO.Std.err.println( "    Q                generate profiler calls on method entry and exit" );
+	    IO.Std.err.println( "    q                do not generate profiler calls (default)" );
 	    IO.Std.err.println();
 	    IO.Std.err.println( "warning message options:" );
 	    IO.Std.err.println( "    S                warn for every unsafe construct encountered" );

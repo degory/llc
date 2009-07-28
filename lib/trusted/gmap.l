@@ -16,9 +16,9 @@ namespace Generic is
     /// \param T the value type
     class MapIterator<K,T> implements Iterator<MapPair<K,T>> is
 	Map<K,T> _map;            // the Map we're iterating over
-	int _i;              // the index of the hash chain we're currently iterating over
 	LinkedListIterator<MapPair<K,T>> _j;   // iterator over the current hash chain
 	MapPair<K,T> _next; // the map value that we will return as nextElement()	
+	int _i;              // the index of the hash chain we're currently iterating over
 	bool _more_elements; // is _next valid? or have we already enumerated all values in Map
 
 	/// Construct a new MapIterator over map m

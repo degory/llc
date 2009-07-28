@@ -15,7 +15,7 @@ namespace Generic is
     use System.Backtrace;
 
     /// An Iterator over Vector<T>
-    class VectorIterator<T> extends Object implements Iterator<T> is
+    class VectorIterator<T> implements Iterator<T> is
 	private Vector<T> _v;
 	private int _i;
  
@@ -42,7 +42,7 @@ namespace Generic is
     end
 
     /// A reverse Iterator over Vector<T>
-    class VectorReverseIterator<T> extends Object implements Iterator<T> is
+    class VectorReverseIterator<T> implements Iterator<T> is
 	private Vector<T> _v;
 	private int _i;
 
@@ -74,10 +74,10 @@ namespace Generic is
     end
     
     /// A resizeable array of parameterised type.  
-    class Vector<T> extends Object implements List<T> is
+    class Vector<T> implements List<T> is
+	private T ptr _values;
 	private int _length;
 	private int _allocated_length;
-	private T ptr _values;
 
 	private const int DEFAULT_SIZE = 5;
 
@@ -361,6 +361,21 @@ namespace Generic is
 	    result.append(']');
 
 	    return result;
+	end
+
+	get Object ptr ObjectValuesPointer is
+	    if !T.isobject then
+		return null;
+            fi
+	    return cast Object ptr(_values);
+	end
+
+	get int ObjectValuesLength is
+	    return _length;
+	end
+
+	get int MemoryUse is 
+	    return ObjectSize + T.sizeof * _allocated_length;
 	end
     end
 end

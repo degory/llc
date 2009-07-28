@@ -25,8 +25,8 @@ namespace Gen {
     }
 
     class MTree extends Object {
-	protected int op;
 	protected MTree dest, left, right;
+	protected int op;
 	
 	void init( int op, MTree dest, MTree left, MTree right ) {
 	    super.init();

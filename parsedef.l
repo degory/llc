@@ -917,7 +917,8 @@ namespace Parse {
                     
                     state.dumpActiveClasses( null );
                     
-                    ILabel l = TempFactory.nextLabel();
+                    var l = TempFactory.nextLabel();
+		    var m = TempFactory.nextLabel();
 
 		    int frame_flags;
 
@@ -940,7 +941,8 @@ namespace Parse {
 		    Machine.emitVTableSegment( f, c.DecoratedName );
  
 		    c.emitInterfaceTables( state, this );
-		    Machine.emitDefLong( f, 0 );
+		    // type table:
+		    Machine.emitDefPointerLabel( f, m.Int );
 
                     Machine.emitDefPointerLabel( f, l.Int );
                     Machine.emitDefLong( f, c.getSize() );
@@ -958,7 +960,6 @@ namespace Parse {
                     c.emitClassTables( state, c );
 
 		    Machine.emitDefLong( f, 0 );
-
 
                     Machine.emitGlobalData( f, "__size_" + c.DecoratedName );
                     Machine.emitLabel( f, "__size_" + c.DecoratedName );
@@ -978,12 +979,16 @@ namespace Parse {
 			Machine.emitVTableFunction( f, c.DecoratedName, offset );
                     }
 
-                    // Machine.emitLabel( f, m.Int );
-                    // state.cg.emitLabel( m );
-                    
-                    // Machine.emitDefByte( f, 0 );
-                    // state.cg.emit( ".byte 0 # vtable\n" );
-                    // c.emitTypeTables( state );
+		    Machine.emitRoDataSegment( f );
+
+                    Machine.emitLabel( f, m.Int );		    
+                    Machine.emitDefByte( f, Machine.WORD );
+
+                    c.emitTypeTables( state );
+
+		    Machine.emitDefByte( f, 0 );
+
+		    Machine.emitAlign( f, Machine.WORD );
 
 		    if( c.StaticSize > 0 ) {                    
 			Machine.emitBSSSegment( f );

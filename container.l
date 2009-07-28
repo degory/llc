@@ -29,21 +29,19 @@ namespace Parse {
     class Container extends Symbol {
         Container parent;
 	Container template;
-
-	// Vector<Container> dependants;
-
         SymbolList members;
-
-        bool needs_body;
-        bool tables_valid;
-	// bool is_empty;
-	// bool is_leaf;
-	bool cannot_inline;
         Container override;
 
 	Vector<Identifier> arg_names;
 	Vector<Type> arg_types;
 	Vector<Container> implements_list;
+        String decorated;
+        String human;
+
+	Gen.MBitSet address_taken;
+	Gen.IBlock inline_block;
+
+	CompileStatus compile_status;
         int vtable_offset;
         int itable_offset;
 	int stable_offset;
@@ -52,19 +50,19 @@ namespace Parse {
 	int method_index;
 	int iface_offset;
         int hash_;
-        String decorated;
-        String human;
+	int label;
+
         bool is_final;
         bool is_struct;
 	bool is_generic;
 	bool is_interface;
-	Gen.IBlock inline_block;
-	int label;
 	bool is_native;
 	bool already_parsed;
+        bool needs_body;
+        bool tables_valid;
+	bool cannot_inline;
+	bool want_pack;
 
-	CompileStatus compile_status;
-	Gen.MBitSet address_taken;
 
         void setup( Container parent ) {
 	    if( this.parent != null ) {
@@ -362,6 +360,14 @@ namespace Parse {
 
 	get bool CannotInline {
 	    return cannot_inline;
+	}
+
+	set bool WantPack = p { 
+	    want_pack = p;
+	}
+
+        get bool WantPack {
+	    return want_pack;
 	}
 
         set bool IsStruct = b {
@@ -932,24 +938,26 @@ namespace Parse {
             }
         }
 
-
         void emitTypeTables( CompileState  state ) {
             if( parent != null ) {
                 parent.emitTypeTables( state );
             }
-        
+
             foreach( Symbol current; members.SymbolList.elements() ) {
                 if( current.Kind == Symbol.INSTANCE_VARIABLE ) {
                     Type t = current.Type;
-                    int value = 0;
+
+                    char value;
                     if( t.TypeKind == Type.CLASS ) {
-                        value = 1;
+                        value = Object.TYPE_OBJECT;
                     } else if( t.TypeKind == Type.VECTOR ) {
-                        value = 2;
+                        value = Object.TYPE_ARRAY;
                     } else if( t.TypeKind == Type.POINTER ) {
-                        value = 3;
-                    }
-                    Machine.emitDefByte( state.Output, value );
+                        value = Object.TYPE_POINTER;
+                    } else {
+			value = cast char(t.Size);
+		    }
+                    Machine.emitDefByte( state.Output, cast int(value) );
                 }
             }
         }
@@ -1177,6 +1185,10 @@ namespace Parse {
             if( members == null ) {
                 throw new Exception( "weird: build class tables for class with no member list: " + HumanName );
             }
+
+	    // IO.Std.err.println( "allocate members " + HumanName + ", itable offset " + address.itable_offset );
+
+	    bool want_pack = state.WantPack;
         
             foreach( Symbol current; members.SymbolList.elements() ) { 
 		int k = current.Kind;
@@ -1229,9 +1241,20 @@ namespace Parse {
                     if( current.IsAddressValid ) {
                         throw new Exception( "weird: instance variable " + current.HumanName + " already has an address" );
                     }
-                
-                    current.Address = address.itable_offset;
-                    address.itable_offset = address.itable_offset + Machine.WORD;
+
+		    int s;
+		    if( want_pack ) {
+			s = current.Type.Size;
+			// IO.Std.err.println( "size of " + current.HumanName + " is " + s );
+			if( s != 1 && s != 4 && s != Machine.WORD ) {
+			    throw new System.Exception( "instance variable " + current.HumanName + " has bad size: " + s + " from type " + current.Type );
+			}
+		    } else {
+			s = Machine.WORD;
+		    }
+		    var a = align(address.itable_offset,s);
+		    current.Address = a;
+		    address.itable_offset = a + s;
                 } else if( k == Symbol.CONST || k == Symbol.ENUM || k == Symbol.ACCESSOR || k == Symbol.TYPE ) {
                     ; // do nothing - occupies no space
                 } else {
@@ -1240,7 +1263,7 @@ namespace Parse {
                 }
             }
 
-	    
+	    address.itable_offset = align(address.itable_offset,Machine.WORD);
         
             itable_offset = address.itable_offset;
             vtable_offset = address.vtable_offset;
@@ -1248,6 +1271,21 @@ namespace Parse {
         
             tables_valid = true;
         }
+
+	static int align(int a, int s) {
+	    int m = s - 1;
+
+	    var r = (a + m) & ~m;
+
+	    /// IO.Std.err.println( "align " + a + " to " + s + " -> " + r );
+
+	    /*
+	    if( r < a ) {
+		throw new Exception( "bad instance table address: " + r + " < " + a );
+	    }
+	    */
+	    return r;
+	}
  
 	void emitInterfaceTables( CompileState state, ParseTree from ) {
 	    if( implements_list == null ) {

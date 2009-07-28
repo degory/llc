@@ -389,7 +389,8 @@ namespace Parse {
             WANT_DEBUG = 5,
 	    WANT_PROFILE = 6,
 	    WANT_PIC = 7,
-	    WANT_VIRTUAL = 8;
+	    WANT_VIRTUAL = 8,
+	    WANT_PACK = 9;
 
 	private const int
 	    DEFAULT_WARN_FLAGS = 13 | 32; // all warnings enabled, trusted flag not set
@@ -495,6 +496,8 @@ namespace Parse {
 
 	int inline_count;
 
+	Util.Walk walk_;
+
 	CompileState copy() {
 	    // IO.Std.err.println( "before copy, this is: " + System.String.hex(cast int(this)) );
 
@@ -575,9 +578,14 @@ namespace Parse {
 
 	    ParseTree.initUndefinedSymbols(this);
 
-
+	    // walk_ = new Util.Walk( proc(Object)(dumpMemory) );
+	    
 	    // pool = new ThreadPool(2);
 	    // pool.start();
+	}
+
+	void walk( Object o ) {
+	    walk_.walk(o);
 	}
 	
 	static void resetStatic() {
@@ -1085,6 +1093,11 @@ namespace Parse {
                 p.compile( this );
             }
 
+	    /*
+	    var w = new Util.Walk( proc(Object)(dumpMemory) );
+	    w.walk( this );
+	    */
+
 	    if( WantJobs <= 1 && !InChildProcess ) {
 		writeHashFiles();		
 	    }	    
@@ -1131,6 +1144,9 @@ namespace Parse {
 	    ParseTree.message( "done" );
         }
 
+	static void dumpMemory( Object o ) {
+	    IO.Std.out.println( "\tAAAAA\t" + o.ClassName + "\t" + o.MemoryUse + "\t" );
+	}
 
 	void linkObjectFiles() {
 
@@ -1676,7 +1692,7 @@ namespace Parse {
             Symbol existing = symbol_table.findInCurrentScope( name, Symbol.FIND_ANY );
             
             if( existing != null && kind & Symbol.FLAG_METHOD == 0 ) {
-                from.error( "oops: duplicate symbol declaration: " + name );
+                from.error( "duplicate symbol declaration: " + name );
                 return existing;
             }
             
@@ -1834,7 +1850,7 @@ namespace Parse {
 
             Container current_class = CurrentClass;
             if( current_class.Scope.findMethodDecorated( decorate ) != null ) {
-                from.error( "duplicate method definition " + decorate );
+                from.error( "duplicate method definition " + human );
             }
 
             Container override = current_class.findMethod( name, args, false );
@@ -2727,6 +2743,14 @@ namespace Parse {
 
 	set bool WantPIC = p {
 	    WarnFlag[WANT_PIC] = p;
+	}
+
+        get bool WantPack {
+	    return WarnFlag[WANT_PACK];
+	}
+
+	set bool WantPack = p {
+	    WarnFlag[WANT_PACK] = p;
 	}
 
         get bool WantVirtual {
