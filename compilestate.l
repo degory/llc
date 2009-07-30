@@ -372,7 +372,8 @@ namespace Parse {
             UNSAFE_POINTER = 1,
             UNSAFE_CAST = 2,
             UNSAFE_NATIVE = 4,
-            UNSAFE_LINK = 8;
+            UNSAFE_LINK = 8,
+	    UNSAFE_BOUNDS = 16;
 
         public const int
             STATE_OUTSIDE_CLASS = 0,
@@ -391,7 +392,8 @@ namespace Parse {
 	    WANT_PIC = 7,
 	    WANT_VIRTUAL = 8,
 	    WANT_PACK = 9,
-	    WANT_RED_ZONE = 10;
+	    WANT_RED_ZONE = 10,
+	    WANT_BOUNDS_CHECK = 11;
 
 	const int
 	    DEFAULT_WARN_FLAGS = 13 | 32; // all warnings enabled, trusted flag not set
@@ -2675,6 +2677,15 @@ namespace Parse {
 	set bool WantPrint = p {
 	    want_print = p;
 	}
+
+	get bool WantBoundsCheck {
+	    return WarnFlag[WANT_BOUNDS_CHECK];
+	}
+
+	set bool WantBoundsCheck = b {
+	    WarnFlag[WANT_BOUNDS_CHECK] = b;
+	}
+
 
 	set int WarnFlags = bits {
 	    if( sp < 0 ) {

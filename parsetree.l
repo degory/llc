@@ -931,20 +931,22 @@ namespace Parse {
 	void apply( CompileState state, Identifier name ) {
 	    // IO.Std.err.println( "pass: " + cast int(state.Pass) + ", name: " + name );
 
-	    if( name.Name =~ "NoWarnHide" ) {
+	    String n = name.Name;
+
+	    if( n =~ "NoWarnHide" ) {
 		state.WantWarnHide = false;
-	    } else if( name.Name =~ "NoWarnResolve" ) {
+	    } else if( n =~ "NoWarnResolve" ) {
 		state.WantWarnResolve = false;
-	    } else if( name.Name =~ "NoWarnUnsafe" ) {
+	    } else if( n =~ "NoWarnUnsafe" ) {
 		state.WantWarnUnsafe = false;
-	    } else if( name.Name =~ "NoMarkUnsafe" ) {
+	    } else if( n =~ "NoMarkUnsafe" ) {
 		state.WantMarkUnsafe = false;
-	    } else if( name.Name =~ "NoProfile" ) {
+	    } else if( n =~ "NoProfile" ) {
 		state.WantProfile = false;
-	    } else if( name.Name =~ "Pack" || name.Name =~ "NoPack" ) {
+	    } else if( n =~ "Pack" || n =~ "NoPack" ) {
 		bool want_pack;
 		String message;
-		if( name.Name.startsWith('P') ) {
+		if( n.startsWith('P') ) {
 		    want_pack = true;
 		    message = "pack";
 		} else {
@@ -962,7 +964,7 @@ namespace Parse {
 			warn( "force " + message + " for remaining classes in this file" );
 		    }
 		}
-	    } else if( name.Name =~ "Virtual" ) {
+	    } else if( n =~ "Virtual" ) {
 		if( state.Pass == CompilePass.CHECK_TEMPLATES ) {
 		    // current method not set in this pass so cannot apply pragma now:
 		    return;
@@ -987,6 +989,8 @@ namespace Parse {
 			warn( "force virtual remaining methods in this file" );
 		    }
 		}
+	    } else if( n =~ "NoBoundsCheck" ) {
+		state.WantBoundsCheck = false;
 	    } else if( !warned ) {
 		warn( "ignoring undefined pragma " + name );
 	    }
@@ -1818,30 +1822,41 @@ namespace Parse {
 	    }
             // #ifdef CHECK_VECTOR_ACCESS
 
-            cl = cl.foldConstants();
-            cr = cr.foldConstants();
+	    if( state.WantBoundsCheck ) {
 
-            if( !cl.isSimple() ) {
-                int tl = TempFactory.nextTemp();
-                into.add( makeStoreTemporary( tl, Machine.WORD, cl ) );
-                cl = makeLoadTemporary( tl, Machine.WORD );
-            }
+		cl = cl.foldConstants();
+		cr = cr.foldConstants();
 
-            if( !cr.isSimple() ) {
-                int tr = TempFactory.nextTemp();
-                into.add( makeStoreTemporary( tr, Machine.WORD, cr ) );
-                cr = makeLoadTemporary( tr, Machine.WORD );
-            }
-
-	    if( state.WantSplitBounds ) {
-		ILabel bounds_label = TempFactory.nextLabel();
-
-		into.add( new ITree( line_number, Op.BOUNDS_R, 0, cl, cr, bounds_label ) );
-		into.addEpilog( new ITree( line_number, Op.BOUNDS_L, 0, bounds_label ) );
-			  
+		if( !cl.isSimple() ) {
+		    int tl = TempFactory.nextTemp();
+		    into.add( makeStoreTemporary( tl, Machine.WORD, cl ) );
+		    cl = makeLoadTemporary( tl, Machine.WORD );
+		}
+		
+		if( !cr.isSimple() ) {
+		    int tr = TempFactory.nextTemp();
+		    into.add( makeStoreTemporary( tr, Machine.WORD, cr ) );
+		    cr = makeLoadTemporary( tr, Machine.WORD );
+		}
+		
+		if( state.WantSplitBounds ) {
+		    ILabel bounds_label = TempFactory.nextLabel();
+		    
+		    into.add( new ITree( line_number, Op.BOUNDS_R, 0, cl, cr, bounds_label ) );
+		    into.addEpilog( new ITree( line_number, Op.BOUNDS_L, 0, bounds_label ) );
+		    
+		} else {
+		    into.add( new ITree( line_number, Op.BOUNDS, 0 /* getType(state).getRegSize() */, cl, cr ) );
+		}
 	    } else {
-		into.add( new ITree( line_number, Op.BOUNDS, 0 /* getType(state).getRegSize() */, cl, cr ) );
+		if( state.WantMarkUnsafe ) {
+		    state.markCodeUnsafe( CompileState.UNSAFE_BOUNDS );
+		}
+		if( state.WantWarnUnsafe ) {
+		    warn( "array subscript not checked at runtime" );
+		}
 	    }
+
 	    // let back end know jump to exception handler possible here:
 	    addDummyExceptionHandlerJump( state, line_number, into );
 

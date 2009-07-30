@@ -1048,7 +1048,13 @@ namespace Parse {
 			    }
 			    is_safe = false;
                         }
-                        if( unsafe_flags & CompileState.UNSAFE_LINK != 0 ) {
+			if( unsafe_flags & CompileState.UNSAFE_BOUNDS != 0 ) {
+			    if( want_warn ) {
+				warn( c.HumanName + " is unsafe: unchecked array subscripts" );
+			    }
+			    is_safe = false;
+			}
+			if( unsafe_flags & CompileState.UNSAFE_LINK != 0 ) {
 			    if( want_warn ) {
 				warn( c.HumanName + " is unsafe: linker options" );
 			    }

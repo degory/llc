@@ -4656,10 +4656,12 @@ namespace Gen {
 	    // IO.Std.err.println( "rset: " + Machine.getSetName( o.rset ) + " is size: " + size + ", copy set: " + Machine.getSetName(copy_set) );
 
 	    if( o.mode & Mode.READ != 0 ) {
-		s = new MInst( new MData( Op.COMMENT, new MConst( "RA " + size + " fill T" + t + " -> T" + u + " at offset " + offset ) ) );
-		s.initOperands();
-		insertBefore( into, s );
-		
+		if( MFlow.debug ) {
+		    s = new MInst( new MData( Op.COMMENT, new MConst( "RA " + size + " fill T" + t + " -> T" + u + " at offset " + offset ) ) );
+		    s.initOperands();
+		    insertBefore( into, s );
+		}
+
 		s = new MInst( new MMove( copy_op,
 					  new MReg( u, copy_set ),
 					  new MIndirect( new MAddress(
@@ -4678,9 +4680,11 @@ namespace Gen {
 	    }
 
 	    if( o.mode & Mode.WRITE != 0 ) {
-		s = new MInst( new MData( Op.COMMENT, new MConst( "RA " + size + " spill T" + u + " -> T" + t + " at offset " + offset ) ) );
-		s.initOperands();
-		insertAfter( into, s );
+		if( MFlow.debug ) {
+		    s = new MInst( new MData( Op.COMMENT, new MConst( "RA " + size + " spill T" + u + " -> T" + t + " at offset " + offset ) ) );
+		    s.initOperands();
+		    insertAfter( into, s );
+		}
 		s = new MInst( new MMove( copy_op,
 					  new MIndirect( new MAddress(
 								      new MBase(
@@ -4749,10 +4753,11 @@ namespace Gen {
 	    */
 
 	    if( o == null || o.mode & Mode.READ != 0 ) {
-		s = new MInst( new MData( Op.COMMENT, new MConst( "RA split T" + t + " -> T" + u + " " + why ) ) );
-		s.initOperands();
-		
-		insertBefore( into, s );
+		if( MFlow.debug ) {
+		    s = new MInst( new MData( Op.COMMENT, new MConst( "RA split T" + t + " -> T" + u + " " + why ) ) );
+		    s.initOperands();		    
+		    insertBefore( into, s );
+		}
 
 		if( t > 0 ) {
 		    s = new MInst( new MMove( copy_op, new MReg( u, copy_set ), new MReg( t, copy_set ) ) );
@@ -4778,10 +4783,11 @@ namespace Gen {
 	    }
 
 	    if( o == null || o.mode & Mode.WRITE != 0 ) {
-		s = new MInst( new MData( Op.COMMENT, new MConst( "RA split T" + u + " <- T" + t + " " + why ) ) );
-		s.initOperands();
-		
-		insertAfter( into, s );
+		if( MFlow.debug ) {
+		    s = new MInst( new MData( Op.COMMENT, new MConst( "RA split T" + u + " <- T" + t + " " + why ) ) );
+		    s.initOperands();		    
+		    insertAfter( into, s );
+		}
 
 		if( t > 0 ) {
 		    s = new MInst( new MMove( copy_op, new MReg( t, copy_set ), new MReg( u, copy_set ) ) );
@@ -4856,9 +4862,11 @@ namespace Gen {
 		r2 = new MReg( t, copy_set );
 	    }
 
-	    s = new MInst( new MData( Op.COMMENT, new MConst( "RA " + size + " save T" + t + " at offset " + offset + " because " + reason ) ) );
-	    s.initOperands();
-	    insertBefore( into, s );
+	    if( MFlow.debug ) {
+		s = new MInst( new MData( Op.COMMENT, new MConst( "RA " + size + " save T" + t + " at offset " + offset + " because " + reason ) ) );
+		s.initOperands();
+		insertBefore( into, s );
+	    }
 	    s = new MInst( new MMove( copy_op,
 				      new MIndirect( new MAddress(
 								  new MBase(
@@ -4877,11 +4885,12 @@ namespace Gen {
 	    insertBefore( into, s );
 	
 
+	    if( MFlow.debug ) {
+		s = new MInst( new MData( Op.COMMENT, new MConst( "RA " + size + " restore T" + t + " at offset " + offset + " because " + reason ) ) );
+		s.initOperands();
+		insertAfter( into, s );
+	    }
 
-	    s = new MInst( new MData( Op.COMMENT, new MConst( "RA " + size + " restore T" + t + " at offset " + offset + " because " + reason ) ) );
-	    s.initOperands();
-	    insertAfter( into, s );
-	    
 	    s = new MInst( new MMove( copy_op,
 				      r2,
 				      new MIndirect( new MAddress(

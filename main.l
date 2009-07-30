@@ -31,7 +31,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1172;
+	const int BUILD = 1173;
 
 	CompileState state;
 
@@ -91,6 +91,7 @@ namespace Parse {
 	    state.WantRegVars = false;
 	    state.WantWarnResolve = false;
 	    state.WantPack = true;
+	    state.WantBoundsCheck = true;
 
 	    bool set_executable_name = false;
 	    bool want_stats = false;
@@ -260,6 +261,12 @@ namespace Parse {
 
 			    case 's':
 				state.WantSharedStandardLibrary = false;
+
+			    case 'A':
+				state.WantBoundsCheck = true;
+
+			    case 'a':
+				state.WantBoundsCheck = false;
 
 			    case 'Z':
 				state.WantRedZone = true;
@@ -486,14 +493,14 @@ namespace Parse {
 	    IO.Std.err.println( "    -W<warn options> warning message options" );
 	    IO.Std.err.println();
 	    IO.Std.err.println( "code generation options:" );
-	    IO.Std.err.println( "    V                enable register variables" );
-	    IO.Std.err.println( "    v                disable register variables (default)" );
-	    IO.Std.err.println( "    I                inline methods where possible" );
-	    IO.Std.err.println( "    i                do not inline methods (default)" );
-	    IO.Std.err.println( "    C                coalesce redundant register moves" );
-	    IO.Std.err.println( "    c                do not coalesce redundant register moves (default)" );
+	    IO.Std.err.println( "    A                check array subscripts are within bounds (default)" );
+	    IO.Std.err.println( "    a                do not check array subscripts" );
 	    IO.Std.err.println( "    B                faster bounds check sequence" );
             IO.Std.err.println( "    b                regular bounds check sequence (default)" );
+	    IO.Std.err.println( "    C                coalesce redundant register moves" );
+	    IO.Std.err.println( "    c                do not coalesce redundant register moves (default)" );
+	    IO.Std.err.println( "    I                inline methods where possible" );
+	    IO.Std.err.println( "    i                do not inline methods (default)" );
 	    IO.Std.err.println( "    R                eliminate redundant return jumps" );
 	    IO.Std.err.println( "    r                always jump to epilog on return (default)" );
 	    IO.Std.err.println( "    S                build executable linked against shared standard library (default)" );
@@ -502,18 +509,21 @@ namespace Parse {
 	    IO.Std.err.println( "    p                do not pack instance variables" );
 	    IO.Std.err.println( "    Q                generate profiler calls on method entry and exit" );
 	    IO.Std.err.println( "    q                do not generate profiler calls (default)" );
+	    IO.Std.err.println( "    V                enable register variables" );
+	    IO.Std.err.println( "    v                disable register variables (default)" );
 	    IO.Std.err.println( "    Z                use stack red zone" );
 	    IO.Std.err.println( "    z                do not use stack red zone" );
+
 	    IO.Std.err.println();
 	    IO.Std.err.println( "warning message options:" );
-	    IO.Std.err.println( "    S                warn for every unsafe construct encountered" );
-	    IO.Std.err.println( "    s                do not warn for every unsafe construct" );
-	    IO.Std.err.println( "    M                warn for unsafe constructs per class" );
-	    IO.Std.err.println( "    m                do not warn for unsafe constructs per class" );
 	    IO.Std.err.println( "    H                warn when definitions may hide other symbols" );
 	    IO.Std.err.println( "    h                do not warn when definitions may hide other symbols" );
+	    IO.Std.err.println( "    M                warn for unsafe constructs per class" );
+	    IO.Std.err.println( "    m                do not warn for unsafe constructs per class" );
 	    IO.Std.err.println( "    R                warn when method resolution is poor match" );
 	    IO.Std.err.println( "    r                do not warn method resolution is poor match" );
+	    IO.Std.err.println( "    S                warn for every unsafe construct encountered" );
+	    IO.Std.err.println( "    s                do not warn for every unsafe construct" );
 	}
 
 	static String fixedPoint( int n ) {
