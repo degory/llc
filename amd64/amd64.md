@@ -674,20 +674,23 @@ machine inst = [DECBNN_8 tm] 20 [Inst [DecBranchNotNeg DECBNN_8 $0 [Const $A.S]]
 
 rewrite inst = [BRANCH compare] 10 [$0.L.R.I-0 $0 $A.S] 
 
-rewrite inst = [BRANCHZ_8 const] { a.getLeft().valueIs("0",32768,0) } [NOP]
-rewrite inst = [BRANCHZ_8 const] { a.getLeft().valueIs("0",0,32768) } [JUMP $A.S]
-rewrite inst = [BRANCHNZ_8 const] { a.getLeft().valueIs("0",32768,0) } [JUMP $A.S]
-rewrite inst = [BRANCHNZ_8 const] { a.getLeft().valueIs("0",0,32768) } [NOP]
+rewrite inst = [BRANCH immed] { a.getLeft().valueIs("0",32768,0) } [JUMP $A.S]
+rewrite inst = [BRANCH immed] { a.getLeft().valueIs("0",0,32768) } [COMMENT "dead branch"]
 
-rewrite inst = [BRANCHZ_4 const] { a.getLeft().valueIs("0",32768,0) } [NOP]
-rewrite inst = [BRANCHZ_4 const] { a.getLeft().valueIs("0",0,32768) } [JUMP $A.S]
-rewrite inst = [BRANCHNZ_4 const] { a.getLeft().valueIs("0",32768,0) } [JUMP $A.S]
-rewrite inst = [BRANCHNZ_4 const] { a.getLeft().valueIs("0",0,32768) } [NOP]
+rewrite inst = [BRANCHZ_8 immed] { a.getLeft().valueIs("0",32768,0) } [COMMENT "dead branch"]
+rewrite inst = [BRANCHZ_8 immed] { a.getLeft().valueIs("0",0,32768) } [JUMP $A.S]
+rewrite inst = [BRANCHNZ_8 immed] { a.getLeft().valueIs("0",32768,0) } [JUMP $A.S]
+rewrite inst = [BRANCHNZ_8 immed] { a.getLeft().valueIs("0",0,32768) } [COMMENT "dead branch"]
 
-rewrite inst = [BRANCHZ_1 const] { a.getLeft().valueIs("0",32768,0) } [NOP]
-rewrite inst = [BRANCHZ_1 const] { a.getLeft().valueIs("0",0,32768) } [JUMP $A.S]
-rewrite inst = [BRANCHNZ_1 const] { a.getLeft().valueIs("0",32768,0) } [JUMP $A.S]
-rewrite inst = [BRANCHNZ_1 const] { a.getLeft().valueIs("0",0,32768) } [NOP]
+rewrite inst = [BRANCHZ_4 immed] { a.getLeft().valueIs("0",32768,0) } [COMMENT "dead branch"]
+rewrite inst = [BRANCHZ_4 immed] { a.getLeft().valueIs("0",0,32768) } [JUMP $A.S]
+rewrite inst = [BRANCHNZ_4 immed] { a.getLeft().valueIs("0",32768,0) } [JUMP $A.S]
+rewrite inst = [BRANCHNZ_4 immed] { a.getLeft().valueIs("0",0,32768) } [COMMENT "dead branch"]
+
+rewrite inst = [BRANCHZ_1 immed] { a.getLeft().valueIs("0",32768,0) } [COMMENT "dead branch"]
+rewrite inst = [BRANCHZ_1 immed] { a.getLeft().valueIs("0",0,32768) } [JUMP $A.S]
+rewrite inst = [BRANCHNZ_1 immed] { a.getLeft().valueIs("0",32768,0) } [JUMP $A.S]
+rewrite inst = [BRANCHNZ_1 immed] { a.getLeft().valueIs("0",0,32768) } [COMMENT "dead branch"]
 
 rewrite inst = [LINE] 0 [LIST
     [DLABEL $L]

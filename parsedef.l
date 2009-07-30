@@ -1809,6 +1809,7 @@ namespace Parse {
 		body.markLastReturns();
 	    }
 	    */
+	    ITree.KillAfter = CompileState.INLINE_MAX * 2;
 
 	    bool can_inline = true;
 	    try {
@@ -1836,13 +1837,14 @@ namespace Parse {
 		// IO.Std.err.println( "not leaf: " + human );
 		can_inline = false;
 	    } catch( CannotInlineException e ) {
-		IO.Std.err.println( "mark cannot inline: " + m.HumanName );
+		// IO.Std.err.println( "mark cannot inline: " + m.HumanName + " cause: " + e );
 		// encountered non-inlineable construct: do not try and inline this method again:
 		m.markCannotInline();
 
 		// IO.Std.err.println( "cannot inline: discarding inline intermediate code for " + decorated );
 		can_inline = false;
 	    }
+	    ITree.KillAfter = 0;
 
 	    // compilation might detect calls or other non-inlineable constructs
 	    // that initial checkInline scan missed (e.g. property method calls)

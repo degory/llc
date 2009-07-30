@@ -110,7 +110,7 @@ namespace Generic is
     /// Iterates over a Map returning each key in the map in turn. Returns keys in no particular order
     /// \param K the key type
     /// \param T the value type
-    class MapKeyIterator<K,T> extends System.Object implements Iterator<K> is
+    class MapKeyIterator<K,T> implements Iterator<K> is
 	MapIterator<K,T> _i;
 	
 	/// Construct a new MapKeyIterator
@@ -131,7 +131,7 @@ namespace Generic is
     /// Iterates over a Map returning each value in the Map in turn. Returns values in no particular order
     /// \param K the key type
     /// \param T the value type
-    class MapValueIterator<K,T> extends System.Object implements Iterator<T> is
+    class MapValueIterator<K,T> implements Iterator<T> is
 	MapIterator<K,T> _i;
 
 	/// Construct a new MapValueIterator
@@ -152,7 +152,7 @@ namespace Generic is
     /// An associative array
     /// \param K type of keys in the Map. K must implement int hash() method and =~ operator (bool opEquals(K)). 
     /// \param T type of values in the Map.
-    class Map<K,T> extends System.Object is
+    class Map<K,T> implements Iterable<T> is
 	public RealList<MapPair<K,T>>[] _values;
 
 	/// Construct a new Map

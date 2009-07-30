@@ -456,7 +456,7 @@ namespace Parse {
             } else {
                 Container c = state.CurrentClass.Super;
                 if( c == null ) {
-                    error( "class " + state.CurrentClass.DecoratedName + " doesn't have a super class" );
+                    error( "class " + state.CurrentClass.HumanName + " doesn't have a super class" );
                     type = undefined_type;
                 }
                 type = new Type( Type.SUPER, c );
@@ -1723,13 +1723,19 @@ namespace Parse {
 		    state.notLeaf();
 		}
 	    } else {
-		if( state.IsInline && (symbol == null || symbol.Name !~ "init") ) {		    
-		// IO.Std.err.println( "would call not leaf here for call to: " + symbol.Owner.HumanName + "." + symbol.Name + "..." );
-		/*
+		// if we're preparing an inline version of a method and either this is not the last inline pass or if the current method
+		// has no if statement then abort inline preparation.
 
-		    IO.Std.err.println( "attempting to inline call to: " + symbol.Owner.HumanName + "." + symbol.Name + "..." );
-		}
-		*/
+		// rationale is to allow inlining of small methods with method calls that also contain an if statement in the hope that the
+		// method call is in the less frequently executed part of the if statement. This is allowed only on the last inline pass to
+		// avoid passing up on the possibility of inlining the called method as well.
+		if( state.IsInline && (!state.InLastInlinePass || !state.CurrentMethodHasIf) ) {
+		    // IO.Std.err.println( "would call not leaf here for call to: " + symbol.Owner.HumanName + "." + symbol.Name + "..." );
+		    /*
+
+		      IO.Std.err.println( "attempting to inline call to: " + symbol.Owner.HumanName + "." + symbol.Name + "..." );
+		      }
+		    */
 		    state.notLeaf();
 		}
 	    }
@@ -1994,7 +2000,7 @@ namespace Parse {
                 switch ( symbol.Kind ) {
 		    		   
                 case Symbol.CLASS:
-		    error( "cannot use class " + symbol.HumanName + " here" );
+		    error( "cannot use class " + symbol.HumanName + " here (static use of instance variable?)" );
 		    return new ITree( line_number, Op.ERROR, 0 );
                     
                     

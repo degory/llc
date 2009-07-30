@@ -41,7 +41,7 @@ namespace Gen {
 	public static String EXCEPTION_TOP = "__exception_top";
 
 	public const int WORD = 8;
-	public const int RED_ZONE = 0; // 128;
+	public const int RED_ZONE = 128;
 	public const int INLINE_DEPTH = 3;
 	public const int NUM_MULTI_REG_SET = 3;
 
@@ -168,7 +168,7 @@ namespace Gen {
 	    Op.setAsName(Op.STATIC_0, ".section x_static_init," + quote + "ax" + quote );
 	    Op.setAsName(Op.UNWIND_0, ".section w_line_info," + quote + "a" + quote );
 	    Op.setAsName(Op.PUSHSEG_0, "# save section" );
-	    Op.setAsName(Op.POPSEG_0,"# restore section\n.section" );
+	    Op.setAsName(Op.POPSEG_0,".section" );
 	    Op.setAsName(Op.ENTER_LOOP_0, "# enter loop" );
 	    Op.setAsName(Op.LEAVE_LOOP_0, "# leave loop" );
 	    Op.setAsName(Op.JE_0,"je" );
@@ -189,8 +189,8 @@ namespace Gen {
 	    Op.setAsName(Op.MUL2_8, "imulq" );
 	    Op.setAsName(Op.MUL_4,"imull" );
 	    Op.setAsName(Op.MUL2_4, "imull" );
-	    Op.setAsName(Op.CONST_STR_0,"# string constant\n.byte" );
-	    Op.setAsName(Op.CONST_CSTR_0,"# C string constant\n.byte" );
+	    Op.setAsName(Op.CONST_STR_0,".byte" );
+	    Op.setAsName(Op.CONST_CSTR_0,".byte" );
 	    Op.setAsName(Op.DEFINT_8,".quad" );
 	    Op.setAsName(Op.DEFINT_4,".int" );
 	    Op.setAsName(Op.DEFINT_1,".byte" );

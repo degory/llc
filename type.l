@@ -165,7 +165,9 @@ namespace Parse {
         Container findMethod( String name, Vector<Type> arguments, bool exact ) {
             if( c != null ) {
                 return c.findMethod( name, arguments, exact );
-            } else {
+            } else if( TypeKind == ERROR ) {
+		return null;
+	    } else {
                 throw new Exception( "oops: cannot look for method " + name + " in non class type" );
             }
         }
@@ -173,6 +175,8 @@ namespace Parse {
         Container findBestMethod( String name, Vector<Type> arguments, Quality quality ) {
             if( c != null ) {
                 return c.findBestMethod( name, arguments, quality );
+            } else if( TypeKind == ERROR ) {
+		return null;
             } else {
                 throw new Exception( "oops: cannot look for method " + name + " in non class type" );
             }

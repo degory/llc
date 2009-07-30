@@ -461,7 +461,8 @@ namespace Gen {
 	private int mask;          // bit mask specifying which registers can hold this temporary
 	private int count_general;  // how many interfering registers of any type are adjacent to this temporary
 	private int count_preserve; // how many interfering callee preserve registers are adjacent to this temporary
-        
+	//        private int first_size;
+	//        private int last_size;
 
 	// bit mask of registers clobbered over this temporaries lifetime:
 	int clobber;
@@ -901,7 +902,7 @@ namespace Gen {
 
 	int next_edge;
 
-	bool debug;
+	public static bool debug;
 
 
 	// statistics for debugging purposes:
@@ -923,6 +924,8 @@ namespace Gen {
 
 	void init() {
 	    super.init();
+
+	    debug = Parse.CompileState.Instance.WantLineNumbers; // FIXME: not really but line numbers -> don't strip debugging info
 
             node = new Util.Vector();
             edge = new Util.Vector();
@@ -966,6 +969,10 @@ namespace Gen {
 		n.initialize( size );
 	    }
         }
+
+	static get bool Debug {
+	    return debug;
+	}
 
 	// reset all instructions to a clean state discarding any previously assigned
 	// registers and clearing final use markers:
@@ -2136,10 +2143,14 @@ namespace Gen {
 			    // the destination is not used before next definition or method end:
 			    peephole( /*reg, spilled*/ );
 
-			    // output the register assigments to the assembler file for debugging:
-			    dumpTemps();
-			    
-			    countInstructions(count+1);
+			    if( debug ) {
+				// output the register assigments to the assembler file for debugging:
+				dumpTemps();
+			    }
+
+			    if( Parse.CompileState.Instance.WantStatistics ) {
+				countInstructions(count+1);
+			    }
 			    return true;
 			}
 		    }
@@ -4199,13 +4210,13 @@ namespace Gen {
 	void clearPhi() {
 	    if( left.isPhi() ) {
 		String s = toString();
-		makeComment( "SS phi " + s.substring(0,s.Length-1) );
+		makeComment( "RA phi " + s.substring(0,s.Length-1) );
 	    }
 	}
 
 	bool clearIneffectivePhi( MBitSet in ) {
       	    if( left.isPhi() && !in[operands[0].temp] ) {
-		makeComment( "SS ineffective phi T" + operands[0].temp );
+		makeComment( "RA ineffective phi T" + operands[0].temp );
 		return true;
 	    }
 	    return false;	   
@@ -4311,6 +4322,10 @@ namespace Gen {
 	    return left.isPhi();
 	}
 
+	bool isComment() {
+	    return left.isComment();
+	}
+
 	bool isEnterLoop() {
 	    return left.isEnterLoop();
 	}
@@ -4409,41 +4424,53 @@ namespace Gen {
 	}
 
 	String toString() {
+	    bool debug = MFlow.debug;
 	    int i;
 	    if( left == null ) {
-		return "# null instruction";
+		return "# null instruction\n";
 	    }
 
 	    StringBuffer b = new StringBuffer();
 
 	    if( !is_effective ) {
+		if( !debug ) {
+		    return "";
+		}
 		b.append( "                                 " );
 		b.append( "# not effective " );
 	    }
 
+	    if( !debug && isComment() ) {
+		return "";
+	    }
+
 	    if( pattern == null ) {
 		String s = left.toString();
-
-		if( s == null ) {
-		    IO.Std.err.println( "non null instruction has null representation: " + left.Operation );
-		    return "# null instruction\n";
+		if( !debug && s[0] == '#' ) {
+		    return "";
 		}
 
-		bool seen_comment = false;
-		for( i = 0; i < 2 && i < s.Length; i = i + 1 ) {
-		    if( s.charAt(i) == '#' ) {
-			b.append( "                                 " );
-			seen_comment = true;
-			break;
+		if( debug ) {
+		    if( s == null ) {
+			IO.Std.err.println( "non null instruction has null representation: " + left.Operation );
+			return "# null instruction\n";
+		    }
+
+		    bool seen_comment = false;
+		    for( i = 0; i < 2 && i < s.Length; i = i + 1 ) {
+			if( s.charAt(i) == '#' ) {
+			    b.append( "                                 " );
+			    seen_comment = true;
+			    break;
+			}
+		    }
+		    
+		    if( !seen_comment && s[0] != '.' ) {
+			b.append( "        " );
 		    }
 		}
-
-		if( !seen_comment && s[0] != '.' ) {
-		    b.append( "        " );
-		}
-
+		    
 		b.append( s );
-
 	    } else {
 		for( int j = 0; j < pattern.Length; j = j + 1 ) {
 		    if( pattern.charAt(j) == '?' ) {
@@ -4463,28 +4490,28 @@ namespace Gen {
 		}
 	    }
 
-
-
-	    if( (operands != null && operands.length > 0) || clobber != MSet.None || comment != null ) {
-		while( b.Length < 32 ) {
-		    b.append( ' ' );
+	    if( debug ) {
+		if( (operands != null && operands.length > 0) || clobber != MSet.None || comment != null ) {
+		    while( b.Length < 32 ) {
+			b.append( ' ' );
+		    }
+		    b.append( " # " );
 		}
-		b.append( " # " );
-	    }
 
-	    for( i = 0; operands != null && i < operands.length; i = i + 1 ) {
-		b.append( operands[i] );
-		if( i < operands.length - 1 ) {
-		    b.append( ' ' );
+		for( i = 0; operands != null && i < operands.length; i = i + 1 ) {
+		    b.append( operands[i] );
+		    if( i < operands.length - 1 ) {
+			b.append( ' ' );
+		    }
 		}
-	    }
 
-	    if( clobber != MSet.None ) {
-		b.append( " clobber " + MOperand.setString(clobber) + " " );
-	    }
+		if( clobber != MSet.None ) {
+		    b.append( " clobber " + MOperand.setString(clobber) + " " );
+		}
 
-	    if( comment != null ) {
-		b.append( comment );
+		if( comment != null ) {
+		    b.append( comment );
+		}
 	    }
 
 	    b.append( '\n' );
@@ -4600,7 +4627,7 @@ namespace Gen {
 		    mt.setITree( it );
 		    insertAfter( into, mt );
 		    mt.initOperands();
-		    makeComment( "SS converted spilled T" + t + " to memory reference at offset " + offset );
+		    makeComment( "RA converted spilled T" + t + " to memory reference at offset " + offset );
 
 		    mem_number = mem_number + 1;
 		    return true; // re-wrote rather than spilled
@@ -4629,7 +4656,7 @@ namespace Gen {
 	    // IO.Std.err.println( "rset: " + Machine.getSetName( o.rset ) + " is size: " + size + ", copy set: " + Machine.getSetName(copy_set) );
 
 	    if( o.mode & Mode.READ != 0 ) {
-		s = new MInst( new MData( Op.COMMENT, new MConst( "SS " + size + " fill T" + t + " -> T" + u + " at offset " + offset ) ) );
+		s = new MInst( new MData( Op.COMMENT, new MConst( "RA " + size + " fill T" + t + " -> T" + u + " at offset " + offset ) ) );
 		s.initOperands();
 		insertBefore( into, s );
 		
@@ -4651,7 +4678,7 @@ namespace Gen {
 	    }
 
 	    if( o.mode & Mode.WRITE != 0 ) {
-		s = new MInst( new MData( Op.COMMENT, new MConst( "SS " + size + " spill T" + u + " -> T" + t + " at offset " + offset ) ) );
+		s = new MInst( new MData( Op.COMMENT, new MConst( "RA " + size + " spill T" + u + " -> T" + t + " at offset " + offset ) ) );
 		s.initOperands();
 		insertAfter( into, s );
 		s = new MInst( new MMove( copy_op,
@@ -4722,7 +4749,7 @@ namespace Gen {
 	    */
 
 	    if( o == null || o.mode & Mode.READ != 0 ) {
-		s = new MInst( new MData( Op.COMMENT, new MConst( "SS split T" + t + " -> T" + u + " " + why ) ) );
+		s = new MInst( new MData( Op.COMMENT, new MConst( "RA split T" + t + " -> T" + u + " " + why ) ) );
 		s.initOperands();
 		
 		insertBefore( into, s );
@@ -4751,7 +4778,7 @@ namespace Gen {
 	    }
 
 	    if( o == null || o.mode & Mode.WRITE != 0 ) {
-		s = new MInst( new MData( Op.COMMENT, new MConst( "SS split T" + u + " <- T" + t + " " + why ) ) );
+		s = new MInst( new MData( Op.COMMENT, new MConst( "RA split T" + u + " <- T" + t + " " + why ) ) );
 		s.initOperands();
 		
 		insertAfter( into, s );
@@ -4829,7 +4856,7 @@ namespace Gen {
 		r2 = new MReg( t, copy_set );
 	    }
 
-	    s = new MInst( new MData( Op.COMMENT, new MConst( "SS " + size + " save T" + t + " at offset " + offset + " because " + reason ) ) );
+	    s = new MInst( new MData( Op.COMMENT, new MConst( "RA " + size + " save T" + t + " at offset " + offset + " because " + reason ) ) );
 	    s.initOperands();
 	    insertBefore( into, s );
 	    s = new MInst( new MMove( copy_op,
@@ -4851,7 +4878,7 @@ namespace Gen {
 	
 
 
-	    s = new MInst( new MData( Op.COMMENT, new MConst( "SS " + size + " restore T" + t + " at offset " + offset + " because " + reason ) ) );
+	    s = new MInst( new MData( Op.COMMENT, new MConst( "RA " + size + " restore T" + t + " at offset " + offset + " because " + reason ) ) );
 	    s.initOperands();
 	    insertAfter( into, s );
 	    
@@ -4874,7 +4901,7 @@ namespace Gen {
 	    spill_number = spill_number + 1;
 	}
 
-
+	/*
 	void renameSSATemps() {
 	    MReplaceTemp rt;
 	    for( int i = 0; i < operands.length; i = i + 1 ) {
@@ -4904,6 +4931,7 @@ namespace Gen {
 		}
 	    }
 	}
+	*/
 
 	void renameTemp( MNode into, MOperand o, int t, int u, String why ) {
 	    MInst s;
@@ -4913,7 +4941,7 @@ namespace Gen {
 	    // IO.Std.err.println( "rename temp T" + t + " to new temp T" + u );
 
 	    /*
-	    s = new MInst( new MData( Op.COMMENT, new MConst( "SS rename T" + t + " -> T" + u + " " + why ) ) );
+	    s = new MInst( new MData( Op.COMMENT, new MConst( "RA rename T" + t + " -> T" + u + " " + why ) ) );
 	    s.initOperands();
 	    
 	    insertBefore( into, s );
@@ -4942,7 +4970,7 @@ namespace Gen {
 		left.dest.Temp == left.left.Temp ) {
 		MInst.copy_number = MInst.copy_number + 1;
 
-		makeComment( "SS removed redundant copy T" + t );
+		makeComment( "RA coalesced redundant copy T" + t );
 	    }
 
 	    // IO.Std.err.println( "JJJJJJ: problem register set change - need to split live range here: T" + t + "->T" + u );
@@ -5711,7 +5739,7 @@ for each operand
 		}
 		
 
-		makeComment( "SS converted 3A to machine instruction " + os.substring(0,os.Length-1) ); 
+		makeComment( "RA converted 3A to machine instruction " + os.substring(0,os.Length-1) ); 
 		return true;
 	    } else {
 		return false;

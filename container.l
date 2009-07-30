@@ -62,11 +62,14 @@ namespace Parse {
         bool tables_valid;
 	bool cannot_inline;
 	bool want_pack;
-
+	bool has_if;
 
         void setup( Container parent ) {
 	    if( this.parent != null ) {
 		IO.Std.err.println( "HHHHHH: overwriting parent " + this.parent + " with " + parent + " from " + new System.Backtrace() );
+	    }
+	    if( parent == this ) {
+		throw new System.Exception( "class " + HumanName + " cannot be its own superclass" );
 	    }
             this.parent = parent;
             this.needs_body = true;
@@ -124,6 +127,14 @@ namespace Parse {
 
 	get Vector<Container> ImplementsList {
 	    return implements_list;
+	}
+
+	get bool HasIf {
+	    return has_if;
+	}
+
+	set bool HasIf = i {
+	    has_if = i;
 	}
 	
 	get bool IsInterface {
@@ -1331,8 +1342,7 @@ namespace Parse {
 		    
 		    if( !e.Type.isAssignableFrom( i.Type ) ) {
 			from.error(
-				   "" + i.Type + " " + i.HumanName + " cannot implement "
-				   + e.Type + " " + e.HumanName + " with incompatible return type" );
+				   i.HumanName + " cannot implement " + e.HumanName + " with incompatible return type" );
 			continue;
 		    }
 		    

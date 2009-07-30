@@ -390,13 +390,14 @@ namespace Parse {
 	    WANT_PROFILE = 6,
 	    WANT_PIC = 7,
 	    WANT_VIRTUAL = 8,
-	    WANT_PACK = 9;
+	    WANT_PACK = 9,
+	    WANT_RED_ZONE = 10;
 
-	private const int
+	const int
 	    DEFAULT_WARN_FLAGS = 13 | 32; // all warnings enabled, trusted flag not set
 
-	private const int
-	    INLINE_MAX = 30;    // approxiate maximum inline method size (in parse tree nodes)
+	public const int
+	    INLINE_MAX = 20;    // approxiate maximum inline method size (in parse tree nodes)
 
 	static CompileState instance;
 
@@ -432,6 +433,7 @@ namespace Parse {
 	int block_level;
 
         CompilePass pass;
+	bool in_last_inline_pass;
       
         int current_line;
 
@@ -460,6 +462,7 @@ namespace Parse {
 	bool want_safe;
 	bool want_line_numbers;
 	bool want_shared_standard_library;
+	bool want_statistics;
 
 	int default_warn_flags;
 
@@ -720,6 +723,18 @@ namespace Parse {
 	    }
 
 	    return null;
+	}
+
+	get bool CurrentMethodHasIf {
+	    var current_method = CurrentMethod;	    
+	    return current_method != null && current_method.HasIf;
+	}
+
+	void markCurrentMethodHasIf() {
+	    var current_method = CurrentMethod;
+	    if( current_method != null ) {
+		current_method.HasIf = true;
+	    }
 	}
 
 	get bool InStaticInitializer {
@@ -1066,10 +1081,15 @@ namespace Parse {
 		// become leaf as methods they call are inlined:
 
 		Pass = CompilePass.PREPARE_INLINE;
+
 		for( j = 0; j < Machine.INLINE_DEPTH; j = j + 1 ) {
 		    // IO.Std.err.println( "start inline pass: " + i + " file " + file_name );
 		    if( WantVeryVerbose ) {
 			ParseTree.message( "preparing inline methods pass " + (j+1) + "..." );
+		    }
+
+		    if( j == Machine.INLINE_DEPTH-1 ) {
+			in_last_inline_pass = true;
 		    }
 		    
 		    for( i = 0; i < to_compile_list.Length; i = i + 1 ) {
@@ -1077,6 +1097,8 @@ namespace Parse {
 			p.prepareInline(this);
 		    }
 		}
+		in_last_inline_pass = false;
+
 	    }
 
 	    // actually compile:
@@ -2600,6 +2622,14 @@ namespace Parse {
 	    this.want_jobs = j;
 	}
 
+        get bool WantStatistics {
+	    return want_statistics;
+	}
+
+	set bool WantStatistics = s {
+	    want_statistics = s;
+	}
+
         get bool WantSharedStandardLibrary {
 	    return want_shared_standard_library;
 	}
@@ -2753,6 +2783,13 @@ namespace Parse {
 	    WarnFlag[WANT_PACK] = p;
 	}
 
+	get bool WantRedZone {
+	    return WarnFlag[WANT_RED_ZONE];
+	}
+
+	set bool WantRedZone = z {
+	    WarnFlag[WANT_RED_ZONE] = z;
+	}
         get bool WantVirtual {
 	    return WarnFlag[WANT_VIRTUAL];
 	}
@@ -2811,6 +2848,10 @@ namespace Parse {
 
 	set bool WantCSE = c {
 	    want_cse = c;
+	}
+
+        get bool InLastInlinePass {
+	    return in_last_inline_pass;
 	}
  
 	get bool IsInline {

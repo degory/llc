@@ -1800,18 +1800,21 @@ namespace Parse {
 	    if( sr == 1 ) {		
 		cr = new ITree( line_number, Op.CAST_FROM1, Machine.WORD, cr );
 	    } else if( sr == 4 && sr != Machine.WORD ) { // FIXME: constant == constant does not compile...
-		/*
-		cr = new ITree( line_number, Op.CAST_FROM4, Machine.WORD, cr );
-		*/
-
-		// this is a cheat to avoid a movsx on every bounds check. It relies on
-		// arrays being less than 2G elements long and amd64 clearing the top
-		// half of registers on every 32bit operation. If the array index is a 
-		// negative 32-bit number even without sign extension it will fail the 
-		// bounds check because the unsigned 64bit comparison will view it as a very
-		// large positive integer - larger than any bound up to 2G elements
-		// the 2GB bound limit is required anyway as T[].sizeof has type int 
-		cr = new ITree( line_number, Op.TREAT_AS, Machine.WORD, cr );
+		if( !state.WantCoalesce ) {
+		    // this is a cheat to avoid a movsx on every bounds check. It relies on
+		    // arrays being less than 2G elements long and amd64 clearing the top
+		    // half of registers on every 32bit operation. If the array index is a 
+		    // negative 32-bit number even without sign extension it will fail the 
+		    // bounds check because the unsigned 64bit comparison will view it as a very
+		    // large positive integer - larger than any bound up to 2G elements
+		    // the 2GB bound limit is required anyway as T[].sizeof has type int 
+		    cr = new ITree( line_number, Op.TREAT_AS, Machine.WORD, cr );
+		} else {
+		    // above cheat not safe if copy coalescing enabled as it can cause us
+		    // to end up with garbage in the high half of a 64 bit register if the
+		    // register is spilled:
+		    cr = new ITree( line_number, Op.CAST_FROM4, Machine.WORD, cr );
+		}
 	    }
             // #ifdef CHECK_VECTOR_ACCESS
 

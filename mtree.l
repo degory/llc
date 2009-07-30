@@ -307,6 +307,10 @@ namespace Gen {
 	bool isLabel() {
 	    return false;
 	}
+
+	bool isComment() {
+	    return op == Op.COMMENT;
+	}
 	
 	bool isCopy() {
 	    return false;

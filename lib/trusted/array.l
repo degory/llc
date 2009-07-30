@@ -17,8 +17,8 @@ end
 
 namespace Generic is
     use System.Object;
-    /// Native array types (type[]) can be converted to and from specializations of this template class
-    /// Arrays are fixed length and bounds checked. Valid indexes are 0..length-1 inclusive. 
+    /// Native arrays can be converted to and from specializations of this template class.
+    /// Arrays are fixed length and bounds checked with valid indexes of 0 - length-1 inclusive. 
     /// \param T element type of the array
     class Array<T> implements List<T> is
 	int length;
@@ -32,7 +32,7 @@ namespace Generic is
 	/// indexer: get T[int index]
         /// \param index which array element to get
 	/// \return array element at index
-	/// \throw System.ArrayBoundsException if index is negative or greater than or equal to length
+	/// \throw System.BoundsException if index is negative or greater than or equal to length
 	get T[int index] is
 	    return cast T[](this)[index];
 	end
@@ -40,7 +40,7 @@ namespace Generic is
 	/// indexer: set T[int index] = v
         /// \param index which array element to set
 	/// \param v value to place in array at index
-	/// \throw System.ArrayBoundsException if index is negative or greater than or equal to length
+	/// \throw System.BoundsException if index is negative or greater than or equal to length
 	set T[int index] = v is
 	    cast T[](this)[index] = v;
         end

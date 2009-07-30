@@ -31,7 +31,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1171;
+	const int BUILD = 1172;
 
 	CompileState state;
 
@@ -184,7 +184,7 @@ namespace Parse {
 			state.WantSafe = true;
 
 		    case 's':
-			want_stats = true;
+			state.WantStatistics = true;
 
 		    case 'M':
 			if( name.Length >= 2 ) { 
@@ -260,13 +260,20 @@ namespace Parse {
 
 			    case 's':
 				state.WantSharedStandardLibrary = false;
+
+			    case 'Z':
+				state.WantRedZone = true;
+
+			    case 'z':
+				state.WantRedZone = false;
     
 			    case '1':
-				// state.WantCoalesce = true;
+				state.WantCoalesce = true;
 				state.WantInline = true;
 				state.WantRegVars = true;
 				state.WantReturnJumpElim = true;
 				state.WantSplitBounds = true;
+				state.WantRedZone = true;
 
 			    case '0', 'd':
 				state.WantCoalesce = false;
@@ -274,6 +281,7 @@ namespace Parse {
 				state.WantRegVars = false;
 				state.WantReturnJumpElim = false;
 				state.WantSplitBounds = false;
+				state.WantRedZone = false;
 				
 			    default:
 				IO.Std.err.println( "unexpected code generation switch: '" + name[j] );
@@ -408,7 +416,7 @@ namespace Parse {
 		// Gen.ICompileJob.wait();
 
 		Parse.ParseTree.newline();
-		if( Gen.MFlow.method_count != 0 && want_stats ) {
+		if( Gen.MFlow.method_count != 0 && state.WantStatistics ) {
 		    IO.Std.err.println( "        " + Parse.Expression.type_lookups + " type lookups" );
 		    IO.Std.err.println( "        " + Parse.Expression.type_misses + " type misses" );
 		    IO.Std.err.println( "        " + Parse.Expression.type_clears + " type clears" );
@@ -473,7 +481,7 @@ namespace Parse {
 	    IO.Std.err.println( "    -s               output code generation statistics" );
 	    IO.Std.err.println( "    -d               do not generate debugging information" );
 	    IO.Std.err.println( "    -M <heap size>   limit compiler heap size to <heap size> megabytes" );
-	    IO.Std.err.println( "    -O1              shorthand for -OVIBR" );
+	    IO.Std.err.println( "    -O1              shorthand for -OCVIBRZ" );
 	    IO.Std.err.println( "    -O<code options> code generation options" );
 	    IO.Std.err.println( "    -W<warn options> warning message options" );
 	    IO.Std.err.println();
@@ -494,6 +502,8 @@ namespace Parse {
 	    IO.Std.err.println( "    p                do not pack instance variables" );
 	    IO.Std.err.println( "    Q                generate profiler calls on method entry and exit" );
 	    IO.Std.err.println( "    q                do not generate profiler calls (default)" );
+	    IO.Std.err.println( "    Z                use stack red zone" );
+	    IO.Std.err.println( "    z                do not use stack red zone" );
 	    IO.Std.err.println();
 	    IO.Std.err.println( "warning message options:" );
 	    IO.Std.err.println( "    S                warn for every unsafe construct encountered" );

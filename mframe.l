@@ -94,7 +94,7 @@ namespace Gen {
 	    bool need_frame;   // need to save and setup RBP?
 	    bool push_frame;   // store RBP via push rather than store indirect through RSP?
 	    bool adjust_stack; // need to make room on stack via subtract from RSP?
-	    bool red_zone = Machine.RED_ZONE > 0;
+	    bool red_zone = Machine.RED_ZONE > 0 && Parse.CompileState.Instance.WantRedZone;
 
 	    int save_size = 0; // how many bytes on the stack are occupied by callee save registers (including RBP)
 
@@ -184,7 +184,7 @@ namespace Gen {
 		}
 	    }
 
-	    if( !red_zone && adjust_stack && total_size > 0 ) {
+	    if( !red_zone && adjust_stack && total_size > Machine.WORD ) {
 		// if machine has no red-zone then we have to adjust the stack before saving anything to it:
 		h.insertAfter( this, new MInst( new MA2( Op.SUB2+sz, new MReg( Machine.R_STACK ), new MImmediate( total_size - Machine.WORD ) ) ) );
 	    }
@@ -198,7 +198,7 @@ namespace Gen {
 		    h.insertAfter( this, new MInst( new MMove( Op.COPY+sz, new MReg( Machine.R_FRAME ), new MReg( Machine.R_STACK ) ) ) );
 		    h.insertAfter( this, new MInst( new MStack( Op.PUSH+sz, new MReg( Machine.R_FRAME ) ) ) );
 		} else {
-		    IO.Std.err.println( "LEALEALEA: push frame is: " + push_frame + " sz is: " + sz );
+		    // IO.Std.err.println( "LEALEALEA: push frame is: " + push_frame + " sz is: " + sz );
 		    h.insertAfter( this, new MInst( new MMove( Op.LEA+sz, 
 							       new MReg( Machine.R_FRAME ),
 							       new MIndirect( new MAddress(

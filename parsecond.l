@@ -271,6 +271,7 @@ namespace Parse {
 	    if( false_block != null ) {
 		false_block.checkInline( state );
 	    }
+	    state.markCurrentMethodHasIf();
 	}
 
         void compile( CompileState state, IBlock into ) {

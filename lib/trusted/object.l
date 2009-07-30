@@ -224,14 +224,21 @@ namespace System is
 	    return false;
 	end
 
+	/// accessor: get Object ptr ObjectValuesPointer
+	/// internal method used by Util.Walk to obtain a pointer to the list of values in a collection that is implemented with pointers
+	/// \return a pointer to this object's value list
 	get Object ptr ObjectValuesPointer is
 	    return null;
         end
 
+	/// accessor: get Object ptr ObjectValuesPointer
+	/// internal method used by Util.Walk to obtain the length of the list of values in a collection that is implemented with pointers
 	get int ObjectValuesLength is
 	    return 0;
 	end
 
+	/// get memory used by this object
+	/// \return number of bytes occupied by this object not including any referenced objects
 	get int MemoryUse is
 	    return ObjectSize;
 	end

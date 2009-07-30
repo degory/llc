@@ -479,6 +479,7 @@ namespace Gen {
 
     class ITree extends Object {
 	static int next_id = 0;
+	static int kill_id = -1;
 
         IValue value;
         ITree left, right;
@@ -510,6 +511,15 @@ namespace Gen {
         get ReWrite.State ReWriteState {
             return cast<ReWrite.State>(state);
         }
+
+	static set int KillAfter = k {
+	    if( k > 0 ) {
+		// IO.Std.err.println( "kill " + next_id + " + " + k + ": " + (next_id + k) );
+		kill_id = next_id + k;
+	    } else {
+		kill_id = -1;
+	    }
+	}
 
 	static int rawOp( int op ) {
 	    // IO.Std.err.println( "raw op " + op + ": " + (op & ~3) );
@@ -827,6 +837,10 @@ namespace Gen {
 	    }
 	    */
 	    next_id = next_id + 1;
+	    if( kill_id > 0 && next_id > kill_id ) {
+
+		throw new Parse.CannotInlineException();
+	    }
         }
 
         void init( int line_number, int op, int size ) {
