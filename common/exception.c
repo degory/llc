@@ -30,7 +30,6 @@ typedef void ExFunc(int type, void *ex);
 // #define D(e...) { printf(e); fflush(stdout); }
 #define D(e...)
 
-
 #ifdef B32 /* 32 bit */
 
 typedef unsigned long WORD;
@@ -591,6 +590,7 @@ extern UnwindRecord *__unwind_start;
 typedef struct _UnwindList {
   UnwindRecord *head;
   struct _UnwindList *tail;
+  int length;
 } UnwindList;
 
 static UnwindList *unwind_head = 0;
@@ -672,46 +672,220 @@ void __add_unwind_info( UnwindRecord **u ) {
 
   list->head = *u;
   list->tail = unwind_head;
+  list->length = 0;
 
   unwind_head = list;
 }
 
+typedef struct _RecentUnwindInfo {
+  WORD rip;
+  UnwindRecord *p;
+  struct _RecentUnwindInfo *next;
+} RecentUnwindInfo;
+
+#ifdef B64
+#define UNWIND_HASH_BYTES 4
+#else
+#define UNWIND_HASH_BYTES 4
+#endif
+
+#define UNWIND_CACHE_MAX 256
+#define UNWIND_CACHE_MASK (UNWIND_CACHE_MAX-1)
+
+// FIXME: none of this is thread safe
+
+// mapping from rip values to unwind records, indexed by hash of rip:
+RecentUnwindInfo __unwind_cache[UNWIND_CACHE_MAX];
+
+// unwind record we expect to encounter next if current unwind follows same path as previous:
+RecentUnwindInfo *__next_unwind_hit = __unwind_cache;
+
+// last matched cache entry:
+RecentUnwindInfo *__last_unwind_hit = __unwind_cache;
+
+RecentUnwindInfo *findCachedUnwindInfo( WORD rip ) {
+  WORD rip_c;
+  RecentUnwindInfo *p;
+  unsigned char *c;
+  unsigned char hash;
+  int i;
+
+  D("find cached rip %p\n", (void *)rip );
+
+  // first check if we're following an existing unwind chain:
+  if( __next_unwind_hit != 0 &&__next_unwind_hit->rip == rip ) {
+    // matched an existing chain:
+    p = __next_unwind_hit;
+    D("unwind chain hit\n" );
+
+    // we now hope the next rip to look up will be the next entry in this chain:
+    __next_unwind_hit = p->next;
+
+    if( __last_unwind_hit != 0 ) {
+	// if we take this exception again then the frame under last unwind hit is the frame we just found:
+	__last_unwind_hit->next = p;
+    }
+    // in case next lookup is a miss we'll want to patch this cache entry's next pointer:
+    __last_unwind_hit = p;
+    return p;
+  }
+
+  D("unwind chain miss, hashing...\n" );
+  rip_c = rip;
+  c = (unsigned char *)&rip_c;
+  hash = 0;
+
+  // haven't hit the current unwind chain so compute hash of rip:
+  for( i = 0; i < UNWIND_HASH_BYTES; i++ ) {
+    hash = hash ^ c[i];
+  }
+
+  D("hash is %x table[%d] @ %p\n", (unsigned)hash, (unsigned)hash, &__unwind_cache[hash]);
+
+  // look in the cache entry for hash of rip:
+  p = &__unwind_cache[hash];
+  if( p->rip == rip ) {
+    // cache hit:
+    D("cache hit\n" );
+
+    if( __last_unwind_hit != 0 ) {
+	// if we take this exception again then the frame under last unwind hit is the frame we just found:
+	__last_unwind_hit->next = p;
+    }
+
+    // this record is now the last referenecd cache entry:
+    __last_unwind_hit = p;
+    return p;
+  }
+
+  D("should patch %p\n", &__unwind_cache[hash]);
+  
+  return p;
+}
+
+int __unwind_length;
+
 UnwindRecord *findUnwindInfo( WORD rip, BacktraceRecord *backtrace ) {
   int result = 0;
-  UnwindRecord *p;
+  UnwindRecord *p, *q, *r;
   D( "looking for method containing %p\n", (void *)rip );
 
+  RecentUnwindInfo *rp = findCachedUnwindInfo( rip );
+  if( rp->rip == rip ) {
+    p = rp->p;
+    if( p == 0 ) {
+      return 0;
+    }
+    if( backtrace != 0 ) {
+      backtrace->rip = rip;
+      backtrace->method_name = p->method_name;
+      backtrace->line_number_info = p->line_numbers;
+    }
+    return p;
+  }
+
   UnwindRecord *start = __unwind_start;
+  int length = __unwind_length;
+  int *p_length = &__unwind_length;
   UnwindList *next = unwind_head;
 
   D( "initial unwind table %p...\n", start );
 
   do {
-    D( "unwind table %p, method start %p...\n", start, start->method_start );
-    for( p = start; p->method_start != 0; p = p + 1 ) {
-      long method_end = p->method_start + p->method_length;
-      D( "have record %p, %p +%ld (%p) %s\n", p, (void *)p->method_start, p->method_length, method_end, p->method_name );
-      if( rip >= p->method_start && rip < method_end ) {
-	D( "match %p in method %s between %p and %p, unwind flags %lx\n", (void *)rip, p->method_name, (void*)p->method_start, (void*)method_end, p->flags );
-	if( backtrace != 0 ) {
-	  backtrace->rip = rip;
-	  backtrace->method_name = p->method_name;
-	  backtrace->line_number_info = p->line_numbers;
+    D( "unwind table %p, method start %p...\n", (void *)start, (void *)start->method_start );
+
+    if( length == 0 ) {
+      // first time, don't know table length so do linear search and calculate length at same time:
+      for( q = start; q->method_start != 0; q++ ) {
+	long method_end = q->method_start + q->method_length;
+	D( "have record %p, %p +%ld (%p) %s\n", q, (void *)q->method_start, q->method_length, (void *)method_end, q->method_name );
+	if( rip >= q->method_start && rip < method_end ) {
+	  D( "match %p in method %s between %p and %p, unwind flags %lx\n", (void *)rip, q->method_name, (void*)q->method_start, (void*)method_end, q->flags );
+	  if( backtrace != 0 ) {
+	    backtrace->rip = rip;
+	    backtrace->method_name = q->method_name;
+	    backtrace->line_number_info = q->line_numbers;
+	  }
+
+	  D( "will patch %p\n", __last_unwind_hit );
+	  
+	  p = q;
 	}
-	return p;
+
+	length++;
       }
+      *p_length = length;
+    } else {
+      p = start;
+      q = p + length -1;
+      D( "binary search over %d entries %p .. %p\n", length, p, q );
+
+      do {
+	WORD difference = (q - p);
+
+	D( "between %p and %p, %ld entries", p, q, difference );
+
+	UnwindRecord *r = p + difference / 2;
+	
+	D( "chop at %p\n", r );
+
+	if( r == p ) {
+	  if( p->method_start >= rip && p->method_start + p->method_length <= rip ) {
+	    D( "found %p\n", p );
+	  } else {
+      	    D( "probably not found %p = %p\n", p, r );
+	    p = 0;
+	  }
+	  break;
+	}
+
+	if( rip < r->method_start ) {
+	  D( "chop downwards [%p .. %p] .. %p\n", p, r, q );
+	  q = r;
+	} else if( rip > r->method_start + r->method_length ) {
+	  D( "chop upwards %p .. [%p .. %p]\n", p, r, q );
+	  p = r;
+	} else {
+	  D( "appear to have found at %p", r );
+	  p = r;
+	  break;
+	}
+      } while( 1 );
+    }
+
+    if( p != 0 ) {
+      rp->rip = rip;
+      rp->p = p;
+      rp->next = 0;
+
+      if( __last_unwind_hit != 0 ) {
+	// if we take this exception again then the frame under last unwind hit is the frame we just found:
+	__last_unwind_hit->next = rp;
+      }
+
+      __last_unwind_hit = rp;
+
+      return p;
     }
 
     if( next != 0 ) {
       start = next->head;
       next = next->tail;
+      length = next->length;
+      p_length = &next->length;
     } else {
       start = 0;
     }
     D( "next unwind list is %p\n", start );
   } while( start != 0 );
 
-  // D( "count not find rip\n" );
+  rp->rip = rip;
+  rp->p = 0;
+  rp->next = 0;
+
+    
+  // __last_unwind_hit = 0;
+  D( "could not find rip\n" );
   return 0;
 }
 
@@ -1093,7 +1267,7 @@ void __segv_handler(int sig, siginfo_t *si, SigContext *uc) {
 
 #define SIGNAL_STACK_SIZE 65536
 void __install_segv_handler() {
-  D(printf( "install segv handler\n" ));
+  D("install segv handler\n");
   // stack_t ss;
   struct sigaction sa;
 

@@ -242,5 +242,9 @@ namespace System is
 	String toString() is
 	    return toString(_value);
 	end
+
+        bool isSpace( char c ) is
+	    return String.isSpace(c);
+        end
     end
 end

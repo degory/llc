@@ -3,15 +3,18 @@ import object;
 import integer;
 
 import gset;
+import giterator;
 
 namespace System is
     use Generic.Map;
+    use Generic.Iterable;
+    use Generic.Iterator;
 
     pragma NoWarnUnsafe, NoMarkUnsafe;
    
     /// A string of characters. String is immutable, its child StringBuffer is not.
-    class String extends Object is
-	pragma NoWarnHide;
+    class String /* implements Iterable<char> */ is
+	@NoWarnHide;
 
 	protected char ptr _buffer;
 	protected int _length;
@@ -674,8 +677,33 @@ namespace System is
 	    fi
 	    return f;
 	end
+
+	get Iterator<char> Iterator is
+	    return new StringIterator(this);
+	end
     end
 
+    class StringIterator implements Iterator<char> is
+        String s;
+        int index;
+
+	void init( String s ) is
+	    IO.Std.err.println( "iterator<<<" + s + ">>>>iterator" );
+	    this.s = s;	    
+	end
+
+	bool hasMoreElements() is
+	    return index < s.Length;
+	end
+
+	char nextElement() is
+	    var result = s[index];
+	    index = index + 1;
+	    return result;
+	end
+    end
+
+				  
     /// A variable length modifyible string of characters. 
     class StringBuffer extends String is
 	private int _allocated_length;

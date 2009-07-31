@@ -503,6 +503,8 @@ namespace Parse {
 
 	Util.Walk walk_;
 
+	word last_time;
+
 	CompileState copy() {
 	    // IO.Std.err.println( "before copy, this is: " + System.String.hex(cast int(this)) );
 
@@ -542,6 +544,8 @@ namespace Parse {
 	    // no dependancy checking done on static initializers so need to do this here to
 	    // be sure Machine.NAME is initialized:
 	    lcache_dir = null;
+
+	    last_time = cast word(native.__get_nanotime());
 
 	    // FIXME: replace these stack arrays with vectors and make the stack pointers
 	    // point at the stack tops rather than above them:
@@ -587,6 +591,18 @@ namespace Parse {
 	    
 	    // pool = new ThreadPool(2);
 	    // pool.start();
+	}
+
+	void timeTo( String op ) {
+	    word now = cast word(native.__get_nanotime());
+	    word diff = now - last_time;
+
+	    int diff_fract = cast int(now / 1000W);
+	    int diff_int = cast int(now % 1000W);
+
+	    last_time = now;
+
+	    ParseTree.message( "" + op + ": " + diff_int + " " + diff_fract );
 	}
 
 	void walk( Object o ) {
@@ -951,6 +967,8 @@ namespace Parse {
             int i, j;
             Package p;
 
+	    timeTo( "startup" );
+
 	    openLibraryHashFile();
 
 	    // recursively visit all imported files building parse trees until every
@@ -967,7 +985,7 @@ namespace Parse {
                 p.parseImports(this);
             }
 
-
+	    timeTo( "parse imports" );
 	    // create symbol table entries for namespaces down to contained enums and classes and
 	    // stopping before declaring any symbols within classes:
 	    Pass = CompilePass.DECLARE_GLOBAL_SYMBOLS;
@@ -982,6 +1000,8 @@ namespace Parse {
                 p.declareGlobalSymbols(this);
             }
 
+	    timeTo( "parse declare global symbols" );
+
 	    // create specific instances of all template classes:
 	    Pass = CompilePass.CHECK_TEMPLATES;
 
@@ -989,6 +1009,8 @@ namespace Parse {
                 p = cast<Package>(to_compile_list[i]);
                 p.useTypes(this);
 	    }
+
+	    timeTo( "use types" );
 
 	    if( WantVeryVerbose ) {
 		ParseTree.message( "declaring template instances..." );
@@ -1013,19 +1035,22 @@ namespace Parse {
 		*/
 	    } while( GenericInstanceCount > instance_count );
 
+	    timeTo( "expand templates" );
 
 	    // create symbol table entries for all symbols declared at the class level, including instance variables and
 	    // method defintions including arguments but not method bodys:
             // IO.Std.err.println( "parsing definitions..." );
 	    Pass = CompilePass.DECLARE_CLASS_SYMBOLS;
 	    if( WantVeryVerbose ) {
-		ParseTree.message( "declaring class objects..." );
+		ParseTree.message( "declaring class symbols..." );
 	    }
 	    
             for( i = 0; i < to_compile_list.Length; i = i + 1 ) {
                 p = cast<Package>(to_compile_list[i]);
                 p.declareClassSymbols(this);
             }
+
+	    timeTo( "declare classes" );
 
 	    // symbols down to immediate contents of classes now declared so addresses of everything needed to build
 	    // vtables etc. now fixed:
@@ -1038,6 +1063,8 @@ namespace Parse {
                 c.buildClassTables( this );
             }
 
+	    timeTo( "build tables" );
+
 	    // last symbol table construction pass, declare all remaining symbols within methods:
 	    Pass = CompilePass.DECLARE_SYMBOLS;
 	    if( WantVeryVerbose ) {
@@ -1049,11 +1076,15 @@ namespace Parse {
 		p.declareSymbols(this);
 	    }
 
+	    timeTo( "parse declare remaining symbols" );
+
 	    if( WantVeryVerbose ) {
 		ParseTree.message( "build interface tables..." );
 	    }
 
 	    Container.buildInterfaceTables( interfaces_set, master_class_list.SymbolList );
+
+	    timeTo( "build interface tables" );
 
 	    // symbol table is complete and it is now possible to compile methods in any order
 	    // and we can attempt to prepare intermediate code versions of methods for inlining:
@@ -1073,6 +1104,8 @@ namespace Parse {
 		    p = cast<Package>(to_compile_list[i]);
 		    p.checkInline(this);
 		}
+
+		timeTo( "check inlineable methods" );
 
 		// attempt to prepare inlineable intermediate code for any methods that:
 		//    were not marked as not inlineable by check-inline pass
@@ -1101,7 +1134,10 @@ namespace Parse {
 		}
 		in_last_inline_pass = false;
 
+		timeTo( "prepare inline methods" );
 	    }
+
+
 
 	    // actually compile:
 
@@ -1116,6 +1152,8 @@ namespace Parse {
                 p = cast<Package>(to_compile_list[i]);
                 p.compile( this );
             }
+
+	    timeTo( "compile methods" );
 
 	    /*
 	    var w = new Util.Walk( proc(Object)(dumpMemory) );
@@ -1164,6 +1202,8 @@ namespace Parse {
 	    }
 	   
 	    linkObjectFiles();
+
+	    timeTo( "clean up and link" );
 
 	    ParseTree.message( "done" );
         }

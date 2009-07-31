@@ -11,9 +11,127 @@ class Root { // is
 %}
 
 
+/* uncomment for yyextract:
+%token FIRST            
+
+%token ARRAY_DEF         
+%token BOOL	       
+%token BYTE	       
+%token CHAR	       
+%token INT 	       
+%token LONG 	       
+%token WORD 	       
+%token POINTER 	       
+%token REFERENCE       
+
+%token ADD 	      
+%token AND 	      
+%token ASSERT 	      
+%token ASSIGN	      
+%token AT	      
+%token BOOL_AND	      
+%token BOOL_NOT	      
+%token BOOL_OR	      
+%token BREAK	      
+%token CASE	      
+%token CAST	      
+%token CATCH	      
+%token CLASS	       
+%token CLOSE_GENERIC  
+%token CLOSE_PAREN    
+%token CLOSE_SQUARE   
+%token COLON	      
+%token COMMA	      
+%token CONST	      
+%token CONST_CHAR     
+%token CONST_CSTRING  
+%token CONST_DOUBLE   
+%token CONST_FALSE    
+%token CONST_INT      
+%token CONST_NULL     
+%token CONST_STRING   
+%token CONST_TRUE     
+%token CONTINUE	      
+%token DEFAULT	      
+%token DIV	      
+%token DO	      
+%token DOT	      
+%token ELIF	      
+%token ELSE	      
+%token END	      
+%token END_BLOCK      
+%token END_STATEMENT  
+%token ENUM	      
+%token EOF	      
+%token EQ	      
+%token ESAC	      
+%token EXTENDS	      
+%token FI	      
+%token FINALLY	      
+%token FOR	      
+%token FOREACH	      
+%token GE	      
+%token GET	      
+%token GT	      
+%token IDENTIFIER     
+%token IF	      
+%token IMPORT	      
+%token IS	      
+%token LE	      
+%token LT	      
+%token METHOD	      
+%token MOD	      
+%token MUL	      
+%token NAMESPACE      
+%token NATIVE	      
+%token NE	      
+%token NEW	      
+%token NEWLINE	      
+%token NOT	      
+%token OBJ_EQ	      
+%token OBJ_NE	      
+%token OD	      
+%token OF	      
+%token OPEN_GENERIC   
+%token OPEN_PAREN     
+%token OPEN_SQUARE    
+%token OR	      
+%token PRAGMA
+%token PRIVATE	      
+%token PROTECTED      
+%token PUBLIC	      
+%token RETURN	      
+%token SET	      
+%token SHIFT_LEFT     
+%token SHIFT_RIGHT    
+%token START_BLOCK    
+%token STATIC	      
+%token STRUCT	      
+%token SUB	      
+%token SUPER	      
+%token THEN	      
+%token THIS	      
+%token THREAD	      
+%token THROW	     
+%token TRY	     
+%token UNKNOWN	     
+%token UNTIL	     
+%token USE	     
+%token VARIABLE	     
+%token VECTOR	     
+%token VOID	     
+%token WHILE	     
+%token XOR	     
+%token YRT	     
+%token DO_WHILE      
+%token IMPLEMENTS    
+%token INTERFACE     
+%token PROC          
+*/
+
 %token FIRST           0
 
-%token ARRAY_DEF       1 
+%token ARRAY_DEF       1  
 %token BOOL	       2
 %token BYTE	       3
 %token CHAR	       4
@@ -95,7 +213,7 @@ class Root { // is
 %token OPEN_PAREN     79
 %token OPEN_SQUARE    80
 %token OR	      81
-%token PRAGMA;	      82
+%token PRAGMA	      82
 %token PRIVATE	      83
 %token PROTECTED      84
 %token PUBLIC	      85
@@ -128,6 +246,7 @@ class Root { // is
 %token IMPLEMENTS    112
 %token INTERFACE     113
 %token PROC          114
+
 %start ROOT
 
 %%
@@ -1024,9 +1143,6 @@ within_block_statement:
 |	statement
 ;
 
-//within_do_statement:
-//         local_declaration
-//|        within_do_
 
 
 left_value:
@@ -1071,19 +1187,6 @@ block_statement_list:
 	}
 ;
 
-//within_do_block_statement:
-//	within_do_block_statement_list
-//|       { $$ = new Parse.BlockStatement( first_line, null ); }
-//;
-
-//within_do_block_statement_list:
-//	within_do_statement {
-//	     $ = new Parse.BlockStatement( first_line, cast<Parse.Statement>($1) );
-//        }
-//|       within_do_block_statement_list within_do_statement {
-//	    cast<Parse.BlockStatement>($1).add( cast<Parse.Statement>($2) );
-//        }
-//;
 
 class_qualifier:
         CLASS OPEN_GENERIC type CLOSE_GENERIC {
@@ -1105,14 +1208,6 @@ field_access:
                 cast<Parse.Identifier>($3).qualifies(cast<Parse.Expression>($1));
 			$$ = $3;
         }
-// |   SUPER DOT identifier {
-//              cast<Parse.Identifier>($3).qualifies( new Parse.Super( /*@1.*/first_line ) );
-//              $$ = $3;
-//      }
-//|   generic_type DOT identifier {
-//               cast<Parse.Identifier>($3).qualifies( new Parse.WrapTypeExprAsExpression(first_line,cast<Parse.TypeExpr>($1)) );
-//               $$ = $3;
-//        }
 
 ;
 
@@ -1257,10 +1352,6 @@ vector_list:
 
 
 pointer_access:
-//	AT primary {
-//	   $$ = new Parse.AtExpression( first_line, cast<Parse.Expression>($2) );
-//	   }
-//|
 	OPEN_SQUARE expression CLOSE_SQUARE {
 		$$ = new Parse.AtExpression( first_line, cast<Parse.Expression>($2) );
 	} 
@@ -1350,7 +1441,7 @@ complex_type:
 |       type PROC OPEN_PAREN CLOSE_PAREN
                 { $$ = new Parse.ProcType( first_line, cast Parse.TypeExpr($1), null ); }
 |       generic_type { $$ = $1; }
-// type OPEN_GENERIC type_list CLOSE_GENERIC { $$ = new GenericType( first_line, cast<Parse.TypeExpr>($1), cast<Parse.TypeExprList>($3) ); }
+
 |       type OPEN_GENERIC CLOSE_GENERIC { $$ = $1; }
 ;
 
