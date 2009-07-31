@@ -76,16 +76,17 @@ namespace Parse {
 	    TYPE = 0x500,
 	    PROC = 0x600,
             ATTRIBUTE = 0x700,
-            ATTRIBUTE_LENGTH =  0x0800,
-            ATTRIBUTE_ARRAY =   0x0900,
-            ATTRIBUTE_STRUCT =  0x0A00,
-	    ATTRIBUTE_ADDRESS = 0x0B00,
-	    ATTRIBUTE_SIZE =    0x0C00,
-	    ATTRIBUTE_TYPE =    0x0D00,
-	    ATTRIBUTE_BOX =     0x0E00,
-	    ATTRIBUTE_PASS =    0x0F00,
-	    ATTRIBUTE_NONE =    0x1000,
-	    ATTRIBUTE_ISOBJECT =0x1100;	    
+            ATTRIBUTE_LENGTH =      0x0800,
+            ATTRIBUTE_ARRAY =       0x0900,
+            ATTRIBUTE_STRUCT =      0x0A00,
+	    ATTRIBUTE_ADDRESS =     0x0B00,
+	    ATTRIBUTE_SIZE =        0x0C00,
+	    ATTRIBUTE_TYPE =        0x0D00,
+	    ATTRIBUTE_BOX =         0x0E00,
+	    ATTRIBUTE_PASS =        0x0F00,
+	    ATTRIBUTE_NONE =        0x1000,
+	    ATTRIBUTE_ISOBJECT =    0x1100,
+	    ATTRIBUTE_ISREFERENCE = 0x1200;
 
         Container owner;
         String name;

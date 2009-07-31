@@ -385,6 +385,8 @@ namespace Parse {
 		    return new Symbol( null, name, Symbol.ATTRIBUTE_NONE, Symbol.ACCESS_PUBLIC, t );
 		} else if( name =~ "isobject" ) {
 		    return new Symbol( null, name, Symbol.ATTRIBUTE_ISOBJECT, Symbol.ACCESS_PUBLIC, new Type(Type.BOOL) );
+		} else if( name =~ "isreference" ) {
+		    return new Symbol( null, name, Symbol.ATTRIBUTE_ISREFERENCE, Symbol.ACCESS_PUBLIC, new Type(Type.BOOL) );
 		} else if( t.TypeKind == Type.VECTOR ) {
 		    if( name =~ "length" ) {
 			return new Symbol( null, name, Symbol.ATTRIBUTE_LENGTH, Symbol.ACCESS_PUBLIC, new Type(Type.INTEGER) );
@@ -560,7 +562,14 @@ namespace Parse {
 		    return new ITree( line_number, Op.CONST, 1, 1 );
 		} else {
 		    return new ITree( line_number, Op.CONST, 1, 0 );
-		}		
+		}
+	    } else if( k == Symbol.ATTRIBUTE_ISREFERENCE ) {
+		at = left_value.getType( state );
+		if( at.isReference() ) {
+		    return new ITree( line_number, Op.CONST, 1, 1 );
+		} else {
+		    return new ITree( line_number, Op.CONST, 1, 0 );
+		}
             } else if( k == Symbol.CONST ) {
                 return new ITree( line_number, Op.CONST, size, symbol.Address );
             } else if( ( k & Symbol.FLAG_STATIC ) == 0 ) {
