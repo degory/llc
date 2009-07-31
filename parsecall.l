@@ -123,7 +123,11 @@ namespace Parse {
 
             if( t.TypeKind == Type.VECTOR ) {
                 Type st = t.SubType;
-		op = Op.NEW_GENERIC_ARRAY;
+		if( st.isReference() ) {
+		    op = Op.NEW_OBJ_ARRAY;
+		} else {
+		    op = Op.NEW_ARRAY;
+		}
 
 		Container c = t.getBoxType(state).Clazz;
 

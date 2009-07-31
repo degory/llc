@@ -111,9 +111,16 @@ namespace Parse {
 	    var c = at.getBoxType(state).Clazz;
 	    
 	    var vtable = loadVTable( state, c );
+	    int op;
+
+	    if( at.isReference() ) {
+		op = Op.NEW_OBJ_ARRAY;
+	    } else {
+		op = Op.NEW_ARRAY;
+	    }
 
 	    into.add( makeStoreTemporary( t, Machine.WORD,
-					  new ITree( line_number, Op.NEW_GENERIC_ARRAY, 0,
+					  new ITree( line_number, op, 0,
 						     new ITree( line_number, Op.CONST, Machine.WORD, l.Length ),
 						     vtable,
 						     size ) ) );

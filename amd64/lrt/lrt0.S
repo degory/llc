@@ -2,11 +2,12 @@
 
 
 // default allocator 
-#define ALLOC GC_malloc
+#define ALLOC GC_malloc_ignore_off_page
+	
 // #define ALLOC GC_malloc
 // non-object array alloc - could potentially be GC_atomic or GC_atomic_ignore_off_page
 // if we checked the array type at compile time to make sure it was not a pointer
-#define NON_OBJECT_ARRAY_ALLOC ALLOC
+#define NON_OBJECT_ARRAY_ALLOC  GC_malloc_atomic_ignore_off_page
 #define OBJECT_ARRAY_ALLOC ALLOC
 #define OBJECT_ALLOC ALLOC
 	
@@ -204,6 +205,43 @@ allocag:
 	imulq %rsi,%rdi	# total size = element count * element size
 	addq $16, %rdi  #              + 8 bytes for vtable + 8 bytes for stored size
 
+	call OBJECT_ARRAY_ALLOC
+
+	movq %rbx, (%rax)  # initialize vtable
+	movq %r12, 8(%rax) # initialize element count
+	
+	popq %rbx
+	popq %r12
+	ret
+
+.global allocago
+allocago:
+	pushq %r12	
+	pushq %rbx
+	movq %rdi,%r12	# save element count
+	movq %rdx,%rbx
+	imulq %rsi,%rdi	# total size = element count * element size
+	addq $16, %rdi  #              + 8 bytes for vtable + 8 bytes for stored size
+
+	call OBJECT_ARRAY_ALLOC
+
+	movq %rbx, (%rax)  # initialize vtable
+	movq %r12, 8(%rax) # initialize element count
+	
+	popq %rbx
+	popq %r12
+	ret
+
+
+.global allocagn
+allocagn:
+	pushq %r12	
+	pushq %rbx
+	movq %rdi,%r12	# save element count
+	movq %rdx,%rbx
+	imulq %rsi,%rdi	# total size = element count * element size
+	addq $16, %rdi  #              + 8 bytes for vtable + 8 bytes for stored size
+
 	call NON_OBJECT_ARRAY_ALLOC
 
 	movq %rbx, (%rax)  # initialize vtable
@@ -213,7 +251,6 @@ allocag:
 	popq %r12
 	ret
 
-.global allocao
 	
 # vtable	0 
 # length	8 

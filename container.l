@@ -146,9 +146,12 @@ namespace Parse {
 	}
 
         get bool IsObject {
-	    if( is_interface ) {
+	    if( is_interface || is_struct ) {
 		return false;
 	    }
+
+	    return true;
+	    /*
 
 	    for( Container c = this; c != null; c = c.parent ) {
 		if( c == ParseTree.ObjectClass ) {
@@ -157,6 +160,7 @@ namespace Parse {
 	    }
 
 	    return false;
+	    */
 	}
 	            
         get bool IsFinal {

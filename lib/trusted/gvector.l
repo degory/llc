@@ -292,17 +292,21 @@ namespace Generic is
 	    int i;
 	    T ptr new_values;
 	    if l > _allocated_length then
-		if l > 1000000 then
-		    native.printf( `very long vector allocation %d %s\n`, l, new Backtrace().toCString() );
-		    native.__flush_stdout();
-		fi
+		//if l > 1000000 then
+		//    native.printf( `very long vector allocation %d %s\n`, l, new Backtrace().toCString() );
+		//    native.__flush_stdout();
+		//fi
 
 		l = l * 2;
 		// new_values = cast System.Object ptr(native.GC_debug_malloc( l * 4 ));
 
 		// IO.Std.err.println( this.Class.Name + ": reserve: " + l + " -> allocate: " + (l * T.sizeof) );
 
-		new_values = cast T ptr(native.GC_malloc( l * T.sizeof ));
+		if T.isobject then 
+		    new_values = cast T ptr(native.GC_malloc_ignore_off_page( l * T.sizeof ));
+		else
+		    new_values = cast T ptr(native.GC_malloc_atomic_ignore_off_page( l * T.sizeof ));
+		fi
 		// native.printf( `%p len %d gvector\n`, new_values, l * T.sizeof );
 
 		if _values != null then

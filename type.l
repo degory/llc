@@ -111,6 +111,14 @@ namespace Parse {
 	    return c.IsObject;
 	}
 
+	bool isReference() {
+	    if( type_kind == CLASS || type_kind == STRUCT || type_kind == PROC || type_kind == VECTOR || type_kind == POINTER || type_kind == REFERENCE ) {
+		return true;
+	    }
+	    IO.Std.err.println( "not a reference: " + this );
+	    return false;
+	}
+
         bool isInteger() {
 	    return isInteger(type_kind);
         }

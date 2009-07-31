@@ -1203,28 +1203,9 @@ rewrite t = [NEW_FINALIZE t tvi] 10
         $U
     ]
 
-rewrite t = [NEW_OBJ_ARRAY t] 10
-    [SEQ
-	[LIST
-	    [ARG0 $0 [COMMENT "last arg"]]
-	    [STATIC_CALL $T "allocao"]
-        ]
-        $T
-    ] 
-
-rewrite t = [NEW_ARRAY t] 10
-    [SEQ
-	[LIST
-            [ARG0 $0 [COMMENT "last arg"]]
-	    [COPY $U [CONST $A.S]]
-	    [ARG1 $U [COMMENT "last arg"]]
-	    [STATIC_CALL $T "alloca"]
-        ]
-        $T
-    ]
 
 // $0:element-count $1:vtable $A.S:element-size
-rewrite t = [NEW_GENERIC_ARRAY t tv] 10
+rewrite t = [NEW_OBJ_ARRAY t tv] 10
     [SEQ
         [LIST
 	    [COPY $U [CONST $A.S]] // element size
@@ -1232,7 +1213,23 @@ rewrite t = [NEW_GENERIC_ARRAY t tv] 10
 	    // arg1/rsi:element size
 	    // arg2/rdx:vtable
 	    [ARG2 $1 [ARG1 $U [ARG0 $0 [COMMENT "last arg"]]]]
-	    [STATIC_CALL $T "allocag"]
+	    [STATIC_CALL $T "allocago"]
+	]
+	$T
+    ]
+
+
+
+// $0:element-count $1:vtable $A.S:element-size
+rewrite t = [NEW_ARRAY t tv] 10
+    [SEQ
+        [LIST
+	    [COPY $U [CONST $A.S]] // element size
+	    // arg0/rdi:element count
+	    // arg1/rsi:element size
+	    // arg2/rdx:vtable
+	    [ARG2 $1 [ARG1 $U [ARG0 $0 [COMMENT "last arg"]]]]
+	    [STATIC_CALL $T "allocagn"]
 	]
 	$T
     ]
