@@ -21,7 +21,7 @@ namespace System is
 	end
 
 	get int CodeSize is
-	    return cast int(unwind.method_end - unwind.method_start);
+	    return cast int(unwind.method_length);
 	end
 
 	get int RoDataSize is

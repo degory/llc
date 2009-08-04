@@ -401,6 +401,9 @@ namespace Parse {
 	public const int
 	    INLINE_MAX = 20;    // approxiate maximum inline method size (in parse tree nodes)
 
+	static String RUNTIME_VERSION = 
+	    "0.2";
+
 	static CompileState instance;
 
         SymbolList master_class_list;
@@ -503,8 +506,6 @@ namespace Parse {
 
 	Util.Walk walk_;
 
-	word last_time;
-
 	CompileState copy() {
 	    // IO.Std.err.println( "before copy, this is: " + System.String.hex(cast int(this)) );
 
@@ -544,8 +545,6 @@ namespace Parse {
 	    // no dependancy checking done on static initializers so need to do this here to
 	    // be sure Machine.NAME is initialized:
 	    lcache_dir = null;
-
-	    last_time = cast word(native.__get_nanotime());
 
 	    // FIXME: replace these stack arrays with vectors and make the stack pointers
 	    // point at the stack tops rather than above them:
@@ -591,18 +590,6 @@ namespace Parse {
 	    
 	    // pool = new ThreadPool(2);
 	    // pool.start();
-	}
-
-	void timeTo( String op ) {
-	    word now = cast word(native.__get_nanotime());
-	    word diff = now - last_time;
-
-	    int diff_fract = cast int(now / 1000W);
-	    int diff_int = cast int(now % 1000W);
-
-	    last_time = now;
-
-	    ParseTree.message( "" + op + ": " + diff_int + " " + diff_fract );
 	}
 
 	void walk( Object o ) {
@@ -967,8 +954,6 @@ namespace Parse {
             int i, j;
             Package p;
 
-	    timeTo( "startup" );
-
 	    openLibraryHashFile();
 
 	    // recursively visit all imported files building parse trees until every
@@ -985,7 +970,6 @@ namespace Parse {
                 p.parseImports(this);
             }
 
-	    timeTo( "parse imports" );
 	    // create symbol table entries for namespaces down to contained enums and classes and
 	    // stopping before declaring any symbols within classes:
 	    Pass = CompilePass.DECLARE_GLOBAL_SYMBOLS;
@@ -1000,7 +984,6 @@ namespace Parse {
                 p.declareGlobalSymbols(this);
             }
 
-	    timeTo( "parse declare global symbols" );
 
 	    // create specific instances of all template classes:
 	    Pass = CompilePass.CHECK_TEMPLATES;
@@ -1009,8 +992,6 @@ namespace Parse {
                 p = cast<Package>(to_compile_list[i]);
                 p.useTypes(this);
 	    }
-
-	    timeTo( "use types" );
 
 	    if( WantVeryVerbose ) {
 		ParseTree.message( "declaring template instances..." );
@@ -1035,8 +1016,6 @@ namespace Parse {
 		*/
 	    } while( GenericInstanceCount > instance_count );
 
-	    timeTo( "expand templates" );
-
 	    // create symbol table entries for all symbols declared at the class level, including instance variables and
 	    // method defintions including arguments but not method bodys:
             // IO.Std.err.println( "parsing definitions..." );
@@ -1050,8 +1029,6 @@ namespace Parse {
                 p.declareClassSymbols(this);
             }
 
-	    timeTo( "declare classes" );
-
 	    // symbols down to immediate contents of classes now declared so addresses of everything needed to build
 	    // vtables etc. now fixed:
 	    if( WantVeryVerbose ) {
@@ -1062,8 +1039,6 @@ namespace Parse {
             foreach( Container c; to_build_tables_list.elements() ) {
                 c.buildClassTables( this );
             }
-
-	    timeTo( "build tables" );
 
 	    // last symbol table construction pass, declare all remaining symbols within methods:
 	    Pass = CompilePass.DECLARE_SYMBOLS;
@@ -1076,15 +1051,11 @@ namespace Parse {
 		p.declareSymbols(this);
 	    }
 
-	    timeTo( "parse declare remaining symbols" );
-
 	    if( WantVeryVerbose ) {
 		ParseTree.message( "build interface tables..." );
 	    }
 
 	    Container.buildInterfaceTables( interfaces_set, master_class_list.SymbolList );
-
-	    timeTo( "build interface tables" );
 
 	    // symbol table is complete and it is now possible to compile methods in any order
 	    // and we can attempt to prepare intermediate code versions of methods for inlining:
@@ -1104,8 +1075,6 @@ namespace Parse {
 		    p = cast<Package>(to_compile_list[i]);
 		    p.checkInline(this);
 		}
-
-		timeTo( "check inlineable methods" );
 
 		// attempt to prepare inlineable intermediate code for any methods that:
 		//    were not marked as not inlineable by check-inline pass
@@ -1133,8 +1102,6 @@ namespace Parse {
 		    }
 		}
 		in_last_inline_pass = false;
-
-		timeTo( "prepare inline methods" );
 	    }
 
 
@@ -1152,8 +1119,6 @@ namespace Parse {
                 p = cast<Package>(to_compile_list[i]);
                 p.compile( this );
             }
-
-	    timeTo( "compile methods" );
 
 	    /*
 	    var w = new Util.Walk( proc(Object)(dumpMemory) );
@@ -1203,8 +1168,6 @@ namespace Parse {
 	   
 	    linkObjectFiles();
 
-	    timeTo( "clean up and link" );
-
 	    ParseTree.message( "done" );
         }
 
@@ -1230,7 +1193,7 @@ namespace Parse {
 		v.add( "ld" );
 		v.add( "-shared" );
 		// IO.Std.err.println( "including PIC prolog in shared object" );
-		v.add( LIBRARY_DIR + "ldn-" + Machine.NAME + "-1.o" );
+		v.add( LIBRARY_DIR + "ldn-" + Machine.NAME + "-" + RUNTIME_VERSION + ".o" );
 
 		v.add( "-o" );
 		v.add( executable_name + ".so" );
@@ -1239,7 +1202,7 @@ namespace Parse {
 		exe = "gcc";
 		v.add( "gcc" );
 		v.add( Machine.GCC_SWITCH );
-		v.add( LIBRARY_DIR + "lrt-" + Machine.NAME + "-1.o" );
+		v.add( LIBRARY_DIR + "lrt-" + Machine.NAME + "-" + RUNTIME_VERSION + ".o" );
 		// v.add( LIBRARY_DIR + "lrt0.o" );
 		if( !WantLineNumbers ) {
 		    v.add( "-s" );
@@ -1270,14 +1233,16 @@ namespace Parse {
 
 	    if( !WantPIC ) {
 		if( WantSharedStandardLibrary ) {
-		    v.add( LIBRARY_DIR + "exception.so" );
+		    v.add( LIBRARY_DIR + "exception-" + RUNTIME_VERSION + ".so" );
 		} else {
-		    v.add( LIBRARY_DIR + "exception.o" );
+		    v.add( LIBRARY_DIR + "exception-" + RUNTIME_VERSION + ".o" );
 		}
 	    }
 
 	    v.add( "-lgc" );
+	    // v.add( "/usr/lang/lib/libgcX.a" );
 	    v.add( "-ldl" );	    
+	    v.add( "-lpthread" );
 
 	    foreach( String t; libraries.elements() ) {
 		if( t.endsWith(".o") ) {

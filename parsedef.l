@@ -899,7 +899,7 @@ namespace Parse {
 				
 				if( si.Address != la ) {
 				    error( "class source definition does not match compiled library class for method " + si.HumanName );
-				    IO.Std.err.println( "BAD: " + si.HumanName + ": sa: " + si.Address + " la: " + la );
+				    // IO.Std.err.println( "BAD: " + si.HumanName + ": sa: " + si.Address + " la: " + la );
 				    //} else {
 				    // IO.Std.err.println( " ok: " + si.HumanName + ": sa: " + si.Address + " la: " + la );
 				}
@@ -956,7 +956,15 @@ namespace Parse {
                     } else {
                         Machine.emitDefPointer( f, 0 );
                     }
-                        
+
+		    // native.printf( `CC: ref bits for %s are %lx\n`, c.HumanName.toCString(), c.ReferenceBits );	native.__flush_stdout();
+		    // IO.Std.err.println( "LL: ref bits for " + c.HumanName + " are: "+  String.hex(c.ReferenceBits /* | 1w */) );
+		    // IO.Std.err.flush();
+
+		    Machine.emitDefLong( f, c.ReferenceBits );
+		    // Machine.emitDefLong( f, c.Size );
+		    // Machine.emitDefLong( f, 0 );
+
                     c.emitClassTables( state, c );
 
 		    Machine.emitDefLong( f, 0 );

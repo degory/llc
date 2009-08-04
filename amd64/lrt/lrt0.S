@@ -361,6 +361,8 @@ main:
 .extern GC_parallel
 .extern GC_enable_incremental
 .extern __install_segv_handler
+
+	call __init_gcj_malloc
 	call __install_segv_handler
 	
 	

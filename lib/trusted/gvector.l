@@ -302,7 +302,7 @@ namespace Generic is
 
 		// IO.Std.err.println( this.Class.Name + ": reserve: " + l + " -> allocate: " + (l * T.sizeof) );
 
-		if T.isreference then 
+                if true /*T.isreference*/ then 
 		    new_values = cast T ptr(native.GC_malloc_ignore_off_page( l * T.sizeof ));
 		else
 		    new_values = cast T ptr(native.GC_malloc_atomic_ignore_off_page( l * T.sizeof ));

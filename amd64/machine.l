@@ -41,6 +41,12 @@ namespace Gen {
 	public static String EXCEPTION_TOP = "__exception_top";
 
 	public const int WORD = 8;
+	public const int WORD_LOG2 = 3; // how many bits to shift to convert number of bytes to number of words or vice versa
+	public const int ALLOC_BITMAP_BITS = 62;
+	public const int ALLOC_BITMAP_MAX = 63;
+	public const int ALLOC_BITMAP_BYTES = ALLOC_BITMAP_BITS * WORD; // how many bytes of references the reference bitmap describes
+	public const word ALLOC_BITMAP_1 = (1w << 63w);
+	
 	public const int RED_ZONE = 128;
 	public const int INLINE_DEPTH = 3;
 	public const int NUM_MULTI_REG_SET = 3;
@@ -547,6 +553,10 @@ namespace Gen {
         static void emitDefLong( IO.Writer f, String i ) {
             f.write( ".quad " + i + "\n" );
         }
+
+	static void emitDefLong( IO.Writer f, word i ) {
+            f.write( ".quad " + i + "\n" );
+	}
 
         static void emitDefPointer( IO.Writer f, int i ) {
             f.write( ".quad " + i + "\n" );

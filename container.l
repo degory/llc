@@ -21,7 +21,7 @@ namespace Parse {
         void init() {
             super.init();
             itable_offset = Machine.WORD;
-            vtable_offset = Machine.WORD;
+            vtable_offset = Machine.WORD * 2; // one word for super-class pointer, one word for reference bits
             // hash = 0;
         }
     }
@@ -42,6 +42,9 @@ namespace Parse {
 	Gen.IBlock inline_block;
 
 	CompileStatus compile_status;
+
+	word ref_bits;
+
         int vtable_offset;
         int itable_offset;
 	int stable_offset;
@@ -114,6 +117,11 @@ namespace Parse {
             super.init();
             throw new Exception( "Container.init() called\n" );
         }
+
+	get word ReferenceBits {
+	    // IO.Std.err.println( HumanName + " ref bits " + String.hex(ref_bits) );
+	    return ref_bits;
+	}
 
 	void addImplements( Container c ) {
 	    if( implements_list == null ) {
@@ -1183,17 +1191,24 @@ namespace Parse {
 	}
 
         void buildClassTables( CompileState state, Addresses address ) {
+	    word ref_bits;
+
             if( tables_valid ) {
+		// IO.Std.err.println( "tables already valid: " + HumanName );
                 address.vtable_offset = vtable_offset;
                 address.itable_offset = itable_offset;
                 return;
             } else if( parent != null ) {
+		// IO.Std.err.println( "build super tables: " + HumanName );
                 parent.buildClassTables( state, address );
+		ref_bits = parent.ref_bits;
             }
 
             if( is_struct ) {
                 address.itable_offset = 0;
             }
+
+	    // IO.Std.err.println( "build class tables: " + HumanName );
 
             int stable_offset = 0;
         
@@ -1269,6 +1284,20 @@ namespace Parse {
 		    }
 		    var a = align(address.itable_offset,s);
 		    current.Address = a;
+
+		    // IO.Std.err.println( "address for " +  HumanName + "." + current.Name + " @ " + a );
+
+		    if( current.Type.isReference() ) {
+			var l = a + Machine.WORD;
+			if( l > Machine.ALLOC_BITMAP_BYTES ) {
+			    ref_bits = cast word(l);
+			} else {
+			    ref_bits = ref_bits | (1w << cast word(Machine.ALLOC_BITMAP_MAX - (a >> Machine.WORD_LOG2))) | 1w;
+			}
+			/* } else {
+			   IO.Std.err.println( "not reference: " + current.Type + " is reference: " + current.Type.isReference() + " fits in bitmap: " + a + " versus " + Machine.ALLOC_BITMAP_BYTES + ", word size: " + s + " versus " + Machine.WORD ); */
+		    }
+
 		    address.itable_offset = a + s;
                 } else if( k == Symbol.CONST || k == Symbol.ENUM || k == Symbol.ACCESSOR || k == Symbol.TYPE ) {
                     ; // do nothing - occupies no space
@@ -1283,7 +1312,10 @@ namespace Parse {
             itable_offset = address.itable_offset;
             vtable_offset = address.vtable_offset;
 	    this.stable_offset = stable_offset;
-        
+	    this.ref_bits = ref_bits;
+
+	    // IO.Std.err.println( "ref bits now: " + ref_bits );
+	    
             tables_valid = true;
         }
 

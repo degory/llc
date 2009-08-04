@@ -28,7 +28,7 @@ namespace System is
 
 		if method_name.startsWith(class_name) then
 		    // IO.Std.err.println( "match" );
-		    size = size + cast int(current.ro_size + current.method_end - current.method_start);
+		    size = size + cast int(current.ro_size + current.method_length);
 		fi
 
 		current = current.Next;

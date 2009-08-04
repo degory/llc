@@ -1,5 +1,4 @@
 
-#define GC_DEBUG 1
 #define POSIX_SOURCE 1
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -14,6 +13,8 @@
 #include <unistd.h>
 #include <errno.h>
 
+#define GC_DEBUG 1
+
 #include <gc/gc.h>
 
 typedef void ExFunc(int type, void *ex);
@@ -27,7 +28,7 @@ typedef void ExFunc(int type, void *ex);
 #define THROW_FINALLY 5
 #define THROW_STOP 6
 
-// #define D(e...) { printf(e); fflush(stdout); }
+//#define D(e...) { printf(e); fflush(stdout); }
 #define D(e...)
 
 #ifdef B32 /* 32 bit */
@@ -240,14 +241,14 @@ int __get_time() {
 extern __catch_exception( WORD type, void *e, void *rip, Registers *regs );
 
 // L calling convention on 32 bit x86 is fastcall - first two parameters in ecx and edx and callee pops arguments from stack:
-extern __attribute__((fastcall)) void _ZN6System6Thread16__set_pthread_idEl( void *thread, WORD id );
+extern __attribute__((fastcall)) void _ZN6System6Thread16__set_pthread_idEu4word( void *thread, WORD id );
 extern __attribute__((fastcall)) void _ZN6System6Thread14__thread_entryEv( void *thread );
 extern __attribute__((fastcall)) char *_ZN6System12StringBuffer9toCStringEv( void *lstring );
 extern __attribute__((fastcall)) void *_ZN6System9Exception16getBacktraceInfoEv( void *e );
 extern __attribute__((fastcall)) void *_ZN6System12StringBuffer6appendEPc( void *buffer, char *s );
 extern __attribute__((fastcall)) void *_ZN6System12StringBuffer6appendEi( void *buffer, int i );
 extern __attribute__((fastcall)) void *_ZN6System12StringBuffer6appendEc( void *buffer, char c );
-extern __attribute__((fastcall)) void _ZN6System9Exception16setBacktraceInfoEl( void *exception, WORD info );
+extern __attribute__((fastcall)) void _ZN6System9Exception16setBacktraceInfoEu4word( void *exception, WORD info );
 
 extern __attribute__((fastcall)) void _ZN6System15MemoryException4initEPc( void *e, char *m );
 
@@ -257,14 +258,14 @@ extern __attribute__((fastcall)) void _ZN6System20NullPointerException4initEPc( 
 #else
 extern __catch_exception( WORD type, void *e, void *rip, Registers *regs );
 
-extern void _ZN6System6Thread16__set_pthread_idEl( void *thread, WORD id );
+extern void _ZN6System6Thread16__set_pthread_idEu4word( void *thread, WORD id );
 extern void _ZN6System6Thread14__thread_entryEv( void *thread );
 extern char *_ZN6System12StringBuffer9toCStringEv( void *lstring );
 extern void *_ZN6System9Exception16getBacktraceInfoEv( void *e );
 extern void *_ZN6System12StringBuffer6appendEPc( void *buffer, char *s );
 extern void *_ZN6System12StringBuffer6appendEi( void *buffer, int i );
 extern void *_ZN6System12StringBuffer6appendEc( void *buffer, char c );
-extern void _ZN6System9Exception16setBacktraceInfoEl( void *exception, WORD info );
+extern void _ZN6System9Exception16setBacktraceInfoEu4word( void *exception, WORD info );
 
 extern void _ZN6System15MemoryException4initEPc( void *e, char *m );
 extern void _ZN6System25MemoryProtectionException4initEPc( void *e, char *m );
@@ -356,7 +357,7 @@ void __thread_start( void *thread_object ) {
 
   // printf( "creating thread...\n" );
   int result = GC_pthread_create( &thread, &attr, __thread_entry, thread_object );
-  _ZN6System6Thread16__set_pthread_idEl( thread_object, thread );
+  _ZN6System6Thread16__set_pthread_idEu4word( thread_object, thread );
   // printf( "result is %d, thread is %p\n", result, (void *)thread );
 
   // GC_pthread_detach( thread );
@@ -402,9 +403,17 @@ void __report_dispose( WORD *object ) {
 
 void *__alloc_object( WORD size, WORD *vtable ) {
   // GC_find_leak = 1;
-  WORD *result = GC_MALLOC_IGNORE_OFF_PAGE( size );
 
-  result[0] = (WORD)vtable;
+  WORD *result;
+  if( vtable == 0 ) {
+    result = GC_MALLOC_IGNORE_OFF_PAGE( size );
+
+  } else {
+    // printf( "gcj_malloc %d %s %lx\n", size, ((char **)vtable)[-2], (WORD *)vtable[1] );
+    result = GC_gcj_malloc( size, vtable );
+  }
+
+    // result[0] = (WORD)vtable;
 
 #ifdef TRACE_ALLOC
 
@@ -423,11 +432,8 @@ void *__alloc_object( WORD size, WORD *vtable ) {
 }
 
 
-
-
-
 // dispose() is first method after vtable parent pointer:
-#define FINALIZE_OFFSET 1
+#define FINALIZE_OFFSET 2
 
 #if B32 
 
@@ -668,7 +674,7 @@ void __add_unwind_info( UnwindRecord **u ) {
 
   D("adding unwind info %p\n", u );
 
-  list = (UnwindList *)GC_malloc( sizeof(UnwindList) );
+  list = (UnwindList *)GC_MALLOC( sizeof(UnwindList) );
 
   list->head = *u;
   list->tail = unwind_head;
@@ -999,8 +1005,8 @@ void catchException( WORD type, void *e, ExRecord *r, WORD rbp, WORD rip, Regist
   
   if( type == THROW_EXCEPTION ) {
     if( _ZN6System9Exception16getBacktraceInfoEv(e) == 0 ) {
-        backtrace = (BacktraceRecord*)GC_malloc_atomic( sizeof(BacktraceRecord)*BACKTRACE_LENGTH );
-	_ZN6System9Exception16setBacktraceInfoEl( e, (WORD)backtrace );
+        backtrace = (BacktraceRecord*)GC_MALLOC_ATOMIC( sizeof(BacktraceRecord)*BACKTRACE_LENGTH );
+	_ZN6System9Exception16setBacktraceInfoEu4word( e, (WORD)backtrace );
       }
   } else {
     fprintf( stderr, "runtime does not expect to see exception of type %ld\n", type );
@@ -1264,6 +1270,22 @@ void __segv_handler(int sig, siginfo_t *si, SigContext *uc) {
   */
 }
 
+
+void *__gcj_mark_proc(
+		      WORD * addr,
+		      void *mark_stack_ptr,
+		      void *mark_stack_limit,
+		      WORD env ) {
+  fprintf( stderr, "__gcj_mark_proc called for address %lx\n", addr );
+
+  return(mark_stack_ptr);
+}
+
+
+void __init_gcj_malloc() {
+  GC_init_gcj_malloc( 0, (void *)__gcj_mark_proc );
+
+}
 
 #define SIGNAL_STACK_SIZE 65536
 void __install_segv_handler() {

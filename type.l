@@ -115,7 +115,7 @@ namespace Parse {
 	    if( type_kind == CLASS || type_kind == STRUCT || type_kind == PROC || type_kind == VECTOR || type_kind == POINTER || type_kind == REFERENCE ) {
 		return true;
 	    }
-	    IO.Std.err.println( "not a reference: " + this );
+	    // IO.Std.err.println( "not a reference: " + this );
 	    return false;
 	}
 
@@ -300,7 +300,7 @@ namespace Parse {
 		decorate.append( 'l' );
 
 	    case Type.WORD:
-		decorate.append( 'l' );
+		decorate.append( "u4word" );
 
 		/*
 		if( Gen.Machine.WORD == 8 ) {

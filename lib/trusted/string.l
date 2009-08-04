@@ -612,6 +612,11 @@ namespace System is
 	end
 
 	/// Implements + operator. 
+	//StringBuffer opAdd( long l ) is
+	//    return new StringBuffer( toCString() ).append( cast word(l) );
+	//end
+
+	/// Implements + operator. 
 	StringBuffer opAdd( char c ) is
 	    return new StringBuffer( toCString() ).append( c );
 	end
@@ -895,13 +900,13 @@ namespace System is
 	end
 
 	StringBuffer append( word v, int ib ) is
-            word b = cast word(b);
+            word b = cast word(ib);
 	    word m, n;
 	    int i;
 	    char c;
 	    char ptr digit = `0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ`;
 
-	    // native.printf( `entry v is %d...\n`, v );
+// native.printf( `entry v is %ld...\n`, v );
                 
 	    if ib > 36 then
 		append( "#base>36#" );

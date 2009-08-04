@@ -7,7 +7,7 @@ namespace System {
 	// these are public but as unwind data is stored in .readonly segment
 	// attempts to alter will cause a MemoryProtectionException:
 	public word method_start;
-	public word method_end;
+	public word method_length;
 	public char ptr method_name;
 	public LineInfo line_numbers;
 	public word flags;
