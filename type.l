@@ -115,6 +115,11 @@ namespace Parse {
 	    if( type_kind == CLASS || type_kind == STRUCT || type_kind == PROC || type_kind == VECTOR || type_kind == POINTER || type_kind == REFERENCE ) {
 		return true;
 	    }
+
+	    if( Size == 8 ) {
+		// IO.Std.err.println( "might be a reference: " + this );
+		return true;
+	    }
 	    // IO.Std.err.println( "not a reference: " + this );
 	    return false;
 	}

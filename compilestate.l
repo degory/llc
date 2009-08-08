@@ -1238,8 +1238,8 @@ namespace Parse {
 		}
 	    }
 
-	    // v.add( "-lgc" );
-	    v.add( "/usr/lang/lib/libgcX.a" );
+	    v.add( "-lgc" );
+	    // v.add( "/usr/lang/lib/libgcX.a" );
 	    v.add( "-ldl" );	    
 	    v.add( "-lpthread" );
 

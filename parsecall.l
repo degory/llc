@@ -126,6 +126,7 @@ namespace Parse {
 		if( st.isReference() ) {
 		    op = Op.NEW_OBJ_ARRAY;
 		} else {
+		    // IO.Std.err.println( "new non reference array for: " + st );
 		    op = Op.NEW_ARRAY;
 		}
 

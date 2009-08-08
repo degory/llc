@@ -113,9 +113,10 @@ namespace Parse {
 	    var vtable = loadVTable( state, c );
 	    int op;
 
-	    if( at.isReference() ) {
+	    if( st.isReference() ) {
 		op = Op.NEW_OBJ_ARRAY;
 	    } else {
+		// IO.Std.err.println( "new non reference array for: " + st );
 		op = Op.NEW_ARRAY;
 	    }
 
@@ -124,7 +125,6 @@ namespace Parse {
 						     new ITree( line_number, Op.CONST, Machine.WORD, l.Length ),
 						     vtable,
 						     size ) ) );
-
 
             int i = 0;
 	    ITree tree;

@@ -3,11 +3,14 @@
 
 // default allocator 
 #define ALLOC GC_malloc_ignore_off_page
-	
 // #define ALLOC GC_malloc
-// non-object array alloc - could potentially be GC_atomic or GC_atomic_ignore_off_page
+
 // if we checked the array type at compile time to make sure it was not a pointer
+// #define NON_OBJECT_ARRAY_ALLOC  GC_malloc_atomic_ignore_off_page
+// #define NON_OBJECT_ARRAY_ALLOC  __alloc_atomic_clear
+
 #define NON_OBJECT_ARRAY_ALLOC  GC_malloc_atomic_ignore_off_page
+	
 #define OBJECT_ARRAY_ALLOC ALLOC
 #define OBJECT_ALLOC ALLOC
 	
@@ -223,7 +226,7 @@ allocago:
 	imulq %rsi,%rdi	# total size = element count * element size
 	addq $16, %rdi  #              + 8 bytes for vtable + 8 bytes for stored size
 
-	addq $64, %rdi # temporary fudge - where is heap corruption coming from?
+	call OBJECT_ARRAY_ALLOC
 
 	movq %rbx, (%rax)  # initialize vtable
 	movq %r12, 8(%rax) # initialize element count
@@ -235,20 +238,38 @@ allocago:
 
 .global allocagn
 allocagn:
-	pushq %r12	
+	pushq %r13
+	pushq %r12
 	pushq %rbx
+
 	movq %rdi,%r12	# save element count
 	movq %rdx,%rbx
+	
 	imulq %rsi,%rdi	# total size = element count * element size
+
+	movq %rdi,%r13  # save total size excluding vtable
+	
 	addq $16, %rdi  #              + 8 bytes for vtable + 8 bytes for stored size
 
 	call NON_OBJECT_ARRAY_ALLOC
 
+	movq %rax,%rdx
+
+	cld
+	
+	leaq 16(%rax), %rdi	
+	movq %r13,%rcx
+	xorb %al,%al
+	rep
+	stosb
+
+	movq %rdx,%rax
 	movq %rbx, (%rax)  # initialize vtable
 	movq %r12, 8(%rax) # initialize element count
 	
 	popq %rbx
 	popq %r12
+	popq %r13
 	ret
 
 	

@@ -13,11 +13,11 @@
 #include <unistd.h>
 #include <errno.h>
 
-#define GC_DEBUG 1
+// #define GC_DEBUG 0
 
 #include <gc/gc.h>
 
-#define USE_GJC_MALLOC 0
+#define USE_GCJ_MALLOC 1
 
 typedef void ExFunc(int type, void *ex);
 
@@ -401,7 +401,6 @@ void __report_dispose( WORD *object ) {
 #endif
 
 
-
 void *__alloc_object( WORD size, WORD *vtable ) {
   // GC_find_leak = 1;
 
@@ -411,7 +410,6 @@ void *__alloc_object( WORD size, WORD *vtable ) {
 
   } else {
 #if USE_GCJ_MALLOC
-    // printf( "gcj_malloc %d %s %lx\n", size, ((char **)vtable)[-2], (WORD *)vtable[1] );
     result = GC_gcj_malloc( size, vtable );
 #else
     result = GC_malloc( size );
@@ -1301,8 +1299,7 @@ void *__gcj_mark_proc(
 
 
 void __init_gcj_malloc() {
-  GC_init_gcj_malloc( 0, (void *)__gcj_mark_proc );
-
+    GC_init_gcj_malloc( 0, (void *)__gcj_mark_proc );
 }
 
 #define SIGNAL_STACK_SIZE 65536
