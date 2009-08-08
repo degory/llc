@@ -24,7 +24,10 @@ namespace System is
 
     /// Root of Exception heirarchy. Runtime expects all thrown objects to inherit from Exception
     class Exception extends Object is
-	word _backtrace_info;
+    	// actually a handle to a structure managed by exception.c but must be a pointer type here 
+	// otherwise garbage collector may prematurely free it:
+        word ptr _backtrace_info;  
+
 	String _backtrace;
 	String _message;
 
@@ -68,12 +71,12 @@ namespace System is
 
 	/// Internal interface for runtime to get backtrace token
 	word getBacktraceInfo() is
-	    return _backtrace_info;
+	    return cast word(_backtrace_info);
 	end
 
 	/// Internal interface for runtime to set backtrace token
 	void setBacktraceInfo( word info ) is
-	    this._backtrace_info = info;
+	    this._backtrace_info = cast word ptr(info);
 	end
 
 	/// Get the bracktrace string for this Exception
@@ -85,12 +88,12 @@ namespace System is
 	    // _backtrace_info. If token is set then call runtime to have it render
 	    // the human readable backtrace:
 
-	    if _backtrace_info != 0w then
+	    if _backtrace_info != null then
 		_backtrace = new System.StringBuffer();
 		native.__find_line_numbers( _backtrace, _backtrace_info );
 
 		// clear pointer to allow buffer to be reclaimed:
-		_backtrace_info = 0w;
+		_backtrace_info = null;
 	    fi
 
 	    if _backtrace != null then

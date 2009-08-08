@@ -17,7 +17,7 @@ namespace System is
 	    TYPE_OBJECT = 128c,
 	    TYPE_ARRAY = 129c,
 	    TYPE_POINTER = 130c;
-    
+
         /// Internal interface for garbage collector. Ensures that any exceptions thrown by dispose() are caught
 	// DO NOT MOVE: runtime depends on the _dispose() method occupying the first slot in the vtable:
 	void _dispose() is

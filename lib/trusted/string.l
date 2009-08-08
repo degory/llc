@@ -10,7 +10,7 @@ namespace System is
     use Generic.Iterable;
     use Generic.Iterator;
 
-    pragma NoWarnUnsafe, NoMarkUnsafe;
+    @NoWarnUnsafe, NoMarkUnsafe;
    
     /// A string of characters. String is immutable, its child StringBuffer is not.
     class String /* implements Iterable<char> */ is
@@ -711,19 +711,29 @@ namespace System is
 				  
     /// A variable length modifyible string of characters. 
     class StringBuffer extends String is
+	const int INITIAL_LENGTH = 16;
+	const int MAX_DOUBLE_LENGTH = 65536;
+	const int LENGTH_INCREMENT = 16384;
+
+        static bool in_check;
+
 	private int _allocated_length;
 
 	void init( char ptr s ) is
 	    super.init(s);
+            // IO.Std.err.println( "init StringBuffer from char ptr is unsafe: " + new Backtrace() );
+
 	    _allocated_length = _length;
+
+	    // mark();
 	end
 
 	void init( String s ) is
 	    if s != null then
 		init( s.toCString() );
 	    else
-		init( 16 );
-	    fi
+		init( INITIAL_LENGTH );
+	    fi	    
 	end
 
 	void init( int l ) is
@@ -732,7 +742,7 @@ namespace System is
 	end
 
 	void init() is
-	    init( 16 );
+	    init( INITIAL_LENGTH );
 	end
 
 	void _copy_from( char ptr s, int l ) is
@@ -744,10 +754,13 @@ namespace System is
 	    i = 0;
 
 	    while i < l do
+	        // checkIndex(i);
+
 		[_buffer + i] = [s + i];
 	    
 		i = i + 1;
 	    od
+	    // check();
 	end
 
 	void _reserve( int l ) is
@@ -756,16 +769,42 @@ namespace System is
 	    if l > _allocated_length then
 		old_buffer = _buffer;
 
-		// allocation is slow and memory is cheap.
-		// FIXME: may be worth constraining to powers of two to make allocation
-		// faster:
-		_allocated_length = l * 2;
+                int a = l; // _allocated_length;
 
-		_buffer = cast char ptr( native.GC_malloc_atomic( _allocated_length ) );
+		if a < MAX_DOUBLE_LENGTH then
+		    a = a * 2 - 1;
+		else 
+		    a = a + LENGTH_INCREMENT - 1;
+		fi
+
+		if a < l then
+		    a = l;
+		fi
+
+		_buffer = cast char ptr( native.GC_malloc_atomic( a + 8 ) );
+
+		_allocated_length = a;
+
+                // mark();
+
 		// native.printf( `%p len %d stringbuffer\n`, _buffer, _length );
 		if old_buffer != null then
 		    _copy_from( old_buffer, _length );
 		fi
+
+	    fi
+	end
+
+	void mark() is
+            if !in_check then
+                [_buffer + _allocated_length] = 254c;
+
+		bool ic = in_check;
+		in_check = true;
+
+		in_check = ic;
+		   
+		// check();
 	    fi
 	end
 
@@ -774,18 +813,28 @@ namespace System is
 	end
 
 	set char[int i] = c is
-	    _reserve( i + 1 );
+	    if i < 0 then
+		throw new BoundsException( "string index out of range" );
+	    fi
 
-	    [_buffer + i] = c;
-	    if i >= _length then
+	    _reserve( i + 1 );
+            if i >= _length then
 		_length = i + 1;
 	    fi
+
+            // checkIndex(i);	
+	    [_buffer + i] = c;
+
+	    // check();
 	end
     
 	char ptr toCString() is
 	    _reserve( _length + 1 );
 
+            // checkIndex(_length);
 	    [_buffer + _length] = cast char( 0 );
+
+            // check();
 
 	    return _buffer;
 	end
@@ -802,8 +851,11 @@ namespace System is
 	StringBuffer append( char c ) is
 	    _reserve( _length + 1 );
 
+	    // checkIndex(_length);
 	    [_buffer + _length] = c;
 	    _length = _length + 1;
+
+	    // check();
 
 	    return this;
 	end
@@ -812,10 +864,16 @@ namespace System is
 	    _reserve( _length + _c_getLength( s ) );
 
 	    while [s] != cast char(0) do
+	        // checkIndex(_length);
 		[_buffer + _length] = [s];
 		_length = _length + 1;
+
 		s = s + 1;
 	    od
+
+	    // native.printf( `%p: will check at %d (%d)\n`, this, _allocated_length, _length );
+
+	    // check();
 
 	    return this;
 	end
@@ -838,7 +896,7 @@ namespace System is
 
 	    t.append( v, b );
 
-	    int nl = l - t.Length;
+ 	    int nl = l - t.Length;
 
 	    while nl > 0 do
 		append( pad );
@@ -892,9 +950,11 @@ namespace System is
 		c = [digit + v % b];
 		v = v / b;
 	    
-		opSet( i, c );
+		this[i] = c;
 	    
 	    od
+
+	    // check();
 
 	    return this;
 	end
@@ -946,9 +1006,11 @@ namespace System is
 		c = [digit + v % b];
 		v = v / b;
 	    
-		opSet( i, c );
+		this[i] = c;
 	    
 	    od
+
+	    // check();
 
 	    return this;
 	end
@@ -989,13 +1051,55 @@ namespace System is
 
 
 	StringBuffer copy() is
-	    StringBuffer result;
-	    result = new StringBuffer( toCString() );
-	    return result;
+	    return new StringBuffer( toCString() );
 	end
 
 	get int MemoryUse is 
 	    return ObjectSize + _allocated_length;
+	end
+
+	void checkFail() is
+
+	    native.printf( `%p: checking at %d (%d) char is '%c' (%02x)\n`, this, _allocated_length, _length, [_buffer + _allocated_length], cast int([_buffer + _allocated_length]) );	
+
+	    native.printf( `string buffer is '%s'\n`, _buffer );
+            native.__flush_stdout();
+	    throw new System.Exception( "corrupt string buffer: " + this );
+	end
+
+	void checkIndex(int i) is
+	    if in_check then
+		if i < 0 || i >= _allocated_length then
+		    native.printf( `out of bounds index within string check %d versus %d\n`, i, _allocated_length );
+	        fi
+
+		//		if i >= _length then
+		//   native.printf( `suspicious string index within string check %d versus %d\n`, i, _length );
+		//fi
+	        return;
+            fi
+
+	    if i < 0 || i >= _allocated_length then
+	        in_check = true;
+		throw new BoundsException("out of bounds string index: " + i + " in " + this );
+ 	    fi
+	    //
+	    //if i >= _length then
+	    //		native.printf( `suspicious string index %d versus %d\n`, i, _length );
+	    //fi
+	end
+
+        void check() is
+            if in_check then
+	        return;
+            fi
+
+	    in_check = true;
+	    if [_buffer + _allocated_length] != 254c then
+	        checkFail();
+	    fi
+
+	    in_check = false;
 	end
     end
 

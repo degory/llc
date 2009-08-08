@@ -223,7 +223,7 @@ allocago:
 	imulq %rsi,%rdi	# total size = element count * element size
 	addq $16, %rdi  #              + 8 bytes for vtable + 8 bytes for stored size
 
-	call OBJECT_ARRAY_ALLOC
+	addq $64, %rdi # temporary fudge - where is heap corruption coming from?
 
 	movq %rbx, (%rax)  # initialize vtable
 	movq %r12, 8(%rax) # initialize element count

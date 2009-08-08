@@ -453,6 +453,7 @@ namespace Gen {
 	public int cost;           // weighted number of clobbers by method calls of this temporary
         public int temp;           // temporary number
 	public int range;          // measure of size of live range of this temporary
+	public int last_icount;    // instruction number of last use when calculating range sizes
 	// public int last_node;
 
 	public int offset;         // address of slot on the stack for this temporary if it is spilled
@@ -2557,16 +2558,31 @@ namespace Gen {
 			    }
 			    */
 
+
       			    if( already_split_t && !already_split_u ) {
 				// IO.Std.err.println( "choosing to split not-split T" + u );
 				f = u;
 			    } else if( already_split_u && !already_split_t ) {
-				// IO.Std.err.println( "choosing to split not-split T" + u );
+				// IO.Std.err.println( "choosing to split not-split T" + t );
 				f = t;
 			    } else if( d.range > e.range ) {
 				// IO.Std.err.println( "choosing to split smaller range T" + u );
+				/*
+				if( d.refs <= e.refs ) {
+				    IO.Std.err.println( "cannot substitute refs for range here d > e" );
+				    IO.Std.err.println( "T" + t + " range: " + d.range + ", refs: " + d.refs );
+				    IO.Std.err.println( "T" + u + " range: " + e.range + ", refs: " + e.refs );
+				}
+				*/
 				f = u;
 			    } else {
+				/*
+				if( d.refs > e.refs ) {
+				    IO.Std.err.println( "cannot substitute refs for range here d <= e" );
+				    IO.Std.err.println( "T" + t + " range: " + d.range + ", refs: " + d.refs );
+				    IO.Std.err.println( "T" + u + " range: " + e.range + ", refs: " + e.refs );
+				}
+				*/
 				// IO.Std.err.println( "choosing to split smaller range T" + t );
 				f = t;
 			    }
@@ -3663,6 +3679,13 @@ namespace Gen {
             // MBitSet seen = new MBitSet( bs_out );       // known live on exit
 	    bool result = true;
             MBitSet live = new MBitSet( bs_in );        // known live on entry
+	    int icount = 0;
+
+	    // IO.Std.err.println( "calc ranges for block:\n" + this );
+
+	    if( reg_cost != null ) {
+		calcStartRanges( reg_cost, live );
+	    }
 
             MInst prev, i, next;
             // for( i = tail; i != null; i = prev ) {
@@ -3672,6 +3695,8 @@ namespace Gen {
 
             for( i = inst; i != null; i = next ) {
 		next = i.next;
+		icount = icount + 1;
+
                 live.IsChanged = false;
                 i.markLive( Mode.READ, live, matrix );
                 i.markDead( Mode.READ, live );
@@ -3683,7 +3708,9 @@ namespace Gen {
 		    // I think there might be more than one sort of clobber - not sure where to put this
 		    i.calcClobberCost( reg_cost, live, weight );
 
+		    // FIXME: this is hideously expensive:
 		    calcRangeSizes( reg_cost, live, weight );
+		    // i.calcRangeSizes( reg_cost, live, icount );
 		}
 
                 live.IsChanged = false;
@@ -3709,13 +3736,52 @@ namespace Gen {
 		IO.Std.err.println(); */
             }
 
+	    // IO.Std.err.println( "done\n" );
 	    return result;
         }
 
+	void calcStartRanges( MCandidate[] reg_cost, MBitSet live ) {
+	    for( int i = Machine.FIRST_SOFT_REG; i < reg_cost.length; i = i + 1 ) {
+		MCandidate c = reg_cost[i];
+		if( c != null ) {
+		    if( live[i] ) {
+			// IO.Std.err.println( "live on entry: T" + i );
+			c.last_icount = 0;
+		    } else {
+			c.last_icount = -1;
+		    }		   
+		} else if( live[i] ) {
+		    IO.Std.err.println( "live on entry but no candidate: T" + i );
+		}
+	    }
+	}
+
+	void calcEndRanges( MCandidate[] reg_cost, MBitSet live, int icount ) { 
+	    for( int i = Machine.FIRST_SOFT_REG; i < reg_cost.length; i = i + 1 ) {
+		MCandidate c = reg_cost[i];
+		if( c != null ) {
+		    if( live[i] ) {
+			if( c.last_icount == -1 ) {
+			    IO.Std.err.println( "block:\n" + this );
+			    IO.Std.err.println( "live on exit but no previous def: T" + i + "\n" );			    
+			}
+
+			c.range = c.range + icount - c.last_icount;
+		    }		   
+		} else {
+		    if( live[i] ) {
+			IO.Std.err.println( "live on exit but no candidate: T" + i );
+		    }
+		}
+	    }	    
+	}
+
 	void calcRangeSizes( MCandidate[] reg_cost, MBitSet live, int weight ) {
 	    for( int i = Machine.FIRST_SOFT_REG; i < reg_cost.length; i = i + 1 ) {
-		if( live[i] && reg_cost[i] != null ) {
-		    reg_cost[i].range = reg_cost[i].range + 1; // FIXME: should be + weight?
+		if( live[i] ) {
+		    if( reg_cost[i] != null ) {
+			reg_cost[i].range = reg_cost[i].range + 1; // FIXME: should be + weight?
+		    }
 		}
 	    }
 	}
@@ -4573,6 +4639,43 @@ namespace Gen {
 		}
 	    }
 	}
+
+	void calcRangeSizes( MCandidate[] reg_cost, MBitSet live, int icount ) {
+	    for( int i = 0; i < operands.length; i = i + 1 ) {
+		MOperand o = operands[i];
+		int t = o.temp;
+		if( t == 0 ) {
+		    continue;
+		}
+
+		MCandidate c = reg_cost[t];
+		if( c == null ) {
+		    IO.Std.err.println( "making new candidate for T" + t );
+		    c = new MCandidate(o);
+		    reg_cost[t] = c;
+		}
+
+		if( o.mode & Mode.WRITE == 0 && c.last_icount == -1 ) {
+		    // IO.Std.err.println( "first write: T" + t );
+		    c.last_icount = icount;
+		}
+
+		if( o.mode & Mode.FINAL != 0 ) {
+		    if( c.last_icount == -1 ) {
+			/*
+			IO.Std.err.println( "block\n" + this );
+			IO.Std.err.println( "final use with no previous range set: T" + t + "\n" );
+			*/
+			// caused by divide instructions that appear to read a potentially undefined operand
+			c.range = 1;
+		    } else {
+			c.range = c.range + icount - c.last_icount;
+		    }
+
+		    c.last_icount = -1;
+		}
+	    }
+	}
 	
 	/*
         void calcClobberCost( int[][] reg_cost, MBitSet live, int weight ) {
@@ -5127,7 +5230,13 @@ namespace Gen {
 
 		    if( reg_cost[t] == null ) {
 			reg_cost[t] = new MCandidate( operands[i] );
+			/*
+			IO.Std.err.println( "creating T" + t + " with range = 0" );
+		    } else if( reg_cost[t].range == 0 ) {
+			IO.Std.err.println( "existing T" + t + " with range = 0" );
+			*/
 		    }
+
 		    reg_cost[t].refs = reg_cost[t].refs + weight;
 		}
 

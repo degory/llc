@@ -75,11 +75,13 @@ namespace Generic is
     
     /// A resizeable array of parameterised type.  
     class Vector<T> implements List<T> is
-	private T ptr _values;
-	private int _length;
-	private int _allocated_length;
+	T ptr _values;
+	int _length;
+	int _allocated_length;
 
-	private const int DEFAULT_SIZE = 5;
+	const int INITIAL_LENGTH = 4;
+	const int MAX_DOUBLE_LENGTH = 512;
+	const int LENGTH_INCREMENT = 256;
 
 	/// Construct a new Vector with enough space for at least l values
 	/// \param l initial capactity     
@@ -96,7 +98,7 @@ namespace Generic is
 
 	/// Construct a new Vector with default initial capacity
 	void init() is
-	    init( DEFAULT_SIZE );
+	    init( INITIAL_LENGTH );
 	end
 
 	get int Length is
@@ -108,6 +110,8 @@ namespace Generic is
 	    reserve( _length + 1 );
 	    [_values + _length] = o;
 	    _length = _length + 1;
+
+	    // check();
 	end
 
 	/// Remove and return the current last value from the end of this Vector
@@ -147,6 +151,8 @@ namespace Generic is
 	    else
 		throw new VectorException( "Vector.putTop() performed on empty Vector" );
 	    fi
+
+	    // check();
 	end
 
 	/// Replace the current last value of this Vector with the supplied value
@@ -183,6 +189,8 @@ namespace Generic is
 	    if i >= _length then
 		_length = i + 1;
 	    fi
+
+	    // check();
 	end
 
 	/// Return the index of the first element in this Vector with supplied value. Return -1 if no
@@ -231,6 +239,8 @@ namespace Generic is
 	    od
 
 	    _length = _length - 1;
+
+	    // check();
 
 	    return result;
 	end
@@ -292,22 +302,23 @@ namespace Generic is
 	    int i;
 	    T ptr new_values;
 	    if l > _allocated_length then
-		//if l > 1000000 then
-		//    native.printf( `very long vector allocation %d %s\n`, l, new Backtrace().toCString() );
-		//    native.__flush_stdout();
-		//fi
+	        int a = l; // _allocated_length;
 
-		l = l * 2;
-		// new_values = cast System.Object ptr(native.GC_debug_malloc( l * 4 ));
-
-		// IO.Std.err.println( this.Class.Name + ": reserve: " + l + " -> allocate: " + (l * T.sizeof) );
-
-                if true /*T.isreference*/ then 
-		    new_values = cast T ptr(native.GC_malloc_ignore_off_page( l * T.sizeof ));
-		else
-		    new_values = cast T ptr(native.GC_malloc_atomic_ignore_off_page( l * T.sizeof ));
+		if a < MAX_DOUBLE_LENGTH then
+		    a = a * 2 - 1;
+		else 
+		    a = a + LENGTH_INCREMENT - 1;
 		fi
-		// native.printf( `%p len %d gvector\n`, new_values, l * T.sizeof );
+
+		if a < l then
+		    a = l;
+		fi
+
+  	        if true then // T.isreference then 
+		    new_values = cast T ptr(native.GC_malloc_ignore_off_page( a * T.sizeof + 32 ));
+		else
+		    new_values = cast T ptr(native.GC_malloc_atomic_ignore_off_page( a * T.sizeof + 32 ));
+		fi
 
 		if _values != null then
 		    i = 0;
@@ -316,15 +327,21 @@ namespace Generic is
 			i = i + 1;
 		    od
 		
-		    while i < l do
+		    /*
+		    while i < a do
 			[new_values + i] = null;
 			i = i + 1;
 		    od
+		    */
 		fi
 	    
 		_values = new_values;
 	    
-		_allocated_length = l;
+		_allocated_length = a;
+
+		// [cast char ptr(_values + _allocated_length)] = 254c;
+
+		// check();
 	    fi
 	end
 
@@ -337,12 +354,15 @@ namespace Generic is
 
 	/// Internal method supporting copy()
 	void completeCopy() is
-	    T ptr v = cast T ptr(native.GC_malloc( _allocated_length * T.sizeof ));
+	    T ptr v = cast T ptr(native.GC_malloc( _allocated_length * T.sizeof + 1 ));
+            // [cast char ptr(v + _allocated_length)] = 254c; 
 	    // native.printf( `%p len %d gvector copy\n`, v, _allocated_length * T.sizeof );
 	    for int i = 0; i < _allocated_length; i = i + 1 do
 		[v + 1] = [_values + 1];
 	    od
 	    _values = v;
+
+	    // check();
 	end
 
 	String toString() is
@@ -365,6 +385,12 @@ namespace Generic is
 	    result.append(']');
 
 	    return result;
+	end
+
+        void check() is
+	    if [cast char ptr(_values + _allocated_length)] != 254c then
+	       throw new System.Exception( "corrupt vector: " + this );
+	    fi 
 	end
 
 	get Object ptr ObjectValuesPointer is

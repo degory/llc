@@ -17,6 +17,8 @@
 
 #include <gc/gc.h>
 
+#define USE_GJC_MALLOC 0
+
 typedef void ExFunc(int type, void *ex);
 
 #define CATCH_RETURN 0
@@ -138,7 +140,6 @@ int __sql_callback(void *NotUsed, int argc, char **argv, char **azColName){
 void *__get_sql_callback() {
   return __sql_callback;
 }
-
 
 
 VTable *shiftVTable( VTable *p ) {
@@ -406,11 +407,16 @@ void *__alloc_object( WORD size, WORD *vtable ) {
 
   WORD *result;
   if( vtable == 0 ) {
-    result = GC_MALLOC_IGNORE_OFF_PAGE( size );
+    result = GC_malloc_ignore_off_page( size ); // GC_MALLOC_IGNORE_OFF_PAGE( size );
 
   } else {
+#if USE_GCJ_MALLOC
     // printf( "gcj_malloc %d %s %lx\n", size, ((char **)vtable)[-2], (WORD *)vtable[1] );
     result = GC_gcj_malloc( size, vtable );
+#else
+    result = GC_malloc( size );
+    result[0] = (WORD)vtable;
+#endif
   }
 
     // result[0] = (WORD)vtable;
@@ -423,7 +429,7 @@ void *__alloc_object( WORD size, WORD *vtable ) {
   if( vtable != 0 ) {
     char *class_name = ((char **)vtable)[-2];
     int class_size = ((WORD *)vtable)[-1];
-    GC_REGISTER_FINALIZER( (GC_PTR)result, __report_dispose, 0, &ofn, &ocd );
+    GC_register_finalizer( (GC_PTR)result, __report_dispose, 0, &ofn, &ocd );
     printf( "\tAAAAA\t%s\t%d\t\n", class_name, class_size );
   }
 #endif
@@ -455,21 +461,28 @@ void __call_dispose( WORD *object ) {
 // allocate an object and register it's dispose method with the garbage collector
 // as a finalizer:
 void *__alloc_object_finalize( WORD size, GC_finalization_proc *vtable ) {
+  char **p = (char **)vtable;
+
+  //printf( "XXXX: alloc object finalize %s\n", p[-2] );
+  //fflush(stdout);
+
+  WORD *result = (WORD *)__alloc_object( size, (WORD *)vtable );
+
   GC_finalization_proc ofn;
   GC_PTR ocd;
 
-  WORD *result = GC_MALLOC_IGNORE_OFF_PAGE( size );
-  result[0] = (WORD)vtable;
+  // WORD *result = GC_malloc_ignore_off_page( size );
+  // result[0] = (WORD)vtable;
 
 #if B32
   // wrong calling convention means GC can't call the finalizer directly - need to
   // provide a thunk:
-  GC_REGISTER_FINALIZER( (GC_PTR)result, (GC_finalization_proc)__call_dispose, 0, &ofn, &ocd );
+  GC_register_finalizer( (GC_PTR)result, (GC_finalization_proc)__call_dispose, 0, &ofn, &ocd );
 
 #else
-  GC_REGISTER_FINALIZER( (GC_PTR)result, vtable[FINALIZE_OFFSET], 0, &ofn, &ocd );
+  GC_register_finalizer( (GC_PTR)result, vtable[FINALIZE_OFFSET], 0, &ofn, &ocd );
 #endif
-  return result;
+  return result;  
 }
 
 
@@ -608,6 +621,11 @@ typedef struct _BacktraceRecord {
 } BacktraceRecord;
 
 void findLineNumber( void *buffer, BacktraceRecord *backtrace ) {
+  if( buffer == 0 ) {
+    D( "line info buffer is null\n" );
+    return;
+  }
+
   D("find line number %p, %p", buffer, backtrace );
 
   if( backtrace == 0 ) {
@@ -674,7 +692,7 @@ void __add_unwind_info( UnwindRecord **u ) {
 
   D("adding unwind info %p\n", u );
 
-  list = (UnwindList *)GC_MALLOC( sizeof(UnwindList) );
+  list = (UnwindList *)GC_malloc( sizeof(UnwindList) );
 
   list->head = *u;
   list->tail = unwind_head;
@@ -1005,7 +1023,7 @@ void catchException( WORD type, void *e, ExRecord *r, WORD rbp, WORD rip, Regist
   
   if( type == THROW_EXCEPTION ) {
     if( _ZN6System9Exception16getBacktraceInfoEv(e) == 0 ) {
-        backtrace = (BacktraceRecord*)GC_MALLOC_ATOMIC( sizeof(BacktraceRecord)*BACKTRACE_LENGTH );
+        backtrace = (BacktraceRecord*)GC_malloc( sizeof(BacktraceRecord)*BACKTRACE_LENGTH );
 	_ZN6System9Exception16setBacktraceInfoEu4word( e, (WORD)backtrace );
       }
   } else {
@@ -1171,7 +1189,7 @@ Exception *makeNullPointerException() {
 
 
 Exception *__make_castexception() {
-  Exception *result = (Exception *)GC_MALLOC(__size_N6System13CastExceptionE);
+  Exception *result = (Exception *)GC_malloc(__size_N6System13CastExceptionE);
   result->vtable = __get_vtable_N6System13CastExceptionE();
 
   _ZN6System15MemoryException4initEPc(result,"illegal cast");
@@ -1180,7 +1198,7 @@ Exception *__make_castexception() {
 }
 
 Exception *__make_arrayboundsexception() {
-  Exception *result = (Exception *)GC_MALLOC(__size_N6System15BoundsExceptionE);
+  Exception *result = (Exception *)GC_malloc(__size_N6System15BoundsExceptionE);
   result->vtable = __get_vtable_N6System15BoundsExceptionE();
 
   _ZN6System15MemoryException4initEPc(result,"array bounds");

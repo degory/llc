@@ -193,7 +193,6 @@ namespace Parse {
     }
     */
 
-
     class ProcessPool extends Object {
 	CompileState state;
 	int count;
@@ -1239,8 +1238,8 @@ namespace Parse {
 		}
 	    }
 
-	    v.add( "-lgc" );
-	    // v.add( "/usr/lang/lib/libgcX.a" );
+	    // v.add( "-lgc" );
+	    v.add( "/usr/lang/lib/libgcX.a" );
 	    v.add( "-ldl" );	    
 	    v.add( "-lpthread" );
 
@@ -1471,7 +1470,7 @@ namespace Parse {
             pushState( STATE_OUTSIDE_CLASS, source_file_name );
             
             output = null;
-	    last_cleared_output_at = "begin package: " + source_file_name + " from: " + new System.Backtrace().toString();
+	    // last_cleared_output_at = "begin package: " + source_file_name + " from: " + new System.Backtrace().toString();
             current_line = -1;
             seen_line_number = -1;
             last_line_number = -1;
@@ -1481,7 +1480,7 @@ namespace Parse {
             popState();
             
             output = null;
-	    last_cleared_output_at = new System.Backtrace().toString();
+	    // last_cleared_output_at = new System.Backtrace().toString();
             seen_line_number = -1;
             last_line_number = -1;
             current_line = -1;
@@ -1699,7 +1698,7 @@ namespace Parse {
 		output.println( "# closing output" );
                 output.close();
                 output = null;
-		last_cleared_output_at = new System.Backtrace().toString();
+		// last_cleared_output_at = new System.Backtrace().toString();
             }
         }
 
@@ -1710,8 +1709,10 @@ namespace Parse {
 		if( CurrentMethod != null ) {
 		    IO.Std.err.println( "no output for: " + CurrentMethod.HumanName );
 		}
+		/*
 		IO.Std.err.println( "oops: no output stream: " + new System.Backtrace() );
 		IO.Std.err.println( "last cleared at: " + last_cleared_output_at + " from: " + new System.Backtrace() );
+		*/
                 return IO.Std.err;
             }
         }
