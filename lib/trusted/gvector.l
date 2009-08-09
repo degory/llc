@@ -305,19 +305,19 @@ namespace Generic is
 	        int a = l; // _allocated_length;
 
 		if a < MAX_DOUBLE_LENGTH then
-		    a = a * 2 - 1;
+		    a = a * 2;
 		else 
-		    a = a + LENGTH_INCREMENT - 1;
+		    a = a + LENGTH_INCREMENT;
 		fi
 
 		if a < l then
 		    a = l;
 		fi
 
-  	        if true then // T.isreference then 
-		    new_values = cast T ptr(native.GC_malloc_ignore_off_page( a * T.sizeof + 32 ));
+		if true /* T.isreference */ then 
+		    new_values = cast T ptr(native.GC_malloc_ignore_off_page( a * T.sizeof ));
 		else
-		    new_values = cast T ptr(native.GC_malloc_atomic_ignore_off_page( a * T.sizeof + 32 ));
+		    new_values = cast T ptr(native.GC_malloc_atomic_ignore_off_page( a * T.sizeof ));
 		fi
 
 		if _values != null then

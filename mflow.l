@@ -904,7 +904,7 @@ namespace Gen {
 	int next_edge;
 
 	public static bool debug;
-
+	public static bool want_range_sizes;
 
 	// statistics for debugging purposes:
 	public static int color_count;
@@ -2063,7 +2063,8 @@ namespace Gen {
 
 	    // build control flow graph:
 	    enumerate();
-	    
+
+	    want_range_sizes = attempt & (GEN_COALESCE | GEN_REGVARS) != 0;
 
 	    // if requested repeatedly coalesce copied temporaries until all possible copies removed:
 	    if( attempt & GEN_COALESCE != 0 && size > 0 ) {
@@ -2565,26 +2566,34 @@ namespace Gen {
 			    } else if( already_split_u && !already_split_t ) {
 				// IO.Std.err.println( "choosing to split not-split T" + t );
 				f = t;
-			    } else if( d.range > e.range ) {
-				// IO.Std.err.println( "choosing to split smaller range T" + u );
-				/*
-				if( d.refs <= e.refs ) {
-				    IO.Std.err.println( "cannot substitute refs for range here d > e" );
-				    IO.Std.err.println( "T" + t + " range: " + d.range + ", refs: " + d.refs );
-				    IO.Std.err.println( "T" + u + " range: " + e.range + ", refs: " + e.refs );
+			    } else { 
+				bool use_e;
+				
+				// want to avoid unneeded splits since this happens after copy coalescing and hence redundant copies might not
+				// be eliminated but we have to split one temporary here. We don't have enough information to
+				// know which reference to split so we have to split all of them. This would argue for splitting the shorter range
+				// but since the ranges overlap there's a good chance that doing so won't help and we'll end up having to
+				// do another register allocation pass, which is quite expenses. So, try splitting the long range first.
+				// typically this happens for call arguments where an argument is itself a method call, in which case we
+				// definitely do want to split the longer range:
+
+				if( d.range > e.range ) {
+				    if( d.refs > e.refs ) {
+					IO.Std.err.println( "splitting T" + t + " might be wrong descision" );
+					IO.Std.err.println( "T" + t + " range: " + d.range + ", refs: " + d.refs );
+					IO.Std.err.println( "T" + u + " range: " + e.range + ", refs: " + e.refs );
+				    }
+				    f = t;
+				} else {
+				    if( e.refs > d.refs ) {
+					IO.Std.err.println( "splitting T" + u + " might be wrong descision" );
+					IO.Std.err.println( "T" + t + " range: " + d.range + ", refs: " + d.refs );
+					IO.Std.err.println( "T" + u + " range: " + e.range + ", refs: " + e.refs );
+				    }
+				    f = u;
 				}
-				*/
-				f = u;
-			    } else {
-				/*
-				if( d.refs > e.refs ) {
-				    IO.Std.err.println( "cannot substitute refs for range here d <= e" );
-				    IO.Std.err.println( "T" + t + " range: " + d.range + ", refs: " + d.refs );
-				    IO.Std.err.println( "T" + u + " range: " + e.range + ", refs: " + e.refs );
-				}
-				*/
-				// IO.Std.err.println( "choosing to split smaller range T" + t );
-				f = t;
+
+				// IO.Std.err.println( "use T" + f );
 			    }
 
 			    to_fix.mark( f );
@@ -3683,8 +3692,8 @@ namespace Gen {
 
 	    // IO.Std.err.println( "calc ranges for block:\n" + this );
 
-	    if( reg_cost != null ) {
-		calcStartRanges( reg_cost, live );
+	    if( MFlow.want_range_sizes && reg_cost != null ) {
+	    	calcStartRanges( reg_cost, live );
 	    }
 
             MInst prev, i, next;
@@ -3709,8 +3718,10 @@ namespace Gen {
 		    i.calcClobberCost( reg_cost, live, weight );
 
 		    // FIXME: this is hideously expensive:
-		    calcRangeSizes( reg_cost, live, weight );
-		    // i.calcRangeSizes( reg_cost, live, icount );
+		    // calcRangeSizes( reg_cost, live, weight );
+		    if( MFlow.want_range_sizes ) {
+		        i.calcRangeSizes( reg_cost, live, icount );
+		    }
 		}
 
                 live.IsChanged = false;
@@ -3736,6 +3747,9 @@ namespace Gen {
 		IO.Std.err.println(); */
             }
 
+	    if( MFlow.want_range_sizes && reg_cost != null ) {
+		calcEndRanges( reg_cost, live, icount );
+	    }
 	    // IO.Std.err.println( "done\n" );
 	    return result;
         }
@@ -4655,7 +4669,7 @@ namespace Gen {
 		    reg_cost[t] = c;
 		}
 
-		if( o.mode & Mode.WRITE == 0 && c.last_icount == -1 ) {
+		if( o.mode & Mode.WRITE != 0 && c.last_icount == -1 ) {
 		    // IO.Std.err.println( "first write: T" + t );
 		    c.last_icount = icount;
 		}

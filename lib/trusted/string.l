@@ -772,16 +772,16 @@ namespace System is
                 int a = l; // _allocated_length;
 
 		if a < MAX_DOUBLE_LENGTH then
-		    a = a * 2 - 1;
+		    a = a * 2;
 		else 
-		    a = a + LENGTH_INCREMENT - 1;
+		    a = a + LENGTH_INCREMENT;
 		fi
 
 		if a < l then
 		    a = l;
 		fi
 
-		_buffer = cast char ptr( native.GC_malloc_atomic( a + 8 ) );
+		_buffer = cast char ptr( native.GC_malloc_atomic( a ) );
 
 		_allocated_length = a;
 
@@ -795,6 +795,7 @@ namespace System is
 	    fi
 	end
 
+		/*
 	void mark() is
             if !in_check then
                 [_buffer + _allocated_length] = 254c;
@@ -807,7 +808,7 @@ namespace System is
 		// check();
 	    fi
 	end
-
+		*/
 	void putCharAt( int i, char c ) is
 	    opSet( i, c );
 	end
@@ -1058,6 +1059,7 @@ namespace System is
 	    return ObjectSize + _allocated_length;
 	end
 
+	/*
 	void checkFail() is
 
 	    native.printf( `%p: checking at %d (%d) char is '%c' (%02x)\n`, this, _allocated_length, _length, [_buffer + _allocated_length], cast int([_buffer + _allocated_length]) );	
@@ -1101,6 +1103,7 @@ namespace System is
 
 	    in_check = false;
 	end
+	*/
     end
 
     class ConstString extends String is

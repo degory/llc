@@ -31,7 +31,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1178;
+	const int BUILD = 1179;
 
 	CompileState state;
 
@@ -79,7 +79,7 @@ namespace Parse {
 	    bool first_file = true;
 	    int i, j;
 
-	    int max_heap = 512;
+	    int max_heap = 0;
 
 	    String name;
 	    var input_files = new Vector<String>();
