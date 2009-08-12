@@ -22,6 +22,8 @@ namespace Gen {
 	int ai;             // index of current word within bits array
 	word bi;            // mask of current bit within current word
 	int next_result;
+
+	static int largest;
     
         void init() {
             init( TempFactory.CurrentTemp );
@@ -35,6 +37,11 @@ namespace Gen {
             super.init();
             original_size = size;
             this.size = calcStorageSize( size );
+
+	    if( this.size > largest ) {
+		IO.Std.err.println( "largest bitset yet: " + (this.size * Machine.WORD) + " bytes" );
+		largest = this.size;
+	    }
 
             // IO.Std.err.println( "size + 31 = " + (size + 31) + ", >> 5 = " + ((size + 31) >> 5) );
             // IO.Std.err.println( "number of integers allocated: " + this.size );
@@ -69,6 +76,12 @@ namespace Gen {
             init( c.original_size );
             copy( c );
         }
+
+	// void dispose() {
+	//    System.GC.disable();
+	//    IO.Std.err.println( "dispose MBitSet: " + String.hex(cast word(this)) );
+	//    System.GC.enable();
+	// }
         
         void copy( MBitSet c ) {
 	    int s = size;

@@ -314,7 +314,7 @@ namespace Generic is
 		    a = l;
 		fi
 
-		if true /* T.isreference */ then 
+		if T.isreference then 
 		    new_values = cast T ptr(native.GC_malloc_ignore_off_page( a * T.sizeof ));
 		else
 		    new_values = cast T ptr(native.GC_malloc_atomic_ignore_off_page( a * T.sizeof ));
@@ -323,7 +323,7 @@ namespace Generic is
 		if _values != null then
 		    i = 0;
 		    while i < _length do
-			[new_values + i] = [_values + i];
+		    	[new_values + i] = [_values + i];
 			i = i + 1;
 		    od
 		

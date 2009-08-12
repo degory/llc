@@ -624,7 +624,7 @@ namespace Parse {
         }
 
 	void clear( CompileState state ) {
-	    IO.Std.err.println( "not clearing: " + this.Class.Name );
+	    // IO.Std.err.println( "not clearing: " + this.Class.Name );
 	}
 
 	void checkTemplates( CompileState state ) {
@@ -761,10 +761,83 @@ namespace Parse {
 	    }
 	}
 
+	const int MAX = 64;
+	static void probeHeap() {
+	    System.GC.collect();
+	    var b = new StringBuffer(100);
+
+	    for( int i = 0; i < 500; i = i + 1 ) {
+		word ptr p = cast word ptr(native.GC_generate_random_valid_address());
+		if( p == null ) {
+		    continue;
+		}
+		
+		int gl;
+		
+		char ptr n;
+		char c;
+		bool failed = false;
+		try {
+		    gl = cast int(native.__native_thunk(native.__get_GC_size(),p));		    
+
+		    Object o = cast Object(p);
+
+		    n = o.ClassNameC;
+		    c = [n];
+		    if( c >= 'A' && c <= 'Z' ) {
+			IO.Std.err.println( "object " + gl + " " + o.ObjectSize + " " + n );
+		    }
+		} catch( System.MemoryException me ) {
+		    IO.Std.err.println( "failed A" ); IO.Std.err.flush();
+		    failed = true;
+		} catch( System.Exception se ) {
+		    failed = true;
+		    IO.Std.err.println( "failed B" ); IO.Std.err.flush();
+		}
+
+		if( failed ) {
+		    try {
+			gl = cast int(native.__native_thunk(native.__get_GC_size(),p));
+		
+			n = cast char ptr(p);
+			b.Length = 0;
+			bool ok = true;
+
+			int l;
+
+			for( l = 0; l < MAX; l = l + 1 ) {
+			    c = [n];
+			    if( c == 0c ) {
+			        l = MAX;
+			    } else if( c != '\n' && c != '\t' && (c < ' ' || c > 127c) ) {
+				l = MAX;
+				ok = false;
+			    }
+			    n = n + 1;
+			}
+
+			if( ok && l > 0 ) {
+			    IO.Std.err.println( "string," + gl + "," + l );
+			} else {
+			    IO.Std.err.println("otherA," + gl );
+			}
+
+		    } catch( System.MemoryException me2 ) {
+			IO.Std.err.println("otherB," + gl );
+		    } catch( System.Exception se2 ) {
+			IO.Std.err.println("otherC," + gl );
+		    }
+		    // IO.Std.err.println( "probe failed" );
+		}
+	    }
+	}
+
 	static void progress() {
 	    if( CompileState.WantJobs > 1 ) {
 		return;
 	    }
+
+	    // probeHeap();
 
 	    if( !checked_is_tty ) {
 		err_is_tty = IO.Std.err.IsTTY;

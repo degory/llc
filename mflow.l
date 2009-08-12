@@ -937,6 +937,11 @@ namespace Gen {
 
 	    initialize();
 	}
+	
+	void clear() {
+	    node = null;
+	    edge = null;
+	}
 
 	// initialize or reinitialze for a coalesce or register allocation pass:
         void initialize() {
@@ -970,6 +975,12 @@ namespace Gen {
 		n.initialize( size );
 	    }
         }
+
+	// void dispose() {
+	//    System.GC.disable();
+	//    IO.Std.err.println( "dispose MFlow: " + String.hex(cast word(this)) );
+	//    System.GC.enable();
+	// }
 
 	static get bool Debug {
 	    return debug;
@@ -2035,7 +2046,7 @@ namespace Gen {
 
 	
 	// assign registers and optionally coalesce copies:
-	bool build( int attempt, MInst inst, int local_offset ) {
+	bool build( int attempt, MInst inst, int local_offset ) {	    
 	    try {
 		return build2( attempt, inst, local_offset );
 	    } catch( RegisterException re ) {
@@ -2171,6 +2182,8 @@ namespace Gen {
 
 	    IO.Std.err.println( "failed to color: " + this );
 	    // throw new Exception( "failed to color" );
+
+	    clear();
 
 	    // return failure - caller can try again with less complex code:
 	    return false;
@@ -3462,6 +3475,12 @@ namespace Gen {
 	    bs_in = new MBitSet(size);
 	    // bs_written = new MBitSet(size);
 	}
+
+	// void dispose() {
+	//    System.GC.disable();
+	//    IO.Std.err.println( "dispose MNode: " + String.hex(cast word(this)) );
+	//    System.GC.enable();
+	// }
 
 	void reset() {
 	    MInst i;

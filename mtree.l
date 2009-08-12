@@ -36,7 +36,7 @@ namespace Gen {
 	    this.left = left;
 	    this.right = right;
 	}
-	
+
 	void addName( int t ) {
 	}
 	

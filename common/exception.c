@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <errno.h>
 
+// #define DEBUG 1
 // #define GC_DEBUG 0
 
 #include <gc/gc.h>
@@ -30,8 +31,12 @@ typedef void ExFunc(int type, void *ex);
 #define THROW_FINALLY 5
 #define THROW_STOP 6
 
-//#define D(e...) { printf(e); fflush(stdout); }
+
+#if DEBUG
+#define D(e...) { printf(e); fflush(stdout); }
+#else
 #define D(e...)
+#endif
 
 #ifdef B32 /* 32 bit */
 
@@ -63,6 +68,11 @@ typedef struct _SigContext {
 #ifdef B64
 
 typedef unsigned long WORD;
+
+WORD __l_rbp = 0; // FIXME: should be thread local and doesn't handle more than one L -> foreign code transition on stack
+extern void __native_thunk(void (*f)(),...);
+
+int __in_segv = 0;
 
 typedef struct _Registers {
   WORD r8;     // +0
@@ -256,6 +266,8 @@ extern __attribute__((fastcall)) void _ZN6System15MemoryException4initEPc( void 
 extern __attribute__((fastcall)) void _ZN6System25MemoryProtectionException4initEPc( void *e, char *m );
 extern __attribute__((fastcall)) void _ZN6System20NullPointerException4initEPc( void *e, char *m );
 
+extern __attribute__((fastcall)) char *_ZN6System6Object9toCStringEv( void *e );
+
 #else
 extern __catch_exception( WORD type, void *e, void *rip, Registers *regs );
 
@@ -271,6 +283,8 @@ extern void _ZN6System9Exception16setBacktraceInfoEu4word( void *exception, WORD
 extern void _ZN6System15MemoryException4initEPc( void *e, char *m );
 extern void _ZN6System25MemoryProtectionException4initEPc( void *e, char *m );
 extern void _ZN6System20NullPointerException4initEPc( void *e, char *m );
+
+extern char *_ZN6System6Object9toCStringEv( void *e );
 #endif
 
 extern __throw_memoryexception();
@@ -582,7 +596,8 @@ void dumpExRecord( ExRecord *r ) {
       D( "catch class %s\n", v->name );
     }
   } else {
-    printf( "unexpected record type %ld\n", r->type );
+    fprintf( stderr, "unexpected exception handler record type %ld\n", r->type );
+    fflush( stderr );
     exit(1);
   }
 }
@@ -777,6 +792,8 @@ RecentUnwindInfo *findCachedUnwindInfo( WORD rip ) {
 
     // this record is now the last referenecd cache entry:
     __last_unwind_hit = p;
+
+    D("returning recent unwind %p\n", p );
     return p;
   }
 
@@ -794,8 +811,10 @@ UnwindRecord *findUnwindInfo( WORD rip, BacktraceRecord *backtrace ) {
 
   RecentUnwindInfo *rp = findCachedUnwindInfo( rip );
   if( rp->rip == rip ) {
+    D("cached unwind info matches rip\n" );
     p = rp->p;
     if( p == 0 ) {
+      D( "no unwind record stored\n" );
       return 0;
     }
     if( backtrace != 0 ) {
@@ -803,6 +822,8 @@ UnwindRecord *findUnwindInfo( WORD rip, BacktraceRecord *backtrace ) {
       backtrace->method_name = p->method_name;
       backtrace->line_number_info = p->line_numbers;
     }
+
+    D("returning unwind record %p\n", p );
     return p;
   }
 
@@ -814,7 +835,7 @@ UnwindRecord *findUnwindInfo( WORD rip, BacktraceRecord *backtrace ) {
   D( "initial unwind table %p...\n", start );
 
   do {
-    D( "unwind table %p, method start %p...\n", (void *)start, (void *)start->method_start );
+    D( "unwind table %p, first method start %p...\n", (void *)start, (void *)start->method_start );
 
     if( length == 0 ) {
       // first time, don't know table length so do linear search and calculate length at same time:
@@ -836,11 +857,13 @@ UnwindRecord *findUnwindInfo( WORD rip, BacktraceRecord *backtrace ) {
 
 	length++;
       }
+
+      D( "not found by linear search: %p\n", (void *)rip );
       *p_length = length;
     } else {
       p = start;
       q = p + length -1;
-      D( "binary search over %d entries %p .. %p\n", length, p, q );
+      D( "binary search over %d entries %p .. %p\n", length, p->method_start, q->method_start + q->method_length );
 
       do {
 	WORD difference = (q - p);
@@ -849,26 +872,27 @@ UnwindRecord *findUnwindInfo( WORD rip, BacktraceRecord *backtrace ) {
 
 	UnwindRecord *r = p + difference / 2;
 	
-	D( "chop at %p\n", r );
+	D( "chop at %p\n", r->method_start );
 
 	if( r == p ) {
-	  if( p->method_start >= rip && p->method_start + p->method_length <= rip ) {
+	  if( rip >= p->method_start && rip <= p->method_start + p->method_length ) {
 	    D( "found %p\n", p );
 	  } else {
-      	    D( "probably not found %p = %p\n", p, r );
-	    p = 0;
+      	    D( "probably not found %p outside %p..%p, try linear search\n", (void *)rip, p->method_start, p->method_start + p->method_length );
+	    //	     length = 0;
+	    p = 0; // findUnwindInfo( rip, backtrace );
 	  }
 	  break;
 	}
 
 	if( rip < r->method_start ) {
-	  D( "chop downwards [%p .. %p] .. %p\n", p, r, q );
+	  D( "chop downwards [%p .. %p] .. %p\n", p->method_start, r->method_start, q->method_start );
 	  q = r;
 	} else if( rip > r->method_start + r->method_length ) {
-	  D( "chop upwards %p .. [%p .. %p]\n", p, r, q );
+	  D( "chop upwards %p .. [%p .. %p]\n", p->method_start, r->method_start, q->method_start );
 	  p = r;
 	} else {
-	  D( "appear to have found at %p", r );
+	  D( "appear to have found at %p", r->method_start );
 	  p = r;
 	  break;
 	}
@@ -879,6 +903,8 @@ UnwindRecord *findUnwindInfo( WORD rip, BacktraceRecord *backtrace ) {
       rp->rip = rip;
       rp->p = p;
       rp->next = 0;
+
+      D("setting unwind cache entry %p, rip %p, unwind record %p\n", rp, rp->rip, rp->p );
 
       if( __last_unwind_hit != 0 ) {
 	// if we take this exception again then the frame under last unwind hit is the frame we just found:
@@ -904,6 +930,7 @@ UnwindRecord *findUnwindInfo( WORD rip, BacktraceRecord *backtrace ) {
   rp->rip = rip;
   rp->p = 0;
   rp->next = 0;
+  D("not found unwind cache entry %p, rip %p, unwind record %p\n", rp, rp->rip, rp->p );
 
     
   // __last_unwind_hit = 0;
@@ -936,19 +963,26 @@ int unwindStack( WORD rbp, WORD rip, WORD stop_at_rip, Registers *regs, Backtrac
     D( "rip %p\n", (void *)rip );
 
     if( u == 0 ) {
+      D("no unwind record\n", u );
       if( br != 0 ) {
 	br->method_name = "unknown";
       }
 
       if( found_frame ) {
+	D("found catch frame so stop unwind here\n" );
 	break;
       } else {
-	fprintf( stderr, "exception in non-L code" );
-	exit(1);
+	fprintf( stderr, "foreign stack frame found before handler for method containing address %p, expect trouble...\n", (void *)rip );
+	fflush(stderr);
+	// exit(1);
       }
+
+      D("pass through non-L frame here\n" );
 
       // break; ??
     } else {
+      D("have unwind record: %p\n", u );
+
       if( stop_at_rip == u->method_start ) {
 	D( "stop unwinding here but continue filling backtrace...\n" );
 
@@ -1018,6 +1052,15 @@ void catchException( WORD type, void *e, ExRecord *r, WORD rbp, WORD rip, Regist
   BacktraceRecord *backtrace = 0;
 
   D( "catch exception %ld, %p\n", type, e );
+
+  if( __l_rbp != 0 ) {
+    D( "catch as if called from __native_thunk..." );
+
+    rbp = __l_rbp;
+    rip = __native_thunk;
+    
+    __l_rbp = 0;
+  }
   
   if( type == THROW_EXCEPTION ) {
     if( _ZN6System9Exception16getBacktraceInfoEv(e) == 0 ) {
@@ -1060,15 +1103,23 @@ void catchException( WORD type, void *e, ExRecord *r, WORD rbp, WORD rip, Regist
   
   if( unwindStack( rbp, rip, catch_address, regs, backtrace, BACKTRACE_LENGTH-1 ) && r != 0 ) {
     D( "about to catch %lx, %p, %p, %p...\n", type, e, r->func, regs );
+
+    __in_segv = 0;
     __catch_exception( type, e, r->func, regs );
   } else {
     // D( "get backtrace string from %p\n", backtrace );
     
     // char *s = (char *)toCString__Q26System12StringBuffer( backtrace );
+    char *s = (char *)_ZN6System6Object9toCStringEv( e );
+
+    fprintf( stderr, s );
     // }
     D( "failed to catch %p\n", e );
     // D( "%s\n", s );
   }
+
+  fprintf( stderr, "failed to catch exception\n" );
+  fflush( stderr );
   exit(1);
 }
 
@@ -1187,8 +1238,7 @@ Exception *makeNullPointerException() {
 
 
 Exception *__make_castexception() {
-  Exception *result = (Exception *)GC_malloc(__size_N6System13CastExceptionE);
-  result->vtable = __get_vtable_N6System13CastExceptionE();
+  Exception *result = (Exception *)__alloc_object(__size_N6System13CastExceptionE,__get_vtable_N6System13CastExceptionE());
 
   _ZN6System15MemoryException4initEPc(result,"illegal cast");
 
@@ -1196,8 +1246,7 @@ Exception *__make_castexception() {
 }
 
 Exception *__make_arrayboundsexception() {
-  Exception *result = (Exception *)GC_malloc(__size_N6System15BoundsExceptionE);
-  result->vtable = __get_vtable_N6System15BoundsExceptionE();
+  Exception *result = (Exception *)__alloc_object(__size_N6System15BoundsExceptionE,__get_vtable_N6System15BoundsExceptionE());
 
   _ZN6System15MemoryException4initEPc(result,"array bounds");
 
@@ -1205,8 +1254,7 @@ Exception *__make_arrayboundsexception() {
 }
 
 Exception *__make_memoryprotectionexception() {
-  Exception *result = (Exception *)calloc(1,__size_N6System25MemoryProtectionExceptionE);
-  result->vtable = __get_vtable_N6System25MemoryProtectionExceptionE();
+  Exception *result = (Exception *)__alloc_object(__size_N6System25MemoryProtectionExceptionE,__get_vtable_N6System25MemoryProtectionExceptionE());
 
   _ZN6System25MemoryProtectionException4initEPc(result,"memory protection");
 
@@ -1216,28 +1264,59 @@ Exception *__make_memoryprotectionexception() {
 
 Exception *__make_nullpointerexception() {
   // Exception *result = (Exception *)malloc(size$__Q26System20NullPointerException);
-  Exception *result = (Exception *)calloc(1,__size_N6System20NullPointerExceptionE);
-  result->vtable = __get_vtable_N6System20NullPointerExceptionE();
-  
+  Exception *result = (Exception *)__alloc_object(__size_N6System20NullPointerExceptionE,__get_vtable_N6System20NullPointerExceptionE());
+
   _ZN6System20NullPointerException4initEPc(result,"null pointer");
 
   return result;
 }
 
 
+int segv_count = 0;
 
 void __segv_handler(int sig, siginfo_t *si, SigContext *uc) {
+  if( __in_segv ) {
+    fprintf( stderr, "segv in segv handler\n" );
+    fflush( stderr );
+    exit(1);
+  }
+
+  __in_segv = 1;
+
   // GC_disable();
+
   int i;
   D("caught SIGSEGV referencing address: 0x%lx\n", (long) si->si_addr); 
+
+  // printf( "segv count %d, rip %p\n", segv_count++, (void *)uc->regs.rip ); fflush(stdout);
+
+  long rip = (long)uc->regs.rip;
+
+  if( rip > -8192l && rip <= 8192l ) {
+    // fprintf( stderr, "segv faulting instruction address is null - expect trouble" );
+    
+    // apparently can happen on call through null pointer. No stack frame will exist
+    // except the return address of the calling instruction. Adjust registers so calling
+    // instruction appears to have faulted before making the call by popping return address
+    // into rip:
+
+    rip = *(WORD *)uc->regs.rsp;
+
+    // fprintf( stderr, "rip is now %p\n", (void *)rip );
+
+    uc->regs.rsp += sizeof(WORD);
+    // } else {
+
+    // fprintf( stderr, "non null rip %d\n", (void *)rip );
+  }
 
   // fprintf( stderr, "Content-type: text/plain\r\n\r\n" );
   // fprintf( stderr, "SIGSEGV referencing address: 0x%p\n", (void *)si->si_addr );
 
   Exception *e;
 
-  int address = (WORD)si->si_addr;
-  if( address > -8192 && address < 8192 ) {
+  long address = (WORD)si->si_addr;
+  if( address > -8192l && address < 8192l ) {
     e = __make_nullpointerexception();
   } else {
     e = __make_memoryprotectionexception();
@@ -1262,19 +1341,20 @@ void __segv_handler(int sig, siginfo_t *si, SigContext *uc) {
   D( "r13: %lx\n", uc->regs.r13 );
   D( "r14: %lx\n", uc->regs.r14 );
   D( "r15: %lx\n", uc->regs.r15 );
-  D( "rip: %lx\n", uc->regs.rip );
 #endif
+  D( "rip: %lx\n", uc->regs.rip );
+
 
   // void *p = malloc( sizeof(Registers) );
   // memcpy( p, &uc->regs, sizeof(Registers) );
 
 #if B32
-  uc->regs.rdx = (WORD)uc->regs.rip;            // faulting address
+  uc->regs.rdx = (WORD)rip;            // faulting address
   uc->regs.rcx = (WORD)e;                       // exception to throw;
 #endif
 
 #if B64
-  uc->regs.rdi = (WORD)uc->regs.rip;            // faulting address
+  uc->regs.rdi = (WORD)rip;            // faulting address
   uc->regs.rsi = (WORD)e;                       // exception to throw;
 #endif
   uc->regs.rip = (WORD)__throw_memoryexception; // restart address
@@ -1292,7 +1372,7 @@ void *__gcj_mark_proc(
 		      void *mark_stack_ptr,
 		      void *mark_stack_limit,
 		      WORD env ) {
-  fprintf( stderr, "__gcj_mark_proc called for address %lx\n", addr );
+  fprintf( stderr, "oops: __gcj_mark_proc called for address %lx\n", addr );
 
   return(mark_stack_ptr);
 }

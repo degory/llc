@@ -116,10 +116,6 @@ namespace Parse {
 		return true;
 	    }
 
-	    if( Size == 8 ) {
-		// IO.Std.err.println( "might be a reference: " + this );
-		return true;
-	    }
 	    // IO.Std.err.println( "not a reference: " + this );
 	    return false;
 	}

@@ -346,8 +346,12 @@ alloco:
 
 
 	
+.global __get_and_set_gc_stack_bottom
+__get_and_set_gc_stack_bottom:	
+	movq GC_stackbottom,%rax
+	movq %rsp,GC_stackbottom
+	ret
 	
-
 .global __geterrno
 .extern __errno_location
 __geterrno:
@@ -383,15 +387,22 @@ main:
 .extern GC_enable_incremental
 .extern __install_segv_handler
 
+	movq %rsp,GC_stackbottom
+	
+
+#	movl $1,GC_parallel
+#	movl $1000000,GC_time_limit
+	call GC_init
+#	call GC_enable_incremental
 	call __init_gcj_malloc
+
 	call __install_segv_handler
 	
 	
 #	movl $1,GC_print_stats
 #	movl $1,GC_parallel
-#	call GC_init
 
-#	call GC_enable_incremental
+
 
 		
 	call __static_begin
@@ -743,6 +754,63 @@ __throw_castexception:
 	ret
 
 4:
+
+
+.global __get_GC_size
+__get_GC_size:
+	movq $__get_GC_size,%rax
+	ret
+
+
+.section .data
+__l_rbp:	.quad	0
+	
+.section z_backtrace_info,"a"
+	.quad __native_thunk
+	.quad 4f-__native_thunk
+	.quad 3f
+	.quad 0	
+	.quad 0xFFFFFFFFFFFFFFFF
+	.quad 0
+.section .rodata
+3:	 .asciz "__native_thunk lrt0.S"
+
+.section .text
+
+	
+.global __native_thunk
+__native_thunk:	
+	pushq %rbp
+	movq %rsp,%rbp
+	movq %rbp,__l_rbp
+	
+	pushq %rbx
+	pushq %r12
+	pushq %r13
+	pushq %r14
+	pushq %r15
+
+	mov %rdi,%rax
+	
+	mov %rsi,%rdi
+	mov %rdx,%rsi
+	mov %rcx,%rdx
+	mov %r8,%rcx
+	mov %r9,%r8	
+
+	call *%rax
+
+	popq %r15
+	popq %r14
+	popq %r13
+	popq %r12
+	popq %rbx
+	
+	popq %rbp
+	ret
+4:
+
+	
 	
 .global __catch_exception
 	

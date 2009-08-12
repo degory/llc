@@ -25,5 +25,13 @@ namespace System is
 	static void collect() is
 	    native.GC_gcollect();
 	end    
+
+        static void disable() is
+	    native.GC_disable();
+	end
+
+	static void enable() is
+	    native.GC_enable();
+	end
     end
 end

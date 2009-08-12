@@ -1771,6 +1771,7 @@ namespace Parse {
 
 	void prepareInline( CompileState state ) {
 	    progress();
+
 	    // IO.Std.err.println( "attempt to prepare inline: " + name );
 	    m = state.nextMethodByIndex( name.Name );
 	    // IO.Std.err.println( "method def inline: " + m );
@@ -2095,6 +2096,8 @@ namespace Parse {
 
                 state.InlineOK = false;
 
+		into = null;
+
                 i = i + 1;
             } while( i <= 2 );
 
@@ -2111,6 +2114,8 @@ namespace Parse {
 	    Machine.emitTextSegment( f );
 	    state.resetExceptionLevel();            
             state.endCompileMethod(m);
+
+	    // clear(state);
         }
 
 	/*
