@@ -33,5 +33,32 @@ namespace System is
 	static void enable() is
 	    native.GC_enable();
 	end
+
+        static word ptr getBaseQuiet(word ptr p) is
+	    var b = cast word ptr(native.__native_thunk(native.__get_GC_base(),p));	    
+	    IO.Std.err.println( String.hex(cast word(p)) + ": base is " + String.hex(cast word(b)) );
+
+	    return b;
+	end
+
+        static int getSizeQuiet(word ptr p) is
+	    return cast int(native.__native_thunk(native.__get_GC_size(),p));		
+	end
+
+        static word ptr getBase(word ptr p) is
+	    try
+		return getBaseQuiet(p);
+	    catch MemoryException me
+	        return null;
+	    yrt
+	end
+
+        static int getSize(word ptr p) is
+	    try
+                return getSizeQuiet(p);
+	    catch MemoryException me 
+	        return 0;
+	    yrt
+	end
     end
 end

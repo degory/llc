@@ -17,6 +17,7 @@
 // #define GC_DEBUG 0
 
 #include <gc/gc.h>
+#include <gd/gc_backptr.h>
 
 #define USE_GCJ_MALLOC 1
 
@@ -1292,13 +1293,10 @@ void __segv_handler(int sig, siginfo_t *si, SigContext *uc) {
 
   long rip = (long)uc->regs.rip;
 
-  if( rip > -8192l && rip <= 8192l ) {
-    // fprintf( stderr, "segv faulting instruction address is null - expect trouble" );
-    
-    // apparently can happen on call through null pointer. No stack frame will exist
-    // except the return address of the calling instruction. Adjust registers so calling
-    // instruction appears to have faulted before making the call by popping return address
-    // into rip:
+  // null or negative, > 32M and below shared object area, > 64M beyond start of shared object area       
+  if( rip <= 8192l || (rip > 0x2000000 && rip < 0x80000000000) || rip > 0x80004000000 ) {
+    // if rip doesn't look like a valid instruction address, assume we've somehow called through a bad pointer and
+    // look on the stack top for a return address pointing at the offending instruction:
 
     rip = *(WORD *)uc->regs.rsp;
 
@@ -1471,4 +1469,5 @@ long __get_nanotime() {
   }
 
 }
+
 

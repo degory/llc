@@ -761,6 +761,11 @@ __get_GC_size:
 	movq $__get_GC_size,%rax
 	ret
 
+.global __get_GC_base
+__get_GC_base:
+	movq $__get_GC_base,%rax
+	ret
+
 
 .section .data
 __l_rbp:	.quad	0

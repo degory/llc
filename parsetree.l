@@ -766,66 +766,75 @@ namespace Parse {
 	    System.GC.collect();
 	    var b = new StringBuffer(100);
 
+	    IO.Std.err.println( "probe heap..." );
+
 	    for( int i = 0; i < 500; i = i + 1 ) {
 		word ptr p = cast word ptr(native.GC_generate_random_valid_address());
 		if( p == null ) {
 		    continue;
 		}
 		
-		int gl;
+		// p = System.GC.getBase(p);
+		// int gl = System.GC.getSize(p);
 		
 		char ptr n;
 		char c;
 		bool failed = false;
 		try {
-		    gl = cast int(native.__native_thunk(native.__get_GC_size(),p));		    
-
 		    Object o = cast Object(p);
 
 		    n = o.ClassNameC;
 		    c = [n];
 		    if( c >= 'A' && c <= 'Z' ) {
-			IO.Std.err.println( "object " + gl + " " + o.ObjectSize + " " + n );
+			String s = new String(n);
+			if( s.equals("System.String") || s.equals("System.StringBuffer") ||
+			    s.startsWith("Generic.Array") || s.startsWith("Generic.Vector") ) {
+			    IO.Std.err.println( "object," + o.ObjectSize + "," + s + "," + o );
+			} else {
+			    IO.Std.err.println( "object," + o.ObjectSize + "," + s );
+			}
 		    }
-		} catch( System.MemoryException me ) {
-		    IO.Std.err.println( "failed A" ); IO.Std.err.flush();
+		    //} catch( System.MemoryException me ) {
+		    // IO.Std.err.println( "failed A" ); IO.Std.err.flush();
 		    failed = true;
 		} catch( System.Exception se ) {
 		    failed = true;
-		    IO.Std.err.println( "failed B" ); IO.Std.err.flush();
+		    // IO.Std.err.println( "failed B" ); IO.Std.err.flush();
 		}
 
 		if( failed ) {
 		    try {
-			gl = cast int(native.__native_thunk(native.__get_GC_size(),p));
-		
 			n = cast char ptr(p);
 			b.Length = 0;
+			bool done = false;
 			bool ok = true;
 
 			int l;
 
-			for( l = 0; l < MAX; l = l + 1 ) {
+			for( l = -1; l < MAX && !done; l = l + 1 ) {
 			    c = [n];
 			    if( c == 0c ) {
-			        l = MAX;
+			        done = true;
 			    } else if( c != '\n' && c != '\t' && (c < ' ' || c > 127c) ) {
-				l = MAX;
+				done = true;
 				ok = false;
+			    } else {
+				b.append(c);
 			    }
 			    n = n + 1;
 			}
 
-			if( ok && l > 0 ) {
-			    IO.Std.err.println( "string," + gl + "," + l );
-			} else {
-			    IO.Std.err.println("otherA," + gl );
-			}
+			//if( ok && l > 0 ) {
+			//    IO.Std.err.println( "string," + l + ",'" + b + "'" );
+			    /* } else {
+			       IO.Std.err.println("other"); */
+			//}
 
+			    /*
 		    } catch( System.MemoryException me2 ) {
-			IO.Std.err.println("otherB," + gl );
+		    IO.Std.err.println("other" ); */
 		    } catch( System.Exception se2 ) {
-			IO.Std.err.println("otherC," + gl );
+			    // IO.Std.err.println("other" );
 		    }
 		    // IO.Std.err.println( "probe failed" );
 		}

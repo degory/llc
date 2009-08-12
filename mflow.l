@@ -2164,6 +2164,8 @@ namespace Gen {
 			    if( Parse.CompileState.Instance.WantStatistics ) {
 				countInstructions(count+1);
 			    }
+			    Parse.ParseTree.probeHeap();
+
 			    return true;
 			}
 		    }
@@ -2180,10 +2182,11 @@ namespace Gen {
 		reset();
 	    }
 
+
 	    IO.Std.err.println( "failed to color: " + this );
 	    // throw new Exception( "failed to color" );
 
-	    clear();
+	    // clear();
 
 	    // return failure - caller can try again with less complex code:
 	    return false;
