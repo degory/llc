@@ -761,6 +761,7 @@ namespace Parse {
 	    }
 	}
 
+	/*
 	const int MAX = 64;
 	static void probeHeap() {
 	    System.GC.collect();
@@ -788,7 +789,7 @@ namespace Parse {
 		    if( c >= 'A' && c <= 'Z' ) {
 			String s = new String(n);
 			if( s.equals("System.String") || s.equals("System.StringBuffer") ||
-			    s.startsWith("Generic.Array") || s.startsWith("Generic.Vector") ) {
+			    s.startsWith("Generic.Array") || s.startsWith("Generic.Vector") || s.startsWith("Util.Vector") ) {
 			    IO.Std.err.println( "object," + o.ObjectSize + "," + s + "," + o );
 			} else {
 			    IO.Std.err.println( "object," + o.ObjectSize + "," + s );
@@ -826,13 +827,8 @@ namespace Parse {
 
 			//if( ok && l > 0 ) {
 			//    IO.Std.err.println( "string," + l + ",'" + b + "'" );
-			    /* } else {
-			       IO.Std.err.println("other"); */
-			//}
 
-			    /*
-		    } catch( System.MemoryException me2 ) {
-		    IO.Std.err.println("other" ); */
+			//}
 		    } catch( System.Exception se2 ) {
 			    // IO.Std.err.println("other" );
 		    }
@@ -840,6 +836,7 @@ namespace Parse {
 		}
 	    }
 	}
+*/
 
 	static void progress() {
 	    if( CompileState.WantJobs > 1 ) {
@@ -1025,6 +1022,9 @@ namespace Parse {
 		state.WantMarkUnsafe = false;
 	    } else if( n =~ "NoProfile" ) {
 		state.WantProfile = false;
+	    } else if( n =~ "NoRegVars" ) {
+		IO.Std.err.println( "disabling reg vars" );
+		state.WantRegVars = false;
 	    } else if( n =~ "Pack" || n =~ "NoPack" ) {
 		bool want_pack;
 		String message;
@@ -1635,6 +1635,22 @@ namespace Parse {
 	    return true;
 	}
     }
+
+    /*
+    class ExpressionStatement extends Statement {
+	Expression left_value;
+
+	void init( int line_number, Expression left_value ) {
+	    super.init( line_number );
+
+	    this.left_value = left_value;
+	}
+
+	void dump( CompileState state, StringBuffer buffer ) {
+
+	}
+    }
+    */
 
     class Assignment extends Statement {
         Expression left_value;

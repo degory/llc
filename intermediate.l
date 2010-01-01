@@ -486,18 +486,18 @@ namespace Gen {
 
         Object state;
 
-        MSet rset_;
+        // MSet rset_;
 	// static bool allow_three_address = false;
 
-        int id;
+        // int id;
         int op;
         int size;
         int reg;
 
         int line_number;
-        int block_number;
+        // int block_number;
         
-        int ref_count;
+        // int ref_count;
 
         get State GenState {
             return cast<State>(state);
@@ -612,7 +612,10 @@ namespace Gen {
 
         void init( ITree copy ) {
             this.init(copy.line_number,copy.op,copy.size,null,null,copy.value);
-	    this.op = copy.op;
+	    if( this.op != copy.op ) {
+		IO.Std.err.println( "oops: copy " + this.op + "-" + this.size + " != " + copy.op + "-" + copy.size + " from: " + new System.Backtrace() );
+	    }
+
             if( copy.left != null ) {
                 left = new ITree(copy.left);
             }
@@ -739,6 +742,7 @@ namespace Gen {
 		left = new ITree( line_number, Op.COPY, s, left, new ITree( 0, Op.TEMP, s, inline_args[n] ) );
 
 		op = Op.LIST;
+		size = 0;
 
 				 /*
 		subst.lengthen(n+1);
@@ -759,6 +763,7 @@ namespace Gen {
 		n = inline_args.length-1;
 		// IO.Std.err.println( "subst inline RESULT, value: " + value );
 		op = Op.LIST;
+		size = 0;
 		left.transformForInline(temp_offset,label_offset,line_number,inline_args);
 
 		left = new ITree( line_number, Op.COPY, s,
@@ -777,6 +782,7 @@ namespace Gen {
 		n = inline_args.length-1;
 		// IO.Std.err.println( "subst inline RESULT_F" );
 		op = Op.COPY | getSizeMask(s);
+		size = s;
 		right = left;
 		check(right);
 		right.transformForInline(temp_offset,label_offset,line_number,inline_args);
@@ -792,6 +798,7 @@ namespace Gen {
 	    }
 	}
 
+	/*
 	ITree rset(MSet rset) {
 	    this.rset_ = rset;
 	    if( op == Op.SEQ_8 || op == Op.SEQ_4 || op == Op.SEQ_1 ) {
@@ -803,7 +810,9 @@ namespace Gen {
 	get MSet Set {
 	    return rset_;
 	}
+	*/
 
+	static int iq_count;
 
         void init( int line_number, int op, int size, ITree left, ITree right, IValue value ) {
             super.init();
@@ -816,8 +825,17 @@ namespace Gen {
 	    }
 
             this.size = size;
-
 	    this.op = this.op | getSizeMask(size);
+
+	    /*
+	    if( op >= Op.GT && op < Op.AND ) {
+		IO.Std.out.println( "inequality: " + Op.getOpName(op) );
+		if( iq_count >= 49589 ) {
+		    IO.Std.out.println( "from: " + new System.Backtrace() );
+		}
+		iq_count = iq_count + 1;
+	    }
+	    */
 
 	    if( size > Machine.WORD ) {
 		throw new Exception( "creating ITree op " + op + " of size " + size + " > " + Machine.WORD );
@@ -830,7 +848,7 @@ namespace Gen {
 	    check(right);
             this.value = value;
 
-	    this.id = next_id;
+	    // this.id = next_id;
 	    /*
 	    if( id >= 125 && id < 130 ) {
 		IO.Std.err.println( "from: " + new Exception("DDDDD: " + this ) );
@@ -963,7 +981,7 @@ namespace Gen {
 	get ITree Temp {
 	    if( RawOp == Op.TEMP ) {
 		ITree result = new ITree(0,op,size,Int);
-		result.rset_ = rset_;
+		// result.rset_ = rset_;
 		return result;
 	    } else if( RawOp == Op.SEQ ) {
 		return right.Temp;

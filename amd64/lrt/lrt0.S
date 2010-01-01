@@ -392,6 +392,7 @@ main:
 
 #	movl $1,GC_parallel
 #	movl $1000000,GC_time_limit
+#	movl $1,GC_use_entire_heap
 	call GC_init
 #	call GC_enable_incremental
 	call __init_gcj_malloc

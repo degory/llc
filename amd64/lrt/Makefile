@@ -1,5 +1,5 @@
 VERSION=0.2
-CFLAGS=-DB64 -g 
+CFLAGS=-DB64 -g -O1
 install: lrt-amd64.o ldn-amd64.o exception.so exception.o
 	cp lrt-amd64.o /usr/lang/lib/lrt-amd64-$(VERSION).o
 	cp ldn-amd64.o /usr/lang/lib/ldn-amd64-$(VERSION).o

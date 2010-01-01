@@ -175,6 +175,7 @@ namespace Gen {
 	    // do nothing
 	}
 
+	/*
 	static bool compareRHS( MTree u, MTree v, MExpressionTable expressions ) {	    
 	    if( u == null ) {
 		return v == null;
@@ -182,6 +183,7 @@ namespace Gen {
 		return u.compareRHS(v, expressions );
 	    }
 	}
+	*/
 
 	bool compareValues( MTree t ) {
 	    // return getValue() =~ t.getValue();
@@ -191,6 +193,7 @@ namespace Gen {
 
 	}
 
+	/*
 	bool compareRHS( MTree t, MExpressionTable expressions ) {
 	    bool debug = false;
 
@@ -242,6 +245,7 @@ namespace Gen {
 	    }
 	    return true;
 	}
+	*/
         
         set String Value = s {
  	   // do nothing
@@ -501,10 +505,11 @@ namespace Gen {
 		left.Mode = Mode.READ;
 	    }
 	}
-
+	/*
 	bool compareRHS( MTree t, MExpressionTable expressions ) {
 	    return false;
 	}
+	*/
 
 	String toString() {
 	    return opString(op) + ' ' + left;
@@ -554,6 +559,7 @@ namespace Gen {
 	    return dest.getReg();
 	}
 
+	/*
 	bool compareRHS( MTree t, MExpressionTable expressions ) {
 	    if( !likeMe(t) ) {
 		return false;
@@ -574,6 +580,7 @@ namespace Gen {
 
 	    return true;
 	}
+	*/
 
 	set int TempName[int j] = n {
 	    IO.Std.err.println( "MPhi set temp name #" + j + "," + n );
@@ -886,6 +893,7 @@ namespace Gen {
 	    return true;
 	}
 
+	/*
 	bool compareRHS( MTree t, MExpressionTable expressions ) {
 	    bool result = t != null && Temp == t.Temp;
 	    if( !result ) {
@@ -897,13 +905,9 @@ namespace Gen {
 		}
 	    }
 
-	    /*
-	    if( t.isReg() ) {
-		IO.Std.err.println( "compare temps: " + this + " versus " + t + "->" + result );
-	    }
-	    */
 	    return result; 
 	}
+	*/
 
 	MTree rset( MSet rset ) {
 	    // noinline();
@@ -1655,6 +1659,7 @@ namespace Gen {
 	    return true;
 	}
 
+	/*
 	bool compareRHS( MTree t, MExpressionTable expressions ) {
 	    bool result = super.compareRHS(t, expressions);
 
@@ -1664,6 +1669,7 @@ namespace Gen {
 
 	    return result;
 	}
+	*/
     
 	String toString() {
 	    return opString(op) + ' ' + right + ',' + left + " # " + dest;
@@ -1720,6 +1726,7 @@ namespace Gen {
 	    return result;
 	} 
 
+	/*
 	bool compareRHS( MTree t, MExpressionTable expressions ) {
 	    bool result = super.compareRHS(t, expressions);
 
@@ -1729,6 +1736,7 @@ namespace Gen {
 
 	    return result;
 	}
+	*/
     }
 
     class MMove extends MTree {
@@ -1851,9 +1859,11 @@ namespace Gen {
 	    return "MIndirect(" + left.dump() + ")";
 	}
 
+	/*
 	bool compareRHS( MTree t, MExpressionTable expressions ) {
 	    return compareRHS(left, t.Left, expressions);
 	}
+	*/
 
 	bool isMemory() {
 	    return true;

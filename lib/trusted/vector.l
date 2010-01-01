@@ -1,7 +1,7 @@
+
 import object;
 import exception;
 import iterator;
-
 
 
 namespace Util {
@@ -80,11 +80,13 @@ namespace Util {
     /// A resizeable array of Objects
     /// \deprecated Use Generic.Vector<Object> instead
     class Vector extends System.Object {
+	private System.Object ptr _values;
 	private int _length;
 	private int _allocated_length;
-	private System.Object ptr _values;
 
-	private const int DEFAULT_SIZE = 5;
+	const int INITIAL_LENGTH = 4;
+	const int MAX_DOUBLE_LENGTH = 512;
+	const int LENGTH_INCREMENT = 256;
     
 	void init( int l ) {
 	    super.init();
@@ -95,7 +97,7 @@ namespace Util {
 	}
 
 	void init() {
-	    init( DEFAULT_SIZE );
+	    init( INITIAL_LENGTH );
 	}
     
 
@@ -198,16 +200,36 @@ namespace Util {
 	    int i;
 	    System.Object ptr new_values;
 	    if( l > _allocated_length ) {
-		if( l > 1000000 ) {
-		    native.printf( `very long vector allocation %s\n`, new System.Backtrace().toCString() );
-		    native.__flush_stdout();
+	        int a = l; // _allocated_length;
+
+		if( a < MAX_DOUBLE_LENGTH ) {
+		    a = a * 2;
+		} else { 
+		    a = a + LENGTH_INCREMENT;
 		}
-		l = l * 2;
-		_allocated_length = l;
+
+		if( a < l ) {
+		    a = l;
+		}
+
+		/*
+		if( l > 2000 ) {
+		    IO.Std.err.println( "long vector allocation " + l + " from " + new System.Backtrace().toCString() );
+		    IO.Std.err.println( "length " + _length );
+		    IO.Std.err.flush();
+		    // native.printf( `very long vector allocation %d %s\n`, l, 
+		    // native.__flush_stdout();
+		}
+		*/
+		_allocated_length = a;
 
 		// new_values = cast<System.Object ptr>(native.GC_debug_malloc( l * 4 ));
-		new_values = cast<System.Object ptr>(native.GC_malloc( l * System.Environment.WORD_BYTES ));
+		new_values = cast<System.Object ptr>(native.GC_malloc_ignore_off_page( a * System.Environment.WORD_BYTES ));
 		// native.printf( `%p len %d vector\n`, new_values, l * System.Environment.WORD_BYTES );
+
+		// total_allocated = total_allocated + l * System.Environment.WORD_BYTES;
+
+		// native.printf( `\tVVVVV\tUtil.Vector\t%d\n`, l * System.Environment.WORD_BYTES );
 
 		if( _values != null ) {
 		    i = 0;
@@ -216,10 +238,12 @@ namespace Util {
 			i = i + 1;
 		    }
 		
+		    /*
 		    while( i < l ) {
 			[new_values + i] = null;
 			i = i + 1;
 		    }
+		    */
 		}
 	    
 		_values = new_values;

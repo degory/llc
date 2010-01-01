@@ -15,9 +15,9 @@
 
 // #define DEBUG 1
 // #define GC_DEBUG 0
+// #define TRACE_ALLOC 1
 
 #include <gc/gc.h>
-#include <gd/gc_backptr.h>
 
 #define USE_GCJ_MALLOC 1
 
@@ -372,7 +372,8 @@ void __thread_start( void *thread_object ) {
   pthread_attr_setstacksize( &attr, (size_t)STACK_SIZE );
 
   // printf( "creating thread...\n" );
-  int result = GC_pthread_create( &thread, &attr, __thread_entry, thread_object );
+  // int result = GC_pthread_create( &thread, &attr, __thread_entry, thread_object );
+  int result = pthread_create( &thread, &attr, __thread_entry, thread_object );
   _ZN6System6Thread16__set_pthread_idEu4word( thread_object, thread );
   // printf( "result is %d, thread is %p\n", result, (void *)thread );
 
@@ -404,45 +405,30 @@ void __GC_finalize( GC_PTR obj, GC_PTR p ) {
 
 // extern int GC_find_leak;
 
-#ifdef TRACE_ALLOC
-void __report_dispose( WORD *object ) {
-  WORD *vtable = (WORD *)object[0];
 
-  char *class_name = ((char **)vtable)[-2];
-  int class_size = ((WORD *)vtable)[-1];
-
-  printf( "\tAAAAA\t%s\t%d\t\n", class_name, -class_size );
-}
-#endif
 
 
 void *__alloc_object( WORD size, WORD *vtable ) {
   // GC_find_leak = 1;
 
   WORD *result;
-  if( vtable == 0 ) {
-    result = GC_malloc_ignore_off_page( size ); // GC_MALLOC_IGNORE_OFF_PAGE( size );
-
-  } else {
+  if( vtable != 0 ) {
 #if USE_GCJ_MALLOC
     result = GC_gcj_malloc( size, vtable );
 #else
     result = GC_malloc( size );
     result[0] = (WORD)vtable;
 #endif
+  } else {
+    result = GC_malloc_ignore_off_page( size ); // GC_MALLOC_IGNORE_OFF_PAGE( size );
   }
 
     // result[0] = (WORD)vtable;
 
 #ifdef TRACE_ALLOC
-
-  GC_finalization_proc ofn;
-  GC_PTR ocd;
-
   if( vtable != 0 ) {
     char *class_name = ((char **)vtable)[-2];
     int class_size = ((WORD *)vtable)[-1];
-    GC_register_finalizer( (GC_PTR)result, __report_dispose, 0, &ofn, &ocd );
     printf( "\tAAAAA\t%s\t%d\t\n", class_name, class_size );
   }
 #endif

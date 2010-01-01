@@ -83,6 +83,7 @@ namespace Generic is
 	const int MAX_DOUBLE_LENGTH = 512;
 	const int LENGTH_INCREMENT = 256;
 
+
 	/// Construct a new Vector with enough space for at least l values
 	/// \param l initial capactity     
 	void init( int l ) is
@@ -319,6 +320,10 @@ namespace Generic is
 		else
 		    new_values = cast T ptr(native.GC_malloc_atomic_ignore_off_page( a * T.sizeof ));
 		fi
+
+		// Util.Vector.total_allocated_g = Util.Vector.total_allocated_g + a * T.sizeof;
+
+		// native.printf( `\tVVVVV\t%s\t%d\n`, ClassNameC, a * T.sizeof );
 
 		if _values != null then
 		    i = 0;

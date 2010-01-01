@@ -125,10 +125,9 @@ namespace Gen {
 	    inst = i;
 	}
 
-	void setHead(MInst i) {
+	set MInst Head = i {
 	    inst = i;
 	}
-
 
 	get MInst Tail {
 	    return tail;

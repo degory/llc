@@ -23,7 +23,7 @@ namespace Gen {
 	word bi;            // mask of current bit within current word
 	int next_result;
 
-	static int largest;
+	// static int largest;
     
         void init() {
             init( TempFactory.CurrentTemp );
@@ -38,10 +38,12 @@ namespace Gen {
             original_size = size;
             this.size = calcStorageSize( size );
 
-	    if( this.size > largest ) {
+	    /*
+            if( this.size > largest ) {
 		IO.Std.err.println( "largest bitset yet: " + (this.size * Machine.WORD) + " bytes" );
 		largest = this.size;
 	    }
+            */
 
             // IO.Std.err.println( "size + 31 = " + (size + 31) + ", >> 5 = " + ((size + 31) >> 5) );
             // IO.Std.err.println( "number of integers allocated: " + this.size );
@@ -280,7 +282,7 @@ namespace Gen {
 	    }
 	    return false;
 	}
-        
+
 	bool or( MBitSet set_ ) {
 	    int s = size;
 	    if( s > set_.size ) {

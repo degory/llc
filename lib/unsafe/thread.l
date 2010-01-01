@@ -110,7 +110,8 @@ namespace System {
         /// Wait for Thread to exit.
 	word waitExit() {
 	    Util.Pointer p = new Util.Pointer();
-	    native.GC_pthread_join(__get_pthread_id(),p);
+	    // native.GC_pthread_join(__get_pthread_id(),p);
+	    native.pthread_join(__get_pthread_id(),p);
 	    return p.value;
 	}
 

@@ -744,10 +744,8 @@ namespace Parse {
                     String n;                // operator method name
 		    
 		    do {
-			/*
-			IO.Std.err.println( "at start reverse now: " + reverse );
-			IO.Std.err.println( "searching " + tl + " operator " + tr + "..." );
-			*/
+			//IO.Std.err.println( "at start reverse now: " + reverse );
+			//IO.Std.err.println( "searching " + tl + " operator " + tr + "..." );
 
 			// loop at most twice, once for forward operation and once for reverse
 
@@ -854,35 +852,43 @@ namespace Parse {
 			    */
 			    
 			case Op.GT:
+			    IO.Std.err.println( "overloaded > operator..." );
 			    op_string = ">";
 			    n = "opCompare";
 			    inequality = true;
 			    if( reverse ) {
-				operation = Op.LT;
+				// operation = Op.LT;
+				IO.Std.err.println( "try reversed..." );
 			    }
 			    
 			case Op.LT:
+			    IO.Std.err.println( "overloaded < operator..." );
 			    op_string = "<";
 			    n = "opCompare";
 			    inequality = true;
 			    if( reverse ) {
-				operation = Op.GT;
+				// operation = Op.GT;
+				IO.Std.err.println( "try reversed..." );
 			    }
 			    
 			case Op.GE:
+			    IO.Std.err.println( "overloaded >= operator..." );
 			    op_string = ">=";
 			    n = "opCompare";
 			    inequality = true;
 			    if( reverse ) {
-				operation = Op.LE;
+				// operation = Op.LE;
+				IO.Std.err.println( "try reversed..." );
 			    }
 			    
 			case Op.LE:
+			    IO.Std.err.println( "overloaded <= operator..." );
 			    op_string = "<=";
 			    n = "opCompare";
 			    inequality = true;
 			    if( reverse ) {
-				operation = Op.GE;
+				// operation = Op.GE;
+				IO.Std.err.println( "try reversed..." );
 			    }
 			    
 			default:
@@ -946,6 +952,13 @@ namespace Parse {
 			    method_call = call_reverse;
 			    type = type_reverse;
 			}
+		    }
+
+		    if( inequality ) {
+			IO.Std.err.println( "inequality overload is: " + method_call );
+			IO.Std.err.println( "reverse is: " + (method_call == call_reverse) );
+			IO.Std.err.println( "tl is: " + tl );
+			IO.Std.err.println( "tr is: " + tr );
 		    }
 		    
 
@@ -1425,8 +1438,10 @@ namespace Parse {
 
 			if( !reverse ) {
 			    op = getReverseJumpOp( operation, jump );
+			    IO.Std.out.println( "overload reverse op: " + operation + " jump: " + jump + " -> " + op );
 			} else {
 			    op = getJumpOp( operation, jump );
+			    IO.Std.out.println( "overload forward op: " + operation + " jump: " + jump + " -> " + op );
 			}
 			
 			
@@ -1443,6 +1458,8 @@ namespace Parse {
 		    size = left.getType(state).RegSize;
 		    ITree l = left.compileValue( state, into );
 		    ITree r = right.compileValue( state, into );
+
+		    // IO.Std.out.println( "compare op: " + operation + " jump: " + jump + " reverse: " + reverse + " -> " + getJumpOp(operation,jump) );
 		    into.add( new ITree( line_number, Op.BRANCH, 0,
 					 new ITree( line_number,
 						    getJumpOp( operation,jump ), size, l, r ), label )
@@ -1705,6 +1722,14 @@ namespace Parse {
 		    if( state.WantVeryVerbose ) {
 			message( "about to inline: " + method.HumanName );
 		    }
+
+		    if( method.HumanName.equals(MethodDef.last_inline_name) ) {
+			IO.Std.err.println( "about to inline last method: " + method.HumanName );
+			if( state.CurrentMethod != null ) {
+			    IO.Std.err.println( "called from: " + state.CurrentMethod.HumanName );
+			}
+		    }
+
 		    inline_call_count = inline_call_count + 1;
 
 		    into.add( new ITree( line_number, Op.COMMENT, 0, "begin" + s + " inline method " + method.HumanName ) );

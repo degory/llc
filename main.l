@@ -423,6 +423,7 @@ namespace Parse {
 		// Gen.ICompileJob.wait();
 
 		Parse.ParseTree.newline();
+
 		if( Gen.MFlow.method_count != 0 && state.WantStatistics ) {
 		    IO.Std.err.println( "        " + Parse.Expression.type_lookups + " type lookups" );
 		    IO.Std.err.println( "        " + Parse.Expression.type_misses + " type misses" );
@@ -466,6 +467,7 @@ namespace Parse {
 		ParseTree.newline();
 		IO.Std.err.println( "*** fatal error ***" );
 		IO.Std.err.println( se );
+		IO.Std.err.println( se.Backtrace );
 		return 1;
 	    }
         }

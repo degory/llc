@@ -1768,9 +1768,12 @@ namespace Parse {
 	}
 
 	static int inline_count = 0;
+	public static String last_inline_name = "";
 
 	void prepareInline( CompileState state ) {
 	    progress();
+	    bool last = false;
+	    bool nearly_last = false;
 
 	    // IO.Std.err.println( "attempt to prepare inline: " + name );
 	    m = state.nextMethodByIndex( name.Name );
@@ -1783,9 +1786,22 @@ namespace Parse {
 	    state.IsInline = true;
 
 	    // IO.Std.err.println( "method def inline: " + m );
-    
-	    if( state.MaxInlineCount > 0 && inline_count > state.MaxInlineCount ) {
-		return;
+
+	    int max_inline_count = state.MaxInlineCount;
+
+	    if( max_inline_count > 0 && inline_count < max_inline_count && inline_count + 50 >= max_inline_count ) {
+		nearly_last = true;
+	    }
+  
+	    if( max_inline_count > 0 && inline_count >= max_inline_count ) {
+		if( inline_count == max_inline_count ) {
+		    last = true;
+		    last_inline_name = m.HumanName;
+		    IO.Std.err.println( "last inlined method is: " + last_inline_name );
+		    inline_count = inline_count + 1;
+		} else {
+		    return;
+		}
 	    } else {
 		inline_count = inline_count + 1;
 	    }
@@ -1847,7 +1863,7 @@ namespace Parse {
 		into.add( new ITree( line_number, Op.LABEL, 0, state.ReturnLabel ) );
 	    } catch( NotLeafInlineException nle ) {
 		// couldn't inline at this time due to encountering non-inlineable
-		// method calls but may try again:
+		// method calls but may try again:		
 
 		// IO.Std.err.println( "not leaf: " + human );
 		can_inline = false;
@@ -1872,6 +1888,15 @@ namespace Parse {
 		    message( "will inline: " + m.HumanName );
 		}
 		inline_method_count = inline_method_count + 1;
+	    }
+
+	    if( nearly_last ) {
+		IO.Std.err.println( "nearly last inline method " + m.HumanName + ", inlineable: " + can_inline );
+	    }
+		
+
+	    if( last && !can_inline ) {
+		IO.Std.err.println( "last inline method " + last_inline_name + " not actually inlineable" );
 	    }
 
             state.endCompileMethod(m);
@@ -1946,11 +1971,18 @@ namespace Parse {
 		a = a | Gen.MFlow.GEN_REGVARS;
 	    }
 
-	    if( into.genMethod( a, state.Output, decorated, human, m.LocalOffset, address_taken, frame_flags ) ) {
-		// IO.Std.err.println( "gen method success" );
-		return true;
+	    try {
+		System.GC.disable();
+
+		if( into.genMethod( a, state.Output, decorated, human, m.LocalOffset, address_taken, frame_flags ) ) {
+		    // IO.Std.err.println( "gen method success" );
+		    return true;
+		}
+		return false;
+	    } finally {
+		System.GC.enable();
+		// System.GC.collect();
 	    }
-	    return false;
 	}
 
         void compile( CompileState state ) {

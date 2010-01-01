@@ -398,7 +398,7 @@ namespace Parse {
 	    DEFAULT_WARN_FLAGS = 13 | 32; // all warnings enabled, trusted flag not set
 
 	public const int
-	    INLINE_MAX = 20;    // approxiate maximum inline method size (in parse tree nodes)
+	    INLINE_MAX = 50;    // approxiate maximum inline method size (in parse tree nodes)
 
 	static String RUNTIME_VERSION = 
 	    "0.2";

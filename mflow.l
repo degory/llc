@@ -50,172 +50,6 @@ namespace Gen {
 	    MASK_USE = 7;
     }
 
-    // table of available values for common sub-expression elimination - not currently used:
-    class MExpressionTable extends Object {
-	Util.Vector expressions;
-
-	void init() {
-	    expressions = new Util.Vector(20);
-	}
-
-	void clear() {
-	    expressions.Length = 0;
-	}
-
-	void killTemp( int t ) {
-	    Util.Vector v = new Util.Vector(expressions.Length);
-	    foreach( MInst u; expressions.elements() ) {
-		if( !u.readsTemp( t ) ) {
-		    v.add( u );
-		} else {
-		    IO.Std.err.print( "kill read T" + t + ": " + u );
-		}
-	    }
-	    expressions = v;
-	}
-
-	void killMemory() {
-	    Util.Vector v = new Util.Vector(expressions.Length);
-	    foreach( MTree u; expressions.elements() ) {
-		if( !u.readsMemory() ) {
-		    v.add( u );
-		} else {
-		    IO.Std.err.print( "kill read memory: " + u );
-		}
-	    }
-	    expressions = v;
-	}
-
-	bool matchTemps( int t, int u ) {
-	    foreach( MTree v; expressions.elements() ) {
-		if( v.Left.isCopy() ) {
-		    MTree l, r;
-		    l = v.Left.Dest;
-		    r = v.Left.Left;
-
-		    if( l.isReg() && r.isReg() ) {
-			// IO.Std.err.print( "check copy: " + v );
-
-		    
-			if( l.Temp == u && r.Temp == t ) {
-			    // IO.Std.err.println( "AAA T" + t + " matches T" + u );				 
-			    return true;
-			} /*else if( l.Temp == t && r.Temp == u ) {
-			    IO.Std.err.println( "BBB T" + t + " matches T" + u );
-			    return true;
-			    } */
-		    }
-		}
-	    }
-
-	    return false;
-	}
-
-	int findExpression( MInst rhs ) {
-	    foreach( MInst v; expressions.elements() ) {
-		IO.Std.err.print( "CSE cached: " + v );
-	    }
-	    // IO.Std.err.print( ">>>>find expression instruction: " + rhs );
-	    foreach( MInst u; expressions.elements() ) {
-		IO.Std.err.print( "CSE compare:" + rhs );
-		IO.Std.err.print( "CSE versus: " + u );
-
-		if( u.compareRHS(rhs, this) ) {
-		    IO.Std.err.println( "CSE match writes: T" + u.WrittenTemp );
-		    return u.WrittenTemp;
-		}
-	    }	    
-	    // IO.Std.err.println( ">>>>no match" );
-	    return 0;
-	}
-
-	bool add( MNode into, MInst i ) {
-	    bool result = false;
-	    bool can_cache = i.isCSE();
-
-	    int r;
-
-	    if( can_cache ) {
-		r = findExpression( i );
-	    }
-
-	    int l;
-
-	    if( r > 0 ) {
-		IO.Std.err.println( "CSE potential common sub expression: T" + r + " from: " + i );
-	    }
-
-	    if( i.writesMemory() ) {
-		// IO.Std.err.println( "XXXX writes to memory: kill instructions that read memory" );
-		killMemory();
-	    } 
-
-	    l = i.killWritten( this );
-
-	    // l = i.WrittenTemp;
-	    /*
-	    if( l > 0 ) {
-		IO.Std.err.println( "XXXX writes to T" + l + ": killing instructions that read this temp" );
-		killTemp( l );
-		if( i.readsTemp(l) ) {
-		    IO.Std.err.println( "reads written temp, do not cache" );
-		    l = 0;
-		}
-	    }
-	    */
-	    
-	    /*
-	    if( i.Left.isCopy() ) {
-		MTree tl, tr;
-		tl = i.Left.Dest;
-		tr = i.Left.Left; 
-		if( tl.isReg() && tr.isReg() ) {
-		    r = 0;
-		    IO.Std.err.println( "not replacing copy T" + tl.Temp + "<-" + tr.Temp );
-		}
-	    }
-	    */
-
-	    if( r > 0 && l > 0 ) {
-		IO.Std.err.println( "CSE instruction calculates a cached expression for T" + l + ", substitute T" + r );
-
-		if( i.Left.isCopy() && i.Left.Dest.isReg() && i.Left.Left.isReg() ) {
-		    IO.Std.err.print( "CSE might be replacing a copy with a copy: " + i );
-		    IO.Std.err.println( "XXXXXX: versus new copy T" + l + "<-" + r );
-
-		    if( i.Left.Dest.Temp == l && i.Left.Dest.Temp == r ) {
-			IO.Std.err.println( "XXXXXX: no point in replacing" );
-		    }
-		}
-
-
-		if( !i.Left.isCopy() || !i.Left.Dest.isReg() || !i.Left.Left.isReg() ||
-		    i.Left.Dest.Temp != l || i.Left.Left.Temp != r ) {
-				
-		    i.makeCopy( into, i.Left.Size, l, r );
-		    String s = i.toString();
-		    i.makeComment( " SS CSE " + s.substring(0,s.Length-1) );		
-		    
-		    // cache the copy:
-		    i = new MInst( new MMove( Op.COPY | ITree.getSizeMask(Machine.WORD), new MReg( l, MSet.General ), new MReg( r, MSet.General ) ) );
-		    i.initOperands();
-		    
-		    // l = 0; // do not cache
-		    result = true;
-		} else {
-		    IO.Std.err.println( "resulting copy would be the same as existing instruction T" + l + "<-T" + r );
-		    IO.Std.err.print( i );
-		}
-	    }
-
-	    if( l > 0 && can_cache ) {
-		IO.Std.err.print( "instruction writes T" + l + ", cache it: " + i );
-		expressions.add( i );
-	    }
-
-	    return result;
-	}
-    }
 
     // represents a temporary referenced by a particular instruction
     class MOperand extends Object {
@@ -1703,6 +1537,49 @@ namespace Gen {
 	    // IO.Std.err.println( "exit: " + i );
 	}
 
+	void clearRanges(MCandidate[] rc) {
+	    if( rc == null ) {
+		return;
+	    }
+
+	    for( int i = Machine.FIRST_SOFT_REG; i < size; i = i + 1 ) {
+		if( rc[i] == null ) {
+		    continue;
+		}
+
+		if( rc[i].range != 0 ) {
+		    IO.Std.err.println( "T" + i + ": range initially " + rc[i].range );
+		}
+
+		if( rc[i].last_icount != 0 ) {
+		    IO.Std.err.println( "T" + i + ": icount initially " + rc[i].last_icount );
+		}
+		
+		rc[i].range = 0;
+		rc[i].last_icount = 0;
+	    }
+	}
+
+	void dumpRanges(MCandidate[] rc) {
+	    if( rc == null ) {
+		return;
+	    }
+
+	    for( int i = Machine.FIRST_SOFT_REG; i < size; i = i + 1 ) {
+		if( rc[i] == null ) {
+		    continue;
+		}
+
+		if( rc[i].range != 0 ) {
+		    IO.Std.err.println( "T" + i + ": range finally " + rc[i].range );
+		}
+
+		if( rc[i].last_icount != 0 ) {
+		    IO.Std.err.println( "T" + i + ": icount finally " + rc[i].last_icount );
+		}
+	    }
+	}
+
 	// calculate the temporary-to-temporay copies graph and, optionally, the
 	// temporary interference graph:
 	void calcAdjacent(bool coalesce_only) {
@@ -1723,6 +1600,8 @@ namespace Gen {
 	    if( !coalesce_only ) {
 		rc = reg_cost;
 	    }
+
+	    // clearRanges(rc);
 
 	    foreach( MNode q; node.elements() ) {
 		q.calcAdjacent( matrix, rc );
@@ -1756,6 +1635,8 @@ namespace Gen {
 	    }
 
 	    reflect( copied, size );
+
+	    // dumpRanges( rc );
 
 	    /*
 	    for( i = Machine.FIRST_SOFT_REG; i < size; i = i + 1 ) {
@@ -2075,8 +1956,8 @@ namespace Gen {
 	    // build control flow graph:
 	    enumerate();
 
-	    want_range_sizes = attempt & (GEN_COALESCE | GEN_REGVARS) != 0;
-
+	    want_range_sizes = true; // attempt & (GEN_COALESCE | GEN_REGVARS) != 0;
+	    
 	    // if requested repeatedly coalesce copied temporaries until all possible copies removed:
 	    if( attempt & GEN_COALESCE != 0 && size > 0 ) {
 		// IO.Std.err.println( "coalesce..." );
@@ -2140,6 +2021,7 @@ namespace Gen {
 
 		    // determine which temporaries are live at the same time as each other and so cannot
 		    // be stored in the same register:
+
 		    calcAdjacent(false);
 		    MCandidate[] candidates = initializeCandidates();
 
@@ -2164,7 +2046,6 @@ namespace Gen {
 			    if( Parse.CompileState.Instance.WantStatistics ) {
 				countInstructions(count+1);
 			    }
-			    Parse.ParseTree.probeHeap();
 
 			    return true;
 			}
@@ -2593,15 +2474,29 @@ namespace Gen {
 				// typically this happens for call arguments where an argument is itself a method call, in which case we
 				// definitely do want to split the longer range:
 
-				if( d.range > e.range ) {
-				    if( d.refs > e.refs ) {
+				if( d.range == e.range ) {
+				    if( d.refs == e.refs ) {
+					f = t; // arbitrary
+				    } else if( d.refs > e.refs ) {
+					f = t;
+					IO.Std.err.println( "equal ranges, splitting T" + t );
+					IO.Std.err.println( "T" + t + " range: " + d.range + ", refs: " + d.refs );
+					IO.Std.err.println( "T" + u + " range: " + e.range + ", refs: " + e.refs );
+				    } else {
+					f = u;
+					IO.Std.err.println( "equal ranges, splitting T" + u );
+					IO.Std.err.println( "T" + t + " range: " + d.range + ", refs: " + d.refs );
+					IO.Std.err.println( "T" + u + " range: " + e.range + ", refs: " + e.refs );
+				    }
+				} else if( d.range > e.range ) {
+				    if( d.refs < e.refs ) {
 					IO.Std.err.println( "splitting T" + t + " might be wrong descision" );
 					IO.Std.err.println( "T" + t + " range: " + d.range + ", refs: " + d.refs );
 					IO.Std.err.println( "T" + u + " range: " + e.range + ", refs: " + e.refs );
 				    }
 				    f = t;
 				} else {
-				    if( e.refs > d.refs ) {
+				    if( d.refs > e.refs ) {
 					IO.Std.err.println( "splitting T" + u + " might be wrong descision" );
 					IO.Std.err.println( "T" + t + " range: " + d.range + ", refs: " + d.refs );
 					IO.Std.err.println( "T" + u + " range: " + e.range + ", refs: " + e.refs );
@@ -3701,9 +3596,8 @@ namespace Gen {
 		i.renameSSATemps();
 	    }
 	}
-
-
 	*/
+
         bool calcAdjacent( MBitSet[] matrix, MCandidate[] reg_cost ) {
 	    // IO.Std.err.println( "mark adjacent..." );
 
@@ -3712,11 +3606,11 @@ namespace Gen {
             MBitSet live = new MBitSet( bs_in );        // known live on entry
 	    int icount = 0;
 
-	    // IO.Std.err.println( "calc ranges for block:\n" + this );
-
+	    /*
 	    if( MFlow.want_range_sizes && reg_cost != null ) {
 	    	calcStartRanges( reg_cost, live );
 	    }
+	    */
 
             MInst prev, i, next;
             // for( i = tail; i != null; i = prev ) {
@@ -3739,11 +3633,15 @@ namespace Gen {
 		    // I think there might be more than one sort of clobber - not sure where to put this
 		    i.calcClobberCost( reg_cost, live, weight );
 
-		    // FIXME: this is hideously expensive:
-		    // calcRangeSizes( reg_cost, live, weight );
 		    if( MFlow.want_range_sizes ) {
-		        i.calcRangeSizes( reg_cost, live, icount );
+			// FIXME: this is hideously expensive:
+			calcRangeSizes( reg_cost, live );
+		        // i.calcRangeSizes( reg_cost, live, icount );
 		    }
+		    //} else {
+		    //if( MFlow.want_range_sizes ) {
+		    //IO.Std.err.println( "maybe should calc range sizes here: " + new System.Backtrace() );
+		    //}
 		}
 
                 live.IsChanged = false;
@@ -3769,9 +3667,11 @@ namespace Gen {
 		IO.Std.err.println(); */
             }
 
+	    /*
 	    if( MFlow.want_range_sizes && reg_cost != null ) {
 		calcEndRanges( reg_cost, live, icount );
 	    }
+	    */
 	    // IO.Std.err.println( "done\n" );
 	    return result;
         }
@@ -3803,6 +3703,9 @@ namespace Gen {
 			}
 
 			c.range = c.range + icount - c.last_icount;
+			if( c.range == 0 ) {
+			    IO.Std.err.println( "calculating zero range for: T" + i );
+			}
 		    }		   
 		} else {
 		    if( live[i] ) {
@@ -3812,16 +3715,16 @@ namespace Gen {
 	    }	    
 	}
 
-	void calcRangeSizes( MCandidate[] reg_cost, MBitSet live, int weight ) {
-	    for( int i = Machine.FIRST_SOFT_REG; i < reg_cost.length; i = i + 1 ) {
-		if( live[i] ) {
-		    if( reg_cost[i] != null ) {
-			reg_cost[i].range = reg_cost[i].range + 1; // FIXME: should be + weight?
-		    }
+	void calcRangeSizes( MCandidate[] reg_cost, MBitSet live ) {
+	    live.reset( Machine.FIRST_SOFT_REG );
+
+	    for( int j = live.nextSet(); j != -1; j = live.nextSet() ) {
+		MCandidate c = reg_cost[j];
+		if( c != null ) { 
+		    c.range = c.range + 1;
 		}
 	    }
 	}
-
 
 	void calcCopies( MBitSet[] matrix, MBitSet[] copies ) {
             MInst prev, i, next;
@@ -3847,26 +3750,6 @@ namespace Gen {
 		MFlow.instruction_count = MFlow.instruction_count + 1;
 	    }
 	}
-
-	/*
-	bool calcRangeSizes( MCandidate[] reg_cost, int node_number ) {
-	    IO.Std.err.println( "calc range sizes..." );
-
-	    bool result = true;
-
-            MInst i, next;
-
-            for( i = inst; i != null; i = next ) {
-		next = i.next;
-
-		if( !i.calcRangeSizes( reg_cost, node_number ) ) {
-		    IO.Std.err.println( "JJJJJJ range size problem" );
-		    result = false;
-		}
-            }
-
-	    return result;
-	    }*/
 
         bool calcRegSets( MCandidate[] reg_cost, MBitSet already_split ) {
 	    // IO.Std.err.println( "calc reg sets..." );
@@ -4284,31 +4167,6 @@ namespace Gen {
 	    return operands[i];
 	}
 
-	int killWritten( MExpressionTable expressions ) {
-	    int result;
-	    bool ok = true;
-
-	    for( int j = 0; j < operands.length; j = j + 1 ) {
-		MOperand o = operands[j];
-		if( o.mode & Mode.WRITE != 0 ) {
-		    int t = o.temp;
-		    expressions.killTemp(t);
-
-		    if( o.mode & Mode.READ != 0 || result != 0 ) {
-			ok = false;
-		    } else {
-			result = t;
-		    }
-		}
-	    }
-
-	    if( ok ) {
-		return result;
-	    } else {
-		return 0;
-	    }
-	}
-
 	void clearPhi() {
 	    if( left.isPhi() ) {
 		String s = toString();
@@ -4676,7 +4534,8 @@ namespace Gen {
 	    }
 	}
 
-	void calcRangeSizes( MCandidate[] reg_cost, MBitSet live, int icount ) {
+
+	void calcRangeSizes_borken( MCandidate[] reg_cost, MBitSet live, int icount ) {
 	    for( int i = 0; i < operands.length; i = i + 1 ) {
 		MOperand o = operands[i];
 		int t = o.temp;
@@ -5139,33 +4998,6 @@ namespace Gen {
 		}
 	    }
 	}
-
-	/*
-        bool calcRangeSizes( MCandidate[] reg_cost, int node_number ) {
-	    bool result = true;
-	    int t, i, j;
-
-	    for( i = 0; i < operands.length; i = i + 1 ) {
-		t = operands[i].temp;
-
-		if( t != 0 ) {
-		    // IO.Std.err.println( "count range for T" + " in node #" + node_number );
-		    if( reg_cost[t] == null ) {
-			reg_cost[t] = new MCandidate( operands[i] );
-		    }
-		    
-		    if( reg_cost[t].last_node != node_number ) {
-			// IO.Std.err.println( "RRRRRR: increment range size for T" + t );
-			
-			reg_cost[t].range = reg_cost[t].range + 1;
-			reg_cost[t].last_node = node_number;
-		    }
-		}
-	    }
-	    // IO.Std.err.println( "JJJJJJ: reg cost result: " + result );
-	    return result;
-        }
-	*/
 
 	void calcCopies( MBitSet[] matrix, MBitSet[] copied ) {
 	    if( left == null ) {
