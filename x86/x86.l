@@ -1418,41 +1418,41 @@ static int[] rewrite_goal = {
 public static int getReWriteGoal(int terminal) { return rewrite_goal[terminal]; }
 void init() {
 	nts_0 = new int[0];
-	nts_1 = int { tm_NT,  };
-	nts_2 = int { inst_NT, const_NT,  };
-	nts_3 = int { inst_NT, immed_NT,  };
-	nts_4 = int { inst_NT, global_NT,  };
-	nts_5 = int { addr_NT,  };
-	nts_6 = int { arg_NT,  };
-	nts_7 = int { t_NT, arg_NT,  };
-	nts_8 = int { t_NT,  };
-	nts_9 = int { param_NT,  };
-	nts_10 = int { t_NT, param_NT,  };
-	nts_11 = int { mem_NT,  };
-	nts_12 = int { immed_NT,  };
-	nts_13 = int { inst_NT, t_NT,  };
-	nts_14 = int { tmi_NT,  };
-	nts_15 = int { const_NT,  };
-	nts_16 = int { const_NT, t_NT,  };
-	nts_17 = int { t_NT, const_NT,  };
-	nts_18 = int { base_NT, index_NT,  };
-	nts_19 = int { base_NT,  };
-	nts_20 = int { index_NT,  };
-	nts_21 = int { tm_NT, ti_NT,  };
-	nts_22 = int { t_NT, tm_NT,  };
-	nts_23 = int { t_NT, immed_NT,  };
-	nts_24 = int { t_NT, tm_NT, immed_NT,  };
-	nts_25 = int { tm_NT, t_NT,  };
-	nts_26 = int { t_NT, tm_NT, t_NT,  };
-	nts_27 = int { t_NT, t_NT, tm_NT,  };
-	nts_28 = int { global_NT, const_NT,  };
-	nts_29 = int { flags_NT, tm_NT, ti_NT,  };
-	nts_30 = int { flags_NT, t_NT, tm_NT,  };
-	nts_31 = int { flags_NT,  };
-	nts_32 = int { t_NT, flags_NT,  };
-	nts_33 = int { t_NT, addr_NT,  };
-	nts_34 = int { inst_NT, inst_NT,  };
-	nts = int[] {
+	nts_1 = new int { tm_NT,  };
+	nts_2 = new int { inst_NT, const_NT,  };
+	nts_3 = new int { inst_NT, immed_NT,  };
+	nts_4 = new int { inst_NT, global_NT,  };
+	nts_5 = new int { addr_NT,  };
+	nts_6 = new int { arg_NT,  };
+	nts_7 = new int { t_NT, arg_NT,  };
+	nts_8 = new int { t_NT,  };
+	nts_9 = new int { param_NT,  };
+	nts_10 = new int { t_NT, param_NT,  };
+	nts_11 = new int { mem_NT,  };
+	nts_12 = new int { immed_NT,  };
+	nts_13 = new int { inst_NT, t_NT,  };
+	nts_14 = new int { tmi_NT,  };
+	nts_15 = new int { const_NT,  };
+	nts_16 = new int { const_NT, t_NT,  };
+	nts_17 = new int { t_NT, const_NT,  };
+	nts_18 = new int { base_NT, index_NT,  };
+	nts_19 = new int { base_NT,  };
+	nts_20 = new int { index_NT,  };
+	nts_21 = new int { tm_NT, ti_NT,  };
+	nts_22 = new int { t_NT, tm_NT,  };
+	nts_23 = new int { t_NT, immed_NT,  };
+	nts_24 = new int { t_NT, tm_NT, immed_NT,  };
+	nts_25 = new int { tm_NT, t_NT,  };
+	nts_26 = new int { t_NT, tm_NT, t_NT,  };
+	nts_27 = new int { t_NT, t_NT, tm_NT,  };
+	nts_28 = new int { global_NT, const_NT,  };
+	nts_29 = new int { flags_NT, tm_NT, ti_NT,  };
+	nts_30 = new int { flags_NT, t_NT, tm_NT,  };
+	nts_31 = new int { flags_NT,  };
+	nts_32 = new int { t_NT, flags_NT,  };
+	nts_33 = new int { t_NT, addr_NT,  };
+	nts_34 = new int { inst_NT, inst_NT,  };
+	nts = new int[] {
 		null,	/* 0 */
 
 		nts_0,	/* 1 */
@@ -1821,7 +1821,7 @@ void init() {
 		107,
 	};
 
-	nts_name = System.String {
+	nts_name = new System.String {
 		null,	/* 0 */
 		"inst",	/* inst*/
 		"tm",	/* tm*/
@@ -1839,7 +1839,7 @@ void init() {
 		"index",	/* index*/
 		"flags",	/* flags*/
 	};
-	result = MTreeFactory {
+	result = new MTreeFactory {
 		null,
 
 	new MTreeFactory1(),

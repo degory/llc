@@ -1585,6 +1585,7 @@ namespace Gen {
 	void calcAdjacent(bool coalesce_only) {
             int i, k, l;
             int live_count;
+	    int icount;
 	    MBitSet a;
 
 	    // for( i = 0; i < next_temporary; i = i + 1 ) {
@@ -1604,7 +1605,7 @@ namespace Gen {
 	    // clearRanges(rc);
 
 	    foreach( MNode q; node.elements() ) {
-		q.calcAdjacent( matrix, rc );
+		q.calcAdjacent( matrix, rc, icount );
 	    }
 
             // IO.Std.err.println( "marked nodes adjacent" );
@@ -1956,7 +1957,7 @@ namespace Gen {
 	    // build control flow graph:
 	    enumerate();
 
-	    want_range_sizes = true; // attempt & (GEN_COALESCE | GEN_REGVARS) != 0;
+	    want_range_sizes = attempt & (GEN_COALESCE | GEN_REGVARS) != 0;
 	    
 	    // if requested repeatedly coalesce copied temporaries until all possible copies removed:
 	    if( attempt & GEN_COALESCE != 0 && size > 0 ) {
@@ -3598,13 +3599,13 @@ namespace Gen {
 	}
 	*/
 
-        bool calcAdjacent( MBitSet[] matrix, MCandidate[] reg_cost ) {
+        bool calcAdjacent( MBitSet[] matrix, MCandidate[] reg_cost, int ref icount ) {
 	    // IO.Std.err.println( "mark adjacent..." );
 
             // MBitSet seen = new MBitSet( bs_out );       // known live on exit
 	    bool result = true;
             MBitSet live = new MBitSet( bs_in );        // known live on entry
-	    int icount = 0;
+	    int ic = icount;
 
 	    /*
 	    if( MFlow.want_range_sizes && reg_cost != null ) {
@@ -3620,7 +3621,7 @@ namespace Gen {
 
             for( i = inst; i != null; i = next ) {
 		next = i.next;
-		icount = icount + 1;
+		ic = ic + 1;
 
                 live.IsChanged = false;
                 i.markLive( Mode.READ, live, matrix );
@@ -3635,8 +3636,8 @@ namespace Gen {
 
 		    if( MFlow.want_range_sizes ) {
 			// FIXME: this is hideously expensive:
-			calcRangeSizes( reg_cost, live );
-		        // i.calcRangeSizes( reg_cost, live, icount );
+			// calcRangeSizes( reg_cost, live );
+		        i.calcRangeSizes( reg_cost, live, ic );
 		    }
 		    //} else {
 		    //if( MFlow.want_range_sizes ) {
@@ -3673,6 +3674,7 @@ namespace Gen {
 	    }
 	    */
 	    // IO.Std.err.println( "done\n" );
+	    icount = ic;
 	    return result;
         }
 
@@ -4534,6 +4536,35 @@ namespace Gen {
 	    }
 	}
 
+
+	void calcRangeSizes( MCandidate[] reg_cost, MBitSet live, int icount ) {
+	    for( int i = 0; i < operands.length; i = i + 1 ) {
+		MOperand o = operands[i];
+		int t = o.temp;
+		if( t == 0 ) {
+		    continue;
+		}
+
+		MCandidate c = reg_cost[t];
+		if( c == null ) {
+		    IO.Std.err.println( "making new candidate for T" + t );
+		    c = new MCandidate(o);
+		    reg_cost[t] = c;
+		}
+
+		if( o.mode & Mode.WRITE != 0 && c.last_icount == -1 ) {
+		    // IO.Std.err.println( "first write: T" + t );
+		    c.last_icount = icount;
+		}
+
+		if( c.last_icount <= 0 ) {
+		    c.last_icount = icount;
+		} else {
+		    c.range = icount - c.last_icount;
+		}
+
+	    }
+	}
 
 	void calcRangeSizes_borken( MCandidate[] reg_cost, MBitSet live, int icount ) {
 	    for( int i = 0; i < operands.length; i = i + 1 ) {
