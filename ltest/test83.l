@@ -15,10 +15,10 @@ namespace Test83 {
 		    busy();
 		    a[0] = 0;
 		} catch( System.MemoryException m ) {
-		    System.GC.enable();
 		    busy();
 		    IO.Std.err.println( m );
 		    IO.Std.err.println( "A" + i + ": caught memory exception: " + m );
+		    IO.Std.err.flush();
 		} catch( System.Exception me ) {
 		    IO.Std.err.println( "oops: wrong exception: " + me );
 		    return;
@@ -30,10 +30,10 @@ namespace Test83 {
 		    busy();
 		    b.test();
 		} catch( System.NullPointerException n ) {
-		    System.GC.enable();
 		    busy();
 		    IO.Std.err.println( n );
 		    IO.Std.err.println( "B" + i + ": caught null pointer exception: " + n );
+		    IO.Std.err.flush();
 		} catch( System.Exception ne ) {
 		    IO.Std.err.println( "oops: wrong exception: " + ne );
 		    return;
@@ -48,10 +48,10 @@ namespace Test83 {
 		    IO.Std.err.println( "oops: wrong exception: " + ce );
 		    return;
 		} catch( System.RuntimeException e ) {
-		    System.GC.enable();
 		    busy();
 		    IO.Std.err.println( e );
 		    IO.Std.err.println( "C" + i + ": caught exception: " + e );
+		    IO.Std.err.flush();
 		} catch( System.Exception ee ) {
 		    IO.Std.err.println( "oops: wrong exception: " + ee );
 		    return;

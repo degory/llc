@@ -1,3 +1,4 @@
+pragma NoWarnUnsafe, NoMarkUnsafe;
 
 namespace System {
     class Exit {

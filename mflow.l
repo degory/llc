@@ -2480,28 +2480,36 @@ namespace Gen {
 					f = t; // arbitrary
 				    } else if( d.refs > e.refs ) {
 					f = t;
+					/*
 					IO.Std.err.println( "equal ranges, splitting T" + t );
 					IO.Std.err.println( "T" + t + " range: " + d.range + ", refs: " + d.refs );
 					IO.Std.err.println( "T" + u + " range: " + e.range + ", refs: " + e.refs );
+					*/
 				    } else {
 					f = u;
+					/*
 					IO.Std.err.println( "equal ranges, splitting T" + u );
 					IO.Std.err.println( "T" + t + " range: " + d.range + ", refs: " + d.refs );
 					IO.Std.err.println( "T" + u + " range: " + e.range + ", refs: " + e.refs );
+					*/
 				    }
 				} else if( d.range > e.range ) {
+				    /*
 				    if( d.refs < e.refs ) {
 					IO.Std.err.println( "splitting T" + t + " might be wrong descision" );
 					IO.Std.err.println( "T" + t + " range: " + d.range + ", refs: " + d.refs );
 					IO.Std.err.println( "T" + u + " range: " + e.range + ", refs: " + e.refs );
 				    }
+				    */
 				    f = t;
 				} else {
+				    /*
 				    if( d.refs > e.refs ) {
 					IO.Std.err.println( "splitting T" + u + " might be wrong descision" );
 					IO.Std.err.println( "T" + t + " range: " + d.range + ", refs: " + d.refs );
 					IO.Std.err.println( "T" + u + " range: " + e.range + ", refs: " + e.refs );
 				    }
+				    */
 				    f = u;
 				}
 

@@ -626,7 +626,7 @@ void findLineNumber( void *buffer, BacktraceRecord *backtrace ) {
     return;
   }
 
-  D("find line number %p, %p", buffer, backtrace );
+  D("find line number %p, %p\n", buffer, backtrace );
 
   if( backtrace == 0 ) {
     D("no backtrace required\n");
@@ -683,6 +683,7 @@ void __find_line_numbers( void *buffer, BacktraceRecord *backtrace ) {
   }
 
   while( backtrace->rip ) {
+    D("find line number for rip %p from line info %p\n", backtrace->rip, backtrace->line_number_info );
     findLineNumber( buffer, backtrace++ );
   }
 }
@@ -805,6 +806,7 @@ UnwindRecord *findUnwindInfo( WORD rip, BacktraceRecord *backtrace ) {
       return 0;
     }
     if( backtrace != 0 ) {
+      D( "filling in backtrace from cached unwind info rip %p, line numbers %p\n", rip, p->line_numbers );
       backtrace->rip = rip;
       backtrace->method_name = p->method_name;
       backtrace->line_number_info = p->line_numbers;
@@ -825,6 +827,9 @@ UnwindRecord *findUnwindInfo( WORD rip, BacktraceRecord *backtrace ) {
     D( "unwind table %p, first method start %p...\n", (void *)start, (void *)start->method_start );
 
     if( length == 0 ) {
+
+      D( "linear search...\n" );
+      p = 0;
       // first time, don't know table length so do linear search and calculate length at same time:
       for( q = start; q->method_start != 0; q++ ) {
 	long method_end = q->method_start + q->method_length;
@@ -832,9 +837,12 @@ UnwindRecord *findUnwindInfo( WORD rip, BacktraceRecord *backtrace ) {
 	if( rip >= q->method_start && rip < method_end ) {
 	  D( "match %p in method %s between %p and %p, unwind flags %lx\n", (void *)rip, q->method_name, (void*)q->method_start, (void*)method_end, q->flags );
 	  if( backtrace != 0 ) {
+	    D( "filling in backtrace\n" );
 	    backtrace->rip = rip;
 	    backtrace->method_name = q->method_name;
 	    backtrace->line_number_info = q->line_numbers;
+	  } else {
+	    D( "no backtrace to fill in\n" );
 	  }
 
 	  D( "will patch %p\n", __last_unwind_hit );
@@ -845,7 +853,12 @@ UnwindRecord *findUnwindInfo( WORD rip, BacktraceRecord *backtrace ) {
 	length++;
       }
 
-      D( "not found by linear search: %p\n", (void *)rip );
+      if( p == 0 ) {
+	D( "not found\n" );
+      } else {
+	D( "found\n" );
+      }
+
       *p_length = length;
     } else {
       p = start;
@@ -890,6 +903,13 @@ UnwindRecord *findUnwindInfo( WORD rip, BacktraceRecord *backtrace ) {
       rp->rip = rip;
       rp->p = p;
       rp->next = 0;
+
+      if( backtrace != 0 ) {
+	D( "filling in backtrace from cached unwind info rip %p, line numbers %p\n", rip, p->line_numbers );
+	backtrace->rip = rip;
+	backtrace->method_name = p->method_name;
+	backtrace->line_number_info = p->line_numbers;
+      }
 
       D("setting unwind cache entry %p, rip %p, unwind record %p\n", rp, rp->rip, rp->p );
 
@@ -1051,9 +1071,11 @@ void catchException( WORD type, void *e, ExRecord *r, WORD rbp, WORD rip, Regist
   
   if( type == THROW_EXCEPTION ) {
     if( _ZN6System9Exception16getBacktraceInfoEv(e) == 0 ) {
-        backtrace = (BacktraceRecord*)GC_malloc( sizeof(BacktraceRecord)*BACKTRACE_LENGTH );
-	_ZN6System9Exception16setBacktraceInfoEu4word( e, (WORD)backtrace );
-      }
+      backtrace = (BacktraceRecord*)GC_malloc( sizeof(BacktraceRecord)*BACKTRACE_LENGTH );
+      _ZN6System9Exception16setBacktraceInfoEu4word( e, (WORD)backtrace );
+    } else {
+      fprintf( stderr, "exception object already has a backtrace token\n" );
+    }
   } else {
     fprintf( stderr, "runtime does not expect to see exception of type %ld\n", type );
     fflush( stderr );
@@ -1369,31 +1391,29 @@ void __init_gcj_malloc() {
 #define SIGNAL_STACK_SIZE 65536
 void __install_segv_handler() {
   D("install segv handler\n");
-  // stack_t ss;
+  stack_t ss;
   struct sigaction sa;
 
-  /*
   ss.ss_sp = malloc(SIGNAL_STACK_SIZE);
   if( ss.ss_sp == 0 ) {
-    D( "failed to allocate signal stack" );
+    fprintf( stderr, "failed to allocate signal stack" );
     exit(1);
   }
 
   ss.ss_size = SIGNAL_STACK_SIZE;
   ss.ss_flags = 0;
 
-
-  if( signalstack( &ss, 0 ) < 0 ) {
-    D( "failed to set signal stack" );
-    // exit(1);
+  if( sigaltstack( &ss, 0 ) < 0 ) {
+    fprintf( stderr, "failed to set signal stack" );
+    exit(1);
   }
-  */
 
-  sa.sa_flags = SA_SIGINFO | SA_NODEFER; // | SA_ONSTACK;
+  sa.sa_flags = SA_SIGINFO | SA_NODEFER | SA_ONSTACK;
   sigemptyset(&sa.sa_mask);
   sa.sa_sigaction = __segv_handler;
   if( sigaction(SIGSEGV, &sa, NULL) < 0 ) {
-    D( "failed to set SEGV signal handler" );
+    fprintf( stderr, "failed to set SEGV signal handler" );
+    exit(1);
   }
 }
 

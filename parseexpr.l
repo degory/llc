@@ -856,40 +856,24 @@ namespace Parse {
 			    op_string = ">";
 			    n = "opCompare";
 			    inequality = true;
-			    if( reverse ) {
-				// operation = Op.LT;
-				IO.Std.err.println( "try reversed..." );
-			    }
 			    
 			case Op.LT:
 			    IO.Std.err.println( "overloaded < operator..." );
 			    op_string = "<";
 			    n = "opCompare";
 			    inequality = true;
-			    if( reverse ) {
-				// operation = Op.GT;
-				IO.Std.err.println( "try reversed..." );
-			    }
 			    
 			case Op.GE:
 			    IO.Std.err.println( "overloaded >= operator..." );
 			    op_string = ">=";
 			    n = "opCompare";
 			    inequality = true;
-			    if( reverse ) {
-				// operation = Op.LE;
-				IO.Std.err.println( "try reversed..." );
-			    }
 			    
 			case Op.LE:
 			    IO.Std.err.println( "overloaded <= operator..." );
 			    op_string = "<=";
 			    n = "opCompare";
 			    inequality = true;
-			    if( reverse ) {
-				// operation = Op.GE;
-				IO.Std.err.println( "try reversed..." );
-			    }
 			    
 			default:
 			    error( "cannot use this operator here" );			   
@@ -954,13 +938,6 @@ namespace Parse {
 			}
 		    }
 
-		    if( inequality ) {
-			IO.Std.err.println( "inequality overload is: " + method_call );
-			IO.Std.err.println( "reverse is: " + (method_call == call_reverse) );
-			IO.Std.err.println( "tl is: " + tl );
-			IO.Std.err.println( "tr is: " + tr );
-		    }
-		    
 
 		    // IO.Std.err.println( "method call now: " + method_call );
 
