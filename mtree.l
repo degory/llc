@@ -1594,7 +1594,8 @@ namespace Gen {
 		String result = "";
 		
 		// FIXME: var args expects zero in rax:
-		if( left.toString().equals("printf") && Machine.WORD == 8 ) {
+		String ls = left.toString();
+		if( Machine.WORD == 8 && (ls.equals("printf") || ls.equals("fprintf")) ) {
 		    result = "xorq %rax,%rax; ";		    
 		}
 

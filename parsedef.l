@@ -308,6 +308,7 @@ namespace Parse {
                         } else {
                             IBlock dummy = new IBlock();
                             ITree t = ex.compileValue( state, dummy );
+			    t = t.foldConstants();
                             if( t.RawOp != Op.CONST ) {
                                 error( "initializer for " + e.HumanName + "." + e.Name + " must be constant" );
                             } else {
