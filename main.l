@@ -9,6 +9,8 @@ import mtree;
 
 import gc;
 
+import llvm;
+
 namespace Parse { 
     use System.Object;
     use System.String;

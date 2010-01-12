@@ -164,6 +164,7 @@ namespace Parse {
 	    // IO.Std.err.println( "process, temp_factory: " + temp_factory );
 	    // TempFactory.Instance = temp_factory;
 	    // IO.Std.err.println( "process: " + state );
+	    IO.Std.err.println( "process: " + c.HumanName );
 	    class_def.compile2( state, c );
 	}
 
@@ -184,6 +185,14 @@ namespace Parse {
         PRINT,
 	COMPILE
     }
+
+    enum RuntimeFunction {
+	ALLOC_OBJECT,
+        ALLOC_OBJECT_FINALIZE,
+        ALLOC_ARRAY,
+        ALLOC_REF_ARRAY
+    }
+
 
     /*
     class NotWorkerException extends System.Exception {
@@ -405,6 +414,10 @@ namespace Parse {
 
 	static CompileState instance;
 
+	LLVM.Module module;
+
+	Generic.Vector<LLVM.Value>local_variables;
+
         SymbolList master_class_list;
         SymbolTable symbol_table;
 
@@ -545,6 +558,13 @@ namespace Parse {
 	    // be sure Machine.NAME is initialized:
 	    lcache_dir = null;
 
+	    LLVM.Calls.LLVMLinkInJIT();
+	    LLVM.Calls.LLVMInitializeX86TargetInfo();
+	    LLVM.Calls.LLVMInitializeX86Target();
+
+	    module = LLVM.Calls.LLVMModuleCreateWithName(`test`);
+	    local_variables = new Generic.Vector<LLVM.Value>();
+
 	    // FIXME: replace these stack arrays with vectors and make the stack pointers
 	    // point at the stack tops rather than above them:
             sp = 0;
@@ -589,6 +609,18 @@ namespace Parse {
 	    
 	    // pool = new ThreadPool(2);
 	    // pool.start();
+	}
+
+	get LLVM.Value LocalVariable[int i] {
+	    return local_variables[i];
+	}
+
+	set LLVM.Value LocalVariable[int i] = v {
+	    local_variables[i] = v;
+	}
+
+	get LLVM.Value CurrentFunctionGlobal {
+	    return CurrentMethod.getFunctionGlobal(this);
 	}
 
 	void walk( Object o ) {
@@ -667,6 +699,75 @@ namespace Parse {
 	static get CompileState Instance {
 	    // IO.Std.err.println( "get instance is not thread safe, expect trouble: " + new Backtrace() );
 	    return instance;
+	}
+
+	get LLVM.Module Module {
+	    return module;
+	}
+
+	LLVM.Value getRuntimeFunction( RuntimeFunction f ) {
+	    char ptr name;
+	    LLVM.Module m = Module;
+	    LLVM.Value v;
+
+	    switch( f ) {
+	    case RuntimeFunction.ALLOC_OBJECT:
+		name = `__alloc_object`;
+	    case RuntimeFunction.ALLOC_OBJECT_FINALIZE:
+		name = `__alloc_object`;
+	    case RuntimeFunction.ALLOC_ARRAY:
+		name = `allocagn`;
+	    case RuntimeFunction.ALLOC_REF_ARRAY:
+		name = `allocago`;
+	    default:
+		throw new System.Exception( "unknown runtime function #" + cast int(f) );
+	    }
+
+	    v = LLVM.Calls.LLVMGetNamedFunction(m, name);
+
+	    if( v == null ) {
+		LLVM.Type[] args;
+		LLVM.Type ret;
+		    
+		switch( f ) {
+		case RuntimeFunction.ALLOC_OBJECT,
+		    RuntimeFunction.ALLOC_OBJECT_FINALIZE:
+		    ret = LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0);
+		    args = {
+			LLVM.Calls.LLVMInt32Type(),
+			LLVM.Calls.LLVMVTableType()
+		    };
+
+
+		case RuntimeFunction.ALLOC_ARRAY,
+		    RuntimeFunction.ALLOC_REF_ARRAY:
+
+		    ret = LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0);
+		    args = {
+			LLVM.Calls.LLVMInt32Type(),
+			LLVM.Calls.LLVMInt32Type(),
+			LLVM.Calls.LLVMVTableType()
+		    };
+		    
+		default:
+		    throw new System.Exception( "unknown runtime function #" + cast int(f) );
+		}
+
+		v = LLVM.Calls.LLVMAddFunction(
+					       m,
+					       name,
+					       LLVM.Calls.LLVMFunctionType(
+									   ret,
+									   args.address,
+									   args.length,
+									   0
+									   )
+					       );
+
+	    }
+
+
+	    return v;
 	}
 
 	get LoopStack Loops {
@@ -1039,6 +1140,10 @@ namespace Parse {
                 c.buildClassTables( this );
             }
 
+            foreach( Container d; to_build_tables_list.elements() ) {
+                d.refineClassTypeHandle( this );
+            }
+
 	    // last symbol table construction pass, declare all remaining symbols within methods:
 	    Pass = CompilePass.DECLARE_SYMBOLS;
 	    if( WantVeryVerbose ) {
@@ -1165,6 +1270,7 @@ namespace Parse {
 		ParseTree.message( "linking objects..." );
 	    }
 	   
+	    LLVM.Calls.LLVMDumpModule( module );
 	    linkObjectFiles();
 
 	    ParseTree.message( "done" );

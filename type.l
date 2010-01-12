@@ -15,6 +15,7 @@ namespace Parse {
         private Type sub_type;
 	private Type box_type;
         private int type_kind;
+	private LLVM.Type llvm_type;
 
         public const int
             MATCH_NONE = 0,
@@ -104,6 +105,10 @@ namespace Parse {
             return type_kind == Type.LONG || type_kind == Type.WORD || type_kind == Type.INTEGER;
 	}
 
+	static bool isVoid(int type_kind) {
+	    return type_kind == Type.VOID;
+	}
+
 	bool isObject() {
 	    if( type_kind != Type.CLASS ) {
 		return false;
@@ -122,6 +127,117 @@ namespace Parse {
 
         bool isInteger() {
 	    return isInteger(type_kind);
+        }
+
+	bool isVoid() {
+	    return isVoid(type_kind);
+	}
+
+	LLVM.Type getLLVMType(CompileState state) {
+            switch ( type_kind ) {
+            case Type.NONE, Type.VOID:
+		return LLVM.Calls.LLVMVoidType();
+
+            case Type.BOOL:
+		return LLVM.Calls.LLVMInt1Type();
+                
+            case Type.BYTE:
+		return LLVM.Calls.LLVMInt8Type();
+                
+            case Type.CHAR:
+		return LLVM.Calls.LLVMInt8Type();
+                
+            case Type.INTEGER:
+		return LLVM.Calls.LLVMInt32Type();
+
+	    case Type.LONG:
+		return LLVM.Calls.LLVMInt64Type();
+
+	    case Type.WORD:
+		return LLVM.Calls.LLVMInt64Type();
+
+		/*
+		if( Gen.Machine.WORD == 8 ) {
+		    decorate.append( 'l' );
+		} else if( Gen.Machine.WORD == 4 ) {
+		    decorate.append( 'i' );
+		} else {
+		    throw new Exception( "unexpected word length: " + Gen.Machine.WORD );
+		}
+		*/
+		   
+                
+            case Type.VECTOR:
+		var et = {
+		    LLVM.Calls.LLVMVTableType(),
+		    LLVM.Calls.LLVMInt32Type(),  // length should maybe be word sized?
+		    LLVM.Calls.LLVMArrayType(sub_type.getLLVMType(state), 0)
+		};
+
+		return LLVM.Calls.LLVMPointerType(
+						  LLVM.Calls.LLVMStructType(et.address, et.length,0),
+						  0 );
+                
+            case Type.REFERENCE:
+		return LLVM.Calls.LLVMPointerType( sub_type.getLLVMType(state), 0 );
+                
+            case Type.POINTER:
+		return LLVM.Calls.LLVMPointerType( sub_type.getLLVMType(state), 0 );
+
+            case Type.CLASS:
+		return LLVM.Calls.LLVMPointerType( c.LLVMType, 0 );
+
+            case Type.STRING:
+		return LLVM.Calls.LLVMPointerType( LLVM.Calls.LLVMInt8Type(), 0 );
+
+	    case Type.PROC:		
+		IO.Std.err.println( "want LLVM type for proc type: " + this + " c is: " + c );
+		return getBoxType(state).getLLVMType(state);
+
+	    case Type.ENUM:
+		return LLVM.Calls.LLVMInt32Type();
+
+            default:
+		throw new System.Exception( "unexpected type: " + this );
+            }
+        }
+
+	LLVM.Value getLLVMNull(CompileState state) {
+            switch ( type_kind ) {
+            case Type.NONE, Type.VOID:
+		throw new System.Exception( "cannot create LLVM null of this type" );
+
+            case Type.BOOL,
+		Type.BYTE,
+		Type.CHAR,
+		Type.INTEGER,
+		Type.LONG,
+		Type.WORD,
+		Type.ENUM:
+		return LLVM.Calls.LLVMConstInt( getLLVMType(state), 0L, 0 );
+
+		/*
+		if( Gen.Machine.WORD == 8 ) {
+		    decorate.append( 'l' );
+		} else if( Gen.Machine.WORD == 4 ) {
+		    decorate.append( 'i' );
+		} else {
+		    throw new Exception( "unexpected word length: " + Gen.Machine.WORD );
+		}
+		*/
+		   
+                
+            case Type.VECTOR,
+		Type.REFERENCE,
+		Type.POINTER,
+		Type.CLASS,
+		Type.STRING,
+		Type.PROC:		
+		return LLVM.Calls.LLVMConstPointerNull( getLLVMType(state) );
+
+            default:
+		throw new System.Exception( "unexpected type: " + this );
+            }
         }
 
         get Type SubType {

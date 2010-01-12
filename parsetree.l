@@ -24,11 +24,13 @@ namespace Parse {
 
     use Gen.ITree;
     use Gen.IBlock;
+    use Gen.IRBlock;
     use Gen.ILabel;
     use Gen.IString;
     use Gen.Machine;
     use Gen.TempFactory;
     use Gen.MBitSet;
+
     
     enum EDType {
 	CATCH_RETURN = 0,
@@ -351,6 +353,44 @@ namespace Parse {
 	}
 	*/
 
+	protected static LLVM.Value makeLoadIndirect( CompileState state, int line_number, IRBlock into, bool could_be_null, LLVM.Value t ) {
+	    if( could_be_null ) {
+		// should do null check here
+	    }
+
+	    return into.Load( t );
+	}
+
+
+	// store a value allowing for a jump from the run-time on null pointer to any active exception
+	// handler:
+	protected static void addStoreIndirect( CompileState state, int line_number, IRBlock into, bool could_be_null, LLVM.Value d, LLVM.Value s ) {
+	    if( could_be_null ) {
+		// should do null check here
+	    }
+
+	    IO.Std.err.println( "add store indirect" ); IO.Std.err.flush();
+
+	    LLVM.Type dt = LLVM.Calls.LLVMGetElementType(LLVM.Calls.LLVMTypeOf(d));
+	    LLVM.Type st = LLVM.Calls.LLVMTypeOf(s);
+
+	    IO.Std.err.print( "value dest:   " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpValue( d );
+	    IO.Std.err.print( "type dest:    " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpType( dt );
+
+	    IO.Std.err.print( "value source: " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpValue( s );
+	    IO.Std.err.print( "type source:  " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpType( st );
+
+	    s = makeLLVMCast( s, dt, into );
+
+	    LLVM.Value v = into.Store( s, d );
+
+	    LLVM.Calls.LLVMDumpValue( v );
+	}
+
 	// load a value allowing for a jump from the run-time on null pointer to any active exception
 	// handler:
 	protected static ITree makeLoadIndirect( CompileState state, int line_number, IBlock into, int size, bool could_be_null, ITree t ) {
@@ -392,9 +432,15 @@ namespace Parse {
 
 	// inserting a dummy jump instruction to the active exception handler so register allocator
 	// understands live values must transfer from here to there:
+	protected static void addDummyExceptionHandlerJump( CompileState state, int line_number, IRBlock into ) {
+	    if( state.InExceptionHandler ) {
+		IO.Std.err.println( "FIXME: should use invoke here with landing pad: " + state.TopException.code_label );
+	    }
+	}
+
 	protected static void addDummyExceptionHandlerJump( CompileState state, int line_number, IBlock into ) {
 	    if( state.InExceptionHandler ) {
-		into.add( new ITree( line_number, Op.DUMMY_JUMP, 0, state.TopException.code_label ) );
+		IO.Std.err.println( "FIXME: should use invoke here with landing pad: " + state.TopException.code_label );
 	    }
 	}
 
@@ -407,6 +453,38 @@ namespace Parse {
         static set String CurrentFileName = cfn {
             current_file_name = cfn;
         }
+
+        public static LLVM.Value makeLLVMCast( LLVM.Value v, LLVM.Type t, IRBlock into ) {
+	    LLVM.Type tv = LLVM.Calls.LLVMTypeOf(v);
+
+	    if( tv == t ) {
+		return v;
+	    }
+
+	    IO.Std.err.println( "LLVM Value type mis-match: casting..." ); IO.Std.err.flush();
+
+	    LLVM.TypeKind kv = LLVM.Calls.LLVMGetTypeKind(tv);
+	    LLVM.TypeKind kt = LLVM.Calls.LLVMGetTypeKind(t);
+
+	    LLVM.Calls.LLVMDumpType( tv );
+	    LLVM.Calls.LLVMDumpType( t );
+
+	    if( kt == LLVM.TypeKind.LLVMPointerTypeKind || kt == LLVM.TypeKind.LLVMArrayTypeKind ) {
+		if( kv == LLVM.TypeKind.LLVMPointerTypeKind || kv == LLVM.TypeKind.LLVMArrayTypeKind || kv == LLVM.TypeKind.LLVMFunctionTypeKind ) {
+		    return into.PointerCast( v, t );
+		} else {
+		    // FIXME: assuming integer
+		    return into.IntToPtr( v, t );
+		}
+	    } else {
+		// FIXME: assuming integer
+		if( kv == LLVM.TypeKind.LLVMPointerTypeKind || kv == LLVM.TypeKind.LLVMArrayTypeKind || kv == LLVM.TypeKind.LLVMFunctionTypeKind ) {
+		    return into.PtrToInt( v, t );
+		} else {
+		    return into.IntCast( v, t );
+		}
+	    }
+	}
 
 	public static bool didErrorsOccur() {
 	    return errors_occurred;
@@ -605,6 +683,15 @@ namespace Parse {
 
         }
 
+        static LLVM.Value makeLoadThis( CompileState state, int line_number, IRBlock into ) {
+	    // no need to allow for a dummy jump to exception handler here. 
+	    // this may be null if a final method is called on a null object but
+	    // loading this cannot in itself cause a null pointer exception as
+	    // this is either on the stack or will be assigned to register:
+
+	    return into.Load(state.CurrentMethod.ThisPointer);
+	}
+
         void init( int line_number ) {
             super.init();
 
@@ -674,6 +761,10 @@ namespace Parse {
             // IO.Std.err.println( "compiling: " + this );
         }
 
+	void compile( CompileState state, IRBlock into ) {
+
+	}
+
 	void print( CompileState state, Printer p ) {
 	    p.print( "/* " + Class.Name + " */" );
 	}
@@ -684,18 +775,47 @@ namespace Parse {
         
         void compile( CompileState state ) {
             error( "oops: can't compile: " + Class.Name + " from " + new System.Backtrace() );
+	    throw new System.NotImplementedException( "oops: can't compile: " + Class.Name );
             // IO.Std.err.println( "compiling: " + this + " results in ERROR" );
         }
 
+
+
         ITree compileValue( CompileState state, IBlock into ) {
-            error( "oops: can't compile value" );
-            return new ITree( line_number, Op.ERROR, 0 );
+            error( "oops: can't compile value: " + Class.Name + " from " + new System.Backtrace() );
+	    throw new System.NotImplementedException( "oops: can't compile value: " + Class.Name );
         }
 
         ITree compileAddress( CompileState state, IBlock into ) {
-            error( "has no address" );
-            return new ITree( line_number, Op.ERROR, 0 );
+            error( "oops: can't compile address: " + Class.Name + " from " + new System.Backtrace() );
+	    throw new System.NotImplementedException( "oops: can't compile address: " + Class.Name );
         }
+
+
+        LLVM.Value compileValue( CompileState state, IRBlock into ) {
+            error( "oops: can't compile value: " + Class.Name + " from " + new System.Backtrace() );
+	    throw new System.NotImplementedException( "oops: can't compile value: " + Class.Name );
+        }
+
+        LLVM.Value compileAddress( CompileState state, IRBlock into ) {
+            error( "oops: can't compile address: " + Class.Name + " from " + new System.Backtrace() );
+	    throw new System.NotImplementedException( "oops: can't compile address: " + Class.Name );
+        }
+
+
+	LLVM.Value ErrorValue() {
+	    return ErrorValue(LLVM.Calls.LLVMVoidType());
+	}
+
+	LLVM.Value ErrorValue(LLVM.Type t) {
+	    return LLVM.Calls.LLVMGetUndef(t);
+	}	    
+
+	/*
+	LLVM.Value castTo( LLVM.Value v, LLVM.Value t, IRBlock into ) {
+	    return castTo( v, LLVM.Calls.LLVMTypeOf(t), into );
+	}
+	*/
 
         String dump( CompileState state ) {
             StringBuffer buffer = new StringBuffer();
@@ -924,7 +1044,11 @@ namespace Parse {
 
 	public const int VTABLE_FIXED_SIZE = 3;
 
-	static ITree loadVTable( CompileState state, Container c ) {
+	static LLVM.Value loadVTable( CompileState state, Container c, IRBlock into ) {
+	    return into.PointerCast( c.getCTableGlobal(state), LLVM.Calls.LLVMVTableType() );
+	}
+
+	static ITree loadVTable( CompileState state, Container c ) {	    
 	    return loadGlobal( state, "__ctable_" + c.DecoratedName, (c.IFaceOffset + VTABLE_FIXED_SIZE) * Machine.WORD );
 	}
 
@@ -1573,6 +1697,25 @@ namespace Parse {
 	    return true;
 	}
 
+        void compile( CompileState state, IRBlock into ) {
+	    state.enterBlock();
+            // block_level = block_level + 1;
+            // seen_variables = false;
+            foreach( Statement s; list.elements() ) {
+                if( s != null ) {
+                    s.compile( state, into );
+                } else {
+                    throw new Exception( "null statement\n" );
+                }
+            }
+   
+            if( /* seen_variables && */ state.CurrentMethod != null ) {
+                state.CurrentMethod.stripDefined( state.BlockLevel );
+            }
+            // block_level = block_level - 1;
+	    state.exitBlock();
+        }
+
         void compile( CompileState state, IBlock into ) {
 	    state.enterBlock();
             // block_level = block_level + 1;
@@ -1707,6 +1850,58 @@ namespace Parse {
 	    left_value.checkInline( state );
 	    right_value.checkInline( state );
 	}
+
+        void compile( CompileState state, IRBlock into ) {
+	    IO.Std.err.println( "assignment: " + this );
+
+	    left_value.wantSetProperty( state, right_value );
+	    Type tl = left_value.getType( state );
+	    Type tr = right_value.getType( state );
+	    
+	    /*
+	      IO.Std.err.println( "assign left value:  " + left_value + " type: " + tl );
+	      IO.Std.err.println( "assign right value: " + right_value + " type: " + tr );
+	    */
+	    
+	    if( !left_value.isProperty(state) && !left_value.isLeftValue(state) ) {
+		error( "cannot assign to non lvalue " + left_value.dump(state) );
+	    }
+	    
+	    if( left_value.isProperty(state) ) {
+		left_value.compileValue( state, into );
+	    } else {
+		if( !tl.isAssignableFrom( tr ) && tl.TypeKind != Type.ERROR ) {
+		    /*
+		      IO.Std.err.println( "assign left value:  " + left_value + " type: " + tl );
+		      IO.Std.err.println( "assign right value: " + right_value + " type: " + tr );
+		    */
+		    error( tl.dump() + " is not assignable from " + tr.dump() );
+		}
+		
+		LLVM.Value l = left_value.compileAddress( state, into );
+
+		IO.Std.err.print( "left value:  " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue( l );
+
+		IO.Std.err.print( "left type:   " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(l) );
+
+		LLVM.Value r = right_value.compileValue( state, into );
+
+		IO.Std.err.print( "right value: " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue( r );
+
+		IO.Std.err.print( "right type:  " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(r) );
+
+		addStoreIndirect( state, line_number, into, true, l, r );
+	    }
+	    
+
+	    // into.add( new ITree( line_number, Op.COPY, tl.getRegSize(), makeLoadIndirect( line_number, into, Op.INDIRECT, tl.getRegSize(), l ), r ) );
+        }
+
+
 
         void compile( CompileState state, IBlock into ) {
 	    left_value.wantSetProperty( state, right_value );

@@ -17,6 +17,8 @@ end
 
 namespace Generic is
     use System.Object;
+    use System.String;
+    use System.StringBuffer;
     /// Native arrays can be converted to and from specializations of this template class.
     /// Arrays are fixed length and bounds checked with valid indexes of 0 - length-1 inclusive. 
     /// \param T element type of the array
@@ -111,6 +113,10 @@ namespace Generic is
 	    return new ArrayIterator<T>(cast T[](this));
 	end
 
+	get T ptr Address is
+	    return cast T ptr(cast word(this) + 16w);
+        end
+
 	get Object ptr ObjectValuesPointer is
 	    if !T.isobject then
 		return null;
@@ -126,6 +132,32 @@ namespace Generic is
 	get int MemoryUse is 
 	    return System.Environment.WORD_BYTES * 3 + T.sizeof * Length;
 	end
+
+/*
+	String toString() is
+            var result = new StringBuffer();
+            for int i = 0; i < length; i = i + 1 do
+ 	        if i > 0 then
+		    result.append(',');
+                fi
+                if this[i] != T.none then
+		    result.append(this[i].toString());
+		fi		    
+	    od
+        end
+*/
+
+	String toString() is
+            var result = new StringBuffer();
+            for int i = 0; i < length; i = i + 1 do
+               if i != 0 then
+	           result.append(',');			
+               fi
+ 	       result.append(cast word(this[i]));
+	    od
+
+            return result;
+        end
     end
 
     /// an Iterator<T> that returns each element of an array in increasing index order

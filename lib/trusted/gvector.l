@@ -380,7 +380,7 @@ namespace Generic is
 
 	    for int i = 0; i < _length; i = i + 1 do
 		T o = [_values+i];
-		result.append( o );
+                result.append( o.toString() );
 
 		if i < _length - 1 then
 		    result.append( ',' );

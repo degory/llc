@@ -11,6 +11,8 @@ namespace Parse {
     use System.Exception;
     use Generic.Vector;
 
+    use Gen.IRBlock;
+
     class Quality extends Object {
 	public int score;
 	public int quality;
@@ -91,6 +93,8 @@ namespace Parse {
         Container owner;
         String name;
         Type type;
+
+	LLVM.Value llvm_value;
 
         int kind;
         int access;
@@ -191,6 +195,43 @@ namespace Parse {
             is_referenced = false;
             return result;
         }
+
+	set LLVM.Value LLVMValue = v {
+	    llvm_value = v;
+	}
+
+        get LLVM.Value LLVMValue {
+	    return llvm_value;
+	}
+
+	LLVM.Value getLocal(CompileState state, IRBlock into) {
+	    if( llvm_value == null ) {
+		llvm_value = into.Alloca(Type.getLLVMType(state));
+	    }
+
+	    return llvm_value;
+	}
+
+	LLVM.Value getStaticGlobal(CompileState state) {
+	    if( llvm_value != null ) {
+		return llvm_value;
+	    }
+
+	    char ptr name = ("__static_" + Owner.DecoratedName + "_" + Name ).toCString();
+
+	    LLVM.Value v = LLVM.Calls.LLVMGetNamedGlobal(state.Module, name);
+	    if( v == null ) {
+		v = LLVM.Calls.LLVMAddGlobal(state.Module,Type.getLLVMType(state), name);
+	    }
+
+	    llvm_value = v;
+	    
+	    return v;
+	}
+
+	LLVM.Value getFunctionGlobal(CompileState state) {
+	    throw new System.Exception( "Symbol is not a function: " + HumanName );
+	}
         
         get int Access {
             return access;
@@ -292,6 +333,7 @@ namespace Parse {
             return is_address_valid;
         }
 
+
         set int Address = address {
             if( is_address_valid ) {
                 throw new Exception( "overwriting valid address for symbol: " + getName() + " from " + this.address + " to " + address );
@@ -313,6 +355,23 @@ namespace Parse {
 
 	get int Hash {
 	    return Address;
+	}
+
+	bool populateGEPString( Symbol s, StringBuffer b ) {
+	    IO.Std.err.println( "not a container: " + HumanName );
+	}
+
+	String getGEPString( Symbol from ) {
+	    if( from == null ) {
+		from = Owner;
+	    }
+	    var b = new StringBuffer("GEP: ");
+	    from.populateGEPString(this, b);
+
+	    b.append( Address );
+	    b.append( " (" + HumanName + ")"  );
+
+	    return b;
 	}
 
         Symbol findSymbol( String name, bool want_type ) {

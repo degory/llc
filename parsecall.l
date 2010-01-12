@@ -12,6 +12,7 @@ namespace Parse {
     use Gen.Machine;
     use Gen.TempFactory;
     use Gen.MBitSet;
+    use Gen.IRBlock;
 
     class NewExpression extends Expression {
         protected TypeExpr left;
@@ -112,6 +113,120 @@ namespace Parse {
 		arguments.checkInline( state );
 	    }
 	}
+
+
+        LLVM.Value compileValue( CompileState state, IRBlock into ) {
+            Container class_symbol = null;
+            Type t = getType(state);
+
+	    RuntimeFunction op;
+
+	    LLVM.Value v;
+	    LLVM.Value f;
+	    LLVM.Value function;
+	    LLVM.Value size;
+	    LLVM.Value vtable;
+	    LLVM.Value[] args;
+
+            if( t.TypeKind == Type.VECTOR ) {
+                Type st = t.SubType;
+		if( st.isReference() ) {
+		    op = RuntimeFunction.ALLOC_REF_ARRAY;
+		} else {
+		    // IO.Std.err.println( "new non reference array for: " + st );
+		    op = RuntimeFunction.ALLOC_ARRAY;
+		}
+
+		Container c = t.getBoxType(state).Clazz;
+		f = state.getRuntimeFunction( op );
+
+		size = argument.compileValue( state, into );
+		vtable = loadVTable( state, c, into );
+
+		IO.Std.err.print( "new array function: " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue( f );
+
+		IO.Std.err.print( "new size: " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue( size );
+
+		IO.Std.err.print( "new vtable: " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue( vtable );
+
+				
+		args = { size, LLVM.Calls.LLVMConstTypeSize(st.getLLVMType(state)), loadVTable( state, c, into ) };
+
+		v = into.Call( f, args );
+
+		return into.PointerCast( v, getType(state).getLLVMType(state) );
+            } else if( t.TypeKind == Type.CLASS ) {
+                // int temp = TempFactory.nextTemp();
+
+                class_symbol = getType(state).Clazz;
+
+		op = RuntimeFunction.ALLOC_OBJECT;
+
+		if( class_symbol.IsStruct ) {
+		    vtable = LLVM.Calls.LLVMConstPointerNull(LLVM.Calls.LLVMVTableType());
+		} else {
+		    vtable = loadVTable( state, class_symbol, into );
+
+		    // new ITree( line_number, Op.GLOBAL, Machine.WORD, 
+
+		    // does this class override Object.finalize()? If so need to register it's 
+		    // finalizer with the garbage collector:
+
+		    Quality q = new Quality();
+		    Container m = class_symbol.findBestMethod( "dispose", new Generic.Vector<Type>(), q );
+
+		    if( m != null && m.Owner != object_type.Clazz ) {
+			// dispose method found and it's not Object.dispose() - need to register finalizer
+			op = RuntimeFunction.ALLOC_OBJECT_FINALIZE;
+		    }
+		}
+		
+		f = state.getRuntimeFunction( op );
+
+		IO.Std.err.println( "about to emit call __alloc_object" ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue(f);
+
+		args = { LLVM.Calls.LLVMConstTypeSize(getType(state).getLLVMType(state)), vtable };
+
+		IO.Std.err.println( "args are:\n" ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue(args[0]);
+		LLVM.Calls.LLVMDumpValue(args[1]);	       
+
+
+		v = into.Call( f, args );
+		v = into.PointerCast( v, getType(state).getLLVMType(state) );
+				
+		IO.Std.err.println( "FIXME: new init method call" );
+
+		args = ExpressionList.compilePush( arguments,
+						   state,
+						   v,
+						   method.ArgTypes,
+						   into,
+						   true,
+						   false );
+		
+		compileCall( state, into, null, Op.STATIC_CALL_DISCARD, method, method.DecoratedName, 0, args );
+		// addDummyExceptionHandlerJump( state, line_number, into );
+		    //} else {
+		    // IO.Std.err.println( "not calling empty constructor " + method.HumanName + " (" + method.DecoratedName + ")" );
+		    // }
+
+		return v; 
+            } else {
+                if( type != undefined_type ) {
+                    error( "cannot new type " + type.dump() + " (K" + getType( state ).TypeKind + ")" );
+                } else {
+		    error( "cannot new undefined type" );
+                    // IO.Std.err.println( "newing undefined type" );
+                }
+		return ErrorValue( getType(state).getLLVMType(state) );
+            }
+        }
+
 
         ITree compileValue( CompileState state, IBlock into ) {
             Container class_symbol = null;
@@ -736,6 +851,14 @@ namespace Parse {
 	    // IO.Std.err.println( "call through proc reference " + proc_type + " returns type " + type );
 	}
 
+        LLVM.Value compileValue( CompileState state, IRBlock into ) {
+            return compileValue( state, into, true );
+        }
+
+        void compileDiscardValue( CompileState state, IRBlock into ) {
+            compileValue( state, into, false );
+        }
+
         ITree compileValue( CompileState state, IBlock into ) {
             return compileValue( state, into, true );
         }
@@ -743,6 +866,179 @@ namespace Parse {
         void compileDiscardValue( CompileState state, IBlock into ) {
             compileValue( state, into, false );
         }
+
+        LLVM.Value compileValue( CompileState state, IRBlock into, bool need_value ) {
+	    int tt, ta, tr;
+	    ILabel lt;
+	    /*
+	    IO.Std.err.println( "call method, current class: " + state.CurrentClass );
+	    if( type != null ) {		
+		IO.Std.err.println( "QQQQQQ: method call type not null on entry: " + type );
+	    }
+	    if( method != null ) {
+		IO.Std.err.println( "QQQQQQ: method call method not null on entry: " + method );
+	    }
+	    */
+
+            getType( state );
+
+	    if( method_call != null ) {
+		return method_call.compileValue( state, into, need_value );
+	    }
+
+            bool load_this = false;
+	    bool proc_call = proc_type != null;
+
+            if( method == undefined_method ) {
+		return ErrorValue();
+            } else if( method == null && !proc_call ) {
+                // result of compile error
+		error( "no method here" );
+		return ErrorValue();
+            }
+
+	    Identifier name;
+	    var left_value = this.left_value;
+
+	    if( !proc_call ) {
+		name = cast Identifier(left_value);
+		left_value = name.LeftValue;
+	    
+		// IO.Std.err.println( "call method " + method.Owner.HumanName + " " + method.Name );
+
+		if( !super_call && left_value != null && !left_value.isThis( state ) ) {
+		    // IO.Std.err.println( "IIIIII: load this" );
+		    load_this = true;
+		}
+	    }
+            
+            int size = 0;
+	    /*
+            if( method.getKind() == Symbol.INSTANCE_METHOD ) {
+                size = 4;                       // FIXME: not always
+            }
+	    */
+            
+            int flags = LOAD_FLAG_ADDRESS;
+            
+            if( !need_value ) {
+                flags = flags | LOAD_FLAG_DISCARD;
+            }
+            
+            LLVM.Value t = null;
+
+	    if( proc_call ) {
+		flags = flags | LOAD_FLAG_PROC_CALL;
+                t = left_value.compileValue( state, into );
+
+		// IO.Std.err.println( "compile proc call on type: " + proc_type );
+                t = compileLoad( state, into, null, null, arguments, proc_type.Clazz.ArgTypes, t, flags, null );
+
+		// IO.Std.err.println( "block now:\n" + into );
+
+	    } else if( left_value != null && !left_value.isClass( state ) ) {
+		// Std.err.println( "call A..." );
+                t = left_value.compileValue( state, into );
+
+		// FIXME: this is a bad place for this but MethodCall doesn't make it easy
+		// to do this in the caller:
+		if( compare_operation ) {
+		    throw new System.NotImplementedException("compare operation");
+
+		    /*
+		    // check for null left and compare against first argument so
+		    // null =~ value does not fault:
+		    lt = TempFactory.nextLabel();
+
+		    tr = TempFactory.nextTemp();
+
+		    if( !t.isPrettySimple() ) {
+			tt = TempFactory.nextTemp();
+			into.add( makeStoreTemporary( tt, Machine.WORD, t ) );
+			t = makeLoadTemporary( tt, Machine.WORD );
+		    }
+
+		    ITree a = arguments[0].compileValue(state,into);
+
+		    if( !a.isPrettySimple() ) {
+			ta = TempFactory.nextTemp();		    
+			into.add( makeStoreTemporary( ta, Machine.WORD, a ) );
+			arguments[0] = new LoadTemporary( line_number, arguments[0].getType(state), ta );
+			a = makeLoadTemporary( ta, Machine.WORD );
+		    }
+
+		    into.add( new ITree( line_number, Op.COMMENT, 0,
+					 "reference equality and null check prior to calling opEquals" ) );
+
+		    // don't not the result here - caller must do it:
+
+		    into.add( new ITree( line_number, Op.OBJ_EQ, 0,
+					 new ITree( line_number, Op.PAIR, Machine.WORD,
+						    t, a ),
+					 new ITree( line_number, Op.TEMP, 1, tr ),
+					 lt
+					 )
+			      );
+		    // }
+		    */
+		}
+
+                Container super_class = null;
+                if( super_call ) {
+                    super_class = left_value.getType(state).Clazz;
+                }
+
+		/*
+		IO.Std.err.println( "method call calling load: " + method );
+		IO.Std.err.println( "IIIIII: kind is " + method.Kind + " versus " + Symbol.STATIC_METHOD );
+		*/
+
+                t = compileLoad( state, into, method, null, arguments, method.ArgTypes, t, flags, super_class );
+
+		if( compare_operation ) {
+		    /*
+		    into.add( makeStoreTemporary( tr, 1, t ) );
+		    into.add( new ITree( line_number, Op.LABEL, 0, lt ) );
+
+		    t = makeLoadTemporary( tr, 1 );
+		    */
+		}
+            } else if( left_value != null ) {
+		// Std.err.println( "call B..." );
+                if( left_value.isClass( state ) ) {
+                    flags = flags | LOAD_FLAG_STATIC;
+		}
+
+                t = compileLoad( state, into, method, null, arguments, method.ArgTypes, null, flags, null );
+            } else {
+		// Std.err.println( "call C..." );
+                if( state.CurrentMethod.IsStatic ) {
+                    flags = flags | LOAD_FLAG_STATIC;
+		}
+
+                t = compileLoad( state, into, method, null, arguments, method.ArgTypes, t, flags, null );
+            }
+            
+	    /*
+            int temp = 0;
+            if( need_value ) {
+                temp = TempFactory.nextTemp();
+                into.add( makeStoreTemporary( temp, Machine.WORD, t ) );
+            } else {
+                into.add( t );
+            }
+	    if( size > 0 ) {
+		into.add( new ITree( line_number, Op.RELEASE, 0, size ) );
+	    }
+            if( need_value ) {
+                return makeLoadTemporary( temp, getType( state ).RegSize );
+            } else {
+                return null;
+            }
+	    */
+	    return t;
+        }
+
 
         ITree compileValue( CompileState state, IBlock into, bool need_value ) {
 	    int tt, ta, tr;
@@ -809,7 +1105,7 @@ namespace Parse {
                 t = left_value.compileValue( state, into );
 
 		// IO.Std.err.println( "compile proc call on type: " + proc_type );
-                t = compileLoad( state, into, null, arguments, proc_type.Clazz.ArgTypes, t, Machine.WORD, flags, null );
+                t = compileLoad( state, into, null, null, arguments, proc_type.Clazz.ArgTypes, t, Machine.WORD, flags, null );
 
 		// IO.Std.err.println( "block now:\n" + into );
 
@@ -876,7 +1172,7 @@ namespace Parse {
 		IO.Std.err.println( "IIIIII: kind is " + method.Kind + " versus " + Symbol.STATIC_METHOD );
 		*/
 
-                t = compileLoad( state, into, method, arguments, method.ArgTypes, t, Machine.WORD, flags, super_class );
+                t = compileLoad( state, into, method, null, arguments, method.ArgTypes, t, Machine.WORD, flags, super_class );
 
 		if( compare_operation ) {
 		    into.add( makeStoreTemporary( tr, 1, t ) );
@@ -890,14 +1186,14 @@ namespace Parse {
                     flags = flags | LOAD_FLAG_STATIC;
 		}
 
-                t = compileLoad( state, into, method, arguments, method.ArgTypes, null, Machine.WORD, flags, null );
+                t = compileLoad( state, into, method, null, arguments, method.ArgTypes, null, Machine.WORD, flags, null );
             } else {
 		// Std.err.println( "call C..." );
                 if( state.CurrentMethod.IsStatic ) {
                     flags = flags | LOAD_FLAG_STATIC;
 		}
 
-                t = compileLoad( state, into, method, arguments, method.ArgTypes, t, Machine.WORD, flags, null );
+                t = compileLoad( state, into, method, null, arguments, method.ArgTypes, t, Machine.WORD, flags, null );
             }
             
             int temp = 0;

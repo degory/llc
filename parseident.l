@@ -8,6 +8,7 @@ namespace Parse {
 
     use Gen.ITree;
     use Gen.IBlock;
+    use Gen.IRBlock;
     use Gen.ILabel;
     use Gen.IString;
     use Gen.Machine;
@@ -18,16 +19,16 @@ namespace Parse {
         protected String name;
         protected Expression left_value;
         protected Symbol symbol;
-        protected bool reference;
 
+	Container container;
 	MethodCall method_call;
 	Expression set_value;
-	bool want_set_value;
-
 	Expression indexer_value;
-	bool want_indexer;
 
+	bool want_indexer;
+	bool want_set_value;
 	bool want_call;
+        protected bool reference;
         
         void init( int ln, String name ) {
             super.init( ln );
@@ -42,6 +43,7 @@ namespace Parse {
 	    type = null;
 	    symbol = null;
 	    method_call = null;
+	    container = null;
 	    set_value = null;
 	    want_set_value = false;
 	    want_call = false;
@@ -362,7 +364,7 @@ namespace Parse {
 		Type at;
 		// IO.Std.err.println( "looking for " + this + " in type " + t );
 
-                Container container = null;
+                container = null;
 		if( t.TypeKind == Type.ERROR ) {
                     return null;
 		} else if( name =~ "sizeof" ) {		    
@@ -421,6 +423,8 @@ namespace Parse {
 			}
 			return null;
 		    }
+		} else if( name =~ "address" ) {
+
 		}
 
 		container = t.Clazz;
@@ -459,6 +463,198 @@ namespace Parse {
 	    // IO.Std.err.println( "YYYYYY: returning: " + result );
             return result;
         }
+
+	LLVM.Value compileValue( CompileState state, IRBlock into ) {
+            getType( state ); // ensure any property method is initialized
+
+	    if( method_call != null ) {
+		// IO.Std.err.println( "identifier is property: " + this );
+		if( want_set_value ) {		    
+		    // warn( "property setter method has no value here: " + this + ", from: " + new System.Backtrace() );
+		    method_call.compileDiscardValue( state, into );
+		    return ErrorValue();
+		} else {
+		    return method_call.compileValue( state, into );
+		}
+	    }
+
+            if( symbol == null ) {
+		return ErrorValue();
+            }
+
+            int k = symbol.Kind;
+            
+            int ref_flag = 0;
+            if( reference ) {
+                ref_flag = LOAD_FLAG_REFERENCE;
+            } 
+            
+	    Type at;
+            LLVM.Value result = null;
+	    if( k & Symbol.FLAG_METHOD != 0 ) {
+		error( "not calling method " + symbol.HumanName + " here" );
+		return ErrorValue();
+	    } else if( k == Symbol.ATTRIBUTE_LENGTH ) {
+		/* FIXME: getelementptr here once array layout is defined
+		// need to allow for null pointer exception to be thrown here:
+		return makeLoadIndirect( state, into, true,
+					 into.Add(
+						    left_value.compileValue(state,into),
+						    
+						    LLVM.Calls. Machine.VECTOR_LENGTH_OFFSET/Machine.WORD )
+						    )
+					 );
+		*/
+		return ErrorValue();
+            } else if( k == Symbol.ATTRIBUTE_ARRAY ) {
+		/*
+                return new ITree( line_number, Op.ADD, Machine.WORD,
+                                  left_value.compileValue(state,into),
+                                  new ITree( line_number, Op.CONST, Machine.WORD, Machine.VECTOR_OBJECT_OFFSET )
+                                  );
+		*/
+		return ErrorValue();
+            } else if( k == Symbol.ATTRIBUTE_STRUCT ) {
+		/*
+                return new ITree( line_number, Op.ADD, Machine.WORD,
+                                  left_value.compileValue(state,into),
+                                  new ITree( line_number, Op.CONST, Machine.WORD, Machine.WORD )
+                                  );
+		*/
+		return ErrorValue();
+	    } else if( k == Symbol.ATTRIBUTE_ADDRESS ) {
+		/*
+                at = left_value.getType( state );
+		if( at.TypeKind == Type.VECTOR ) {
+		    return new ITree( line_number, Op.ADD, Machine.WORD,
+				      left_value.compileValue(state,into),
+				      new ITree( line_number, Op.CONST, Machine.WORD, Machine.VECTOR_DATA_OFFSET )
+				      );
+		} else if( !at.isContainer() ) {
+		    left_value.markAddressTaken(state);
+		    return left_value.compileAddress(state,into);
+		} else {
+		    error( "cannot take address of " + left_value );
+		}
+		*/
+		return ErrorValue();
+	    } else if( k == Symbol.ATTRIBUTE_SIZE ) {
+		at = left_value.getType( state );
+		// IO.Std.err.println( "sizeof: " + left_value + ", type: " + at + " reg size: " + at.RegSize );
+
+		// FIXME: size should probably be a word but word type not well supported and objects with sizes
+		// larger than 2 Gig not likely (especially since we're returning the *register* size here...) 
+		return LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(), cast long(at.RegSize), 0);
+	    } else if( k == Symbol.ATTRIBUTE_BOX ) {
+		at = getType(state);
+		// IO.Std.err.println( "attribute type is: " + at );
+		// IO.Std.err.println( "attribute type is: " + at + "," + at.Clazz );
+		// does boxed type contain a box method?
+		Symbol bm = at.findSymbol( "box", Symbol.FIND_ANY );
+		if( bm != null && bm.Kind == Symbol.STATIC_METHOD ) {
+		    // compile '.box' attribute into a static call to type.box(left_value) - for example:
+		    // System.Int.box(123)
+		    MethodCall box_call =
+			new MethodCall(
+				       line_number,
+				       new WrapTypeAsExpression(line_number, at),
+				       new Identifier(line_number, "box"),
+				       new ExpressionList(line_number, left_value)
+				       );
+		    return box_call.compileValue( state, into );
+		} else {
+		    // compile '.box' attribute into an unchecked cast:
+		    return left_value.compileValue( state, into );
+		}
+	    } else if( k == Symbol.ATTRIBUTE_PASS ) {
+		return left_value.compileValue( state, into );
+	    } else if( k == Symbol.ATTRIBUTE_NONE ) {
+		return getType(state).getLLVMNull(state);
+	    } else if( k == Symbol.ATTRIBUTE_ISOBJECT ) {
+		at = left_value.getType( state );
+		k = at.TypeKind;
+		if( k == Type.CLASS || k == Type.VECTOR ) {
+		    return LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),0L,0);
+		} else {
+		    return LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0);
+		}
+	    } else if( k == Symbol.ATTRIBUTE_ISREFERENCE ) {
+		at = left_value.getType( state );
+		if( at.isReference() ) {
+		    return LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),0L,0);
+		} else {
+		    return LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0);
+		}
+            } else if( k == Symbol.CONST ) {
+		IO.Std.err.println( "FIXME: store LLVM.Value in const symbol" );
+		return LLVM.Calls.LLVMConstInt(getType(state).getLLVMType(state), cast long(symbol.Address), 1);
+            } else if( ( k & Symbol.FLAG_STATIC ) == 0 ) {
+		IO.Std.err.println( "ident compile load, container is: " + container );
+		IO.Std.err.println( "ident compile load, left value is: " + left_value );
+	     
+
+                if( left_value == null ) {
+                    result = compileLoad( state, into, symbol, state.CurrentClass, null, null, null, ref_flag, null );
+                    
+                    return result;
+                } else {
+		    if( container == null ) {
+			throw new System.Exception( "instance variable access with no container: " + symbol.HumanName );
+		    }
+
+		    LLVM.Value t = left_value.compileValue( state, into );
+                    result = compileLoad( state, into, symbol, container, null, null, t, ref_flag, null );
+                    
+                    return result;
+                }
+            } else {
+                return compileLoad( state, into, symbol, container, null, null, null, LOAD_FLAG_STATIC, null );
+            }
+	}
+
+        LLVM.Value compileAddress( CompileState state, IRBlock into ) {
+	    getType(state);
+
+	    if( method_call != null ) {
+		IO.Std.err.println( "oops: should not compile address for property here" + new System.Backtrace() );
+		return ErrorValue( LLVM.Calls.LLVMPointerType(getType(state).getLLVMType(state),0) );
+	    }
+
+            if( symbol == null ) {
+		return ErrorValue( LLVM.Calls.LLVMPointerType(getType(state).getLLVMType(state),0) );
+            }
+
+            int ref_flag;
+            if( reference ) {
+                ref_flag = LOAD_FLAG_ADDRESS | LOAD_FLAG_REFERENCE;
+            } else {
+                ref_flag = LOAD_FLAG_ADDRESS;
+            }
+
+	    int k = symbol.Kind;
+
+	    if( k >= Symbol.ATTRIBUTE ) {
+		error( "cannot take address of attribue " + symbol.HumanName );
+		return ErrorValue( LLVM.Calls.LLVMPointerType(getType(state).getLLVMType(state),0) );
+	    } else if( k == Symbol.CONST ) {
+                error( "cannot take address of constant " + symbol.HumanName );
+		return ErrorValue( LLVM.Calls.LLVMPointerType(getType(state).getLLVMType(state),0) );
+            } else if( (k & Symbol.FLAG_STATIC) == 0 ) {
+		if( container == null ) {
+		    container = symbol.Owner;
+		}
+
+                if( left_value == null ) {
+                    return compileLoad( state, into, symbol, container, null, null, null, ref_flag, null );
+                } else {
+                    LLVM.Value t = left_value.compileValue( state, into );
+                    return compileLoad( state, into, symbol, container, null, null, t, ref_flag, null );
+                }
+            } else {
+                return compileLoad( state, into, symbol, container, null, null, null, LOAD_FLAG_ADDRESS | LOAD_FLAG_STATIC, null );
+            }
+        }
+
 
         ITree compileValue( CompileState state, IBlock into ) {
             getType( state ); // ensure any property method is initialized
@@ -574,17 +770,17 @@ namespace Parse {
                 return new ITree( line_number, Op.CONST, size, symbol.Address );
             } else if( ( k & Symbol.FLAG_STATIC ) == 0 ) {
                 if( left_value == null ) {
-                    result = compileLoad( state, into, symbol, null, null, null, size, ref_flag, null );
+                    result = compileLoad( state, into, symbol, container, null, null, null, size, ref_flag, null );
                     
                     return result;
                 } else {
 		    ITree t = left_value.compileValue( state, into );
-                    result = compileLoad( state, into, symbol, null, null, t, size, ref_flag, null );
+                    result = compileLoad( state, into, symbol, container, null, null, t, size, ref_flag, null );
                     
                     return result;
                 }
             } else {
-                return compileLoad( state, into, symbol, null, null, null, size,
+                return compileLoad( state, into, symbol, container, null, null, null, size,
                                     LOAD_FLAG_STATIC, null );
             }
         }
@@ -616,18 +812,18 @@ namespace Parse {
                 return new ITree( line_number, Op.ERROR, 0 );
             } else if( (k & Symbol.FLAG_STATIC) == 0 ) {
                 if( left_value == null ) {
-                    return compileLoad( state, into, symbol, null, null, null, size, ref_flag, null );
+                    return compileLoad( state, into, symbol, container, null, null, null, size, ref_flag, null );
                 } else {
                     ITree t = left_value.compileValue( state, into );
                     int s = size;
                     if( reference ) {
                         s = Machine.WORD;
                     }
-                    ITree result = compileLoad( state, into, symbol, null, null, t, s, ref_flag, null );
+                    ITree result = compileLoad( state, into, symbol, container, null, null, t, s, ref_flag, null );
                     return result;
                 }
             } else {
-                return compileLoad( state, into, symbol, null, null, null, size, LOAD_FLAG_ADDRESS | LOAD_FLAG_STATIC, null );
+                return compileLoad( state, into, symbol, container, null, null, null, size, LOAD_FLAG_ADDRESS | LOAD_FLAG_STATIC, null );
             }
         }
 

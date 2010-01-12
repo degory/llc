@@ -9,6 +9,7 @@ namespace Parse {
 
     use Gen.ITree;
     use Gen.IBlock;
+    use Gen.IRBlock;
     use Gen.ILabel;
     use Gen.IString;
     use Gen.Machine;
@@ -263,6 +264,46 @@ namespace Parse {
 	    right.checkInline(state);
 	}
 
+        LLVM.Value compileValue( CompileState state, IRBlock into ) {
+            Type r = right.getType( state );
+            
+            if( requires_runtime_check ) {
+		IO.Std.err.println( "FIXME: cast runtime check" );
+		/*
+		int t;
+
+		ITree tr = right.compileValue(state, into);
+		if( !tr.isSimple() && state.InExceptionHandler ) { // make sure right completely evaluated before dummy jump to exception handler
+		    t = TempFactory.nextTemp();
+		    into.add( makeStoreTemporary( t, Machine.WORD, tr ) );
+		    tr = makeLoadTemporary( t, Machine.WORD );
+		}
+		addDummyExceptionHandlerJump( state, line_number, into );
+		ITree compare_vtable = loadVTable( state, type.Clazz);
+
+		if( !compare_vtable.isPrettySimple() ) {
+		    // FIXME: CAST_CHECK want's to rewrite it's right operand and this will fail for PIC loadVTable ITree so copy into a
+		    // temporary:
+		    t = TempFactory.nextTemp();
+
+		    into.add( makeStoreTemporary( t, Machine.WORD, compare_vtable ) );
+		    compare_vtable = makeLoadTemporary( t, Machine.WORD );
+		}
+
+                return new ITree( line_number, Op.CAST_CHECK, 0, tr, compare_vtable );
+		*/
+
+		return makeLLVMCast( right.compileValue(state, into), getType(state).getLLVMType(state), into );
+            } else if( r.RegSize == getType(state).RegSize ) {
+		return makeLLVMCast( right.compileValue(state, into), getType(state).getLLVMType(state), into );
+            } else if( r.RegSize > getType(state).RegSize ) {
+		return makeLLVMCast( right.compileValue(state, into), getType(state).getLLVMType(state), into );
+	    } else {
+		return makeLLVMCast( right.compileValue(state, into), getType(state).getLLVMType(state), into );
+            }
+        }
+
+
         ITree compileValue( CompileState state, IBlock into ) {
             Type r = right.getType( state );
             
@@ -361,6 +402,10 @@ namespace Parse {
         void init( int line_number ) {
             super.init( line_number );
         }
+
+	LLVM.Value compileValue( CompileState state, IRBlock into ) {
+	    return makeLoadThis( state, line_number, into );
+	}
         
         ITree compileValue( CompileState state, IBlock  into ) {
             // return new ITree( line_number, Op.THIS, 8 );
@@ -526,7 +571,6 @@ namespace Parse {
 		    // IO.Std.err.println( "regular int literal" );
 		    this.type = new Type( type );
 		}
-		this.value = value;
             } else {
 		print_value = value;
 
@@ -599,6 +643,119 @@ namespace Parse {
         
         void declareSymbols( CompileState  state ) {
         }
+
+	static int string_number = 0;
+
+	LLVM.Value compileValue( CompileState state, IRBlock into ) {
+	    LLVM.Value v;
+	    LLVM.Value g;
+	    LLVM.Value[] elements;
+	    if( type == string_type ) {
+		IO.Std.err.println( "const string" ); IO.Std.err.flush();
+		elements = {
+		    LLVM.Calls.LLVMConstPointerCast(
+						    type.Clazz.getCTableGlobal(state),
+						    LLVM.Calls.LLVMVTableType()
+						    ),
+		    LLVM.Calls.LLVMConstInt(
+					    LLVM.Calls.LLVMInt32Type(),
+					    cast long(value.Length),
+					    0
+					    ),
+		    LLVM.Calls.LLVMConstString(
+					       value.toCString(),
+					       value.Length,
+					       0
+					       )
+		};
+
+		v = LLVM.Calls.LLVMConstStruct(
+						  elements.address,
+						  elements.length,
+						  0
+						  );
+
+		IO.Std.err.print( "const System.String:  " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue( v );
+
+		g = LLVM.Calls.LLVMAddGlobal( state.Module, LLVM.Calls.LLVMTypeOf(v), ("__string_" + string_number).toCString() );
+		LLVM.Calls.LLVMSetLinkage(g, LLVM.LLVMLinkage.LLVMPrivateLinkage );
+
+		string_number = string_number + 1;
+		LLVM.Calls.LLVMSetInitializer( g, v );
+
+		return g; 
+		/*
+
+		
+		IO.Std.err.print( "global System.String: " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue( g );
+
+		return LLVM.Calls.LLVMConstInBoundsGEP(
+						       g,
+						       elements.address,
+						       2
+						       );
+		*/
+	    } else if( type.TypeKind == Type.POINTER
+                       && type.SubType.TypeKind == Type.CHAR ) {
+
+		IO.Std.err.println( "const C string" ); IO.Std.err.flush();
+
+		elements = {
+		    LLVM.Calls.LLVMConstInt(
+					    LLVM.Calls.LLVMInt32Type(),
+					    0L,
+					    0
+					    ),
+		    LLVM.Calls.LLVMConstInt(
+					    LLVM.Calls.LLVMInt32Type(),
+					    0L,
+					    0
+					    )
+		};
+
+		v = LLVM.Calls.LLVMConstString(
+					       value.toCString(),
+					       value.Length,
+					       0
+					       );
+
+		IO.Std.err.print( "const C string:  " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue( v );
+
+		g = LLVM.Calls.LLVMAddGlobal( state.Module, LLVM.Calls.LLVMTypeOf(v), ("__string_" + string_number).toCString() );
+		string_number = string_number + 1;
+		LLVM.Calls.LLVMSetInitializer( g, v );
+		
+		IO.Std.err.print( "global C string: " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue( g );
+
+		return LLVM.Calls.LLVMConstInBoundsGEP(g,
+						       elements.address,
+						       elements.length
+						       );
+
+
+	    } else if( type.TypeKind == type.NONE || type.TypeKind == type.NULL ) {
+		IO.Std.err.println( "const: none (" + getType(state) + ")" ); IO.Std.err.flush();
+		return LLVM.Calls.LLVMConstPointerNull(LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0));
+	    } else if( type.TypeKind == type.POINTER ) {
+		IO.Std.err.println( "const: pointer (" + getType(state) + ")" ); IO.Std.err.flush();
+		if( !value.equals("0") ) {
+		    IO.Std.err.println( "oops: non-null pointer constant: '" + value + "'" );
+		}
+		return LLVM.Calls.LLVMConstPointerNull(type.getLLVMType(state));
+	    } else {
+		IO.Std.err.println( "const: integer (" + getType(state) + ")" ); IO.Std.err.flush();
+		return LLVM.Calls.LLVMConstIntOfString(
+						       type.getLLVMType(state),
+						       value.toCString(),
+						       10C
+						       );
+	    }
+
+	}
 
         ITree compileValue( CompileState state, IBlock into ) {
 	    // IO.Std.err.println( "compiling constant: " + this );
@@ -1480,6 +1637,9 @@ namespace Parse {
 	    left.compileDiscardValue(state, into);
         }
 
+        void compileDiscardValue( CompileState state, IRBlock into ) {
+	    left.compileDiscardValue(state, into);
+        }
 
         bool isSuperConstructorCall( CompileState state ) {
 	    return left.isSuperConstructorCall(state);
@@ -1559,6 +1719,10 @@ namespace Parse {
         }
 
         void compileDiscardValue( CompileState state, IBlock into ) {
+            error( "oops: can't compile discard value" );           
+        }
+
+        void compileDiscardValue( CompileState state, IRBlock into ) {
             error( "oops: can't compile discard value" );           
         }
 
@@ -1664,6 +1828,122 @@ namespace Parse {
                                          Machine.WORD, offset )
                               );
         }
+
+        LLVM.Value makeInstance( CompileState state, int line_number, IRBlock into, LLVM.Value t, Container from, Symbol symbol ) {
+	    IO.Std.err.println( "make instance, from: " + from.HumanName + ", symbol: " + symbol.HumanName );
+
+	    int gep_depth = from.getGEPDepth(symbol) + 1;
+	    var gep_indexes = new LLVM.Value[gep_depth];
+
+	    for( int i = 0; i < gep_depth-1; i = i + 1 ) {
+		gep_indexes[i] = LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt32Type(), 0L, 0 );
+		IO.Std.err.print( "GEP[" + i + "]:   " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue( gep_indexes[i] );
+	    }
+
+	    gep_indexes[i] = LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt32Type(), cast long(symbol.Address), 0 );
+
+	    IO.Std.err.print( "GEP[" + i + "]:   " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpValue( gep_indexes[i] );
+
+	    LLVM.Type tt = LLVM.Calls.LLVMTypeOf(t);
+
+	    IO.Std.err.print( "value this:   " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpValue( t );
+	    IO.Std.err.print( "type this:    " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpType( tt );
+
+	    if( tt != from.Type.getLLVMType(state) ) {
+		IO.Std.err.println( "from type != t.LLVMType" );
+		IO.Std.err.print( "from type:    " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpType(from.Type.getLLVMType(state));
+		IO.Std.err.println( "from: " + new System.Backtrace() );
+	    }
+
+
+	    return into.InBoundsGEP( t, gep_indexes );
+        }
+
+	LLVM.Value compileCall(
+            CompileState state, 
+	    IRBlock into, 
+	    LLVM.Value from, 
+	    int o, 
+	    Symbol symbol, 
+	    String name, 
+	    int offset,
+	    LLVM.Value[] args)
+
+	{
+	    int i;
+	    LLVM.Value v;
+	    LLVM.Type[] arg_types;
+
+	    for( i = 0; i < args.length; i = i + 1 ) {
+		IO.Std.err.print( "arg " + i + ": " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue( args[i] );
+	    }
+
+	    if( o == Op.ERROR ) {
+		IO.Std.err.println( "oops: compiling call with op == Op.ERROR" );
+	    }
+
+	    if( args == null ) {
+		IO.Std.err.println( "call args are null" ); IO.Std.err.flush();
+	    }
+
+	    switch( o ) {
+	    case Op.STATIC_CALL, Op.STATIC_CALL_DISCARD:
+		addDummyExceptionHandlerJump( state, line_number, into );
+		if( symbol != null ) {
+		    v = symbol.getFunctionGlobal(state);
+		    IO.Std.err.print( "func " + i + ": " ); IO.Std.err.flush();
+		    return into.Call( v, args );
+		} else {
+		    throw new System.NotImplementedException( "calling function by name instead of Symbol" );
+		}
+
+	    case Op.DYNAMIC_CALL, Op.DYNAMIC_CALL_DISCARD:
+		IO.Std.err.print( "actual dynamic call through " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue(v);
+		addDummyExceptionHandlerJump( state, line_number, into );
+		v = into.PointerCast( from, LLVM.Calls.LLVMVTableType() );
+		IO.Std.err.print( "vtable is " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue(v);
+		v = into.InBoundsGEP(
+
+				     v,
+				     {
+					 LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(), 0L, 0),
+					 LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(), 1L, 0)
+				     }
+				     );
+		IO.Std.err.print( "actual method address is " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue(v);
+
+		arg_types = new LLVM.Type[args.length];
+		for( i = 0; i < args.length; i = i + 1 ) {
+		    arg_types[i] = LLVM.Calls.LLVMTypeOf(args[i]);
+		}
+
+		v = into.PointerCast( v, LLVM.Calls.LLVMFunctionType(
+								     symbol.Type.getLLVMType(state),
+								     arg_types.address,
+								     arg_types.length,
+								     0 )
+				      );
+
+
+		return into.Call( v, args );
+
+	    case Op.PROC_CALL, Op.PROC_CALL_DISCARD:
+		throw new System.NotImplementedException( "FIXME: proc call" );
+
+	    }
+
+	    throw new Exception( "bad call operation: " + o );
+	}
+
 
 	ITree compileCall(
             CompileState state, 
@@ -1969,12 +2249,378 @@ namespace Parse {
 		return compileLoadStaticProcRef( state, into, symbol, proc_type );
 	    }
 	}
+
+        LLVM.Value compileLoad(
+	    CompileState state,
+	    IRBlock into,
+	    Symbol symbol,
+	    Container container,
+	    ExpressionList arguments,
+	    Vector<Type> argument_types,
+	    LLVM.Value from,
+	    int flags,
+	    Symbol super_class ) {
+	    LLVM.Value result = compileLoad2(
+					    state,
+					    into,
+					    symbol,
+					    container,
+					    arguments,
+					    argument_types,
+					    from,
+					    flags,
+					    super_class );
+
+	    IO.Std.err.print( "compile load " + symbol + " returning: " ); IO.Std.err.flush();
+	    if( result != null ) {
+		LLVM.Calls.LLVMDumpValue( result );
+	    } else {
+		IO.Std.err.println( "null from: " + new System.Backtrace() );
+	    }
+	    return result;
+	}
 	    
+
+        LLVM.Value compileLoad2(
+	    CompileState state,
+	    IRBlock into,
+	    Symbol symbol,
+	    Container container,
+	    ExpressionList arguments,
+	    Vector<Type> argument_types,
+	    LLVM.Value from,
+	    int flags,
+	    Symbol super_class ) {
+            LLVM.Value v;
+            LLVM.Value t;
+            int o, a, u;
+    
+            bool address = flags & LOAD_FLAG_ADDRESS != 0;
+            bool no_discard = flags & LOAD_FLAG_DISCARD == 0;
+            bool reference = flags & LOAD_FLAG_REFERENCE != 0;
+	    bool proc_call = flags & LOAD_FLAG_PROC_CALL != 0;
+
+	    LLVM.Value[] arg_values;
+
+	    if( symbol != null ) {
+		if( symbol.Kind == Symbol.TYPE ) {
+		    IO.Std.err.println( "attempting to load value of type symbol " + symbol + " here" );
+		    return ErrorValue();
+		}
+	    } else {
+		if( !proc_call ) {
+		    error( "oops: cannot load a null symbol" );
+		    return ErrorValue();
+		} 
+	    }		
+             
+            if( from == null ) {
+		IO.Std.err.println( "compile load, from == null" );
+
+                switch ( symbol.Kind ) {
+		    		   
+                case Symbol.CLASS:
+		    IO.Std.err.println( "compile load: class" );
+		    error( "cannot use class " + symbol.HumanName + " here (static use of instance variable?)" );
+		    return ErrorValue();
+                    
+                    
+                case Symbol.STATIC_VARIABLE:
+		    IO.Std.err.println( "compile load: static variable" );
+                    v = symbol.getStaticGlobal(state);
+                    
+                    if( reference ) {
+			// can't throw null pointer exception:
+                        IO.Std.err.println( "loading static reference: " + symbol.HumanName );
+			v = makeLoadIndirect( state, line_number, into, false, v );
+                    }
+                    
+                    if( !address ) {
+			/*
+			if( !symbol.IsValueValid ) {
+			    warn( "static variable " + symbol.HumanName + " may not be initialized here" );
+			}
+			*/
+			// symbol.Owner.addDependant( state.CurrentClass );
+
+			// can only throw null pointer exception if it's a reference:
+			v = makeLoadIndirect( state, line_number, into, reference, v );
+                    }
+
+                    return v;
+                    
+                case Symbol.INSTANCE_VARIABLE:
+		    IO.Std.err.println( "compile load: instance variable" );
+                    if( flags & LOAD_FLAG_STATIC != 0 ) {
+			error( "cannot access instance variable " + symbol.HumanName + " from static context" );
+			return ErrorValue(symbol.Type.getLLVMType(state));
+                     } else {
+                        v = makeInstance( state, line_number, into, makeLoadThis( state, line_number, into ), container, symbol );
+                        
+                        if( reference ) {
+                            IO.Std.err.println( "loading instance reference: " + symbol.HumanName );
+			    // could throw null pointer exception if this is null:
+			    v = makeLoadIndirect( state, line_number, into, true, v );
+                        }
+                        
+                        if( !address ) {
+			    // could throw null pointer exception if this is null or if reference and reference is null:
+			    v = makeLoadIndirect( state, line_number, into, true, v );
+                        }
+                        
+                        return v;
+                    }
+                    
+                    
+                case Symbol.LOCAL_VARIABLE:
+		    IO.Std.err.println( "compile load: local variable: " + symbol.HumanName );
+                    // fprintf( stderr, "local %s size %d offset %d\n", symbol.getName(), size, symbol.getAddress() );
+
+		    v = symbol.getLocal(state,into);
+                    
+                    if( reference ) {
+			// can't throw null pointer exception:
+
+			v = makeLoadIndirect( state, line_number, into, false, v );
+                    }
+                    
+                    if( !address ) {
+			// can only throw null pointer exception if is a reference:
+
+			v = makeLoadIndirect( state, line_number, into, reference, v );
+                    }
+                    return v;
+                    
+                case Symbol.STATIC_METHOD:
+		    IO.Std.err.println( "compile: static method call" );
+
+                    if( no_discard ) {
+                        o = Op.STATIC_CALL;
+                    } else {
+                        o = Op.STATIC_CALL_DISCARD;
+                    }
+
+		    arg_values = ExpressionList.compilePush( arguments, state, null, argument_types, into, false, false );
+
+		    return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, arg_values );
+                    
+                case Symbol.INSTANCE_METHOD:
+		    IO.Std.err.println( "compile: instance call" );
+
+                    if( flags & LOAD_FLAG_STATIC != null ) {
+                        if( symbol == undefined_method ) {
+                            IO.Std.err.println( "calling undefined method" );
+			    return ErrorValue();
+                        }
+                        error( "cannot call instance method " + symbol.HumanName + " from static context" );
+			return ErrorValue();
+                    }
+                    
+                    if( super_class != null ) {
+                        throw new Exception( "oops: calling method in super with no from address" );
+			return ErrorValue();
+                    } else if( cast<Container>(symbol).IsFinal ) {
+                        if( no_discard ) {
+                            o = Op.STATIC_CALL;
+                        } else {
+                            o = Op.STATIC_CALL_DISCARD;
+                        }
+
+			arg_values = ExpressionList.compilePush(
+								arguments,
+								state,
+								makeLoadThis(state, 0, into),
+								argument_types,
+								into,
+								true,
+								false );
+
+			return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, arg_values );
+                    }  else {
+                        if( no_discard ) {
+                            o = Op.DYNAMIC_CALL;
+                        } else {
+                            o = Op.DYNAMIC_CALL_DISCARD;
+                        }
+
+			arg_values = ExpressionList.compilePush( arguments, state, makeLoadThis(state, 0,into), argument_types, into, true, false );
+
+		        a = symbol.Address;
+			// IO.Std.err.println( "dynamic call to non-final method " + symbol.getDecoratedName() + " at offset " + a );
+
+			return compileCall( state, into, null, o, symbol, null, symbol.Address, arg_values );
+                    }
+                    
+                default:
+                    if( symbol.Kind == Symbol.CLASS ) {
+                        error( "cannot use class " + symbol.HumanName + " here" );
+                    } else if( symbol.Kind == Symbol.NAMESPACE ) {
+                        error( "cannot use namespace " + symbol.HumanName + " here" );
+                    } else if( symbol.Kind == Symbol.ENUM ) {
+                        error( "cannot use enum " + symbol.HumanName + " here" );
+                    } else {
+                        error( "cannot use symbol " + symbol.HumanName + " here" );
+                    }
+		    return ErrorValue(symbol.Type.getLLVMType(state));
+                }
+            } else {                    // from is source and into is destination
+		IO.Std.err.println( "compile load: from is not null" );
+		if( proc_call ) {
+		    IO.Std.err.println( "compile: proc call" );
+
+		    if( no_discard ) {
+			o = Op.PROC_CALL;
+		    } else {
+			o = Op.PROC_CALL_DISCARD;
+		    }
+		    arg_values = ExpressionList.compilePush( arguments, state, null, argument_types, into, false, false );
+
+		    return compileCall( state, into, from, o, null, null, 0, arg_values );
+		} else
+                switch ( symbol.Kind ) {
+                case Symbol.STATIC_VARIABLE:
+		    IO.Std.err.println( "compile load: static variable" );
+                    v = symbol.getStaticGlobal(state);
+
+                    if( reference ) {
+			// can't throw null pointer exception:
+			v = makeLoadIndirect( state, line_number, into, false, v );
+                    }
+
+                    if( !address ) {
+			/*
+			if( !symbol.IsValueValid ) {
+			    warn( "static variable " + symbol.HumanName + " may not be initialized here" );
+			}
+			*/
+			// symbol.Owner.addDependant( state.CurrentClass );
+
+			// can only throw null pointer exception if reference:
+			v = makeLoadIndirect( state, line_number, into, reference, v );
+                    }
+                    
+                    return v;
+                    
+                case Symbol.INSTANCE_VARIABLE:
+		    IO.Std.err.println( "compile load: instance variable" );
+		    v = makeInstance( state, line_number, into, from, container, symbol );
+                        
+		    if( reference ) {
+			IO.Std.err.println( "loading instance reference: " + symbol.HumanName );
+			// could throw null pointer exception if this is null:
+			v = makeLoadIndirect( state, line_number, into, true, v );
+		    }
+                    
+		    if( !address ) {
+			// could throw null pointer exception if this is null or if reference and reference is null:
+			v = makeLoadIndirect( state, line_number, into, true, v );
+		    }
+                        
+		    return v;
+                    
+                case Symbol.LOCAL_VARIABLE:
+                    throw new Exception( "oops: accessing local variable: '" + symbol.Name + "' from incorrect context" );
+		    return ErrorValue(symbol.Type.getLLVMType(state));
+                    
+                case Symbol.STATIC_METHOD:
+		    IO.Std.err.println( "compile: static call" );
+
+                    if( flags & LOAD_FLAG_STATIC != 0 || super_class != null ) {
+                        if( no_discard ) {
+                            o = Op.STATIC_CALL;
+                        } else {
+                            o = Op.STATIC_CALL_DISCARD;
+                        }
+
+			arg_values = ExpressionList.compilePush( arguments, state, null, argument_types, into, false, false );
+
+			return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, arg_values );
+                    }
+                    
+		    error( "calling static method " + symbol.HumanName + " dynamically" );
+		    return ErrorValue();
+
+                  
+                case Symbol.INSTANCE_METHOD:
+		    IO.Std.err.println( "compile: instance call" );
+
+                    if( !address ) {
+                        error( "using method " + symbol.HumanName + " but not calling it" );
+			return ErrorValue();
+			// IO.Std.err.println( "here: " + new System.Backtrace() );
+		    }
+                    // source is object address
+                    // into will whole call address
+                    
+                    // into now holds object address
+                    
+                    if( super_class != null ) {
+                        // call dynamic method statically
+                        if( no_discard ) {
+                            o = Op.STATIC_CALL;
+                        } else {
+                            o = Op.STATIC_CALL_DISCARD;
+                        }
+
+			arg_values = ExpressionList.compilePush( arguments, state, from, argument_types, into, true, false );
+
+			return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, arg_values );
+                    } else if( cast<Container>(symbol).IsFinal ) {
+                        if( no_discard ) {
+                            o = Op.STATIC_CALL;
+                        } else {
+                            o = Op.STATIC_CALL_DISCARD;
+                        }
+
+			arg_values = ExpressionList.compilePush( arguments, state, from, argument_types, into, true, false );
+
+			return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, arg_values );
+                    } else {
+		        a = symbol.Address;
+			// IO.Std.err.println( "dynamic call to non-final method " + symbol.getDecoratedName() + " at offset " + a );
+
+                        if( no_discard ) {
+                            o = Op.DYNAMIC_CALL;
+                        } else {
+                            o = Op.DYNAMIC_CALL_DISCARD;
+                        }
+			arg_values = ExpressionList.compilePush( arguments, state, from, argument_types, into, true, false );
+
+			return compileCall( state, into, null, o, symbol, null, symbol.Address, arg_values );
+                    }
+                    
+                default:
+		    IO.Std.err.println( "compile load: default" );
+
+                    if( symbol.Kind == Symbol.CLASS ) {
+                        error( "cannot use class " + symbol.HumanName + " here" );
+                    } else if( symbol.Kind == Symbol.NAMESPACE ) {
+                        error( "cannot use namespace " + symbol.HumanName + " here" );
+                    } else if( symbol.Kind == Symbol.ENUM ) {
+                        error( "cannot use enum " + symbol.HumanName + " here" );
+                    } else {
+                        error( "cannot use symbol " + symbol.HumanName + " here" );
+                    }
+		    return ErrorValue(symbol.Type.getLLVMType(state));
+                }
+            }
+
+	    IO.Std.err.println( "compile load: fall through return null" );		    
+        }
+
+	get int Depth {
+	    return 0;
+	}
+
+	get int Operation {
+	    return Op.ERROR;
+	}
 
         ITree compileLoad(
 	    CompileState state,
 	    IBlock into,
 	    Symbol symbol,
+	    Container container,
 	    ExpressionList arguments,
 	    Vector<Type> argument_types,
 	    ITree from,
@@ -2316,15 +2962,8 @@ namespace Parse {
                 }
             }
         }
-
-	get int Depth {
-	    return 0;
-	}
-
-	get int Operation {
-	    return Op.ERROR;
-	}
     }
+
 
     class ExpressionList extends Expression {
         Vector<Expression> list;
@@ -2391,6 +3030,98 @@ namespace Parse {
                 }
 	    }
         }
+
+	static LLVM.Value[] compilePush(
+            ExpressionList l, 
+	    CompileState state,
+	    LLVM.Value thiz,
+	    Vector<Type> arg_types,
+	    IRBlock into,
+	    bool skip_this,
+	    bool native_call)
+	{
+	    if( l == null ) {
+		l = new ExpressionList( 0 );
+	    }
+
+	    return l.compilePush( state, thiz, arg_types, into, skip_this, native_call );
+	}
+
+        LLVM.Value[] compilePush(
+            CompileState state,
+	    LLVM.Value thiz,
+	    Vector<Type> arg_types,
+	    IRBlock into,
+	    bool skip_this,
+	    bool native_call
+	) {
+	    // IO.Std.err.println( "AAAAAA: compilePush: " + this );
+            int size = 0;
+	    LLVM.Value v;
+	    LLVM.Value param = null; 
+	    LLVM.Value[] result;
+            int s;
+	    int temp;
+
+	    bool seen_any_params = false;
+
+	    int n = list.Length;
+
+	    if( skip_this ) {
+		n = n + 1;
+	    }
+	    bool simple;
+	    // IO.Std.err.println( "pushing " + n + " arguments: " + arg_types  );
+
+	    result = new LLVM.Value[n];
+
+	    if( skip_this ) {
+		result[0] = thiz;
+	    }
+
+	    Generic.Iterator<Type> j = null;
+
+            if( arg_types != null ) {
+		// IO.Std.err.println( "have argument types: support reference parameters" );
+                j = arg_types.reverseElements();
+	    }
+
+	    foreach( Expression e; list.reverseElements() ) {
+		Type t = null;
+
+		if( j != null ) {
+		    t = cast<Type>(j.nextElement());
+		}
+
+		if( t != null && t.TypeKind == Type.REFERENCE ) {
+		    // IO.Std.err.println( "compile reference parameter: " + e );
+		    v = e.compileAddress( state, into );
+		    e.markAddressTaken( state );
+		} else {
+		    // IO.Std.err.println( "compile value parameter: " + e + " type " + e.getType(state) );
+
+		    v = e.compileValue( state, into );
+                    
+		    /*
+		      if( s == 1 ) {
+		      result = new ITree( line_number, Op.CAST_FROM1, 8, result );
+		      } else if( s == 4 ) {
+		      result = new ITree( line_number, Op.CAST_FROM4, 8, result );
+		      }
+		    */
+		}
+
+		if( t != null ) {
+		    v = makeLLVMCast( v, t.getLLVMType(state), into );
+		}
+		
+		n = n - 1;
+		result[n] = v;
+	    }
+
+	    return result;
+        }
+
 
 	static int compilePush(
             ExpressionList l, 
