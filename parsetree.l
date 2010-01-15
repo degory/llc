@@ -454,6 +454,38 @@ namespace Parse {
             current_file_name = cfn;
         }
 
+        public static LLVM.Value makeLLVMConstCast( LLVM.Value v, LLVM.Type t ) {
+	    LLVM.Type tv = LLVM.Calls.LLVMTypeOf(v);
+
+	    if( tv == t ) {
+		return v;
+	    }
+
+	    IO.Std.err.println( "LLVM Value type mis-match: casting..." ); IO.Std.err.flush();
+
+	    LLVM.TypeKind kv = LLVM.Calls.LLVMGetTypeKind(tv);
+	    LLVM.TypeKind kt = LLVM.Calls.LLVMGetTypeKind(t);
+
+	    LLVM.Calls.LLVMDumpType( tv );
+	    LLVM.Calls.LLVMDumpType( t );
+
+	    if( kt == LLVM.TypeKind.LLVMPointerTypeKind || kt == LLVM.TypeKind.LLVMArrayTypeKind ) {
+		if( kv == LLVM.TypeKind.LLVMPointerTypeKind || kv == LLVM.TypeKind.LLVMArrayTypeKind || kv == LLVM.TypeKind.LLVMFunctionTypeKind ) {
+		    return LLVM.Calls.LLVMConstPointerCast( v, t );
+		} else {
+		    // FIXME: assuming integer
+		    return LLVM.Calls.LLVMConstIntToPtr( v, t );
+		}
+	    } else {
+		// FIXME: assuming integer
+		if( kv == LLVM.TypeKind.LLVMPointerTypeKind || kv == LLVM.TypeKind.LLVMArrayTypeKind || kv == LLVM.TypeKind.LLVMFunctionTypeKind ) {
+		    return LLVM.Calls.LLVMConstPtrToInt( v, t );
+		} else {
+		    return LLVM.Calls.LLVMConstIntCast( v, t, 1 );
+		}
+	    }
+	}
+
         public static LLVM.Value makeLLVMCast( LLVM.Value v, LLVM.Type t, IRBlock into ) {
 	    LLVM.Type tv = LLVM.Calls.LLVMTypeOf(v);
 
@@ -485,6 +517,7 @@ namespace Parse {
 		}
 	    }
 	}
+
 
 	public static bool didErrorsOccur() {
 	    return errors_occurred;
@@ -774,7 +807,7 @@ namespace Parse {
 	}
         
         void compile( CompileState state ) {
-            error( "oops: can't compile: " + Class.Name + " from " + new System.Backtrace() );
+            warn( "oops: can't compile: " + Class.Name + " from " + new System.Backtrace() );
 	    throw new System.NotImplementedException( "oops: can't compile: " + Class.Name );
             // IO.Std.err.println( "compiling: " + this + " results in ERROR" );
         }
@@ -793,21 +826,23 @@ namespace Parse {
 
 
         LLVM.Value compileValue( CompileState state, IRBlock into ) {
-            error( "oops: can't compile value: " + Class.Name + " from " + new System.Backtrace() );
+            warn( "oops: can't compile value: " + Class.Name + " from " + new System.Backtrace() );
 	    throw new System.NotImplementedException( "oops: can't compile value: " + Class.Name );
         }
 
         LLVM.Value compileAddress( CompileState state, IRBlock into ) {
-            error( "oops: can't compile address: " + Class.Name + " from " + new System.Backtrace() );
+            warn( "oops: can't compile address: " + Class.Name + " from " + new System.Backtrace() );
 	    throw new System.NotImplementedException( "oops: can't compile address: " + Class.Name );
         }
 
 
 	LLVM.Value ErrorValue() {
+	    IO.Std.err.println( "untyped error value from: " + new System.Backtrace() );
 	    return ErrorValue(LLVM.Calls.LLVMVoidType());
 	}
 
 	LLVM.Value ErrorValue(LLVM.Type t) {
+	    IO.Std.err.println( "error value from: " + new System.Backtrace() );
 	    return LLVM.Calls.LLVMGetUndef(t);
 	}	    
 
@@ -1423,6 +1458,105 @@ namespace Parse {
 	    no_code_after_return = true;
 	}
 
+
+        void compile( CompileState state, IRBlock into ) {
+	    // IO.Std.err.println( "return, method: " + state.CurrentMethod );
+	    Type method_type = state.CurrentMethod.Type;
+	    // IO.Std.err.println( "return, type: " + method_type );
+
+	    LLVM.Value t;
+
+            if( expression != null ) {
+                Type expr_type = expression.getType( state );
+
+		if( expr_type == null ) {
+		    throw new Exception( "weird: return expression: " + expression + " has null type" );
+		}
+                
+                if( !method_type.isAssignableFrom( expr_type ) ) {
+		    error( "cannot return value of type " + expr_type.dump() + " from method of type " + method_type.dump() );
+                }
+		
+		int et_size = expr_type.RegSize;
+		int mt_size = method_type.RegSize;
+
+		t = expression.compileValue( state, into );
+
+		t = makeLLVMCast( t, state.CurrentMethod.Type.getLLVMType(state), into );
+            } else {
+                if( method_type.TypeKind != Type.VOID ) {
+                    error( "method must return a value of type " + method_type.dump() );
+
+		    t = ErrorValue( state.CurrentMethod.Type.getLLVMType(state) );
+                } else {
+		    t = null;
+		}
+            }
+
+
+            // return from within a try: 
+            //   has a finally or within an out
+            // need a throw return 
+            // return from within a catch: need a throw return
+            // return from within a finally: 
+            //   inner finally:  need a throw return (there is always an outer finally to catch it)
+            //   outermost finally: can return but need stack adjust
+            
+            // if we're in an exception handler, and we're not in an outermost finally, then we need to throw a return
+
+            if( state.InExceptionHandler ) {
+		throw new System.NotImplementedException("return with active exception handlers" );
+		/*
+		ILabel return_label = null;
+
+		ExceptionDescriptor ed = state.TopFinallyOrReturn;
+
+		if( ed == null ) {
+		    throw new Exception( "no finally or return handler found on exception handler stack" );
+		}
+
+		return_label = ed.code_label;
+
+                if( expression != null ) {
+		    into.add( new ITree( line_number,
+					     Op.THROW_RETURN, Machine.WORD, 
+					     t,
+					     return_label ) );
+                } else {
+                    into.add( new ITree( line_number,
+                                         Op.THROW_RETURN, Machine.WORD,
+					 new ITree( line_number, Op.CONST, Machine.WORD, 0 ),
+					 return_label ) );
+                }
+	    } else if( no_code_after_return ) {
+		// IO.Std.err.println( "return statement: no jump to return label required" );
+		// don't do any branch optimizations so if we don't do this, all method calls that return a result,
+		// including all inlined calls, will require a jump to the return label even if no code between
+		// the return statement and the function epilog:		
+		if( expression != null ) {
+		    into.add( new ITree( line_number,
+					 Op.RESULT_F,
+					 0,
+					 t )
+			      );
+		    into.add( new ITree( line_number, Op.COMMENT, 0, "fall through to function exit here" ) );
+		}
+		*/
+	    } else {
+                // regular return
+                if( expression != null ) {
+		    into.Ret( t );
+		} else {
+		    into.RetVoid();
+		}
+		into.Label(into.Block());
+		//    }
+            
+            //    into.add( new ITree( line_number, Op.LEAVE, 4 ) );
+	    }
+        }
+
+
         void compile( CompileState state, IBlock into ) {
 	    // IO.Std.err.println( "return, method: " + state.CurrentMethod );
 	    Type method_type = state.CurrentMethod.Type;
@@ -1888,6 +2022,12 @@ namespace Parse {
 
 		LLVM.Value r = right_value.compileValue( state, into );
 
+		if( r == null ) {
+		    IO.Std.err.println( "compiled to null: " + right_value );
+		    IO.Std.err.println( "root type is: " + right_value.Class.Name );
+		}
+		   
+
 		IO.Std.err.print( "right value: " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue( r );
 
@@ -2080,6 +2220,82 @@ namespace Parse {
 	    left_value.checkInline(state);
 	    right_value.checkInline(state);
 	}
+
+        
+        LLVM.Value compileAddress( CompileState state, IRBlock into ) {
+            LLVM.Value cl, cr;
+
+	    if( method_call != null ) {
+		IO.Std.err.println( "oops: should not compileAddress for indexed object property access" );		
+		return ErrorValue();
+	    }
+
+            cl = left_value.compileValue(state, into);
+            cr = right_value.compileValue(state, into);
+
+	    if( state.WantBoundsCheck ) {
+
+		IO.Std.err.println( "FIXME: array bounds check here" );
+		/*
+
+		cl = cl.foldConstants();
+		cr = cr.foldConstants();
+
+		if( !cl.isSimple() ) {
+		    int tl = TempFactory.nextTemp();
+		    into.add( makeStoreTemporary( tl, Machine.WORD, cl ) );
+		    cl = makeLoadTemporary( tl, Machine.WORD );
+		}
+		
+		if( !cr.isSimple() ) {
+		    int tr = TempFactory.nextTemp();
+		    into.add( makeStoreTemporary( tr, Machine.WORD, cr ) );
+		    cr = makeLoadTemporary( tr, Machine.WORD );
+		}
+		
+		if( state.WantSplitBounds ) {
+		    ILabel bounds_label = TempFactory.nextLabel();
+		    
+		    into.add( new ITree( line_number, Op.BOUNDS_R, 0, cl, cr, bounds_label ) );
+		    into.addEpilog( new ITree( line_number, Op.BOUNDS_L, 0, bounds_label ) );
+		    
+		} else {
+		    into.add( new ITree( line_number, Op.BOUNDS, 0, cl, cr ) );
+		}
+		*/
+	    } else {
+		if( state.WantMarkUnsafe ) {
+		    state.markCodeUnsafe( CompileState.UNSAFE_BOUNDS );
+		}
+		if( state.WantWarnUnsafe ) {
+		    warn( "array subscript not checked at runtime" );
+		}
+	    }
+
+	    // let back end know jump to exception handler possible here:
+	    addDummyExceptionHandlerJump( state, line_number, into );
+
+	    return makeGetArrayDataPointer( state, line_number, into, cl, cr );            
+        }
+
+        LLVM.Value compileValue( CompileState state, IRBlock into ) {
+	    getType(state);
+	    if( method_call == null ) {
+		// IO.Std.err.println( "no method call: " + this + ", type: " + type );
+		// cannot throw null pointer exception if previously bounds checked as would already have done so:
+		return makeLoadIndirect( state, line_number, into, !state.WantBoundsCheck, compileAddress(state, into) );
+	    } else {
+		// IO.Std.err.println( "have method call: " + this + ", type: " + type );
+		if( want_set_value ) {
+		    // IO.Std.err.println( "array access setter method has no value here: " + new System.Backtrace() );
+		    method_call.compileDiscardValue( state, into );
+		    return ErrorValue();
+		} else {
+		    return method_call.compileValue( state, into );
+		}
+	    }
+        }
+
         
         ITree compileAddress( CompileState state, IBlock into ) {
             ITree cl, cr;

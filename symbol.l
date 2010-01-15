@@ -204,9 +204,14 @@ namespace Parse {
 	    return llvm_value;
 	}
 
+	static String created_at;
+
 	LLVM.Value getLocal(CompileState state, IRBlock into) {
 	    if( llvm_value == null ) {
-		llvm_value = into.Alloca(Type.getLLVMType(state));
+		throw new System.Exception( "no local value: " + HumanName );
+	    } else {
+		IO.Std.err.print( "JJJJ: existing alloca " + HumanName + " :"); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue( llvm_value );
 	    }
 
 	    return llvm_value;
@@ -277,6 +282,7 @@ namespace Parse {
 
         set Container Owner = owner {
             this.owner = owner;
+	    IO.Std.err.println( "set owner " + HumanName + " from: " + new System.Backtrace() ); 
         }
 
         set Type Type = type {

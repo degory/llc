@@ -495,18 +495,15 @@ namespace Parse {
 		error( "not calling method " + symbol.HumanName + " here" );
 		return ErrorValue();
 	    } else if( k == Symbol.ATTRIBUTE_LENGTH ) {
-		/* FIXME: getelementptr here once array layout is defined
-		// need to allow for null pointer exception to be thrown here:
-		return makeLoadIndirect( state, into, true,
-					 into.Add(
-						    left_value.compileValue(state,into),
-						    
-						    LLVM.Calls. Machine.VECTOR_LENGTH_OFFSET/Machine.WORD )
-						    )
-					 );
-		*/
-		return ErrorValue();
+		at = left_value.getType(state);
+
+		return
+		    makeGetArraySize( state, line_number, into, left_value.compileValue(state,into) );
+						      							       		
             } else if( k == Symbol.ATTRIBUTE_ARRAY ) {
+		return
+		    makeGetArrayDataPointer( state, line_number, into, left_value.compileValue(state,into) );
+
 		/*
                 return new ITree( line_number, Op.ADD, Machine.WORD,
                                   left_value.compileValue(state,into),
@@ -523,28 +520,29 @@ namespace Parse {
 		*/
 		return ErrorValue();
 	    } else if( k == Symbol.ATTRIBUTE_ADDRESS ) {
-		/*
                 at = left_value.getType( state );
+
 		if( at.TypeKind == Type.VECTOR ) {
-		    return new ITree( line_number, Op.ADD, Machine.WORD,
-				      left_value.compileValue(state,into),
-				      new ITree( line_number, Op.CONST, Machine.WORD, Machine.VECTOR_DATA_OFFSET )
-				      );
+		    // FIXME: this is stupid, .address should have a consistent meaning:
+		    return
+			makeGetArrayDataPointer( state, line_number, into, left_value.compileValue(state,into) );
+
 		} else if( !at.isContainer() ) {
 		    left_value.markAddressTaken(state);
 		    return left_value.compileAddress(state,into);
 		} else {
 		    error( "cannot take address of " + left_value );
+		    return ErrorValue();
 		}
-		*/
-		return ErrorValue();
+
 	    } else if( k == Symbol.ATTRIBUTE_SIZE ) {
 		at = left_value.getType( state );
-		// IO.Std.err.println( "sizeof: " + left_value + ", type: " + at + " reg size: " + at.RegSize );
 
-		// FIXME: size should probably be a word but word type not well supported and objects with sizes
-		// larger than 2 Gig not likely (especially since we're returning the *register* size here...) 
-		return LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(), cast long(at.RegSize), 0);
+		IO.Std.err.println( "size of type: " + at );
+		IO.Std.err.print( "LLVM type: " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpType( at.getLLVMType(state) );
+
+		return LLVM.Calls.LLVMConstTypeSize( at.getLLVMType(state) );
 	    } else if( k == Symbol.ATTRIBUTE_BOX ) {
 		at = getType(state);
 		// IO.Std.err.println( "attribute type is: " + at );
@@ -603,11 +601,13 @@ namespace Parse {
 		    }
 
 		    LLVM.Value t = left_value.compileValue( state, into );
+		    IO.Std.err.println( "FIXME: relying on container being correct here, left_value.getType(state).Clazz might be better?" );
                     result = compileLoad( state, into, symbol, container, null, null, t, ref_flag, null );
                     
                     return result;
                 }
             } else {
+		IO.Std.err.println( "FIXME: static or local - container not needed here" );
                 return compileLoad( state, into, symbol, container, null, null, null, LOAD_FLAG_STATIC, null );
             }
 	}
@@ -640,17 +640,15 @@ namespace Parse {
                 error( "cannot take address of constant " + symbol.HumanName );
 		return ErrorValue( LLVM.Calls.LLVMPointerType(getType(state).getLLVMType(state),0) );
             } else if( (k & Symbol.FLAG_STATIC) == 0 ) {
-		if( container == null ) {
-		    container = symbol.Owner;
-		}
-
                 if( left_value == null ) {
-                    return compileLoad( state, into, symbol, container, null, null, null, ref_flag, null );
+                    return compileLoad( state, into, symbol, state.CurrentClass, null, null, null, ref_flag, null );
                 } else {
+		    IO.Std.err.println( "FIXME: relying on container being correct here, left_value.getType(state).Clazz might be better?" );
                     LLVM.Value t = left_value.compileValue( state, into );
                     return compileLoad( state, into, symbol, container, null, null, t, ref_flag, null );
                 }
             } else {
+		IO.Std.err.println( "FIXME: static or local - container not needed here" );
                 return compileLoad( state, into, symbol, container, null, null, null, LOAD_FLAG_ADDRESS | LOAD_FLAG_STATIC, null );
             }
         }
@@ -924,6 +922,17 @@ namespace Parse {
 	    left.checkInline( state );
 	}
         
+        LLVM.Value compileValue( CompileState state, IRBlock into ) {
+	    // need to allow for null pointer exception to be thrown here:
+            return makeLoadIndirect( state, line_number, into, true,
+				     left.compileValue( state, into )
+				     );
+        }
+
+        LLVM.Value compileAddress( CompileState  state, IRBlock into ) {
+            return left.compileValue( state, into );
+        }
+
         ITree compileValue( CompileState state, IBlock into ) {
 	    // need to allow for null pointer exception to be thrown here:
             return makeLoadIndirect( state, line_number, into, getType( state ).RegSize, true,

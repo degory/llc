@@ -702,7 +702,13 @@ namespace Parse {
 	}
 
 	get LLVM.Module Module {
-	    return module;
+	    if( CurrentClass != null ) {
+		// IO.Std.err.println( "returning module for: " + CurrentClass.HumanName );
+		return CurrentClass.LLVMModule;
+	    } else {
+		IO.Std.err.println( "oops: LLVM module requested outside of class" );
+		return module;
+	    }
 	}
 
 	LLVM.Value getRuntimeFunction( RuntimeFunction f ) {
@@ -1271,7 +1277,10 @@ namespace Parse {
 	    }
 	   
 	    LLVM.Calls.LLVMDumpModule( module );
-	    linkObjectFiles();
+	    LLVM.Calls.LLVMWriteBitcodeToFile(Module, `test.bc`);
+
+
+	    // linkObjectFiles();
 
 	    ParseTree.message( "done" );
         }

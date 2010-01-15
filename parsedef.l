@@ -1011,7 +1011,8 @@ namespace Parse {
 		    state.InlineOK = false;
 
 		    // block.add( new ITree( 0, Op.DUMMY_JUMP, 8, dummy_exit ) );
-		    IO.Std.err.println( "compiling class body for " + c.getDecoratedName() );
+		    IO.Std.err.println( "FIXME: not compiling class body for " + c.getDecoratedName() );
+		    /*
                     body.compile( state, block );
                     
 		    // block.add( new ITree( 0, Op.LABEL, 8, dummy_exit ) );
@@ -1021,6 +1022,7 @@ namespace Parse {
 			// IO.Std.err.println( "gen class body, address taken: " + address_taken );
 			genMethod( state, block, address_taken, frame_flags );
                     }
+		    */
                     
                     body.compile( state );
 
@@ -1068,6 +1070,11 @@ namespace Parse {
                     if( !errors_occurred ) {
 		        // IO.Std.err.println( "assembling: " + c.getHumanName() );
                         state.assembleFile( c.FileName );
+		    
+			IO.Std.err.println( "ZZZZ: compiled: " + c.HumanName + ", try write module " + cast int(c.LLVMModule) + " to file..." ); IO.Std.err.flush();
+
+			LLVM.Calls.LLVMDumpModule(c.LLVMModule);
+			LLVM.Calls.LLVMWriteBitcodeToFile(c.LLVMModule, (c.DecoratedName + ".bc").toCString() );
 
 			state.dumpActiveClasses( c.FileName );
                     } else {
@@ -1673,7 +1680,7 @@ namespace Parse {
 
 		    v = sy.getLocal(state, into);
 		} else {
-		    v = into.Alloca( m.Owner.Type.getLLVMType(state) );
+		    v = into.Alloca( m.Owner.Type.getLLVMType(state), "this" );
 		    state.CurrentMethod.ThisPointer = v;
 		}
 
@@ -2108,15 +2115,15 @@ namespace Parse {
 	    var fg = m.getFunctionGlobal(state);
 
 	    LLVM.Calls.LLVMSetFunctionCallConv(fg, LLVM.LLVMCallConv.LLVMCCallConv);
-	    var bb = LLVM.Calls.LLVMAppendBasicBlock(fg,`entry`);
-	    var builder = LLVM.Calls.LLVMCreateBuilder();
-	    LLVM.Calls.LLVMPositionBuilderAtEnd(builder, bb);
 
+	    var into = new IRBlock( state, fg );	   
 
             if( m == null ) {
                 throw new Exception( "couldn't find previous definition for " + human + " (" + decorated + ")" );
                 return;
             }
+
+	    m.allocaLocals( state, into );
 
 	    if( state.WantVeryVerbose ) {
 		message( "compile method: " + human );
@@ -2173,7 +2180,6 @@ namespace Parse {
 	    }
 
 	    state.endParseMethodBody(m);
-	    IRBlock into = new IRBlock(builder);
 	    // into.WantLineNumbers = state.WantLineNumbers;                
 	    
 	    /*
@@ -2186,9 +2192,24 @@ namespace Parse {
 
 	    try {
 		body.compile( state, into );
+
+		if( m.Type.isVoid() ) {
+		    into.RetVoid();
+		} else {
+		    into.Ret(m.Type.getLLVMNull(state));
+		}
+		into.Close();		
+		success = true;
 	    } catch( System.NotImplementedException nie ) {
+		into.Close();
+		LLVM.Calls.LLVMRemoveFunction(fg);
+		// LLVM.Calls.LLVMDeleteFunction(fg);
 		IO.Std.err.println( "" + m.HumanName + ": " + nie );
+		success = false;
 	    }
+
+
+
 	    // IO.Std.err.println( "method def: compile B last is return: " + last_return );
 	    
 	    if( m.Type.TypeKind != Type.VOID ) {
@@ -2247,33 +2268,41 @@ namespace Parse {
 
 	    */
 	    
-	    success = true;
+
 	    state.InlineOK = false;
 	    
-	    into = null;
-
-
-	    if( m.Type.isVoid() ) {
-		LLVM.Calls.LLVMBuildRetVoid(builder);
-	    } else {
-		var res = m.Type.getLLVMNull(state);
-
-		LLVM.Calls.LLVMBuildRet(builder, res);
+	    if( state.Module != m.Owner.LLVMModule ) {
+		throw new System.Exception( "WWWW: oops state.Module != method.LLVMModule" );
 	    }
 
-	    LLVM.Calls.LLVMDisposeBuilder(builder);
+
 	    // message( human );
 
-	    LLVM.Calls.LLVMDumpValue( fg );
-	    native.__flush_stdout();
+	    if( success ) {
+		LLVM.Calls.LLVMCleanUpFunction(fg);
 
-	    if( !success ) {
-		throw new Exception( "failed to compile " + human );
+		LLVM.Calls.LLVMDumpValue( fg );
+		native.__flush_stdout();
+
+		IO.Std.err.println( "VVVV: will verify function: " + human ); IO.Std.err.flush();
+
+		if( LLVM.Calls.LLVMVerifyFunction( fg, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction ) != 0 ) {
+		    IO.Std.err.println( "VVVV: failed to function verify: " + human ); IO.Std.err.flush();
+		}
+
+		char ptr msg;
+		IO.Std.err.println( "VVVV: will verify module: " + m.Owner.HumanName ); IO.Std.err.flush();
+
+		if( LLVM.Calls.LLVMVerifyModule( state.Module, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction, msg.address ) != 0 ) {
+		    IO.Std.err.println( "VVVV: failed to module verify: " + human ); IO.Std.err.flush();
+		    if( msg != null ) {
+			IO.Std.err.println( "message: " + new String(msg) );
+		    }
+		}
 	    }
-
 	    // IO.Std.err.println( "finished compile: " + human );
 	    Machine.emitEndUnwindInfo( state.Output, decorated, human, state.WantLineNumbers, frame_flags, ro_start, ro_end );
-
+	    
 	    Machine.emitRoDataSegment( f );
 	    Machine.emitLabel( f, ro_end.Int );
 	    Machine.emitTextSegment( f );

@@ -20,8 +20,8 @@ namespace Parse {
         
         void init() {
             super.init();
-            itable_offset = Machine.WORD;
-            vtable_offset = Machine.WORD * 2; // one word for super-class pointer, one word for reference bits
+            itable_offset = 1; // Machine.WORD;
+            vtable_offset = 2; // Machine.WORD * 2; // one word for super-class pointer, one word for reference bits
             // hash = 0;
         }
     }
@@ -43,7 +43,7 @@ namespace Parse {
 
 	CompileStatus compile_status;
 
-	LLVM.Module module;
+	LLVM.Module llvm_module;
 	// LLVM.Value global;
 	// LLVM.Value static_global;
 	LLVM.Value this_pointer;
@@ -143,6 +143,23 @@ namespace Parse {
 	    // IO.Std.err.println( "add interface " + c.HumanName + " to " + HumanName + ": " + implements_list );
 	}
 
+	get LLVM.Module LLVMModule {
+	    // IO.Std.err.println( "get module for: " + HumanName );
+	    if( llvm_module == null ) {
+		IO.Std.err.println( "creating new module: " + DecoratedName );
+		llvm_module = LLVM.Calls.LLVMModuleCreateWithName( DecoratedName.toCString() );
+	    }
+	    IO.Std.err.println( "module for " + HumanName + " is " + cast int(llvm_module) );
+	    return llvm_module;
+	}
+
+	set LLVM.Module LLVMModule = m {
+	    if( llvm_module != null ) {
+		IO.Std.err.println( "oops: overwriting existing LLVM module" );
+	    }
+	    llvm_module = m;
+	}
+
 	get LLVM.Type LLVMType {
 	    // IO.Std.err.println( "get LLVMType for " + HumanName );
 	    
@@ -220,10 +237,12 @@ namespace Parse {
 	}
 
 	LLVM.Value getFunctionGlobal(CompileState state) {
+	    LLVM.Value v;
+	    /*
 	    LLVM.Value v = LLVMValue;
 	    if( v != null ) {
 		return v;
-	    }
+		}*/
 
 	    char ptr name = DecoratedName.toCString();
 
@@ -256,21 +275,31 @@ namespace Parse {
 	}
 
 	LLVM.Value getCTableGlobal(CompileState state) {
+	    LLVM.Value v;
+	    /*
 	    LLVM.Value v = LLVMValue;
 	    if( v != null ) {
 		return v;
-	    }
+		}*/
 
 	    char ptr name = ("__ctable_" + DecoratedName).toCString();
 
 	    v = LLVM.Calls.LLVMGetNamedGlobal(state.Module, name);
 	    if( v == null ) {
-		v = LLVM.Calls.LLVMAddGlobal(state.Module, LLVM.Calls.LLVMArrayType(LLVM.Calls.LLVMVTableType(), VTableSize + IFaceOffset + 3), name);
+		v = LLVM.Calls.LLVMAddGlobal(state.Module, LLVM.Calls.LLVMArrayType(LLVM.Calls.LLVMVTableFunctionType(), VTableSize + IFaceOffset + 1), name);
 	    }
 
 	    LLVMValue = v;
 	    
 	    return v;
+	}
+
+	void allocaLocals(CompileState state, Gen.IRBlock into) {
+	    foreach( Symbol s; members.SymbolList.elements() ) {
+		if( s.IsLocal ) {
+		    s.LLVMValue = into.Alloca( s.Type.getLLVMType(state), s.Name );
+		}
+	    }
 	}
 
 	LLVM.Value getLocalVariable(CompileState state) {
@@ -287,8 +316,11 @@ namespace Parse {
 
 	get int IFaceOffset {
 	    if( iface_offset < 0 ) {
+		IO.Std.err.println( "BBBB: need to calculate iface offset" );
 		// if iface offset not yet calculated, calculate it now:
 		iface_offset = calcIFaceOffset();
+	    } else {
+		IO.Std.err.println( "BBBB: return existing iface offset " + iface_offset );
 	    }
 
 	    return iface_offset;
@@ -362,6 +394,7 @@ namespace Parse {
 
 
 	int getGEPDepth( Symbol s ) {
+	    IO.Std.err.println( "GEP depth: " + s.HumanName + ", owner: " + s.Owner.HumanName + ", from: " + HumanName + "..." );
 	    if( this == null ) {
 		IO.Std.err.println( "getGEPDepth: " + s.HumanName + " null owner from: " + new System.Backtrace() );
 	    } else if( s.Owner == this ) {
@@ -369,7 +402,7 @@ namespace Parse {
 		return 1;
 	    } else if( parent == null ) {
 		IO.Std.err.println( "getGEPDepth: " + s.HumanName + " not found from: " + new System.Backtrace() );
-		return 0;
+		throw new System.NotImplementedException( "GEP not owner: " + s.HumanName );
 	    } else {
 		IO.Std.err.println( "GEP: strip " + HumanName );
 		return parent.getGEPDepth(s) + 1;
@@ -1343,7 +1376,7 @@ namespace Parse {
                 address.itable_offset = 0;
             }
 
-	    // IO.Std.err.println( "build class tables: " + HumanName );
+	    IO.Std.err.println( "build class tables: " + HumanName );
 
             int stable_offset = 0;
         
@@ -1383,7 +1416,11 @@ namespace Parse {
                         }
                     
                         current.Address = address.vtable_offset;
-                        address.vtable_offset = address.vtable_offset + Machine.WORD;
+
+			IO.Std.err.println( "BBBB: method " + current.HumanName + " @ " + address.vtable_offset );
+
+			// method doesn't override anything - it needs its own vtable slot:
+                        address.vtable_offset = address.vtable_offset + 1;
                     } else {
                         ancestor.IsFinal = false;
 
@@ -1404,6 +1441,8 @@ namespace Parse {
                         } else {
                             current.Address = ancestor.Address;
                         }
+
+			IO.Std.err.println( "BBBB: override " + current.HumanName + " @ " + current.Address );
                     }
                 } else if( k == Symbol.STATIC_VARIABLE ) {
                     if( current.IsAddressValid ) {
@@ -1462,7 +1501,7 @@ namespace Parse {
 	    
 	    llvm_struct_type_handle = LLVM.Calls.LLVMCreateTypeHandle( LLVM.Calls.LLVMStructType(llvm_fields.address, llvm_fields_i, 0 ) );
 			       
-	    address.itable_offset = align(address.itable_offset,Machine.WORD);
+	    // address.itable_offset = align(address.itable_offset,Machine.WORD);
         
             itable_offset = address.itable_offset;
             vtable_offset = address.vtable_offset;
@@ -1470,6 +1509,8 @@ namespace Parse {
 	    this.ref_bits = ref_bits;
 
 	    // IO.Std.err.println( "ref bits now: " + ref_bits );
+
+	    IO.Std.err.println( "BBBB: vtable size now: " + VTableSize );
 	    
             tables_valid = true;
         }
@@ -1491,22 +1532,22 @@ namespace Parse {
 
 	void emitTables( CompileState state, ParseTree from ) {
 
-	    IO.Std.err.println( "emit tables: " + HumanName );
+	    IO.Std.err.println( "BBBB: emit tables: " + HumanName );
 	    var buffer = new Generic.Vector<LLVM.Value>();
 
 	    emitInterfaceTables( state, from, buffer );
 
-	    IO.Std.err.println( "after interface tables buffer has " + buffer.Length + " elements" );
+	    IO.Std.err.println( "BBBB: after interface tables buffer has " + buffer.Length + " elements versus interface offset" + IFaceOffset );
 
 	    buffer.add( LLVM.Calls.LLVMConstPointerNull( LLVM.Calls.LLVMVTableFunctionType() ) );
 	    buffer.add( LLVM.Calls.LLVMConstPointerNull( LLVM.Calls.LLVMVTableFunctionType() ) );
 	    buffer.add( LLVM.Calls.LLVMConstPointerNull( LLVM.Calls.LLVMVTableFunctionType() ) );
 
 
-	    IO.Std.err.println( "before class tables buffer has " + buffer.Length + " elements" );
+	    IO.Std.err.println( "BBBB: before class tables buffer has " + buffer.Length + " elements" );
 	    emitClassTables( state, this, buffer );
 
-	    IO.Std.err.println( "after class tables buffer has " + buffer.Length + " elements" );
+	    IO.Std.err.println( "BBBB: after class tables buffer has " + buffer.Length + " elements versus " + (VTableSize + IFaceOffset + 3) );
 
 	    var v = buffer.Array;
 
@@ -1523,12 +1564,23 @@ namespace Parse {
 					      LLVM.Calls.LLVMVTableFunctionType(),
 					      v.address,
 					      v.length
-					      );
+					      );	    
+
+	    IO.Std.err.print( "ctable initializer value is: " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpValue( a );
+	    IO.Std.err.print( "ctable initializer type is:  " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf( a ) );
 
 	    var ct = getCTableGlobal(state);
 
+	    IO.Std.err.print( "ctable global variable is:   " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpValue( ct );
+	    IO.Std.err.print( "ctable global type is:       " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf( ct ) );
+
 	    LLVM.Calls.LLVMSetInitializer(
 					  ct,
+					  // ParseTree.makeLLVMConstCast( a, LLVM.Calls.LLVMGetElementType(LLVM.Calls.LLVMTypeOf(ct)) )
 					  a
 					  );
 
@@ -1538,7 +1590,9 @@ namespace Parse {
 	}
 
 	void emitInterfaceTables( CompileState state, ParseTree from, Generic.Vector<LLVM.Value> buffer ) {
+	    IO.Std.err.println( "BBBB: emit interface tables " + HumanName + " expect to need " + iface_offset + " slots" );
 	    if( implements_list == null ) {
+		IO.Std.err.println( "BBBB: no interfaces implemented" );
 		// Machine.emitWeak( state.Output, "__ctable__" + DecoratedName );
 		return;
 	    }
@@ -1589,7 +1643,7 @@ namespace Parse {
 			IO.Std.err.println( "weird: already implemented: " + slots[slot].HumanName + " versus " + i.HumanName );
 		    }
 		    
-		    // IO.Std.err.println( "implement slot #" + slot + ": " + i.HumanName );
+		    IO.Std.err.println( "BBBB: implement slot #" + slot + ": " + i.HumanName );
 		    slots[slot] = i;
 		}
 	    }
@@ -1640,6 +1694,8 @@ namespace Parse {
 	    Container i;
 	    int io = -1;
 
+	    IO.Std.err.println( "BBBB: calc iface offset for " + HumanName );
+
 	    foreach( Container c; implemented.elements() ) {
 		foreach( Symbol s; c.members.SymbolList.elements() ) {
 		    if( !s.IsMethod ) {
@@ -1651,11 +1707,13 @@ namespace Parse {
 		    // IO.Std.err.println( "looking for method: " + s.HumanName + "..." );
 
 		    if( slot > io ) {
+			IO.Std.err.println( "BBBB: largest slot so far is " + slot );
 			io = slot;
 		    }
 		}
 	    }
 
+	    IO.Std.err.println( "BBBB: result is " + io + 1 );
 	    return io + 1;
 	}
 
@@ -1729,18 +1787,17 @@ namespace Parse {
                                 }
 				// state.Output.println( "# ca: " + ca + ", sa: " + candidate.Address );
 				*/
+				buffer.add(
+					   LLVM.Calls.LLVMConstPointerCast(
+									   candidate.getFunctionGlobal(state),
+									   LLVM.Calls.LLVMVTableFunctionType()
+									   )
+					   );
+
+				IO.Std.err.println( "BBBB: buffer[" + buffer.Length + "] = " + candidate.HumanName + " @ " + candidate.Address );
 
                                 Machine.emitDefPointer( state.Output, candidate.DecoratedName );
                             }
-
-			    buffer.add(
-				       LLVM.Calls.LLVMConstPointerCast(
-								  candidate.getFunctionGlobal(state),
-								  LLVM.Calls.LLVMVTableFunctionType()
-								  )
-				       );
-								  
-								  
                         }
                     }
                 } else if( current.Kind == Symbol.INSTANCE_VARIABLE ) {

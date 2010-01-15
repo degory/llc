@@ -8,6 +8,7 @@ namespace Parse {
 
     use Gen.ITree;
     use Gen.IBlock;
+    use Gen.IRBlock;
     use Gen.ILabel;
     use Gen.IString;
     use Gen.Machine;
@@ -15,11 +16,11 @@ namespace Parse {
     use Gen.MBitSet;
 
     class Loop extends Object {
-        public ILabel break_label;
-        public ILabel continue_label;
+        public LLVM.BasicBlock break_label;
+        public LLVM.BasicBlock continue_label;
         public String name;
         
-        void init( String name, ILabel bl, ILabel cl ) {
+        void init( String name, LLVM.BasicBlock bl, LLVM.BasicBlock cl ) {
             super.init();
             this.name = name;
             break_label = bl;
@@ -34,9 +35,13 @@ namespace Parse {
             label = new Vector<Loop>();
         }
 
-        void pushLoop( String name, ILabel break_label, ILabel exit_label ) {
+        void pushLoop( String name, LLVM.BasicBlock break_label, LLVM.BasicBlock exit_label ) {
             label.add( new Loop(name,break_label,exit_label));
         }
+
+	void pushLoop( String name, ILabel break_label, ILabel exit_label ) {
+	    label.add( new Loop(name, null, null) );
+	}
 
         void popLoop() {
             label.pop();
@@ -80,7 +85,7 @@ namespace Parse {
             super.init( line_number );
         }
         
-        void compile( CompileState state, IBlock into ) {
+        void compile( CompileState state, IRBlock into ) {
             String label = LoopName;
             Loop loop;
             if( label == null ) {
@@ -95,7 +100,7 @@ namespace Parse {
                 } else if( state.InExceptionHandler ) {
                     error( "break with exception handlers active: not implemented" );
                 } else {
-                    into.add( new ITree( line_number, Op.JUMP, 0, loop.break_label ) );
+		    into.Jump( loop.break_label );
                 }
             } else {
                 if( label != null ) {
@@ -130,7 +135,7 @@ namespace Parse {
             super.init( line_number );
         }
         
-        void compile( CompileState state, IBlock into ) {
+        void compile( CompileState state, IRBlock into ) {
             String label = LoopName;
             Loop loop;
             if( label == null ) {
@@ -145,7 +150,7 @@ namespace Parse {
                 } else if( state.InExceptionHandler ) {
                     error( "break with exception handlers active: not implemented" );
                 } else {
-                    into.add( new ITree( line_number, Op.JUMP, 0, loop.continue_label ) );
+		    into.Jump( loop.continue_label );
                 }
             } else {
                 if( label != null ) {
@@ -212,13 +217,13 @@ namespace Parse {
 	    block.checkInline( state );
 	}
 
-        void compile( CompileState state, IBlock into ) {
-            ILabel t = TempFactory.nextLabel();
-            ILabel e = TempFactory.nextLabel();
+        void compile( CompileState state, IRBlock into ) {
+            LLVM.BasicBlock t = into.Block();
+            LLVM.BasicBlock e = into.Block();
             
             state.Loops.pushLoop( LoopName, e, t );
-            into.add( new ITree( line_number, Op.ENTER_LOOP, 0 ) );
-            into.add( new ITree( line_number, Op.LABEL, 0, t ) );
+
+	    into.Label( t );
             
             // if( block != null ) {
                 block.compile( state, into );
@@ -226,11 +231,10 @@ namespace Parse {
 
 	    if( expression != null ) {
 		expression.compileBoolean( state, into, t, true );
+		into.Label( e );
 	    } else {
-		into.add( new ITree( line_number, Op.JUMP, 0, t ) );
+		into.JumpLabel( t, e );
 	    }
-	    into.add( new ITree( line_number, Op.LABEL, 0, e ) );
-	    into.add( new ITree( line_number, Op.LEAVE_LOOP, 0 ) );
 
             state.Loops.popLoop();
         }
@@ -303,13 +307,12 @@ namespace Parse {
 	}
 
         
-        void compile( CompileState state, IBlock into ) {            
-            ILabel t = TempFactory.nextLabel();
-            ILabel c = TempFactory.nextLabel();
-            ILabel e = TempFactory.nextLabel();
+        void compile( CompileState state, IRBlock into ) {
+            LLVM.BasicBlock t = into.Block();
+            LLVM.BasicBlock c = into.Block();
+            LLVM.BasicBlock e = into.Block();
             
             state.Loops.pushLoop( LoopName, e, c );
-	    into.add( new ITree( line_number, Op.ENTER_LOOP, 0 ) );
 
 	    Type u = expression.getType(state); 
 	    if( u.TypeKind != Type.BOOL ) {
@@ -317,11 +320,10 @@ namespace Parse {
 	    } else {
 		expression.compileBoolean( state, into, e, false );
 	    }
-            into.add( new ITree( line_number, Op.LABEL, 0, t ) );
+	    into.Label(t);
             block.compile( state, into );
             expression.compileBoolean( state, into, t, true );
-            into.add( new ITree( line_number, Op.LABEL, 0, e ) );
-            into.add( new ITree( line_number, Op.LEAVE_LOOP, 0 ) );
+	    into.Label(e);
             state.Loops.popLoop();
         }
         
@@ -695,10 +697,10 @@ namespace Parse {
 	}
 	*/
   
-        void compile( CompileState state, IBlock into ) {
-            ILabel top = TempFactory.nextLabel();
-            ILabel cont = TempFactory.nextLabel();
-            ILabel exit = TempFactory.nextLabel();
+        void compile( CompileState state, IRBlock into ) {
+            LLVM.BasicBlock top = into.Block();
+            LLVM.BasicBlock cont = into.Block();
+            LLVM.BasicBlock exit = into.Block();
             
             state.Loops.pushLoop( LoopName, exit, cont );
             
@@ -714,27 +716,24 @@ namespace Parse {
 		    condition.compileBoolean( state, into, exit, false ); // jump to exit on condition failed
 		}
             }
-            
-            into.add( new ITree( line_number, Op.LABEL, 0, top ) );
-            into.add( new ITree( line_number, Op.ENTER_LOOP, 0 ) );
+
+	    into.Label( top );
             
             statement.compile( state, into );
             
-            into.add( new ITree( line_number, Op.LABEL, 0, cont ) );
+	    into.Label( cont );
+
             if( increment != null ) {
                 increment.compile( state, into );
             }
             
             if( condition != null ) {
                 condition.compileBoolean( state, into, top, true ); // jump to top on condition true
+		into.Label( exit );
             } else {
-                into.add( new ITree( line_number, Op.JUMP, 0, top ) );
+		into.JumpLabel( top, exit );
             }
-            
-            into.add( new ITree( line_number, Op.LEAVE_LOOP, 0 ) );
-            
-            into.add( new ITree( line_number, Op.LABEL, 0, exit ) );
-            
+                         
             state.Loops.popLoop();
         }    
         

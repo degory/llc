@@ -8,6 +8,7 @@ namespace Parse {
 
     use Gen.ITree;
     use Gen.IBlock;
+    use Gen.IRBlock;
     use Gen.ILabel;
     use Gen.IString;
     use Gen.Machine;
@@ -59,18 +60,13 @@ namespace Parse {
 	    throw new CannotInlineException();
 	}
 
-        void compile( CompileState state, IBlock into ) {
-            ILabel e = TempFactory.nextLabel();
+        void compile( CompileState state, IRBlock into ) {
+            LLVM.BasicBlock e = into.Block();
             state.Loops.pushLoop( LoopName, e, null );
             
             Type type = expression.getType(state);
             
-            ITree temp = expression.compileValue(state,into);
-            if( !temp.isSimple() ) {
-                int t = TempFactory.nextTemp();
-                into.add( makeStoreTemporary( t, type.Size, temp ) );
-                temp = makeLoadTemporary( t, type.Size );
-            }
+            LLVM.Value temp = expression.compileValue(state,into);
 
             foreach( Case c; cases.elements() ) {
                 c.compile( state, into, temp, type, e );
@@ -80,9 +76,10 @@ namespace Parse {
                 default_block.compile( state, into );
             }
             
-            into.add( new ITree( line_number, Op.LABEL, 0, e ) );
+	    into.Label(e);
             state.Loops.popLoop();
         }
+
 
         void dump( CompileState state, StringBuffer into ) {
             into.append( "switch(" );
@@ -151,6 +148,63 @@ namespace Parse {
 	    expression_list.checkTemplates(state);
 	    block.checkTemplates(state);
 	}
+
+        
+        void compile( CompileState state, IRBlock into, LLVM.Value temp, Type type, LLVM.BasicBlock exit ) {
+            Vector<Expression> list = expression_list.List;
+            LLVM.BasicBlock next = into.Block();
+
+            if( list.Length == 1 ) {
+                Expression expression = list[0];
+                if( !type.isAssignableFrom(expression.getType(state)) ) {
+                    error( "AA: case expression " + expression.dump(state) + " of type " + expression.getType(state).dump() + " not compatible with switch expression of type " + type.dump() );
+                } else {
+
+		    into.Branch(
+				into.ICmp(
+					  LLVM.LLVMIntPredicate.LLVMIntNE, 
+					  temp,
+					  expression.compileValue(state,into)
+					  ),
+				
+				next
+				);
+			
+                }
+                block.compile( state, into );
+            } else {
+		LLVM.BasicBlock match = into.Block();
+                
+                foreach( Expression e; list.elements() ) {
+                    if( !type.isAssignableFrom(e.getType(state)) ) {
+                        error( "BB: case expression " + e.dump(state) + " of type " + e.getType(state).dump() + " not compatible with switch expression of type " + type.dump() );                  
+                    } else {
+			into.Branch(
+				    into.ICmp(
+					      LLVM.LLVMIntPredicate.LLVMIntEQ, 
+					      temp,
+					      e.compileValue(state, into)
+					      ),
+				    
+				    match
+				    );
+                    }
+                }
+
+
+		into.JumpLabel( next, match );
+
+                block.compile( state, into );
+            }
+
+            if( exit != null ) {
+		into.JumpLabel( exit, next );
+            } else {
+		IO.Std.err.println( "FIXME: looks wrong - case may be falling through here" );
+		into.Label( next );
+	    }
+        }
+
         
         void compile( CompileState state, IBlock into, ITree temp, Type type, ILabel exit ) {
             Vector<Expression> list = expression_list.List;
@@ -273,6 +327,35 @@ namespace Parse {
 	    }
 	    state.markCurrentMethodHasIf();
 	}
+
+
+        void compile( CompileState state, IRBlock into ) {
+            LLVM.BasicBlock f = into.Block();
+
+	    Type t = expression.getType(state); 
+	    if( t.TypeKind != Type.BOOL ) {
+	        error( "if condition is not bool: " + t );
+	    } else {
+		expression.compileBoolean( state, into, f, false );
+	    }
+
+            true_block.compile( state, into );
+            
+            if( false_block != null ) {
+		IO.Std.err.println( "if jump-label" );
+
+		LLVM.BasicBlock e = into.Block();
+	    
+		into.JumpLabel( e, f );
+
+                false_block.compile( state, into );
+                
+		into.Label( e );
+            } else {
+		into.Label( f );
+            }
+        }
+
 
         void compile( CompileState state, IBlock into ) {
             ILabel e = TempFactory.nextLabel();

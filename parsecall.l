@@ -152,7 +152,10 @@ namespace Parse {
 		IO.Std.err.print( "new vtable: " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue( vtable );
 
-				
+		IO.Std.err.print( "new sub type: " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpType( st.getLLVMType(state) );
+
+		// PointerType on type here as ConstTypeSize will strip off one level of pointer and compute size of pointed to type:
 		args = { size, LLVM.Calls.LLVMConstTypeSize(st.getLLVMType(state)), loadVTable( state, c, into ) };
 
 		v = into.Call( f, args );
@@ -189,7 +192,8 @@ namespace Parse {
 		IO.Std.err.println( "about to emit call __alloc_object" ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue(f);
 
-		args = { LLVM.Calls.LLVMConstTypeSize(getType(state).getLLVMType(state)), vtable };
+		// no PointerType on type here as class is already a pointer type and we want size of pointed to struct here:
+		args = { LLVM.Calls.LLVMConstTypeSizeIndirect(getType(state).getLLVMType(state)), vtable };
 
 		IO.Std.err.println( "args are:\n" ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue(args[0]);
@@ -204,6 +208,7 @@ namespace Parse {
 		args = ExpressionList.compilePush( arguments,
 						   state,
 						   v,
+						   method.Owner.Type,
 						   method.ArgTypes,
 						   into,
 						   true,
@@ -937,7 +942,7 @@ namespace Parse {
 		// IO.Std.err.println( "block now:\n" + into );
 
 	    } else if( left_value != null && !left_value.isClass( state ) ) {
-		// Std.err.println( "call A..." );
+		IO.Std.err.println( "call on non-class left value: " + left_value );
                 t = left_value.compileValue( state, into );
 
 		// FIXME: this is a bad place for this but MethodCall doesn't make it easy
@@ -986,12 +991,15 @@ namespace Parse {
                 Container super_class = null;
                 if( super_call ) {
                     super_class = left_value.getType(state).Clazz;
+		    IO.Std.err.println( "super call..." );
                 }
 
 		/*
 		IO.Std.err.println( "method call calling load: " + method );
 		IO.Std.err.println( "IIIIII: kind is " + method.Kind + " versus " + Symbol.STATIC_METHOD );
 		*/
+
+		IO.Std.err.println( "DDDD: arg types: " + method.ArgTypes );
 
                 t = compileLoad( state, into, method, null, arguments, method.ArgTypes, t, flags, super_class );
 
@@ -1008,6 +1016,7 @@ namespace Parse {
                 if( left_value.isClass( state ) ) {
                     flags = flags | LOAD_FLAG_STATIC;
 		}
+		IO.Std.err.println( "DDDD: arg types: " + method.ArgTypes );
 
                 t = compileLoad( state, into, method, null, arguments, method.ArgTypes, null, flags, null );
             } else {
@@ -1015,6 +1024,7 @@ namespace Parse {
                 if( state.CurrentMethod.IsStatic ) {
                     flags = flags | LOAD_FLAG_STATIC;
 		}
+		IO.Std.err.println( "DDDD: arg types: " + method.ArgTypes );
 
                 t = compileLoad( state, into, method, null, arguments, method.ArgTypes, t, flags, null );
             }

@@ -85,6 +85,18 @@ namespace Generic is
 	    fi
 	end
 
+	String toString() is
+            var result = new StringBuffer();
+            for int i = 0; i < length; i = i + 1 do
+               if i != 0 then
+	           result.append(',');			
+               fi
+ 	       result.append(cast word(this[i]));
+	    od
+
+            return result;
+        end
+
         /// \attention: checks reference equality only for reference types
 	bool contains( T v ) is
 	    for int i = 0; i < length; i = i + 1 do
@@ -147,17 +159,6 @@ namespace Generic is
         end
 */
 
-	String toString() is
-            var result = new StringBuffer();
-            for int i = 0; i < length; i = i + 1 do
-               if i != 0 then
-	           result.append(',');			
-               fi
- 	       result.append(cast word(this[i]));
-	    od
-
-            return result;
-        end
     end
 
     /// an Iterator<T> that returns each element of an array in increasing index order
