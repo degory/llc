@@ -210,13 +210,23 @@ namespace Parse {
 
     class ExceptionDescriptor extends Object {
 	public EDType type;
-	public ILabel descriptor_label;
-	public ILabel code_label;
+	public LLVM.BasicBlock descriptor_label;
+	public LLVM.BasicBlock code_label;
 
-	void init( EDType type, ILabel dl, ILabel cl ) {
+	public LLVM.Value exception_type;
+	public LLVM.Value exception_value;
+
+	void init( EDType type, LLVM.BasicBlock dl, LLVM.BasicBlock cl, LLVM.Value et, LLVM.Value ev ) {
 	    this.type = type;
 	    descriptor_label = dl;
 	    code_label = cl;
+
+	    if( code_label == null ) {
+		IO.Std.err.println( "TTTT: exception descriptor with null code label from: " + new System.Backtrace() );
+	    }
+		
+	    exception_type = et;
+	    exception_value = ev;
 	}
     }
 
@@ -353,6 +363,76 @@ namespace Parse {
 	}
 	*/
 
+	static LLVM.Value callOrInvoke(
+				       CompileState state,
+				       IRBlock into,
+				       LLVM.Value f,
+				       LLVM.Value[] args ) {
+
+	    if( state.InExceptionHandler ) {		
+		LLVM.BasicBlock l = into.Block();
+
+		LLVM.BasicBlock handler = state.TopException.code_label;
+		if( handler == null ) {
+		    throw new System.Exception( "call or invoke: in exception handler but no code label" );
+		} else {
+		    IO.Std.err.print( "TTTT: invoke f: " ); IO.Std.err.flush();
+		    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(f) );
+
+		    IO.Std.err.print( "TTTT: handler: " ); IO.Std.err.flush();
+		    LLVM.Calls.LLVMDumpValue( LLVM.Calls.LLVMBasicBlockAsValue(handler) );
+		}
+
+		var v = into.Invoke( f, args, l, handler );
+
+		into.Label(l);
+		return v; 
+	    } else {
+		return into.Call( f, args );
+	    }
+	}
+
+
+	protected static int string_number = 0;
+
+	static LLVM.Value makeCStringConstant( CompileState state, String s ) {
+	    var v = LLVM.Calls.LLVMConstString(
+					       s.toCString(),
+					       s.Length,
+                                               0
+					       );
+
+	    IO.Std.err.print( "const C string:  " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpValue( v );
+
+	    var g = LLVM.Calls.LLVMAddGlobal( state.Module, LLVM.Calls.LLVMTypeOf(v), ("__string_" + string_number).toCString() );
+	    string_number = string_number + 1;
+	    LLVM.Calls.LLVMSetInitializer( g, v );
+
+	    IO.Std.err.print( "global C string: " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpValue( g );
+
+	    var elements = {
+		LLVM.Calls.LLVMConstInt(
+					LLVM.Calls.LLVMInt32Type(),
+					0L,
+					0
+					),
+		LLVM.Calls.LLVMConstInt(
+					LLVM.Calls.LLVMInt32Type(),
+					0L,
+					0
+					)
+	    };
+
+
+	    IO.Std.err.println( "returning GEP" );
+	    return LLVM.Calls.LLVMConstInBoundsGEP(g,
+						   elements.address,
+						   elements.length
+						   );
+	}
+
 	protected static LLVM.Value makeLoadIndirect( CompileState state, int line_number, IRBlock into, bool could_be_null, LLVM.Value t ) {
 	    if( could_be_null ) {
 		// should do null check here
@@ -394,29 +474,13 @@ namespace Parse {
 	// load a value allowing for a jump from the run-time on null pointer to any active exception
 	// handler:
 	protected static ITree makeLoadIndirect( CompileState state, int line_number, IBlock into, int size, bool could_be_null, ITree t ) {
-	    if( could_be_null && state.InExceptionHandler ) {
-		int u = TempFactory.nextTemp();
-
-		// ensure t is completely evaluated before it's dereferenced:
-		into.add( makeStoreTemporary( u, size, new ITree( line_number, Op.INDIRECT, size, t ) ) );
-		into.add( new ITree( line_number, Op.DUMMY_JUMP, 0, state.TopException.code_label ) );
-		return makeLoadTemporary( u, size );
-	    } else {
-		return new ITree( line_number, Op.INDIRECT, size, t );
-	    }
+	    IO.Std.err.println( "old make load indirect called" );
 	}
 
 	// store a value allowing for a jump from the run-time on null pointer to any active exception
 	// handler:
 	protected static void addStoreIndirect( CompileState state, int line_number, IBlock into, int size, bool could_be_null, ITree d, ITree s ) {
-	    into.add( new ITree( line_number, Op.COPY, size,
-				 new ITree( line_number, Op.INDIRECT, size, d ),
-				 s )
-		      );
-
-	    if( could_be_null && state.InExceptionHandler ) {
-		into.add( new ITree( line_number, Op.DUMMY_JUMP, 0, state.TopException.code_label ) );
-	    }
+	    IO.Std.err.println( "old make store indirect called" );
 	}
 
 	/*
@@ -434,13 +498,13 @@ namespace Parse {
 	// understands live values must transfer from here to there:
 	protected static void addDummyExceptionHandlerJump( CompileState state, int line_number, IRBlock into ) {
 	    if( state.InExceptionHandler ) {
-		IO.Std.err.println( "FIXME: should use invoke here with landing pad: " + state.TopException.code_label );
+		IO.Std.err.println( "FIXME: should use invoke here with landing pad: state.TopException.code_label" );
 	    }
 	}
 
 	protected static void addDummyExceptionHandlerJump( CompileState state, int line_number, IBlock into ) {
 	    if( state.InExceptionHandler ) {
-		IO.Std.err.println( "FIXME: should use invoke here with landing pad: " + state.TopException.code_label );
+		IO.Std.err.println( "FIXME: should use invoke here with landing pad: state.TopException.code_label" );
 	    }
 	}
 
@@ -1079,8 +1143,21 @@ namespace Parse {
 
 	public const int VTABLE_FIXED_SIZE = 3;
 
-	static LLVM.Value loadVTable( CompileState state, Container c, IRBlock into ) {
-	    return into.PointerCast( c.getCTableGlobal(state), LLVM.Calls.LLVMVTableType() );
+	static LLVM.Value makeLoadVTable( CompileState state, Container c ) {
+	    return LLVM.Calls.LLVMConstInBoundsGEP(
+						   LLVM.Calls.LLVMConstPointerCast(
+										   c.getCTableGlobal(state),
+										   LLVM.Calls.LLVMVTableType()
+										   )
+						   ,
+						   { LLVM.Calls.LLVMConstInt(
+									   LLVM.Calls.LLVMInt32Type(),
+									   cast long(c.IFaceOffset + VTABLE_FIXED_SIZE),
+									   0
+									     ) }.address,
+						   1
+						   );
+
 	}
 
 	static ITree loadVTable( CompileState state, Container c ) {	    
@@ -1458,6 +1535,30 @@ namespace Parse {
 	    no_code_after_return = true;
 	}
 
+	void throwReturn( CompileState state, IRBlock into, LLVM.BasicBlock handler, LLVM.Value return_value, LLVM.Value exception_type, LLVM.Value exception_value ) {
+	    into.Store(
+		       LLVM.Calls.LLVMConstInt(
+					       LLVM.Calls.LLVMInt64Type(),
+					       3L,
+					       0
+					       ),
+		       exception_type
+		       );
+
+	    if( return_value != null ) {
+		into.Store(
+			   makeLLVMCast(
+					return_value,
+					LLVM.Calls.LLVMInt64Type(),
+					into
+					),
+			   exception_value
+			   );
+
+	    }
+
+	    into.Jump( handler );
+	}
 
         void compile( CompileState state, IRBlock into ) {
 	    // IO.Std.err.println( "return, method: " + state.CurrentMethod );
@@ -1505,9 +1606,7 @@ namespace Parse {
             // if we're in an exception handler, and we're not in an outermost finally, then we need to throw a return
 
             if( state.InExceptionHandler ) {
-		throw new System.NotImplementedException("return with active exception handlers" );
-		/*
-		ILabel return_label = null;
+
 
 		ExceptionDescriptor ed = state.TopFinallyOrReturn;
 
@@ -1515,33 +1614,16 @@ namespace Parse {
 		    throw new Exception( "no finally or return handler found on exception handler stack" );
 		}
 
-		return_label = ed.code_label;
+		LLVM.BasicBlock return_label = ed.code_label;
 
-                if( expression != null ) {
-		    into.add( new ITree( line_number,
-					     Op.THROW_RETURN, Machine.WORD, 
-					     t,
-					     return_label ) );
-                } else {
-                    into.add( new ITree( line_number,
-                                         Op.THROW_RETURN, Machine.WORD,
-					 new ITree( line_number, Op.CONST, Machine.WORD, 0 ),
-					 return_label ) );
-                }
-	    } else if( no_code_after_return ) {
-		// IO.Std.err.println( "return statement: no jump to return label required" );
-		// don't do any branch optimizations so if we don't do this, all method calls that return a result,
-		// including all inlined calls, will require a jump to the return label even if no code between
-		// the return statement and the function epilog:		
-		if( expression != null ) {
-		    into.add( new ITree( line_number,
-					 Op.RESULT_F,
-					 0,
-					 t )
-			      );
-		    into.add( new ITree( line_number, Op.COMMENT, 0, "fall through to function exit here" ) );
-		}
-		*/
+		throwReturn(
+			    state,
+			    into, 
+			    ed.code_label,
+			    t,
+			    ed.exception_type,
+			    ed.exception_value
+			    );
 	    } else {
                 // regular return
                 if( expression != null ) {
@@ -1558,102 +1640,7 @@ namespace Parse {
 
 
         void compile( CompileState state, IBlock into ) {
-	    // IO.Std.err.println( "return, method: " + state.CurrentMethod );
-	    Type method_type = state.CurrentMethod.Type;
-	    // IO.Std.err.println( "return, type: " + method_type );
 
-	    ITree t = null;
-
-            if( expression != null ) {
-                Type expr_type = expression.getType( state );
-
-		if( expr_type == null ) {
-		    throw new Exception( "weird: return expression: " + expression + " has null type" );
-		}
-                
-                if( !method_type.isAssignableFrom( expr_type ) ) {
-		    error( "cannot return value of type " + expr_type.dump() + " from method of type " + method_type.dump() );
-                }
-		
-		int et_size = expr_type.RegSize;
-		int mt_size = method_type.RegSize;
-
-		t = expression.compileValue( state, into );
-
-		if( et_size != mt_size ) {
-		    t = castTo( mt_size, et_size, t );
-		}
-            } else {
-                if( method_type.TypeKind != Type.VOID ) {
-                    error( "method must return a value of type " + method_type.dump() );
-                }
-            }
-
-
-            // return from within a try: 
-            //   has a finally or within an out
-            // need a throw return 
-            // return from within a catch: need a throw return
-            // return from within a finally: 
-            //   inner finally:  need a throw return (there is always an outer finally to catch it)
-            //   outermost finally: can return but need stack adjust
-            
-            // if we're in an exception handler, and we're not in an outermost finally, then we need to throw a return
-
-            if( state.InExceptionHandler ) {
-		ILabel return_label = null;
-
-		ExceptionDescriptor ed = state.TopFinallyOrReturn;
-
-		if( ed == null ) {
-		    throw new Exception( "no finally or return handler found on exception handler stack" );
-		}
-
-		return_label = ed.code_label;
-
-                if( expression != null ) {
-		    into.add( new ITree( line_number,
-					     Op.THROW_RETURN, Machine.WORD, 
-					     t,
-					     return_label ) );
-                } else {
-                    into.add( new ITree( line_number,
-                                         Op.THROW_RETURN, Machine.WORD,
-					 new ITree( line_number, Op.CONST, Machine.WORD, 0 ),
-					 return_label ) );
-                }
-	    } else if( no_code_after_return ) {
-		// IO.Std.err.println( "return statement: no jump to return label required" );
-		// don't do any branch optimizations so if we don't do this, all method calls that return a result,
-		// including all inlined calls, will require a jump to the return label even if no code between
-		// the return statement and the function epilog:		
-		if( expression != null ) {
-		    into.add( new ITree( line_number,
-					 Op.RESULT_F,
-					 0,
-					 t )
-			      );
-		    into.add( new ITree( line_number, Op.COMMENT, 0, "fall through to function exit here" ) );
-		}
-	    } else {
-                // regular return
-                if( expression != null ) {
-		    into.add( new ITree( line_number,
-					 Op.RESULT,
-					 Machine.WORD,
-					 t,
-					 null, state.ReturnLabel
-					 )
-			      );
-                } else {
-                    into.add( new 
-                              ITree( line_number, Op.JUMP, 0,
-                                     state.ReturnLabel ) );
-                }
-		//    }
-            
-            //    into.add( new ITree( line_number, Op.LEAVE, 4 ) );
-	    }
         }
 
 	void print( CompileState state, Printer p ) {
@@ -2447,7 +2434,7 @@ namespace Parse {
 	    left.clear( state );
 	}
         
-        void compile( CompileState state, IBlock into ) {
+        void compile( CompileState state, IRBlock into ) {
             if( left != null ) {
                 left.compileDiscardValue( state, into );
             }

@@ -1074,7 +1074,7 @@ namespace Parse {
 			IO.Std.err.println( "ZZZZ: compiled: " + c.HumanName + ", try write module " + cast int(c.LLVMModule) + " to file..." ); IO.Std.err.flush();
 
 			LLVM.Calls.LLVMDumpModule(c.LLVMModule);
-			LLVM.Calls.LLVMWriteBitcodeToFile(c.LLVMModule, (c.DecoratedName + ".bc").toCString() );
+			LLVM.Calls.LLVMWriteBitcodeToFile(c.LLVMModule, (state.CacheDir + c.DecoratedName + ".bc").toCString() );
 
 			state.dumpActiveClasses( c.FileName );
                     } else {
@@ -1680,7 +1680,7 @@ namespace Parse {
 
 		    v = sy.getLocal(state, into);
 		} else {
-		    v = into.Alloca( m.Owner.Type.getLLVMType(state), "this" );
+		    v = into.AllocaEntry( m.Owner.Type.getLLVMType(state), "this" );
 		    state.CurrentMethod.ThisPointer = v;
 		}
 
@@ -2129,17 +2129,6 @@ namespace Parse {
 		message( "compile method: " + human );
             }
 
-	    ILabel ro_start = TempFactory.nextLabel();
-	    ILabel ro_end = TempFactory.nextLabel();
-
-	    IO.Writer f = state.Output;
-
-	    Machine.emitRoDataSegment( f );
-	    Machine.emitLabel( f, ro_start.Int );
-	    Machine.emitTextSegment( f );
-
-	    Machine.emitGlobalFunction( f, decorated );
-
             state.beginCompileMethod( this, m, decorated );
                       
             // state.beginParseMethodBody(m);            
@@ -2279,33 +2268,37 @@ namespace Parse {
 	    // message( human );
 
 	    if( success ) {
+		LLVM.Calls.LLVMDumpValue( fg );
+
 		LLVM.Calls.LLVMCleanUpFunction(fg);
+
+
+		LLVM.Calls.LLVMDumpValue( fg );
+		if( LLVM.Calls.LLVMVerifyFunction( fg, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction ) != 0 ) {
+		    IO.Std.err.println( "VVVV: AA failed to function verify: " + human ); IO.Std.err.flush();
+		}
 
 		LLVM.Calls.LLVMDumpValue( fg );
 		native.__flush_stdout();
 
-		IO.Std.err.println( "VVVV: will verify function: " + human ); IO.Std.err.flush();
-
-		if( LLVM.Calls.LLVMVerifyFunction( fg, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction ) != 0 ) {
-		    IO.Std.err.println( "VVVV: failed to function verify: " + human ); IO.Std.err.flush();
-		}
-
 		char ptr msg;
-		IO.Std.err.println( "VVVV: will verify module: " + m.Owner.HumanName ); IO.Std.err.flush();
+		// IO.Std.err.println( "VVVV: will verify module: " + m.Owner.HumanName ); IO.Std.err.flush();
 
 		if( LLVM.Calls.LLVMVerifyModule( state.Module, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction, msg.address ) != 0 ) {
-		    IO.Std.err.println( "VVVV: failed to module verify: " + human ); IO.Std.err.flush();
+		    IO.Std.err.println( "VVVV: failed to module verify: " + human + " " + state.CurrentClass.HumanName + " " + cast int(state.Module)); IO.Std.err.flush();
 		    if( msg != null ) {
 			IO.Std.err.println( "message: " + new String(msg) );
 		    }
 		}
 	    }
+	    /*
 	    // IO.Std.err.println( "finished compile: " + human );
 	    Machine.emitEndUnwindInfo( state.Output, decorated, human, state.WantLineNumbers, frame_flags, ro_start, ro_end );
 	    
 	    Machine.emitRoDataSegment( f );
 	    Machine.emitLabel( f, ro_end.Int );
 	    Machine.emitTextSegment( f );
+	    */
 	    state.resetExceptionLevel();            
             state.endCompileMethod(m);
 

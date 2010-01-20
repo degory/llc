@@ -497,6 +497,10 @@ namespace Parse {
             super.init( line_number );
         }
 
+	LLVM.Value compileValue( CompileState state, IRBlock into ) {
+	    return makeLoadThis( state, line_number, into );
+	}
+
         ITree compileValue( CompileState state, IBlock into ) {
             return makeLoadThis( state, line_number, into );
         }
@@ -644,8 +648,6 @@ namespace Parse {
         void declareSymbols( CompileState  state ) {
         }
 
-	static int string_number = 0;
-
 	LLVM.Value compileValue( CompileState state, IRBlock into ) {
 	    LLVM.Value v;
 	    LLVM.Value g;
@@ -653,10 +655,7 @@ namespace Parse {
 	    if( type == string_type ) {
 		IO.Std.err.println( "const string" ); IO.Std.err.flush();
 		elements = {
-		    LLVM.Calls.LLVMConstPointerCast(
-						    type.Clazz.getCTableGlobal(state),
-						    LLVM.Calls.LLVMVTableType()
-						    ),
+		    makeLoadVTable( state, type.Clazz ),
 		    LLVM.Calls.LLVMConstInt(
 					    LLVM.Calls.LLVMInt32Type(),
 					    cast long(value.Length),
@@ -703,41 +702,7 @@ namespace Parse {
 
 		IO.Std.err.println( "const C string" ); IO.Std.err.flush();
 
-		elements = {
-		    LLVM.Calls.LLVMConstInt(
-					    LLVM.Calls.LLVMInt32Type(),
-					    0L,
-					    0
-					    ),
-		    LLVM.Calls.LLVMConstInt(
-					    LLVM.Calls.LLVMInt32Type(),
-					    0L,
-					    0
-					    )
-		};
-
-		v = LLVM.Calls.LLVMConstString(
-					       value.toCString(),
-					       value.Length,
-					       0
-					       );
-
-		IO.Std.err.print( "const C string:  " ); IO.Std.err.flush();
-		LLVM.Calls.LLVMDumpValue( v );
-
-		g = LLVM.Calls.LLVMAddGlobal( state.Module, LLVM.Calls.LLVMTypeOf(v), ("__string_" + string_number).toCString() );
-		string_number = string_number + 1;
-		LLVM.Calls.LLVMSetInitializer( g, v );
-		
-		IO.Std.err.print( "global C string: " ); IO.Std.err.flush();
-		LLVM.Calls.LLVMDumpValue( g );
-
-		IO.Std.err.println( "returning GEP" );
-		return LLVM.Calls.LLVMConstInBoundsGEP(g,
-						       elements.address,
-						       elements.length
-						       );
-
+		return makeCStringConstant( state, value );
 
 	    } else if( type.TypeKind == type.NONE || type.TypeKind == type.NULL ) {
 		IO.Std.err.println( "const: none (" + getType(state) + ")" ); IO.Std.err.flush();
@@ -1701,26 +1666,29 @@ namespace Parse {
 		// super.compileValue applies not result here:
                 return super.compileValue( state, into );
             } else {
-		LLVM.BasicBlock c = into.CurrentBlock;
-                LLVM.BasicBlock l = into.Block();
-                LLVM.BasicBlock m = into.Block();
-                
+                LLVM.BasicBlock t = into.Block();
+                LLVM.BasicBlock f = into.Block();
+                LLVM.BasicBlock e = into.Block();
 		// compileBoolean applies not_result here:
-                compileBoolean( state, into, l, true );
+                compileBoolean( state, into, t, true );
+		into.Label(f);
+
+		// in block f:
 		LLVM.Value value_false = LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),0L,0);
+	
+		into.JumpLabel(e,t);
 
-		into.JumpLabel( m, l );
-
+		// in block t:
 		LLVM.Value value_true = LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0);
 
-		into.Label( m );
+		into.Label(e);
 
 		LLVM.Value v = into.Phi(LLVM.Calls.LLVMInt1Type());
 
 		into.AddIncoming(
 				 v,
 				 {value_false, value_true},
-				 {c, l}
+				 {f, t}
 				 );
 
 		return v;
@@ -2330,6 +2298,8 @@ namespace Parse {
 	    LLVM.Value v;
 	    LLVM.Type[] arg_types;
 
+	    LLVM.BasicBlock handler;
+
 	    for( i = 0; i < args.length; i = i + 1 ) {
 		IO.Std.err.print( "arg " + i + ": " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue( args[i] );
@@ -2350,7 +2320,7 @@ namespace Parse {
 		    v = symbol.getFunctionGlobal(state);
 		    IO.Std.err.print( "func " + i + ": " ); IO.Std.err.flush();
 		    LLVM.Calls.LLVMDumpValue(v);
-		    return into.Call( v, args );
+		    return callOrInvoke( state, into, v, args );
 		} else {
 		    throw new System.NotImplementedException( "calling function by name instead of Symbol" );
 		}
@@ -2400,7 +2370,7 @@ namespace Parse {
 				      );
 
 
-		return into.Call( v, args );
+		return callOrInvoke( state, into, v, args );
 
 	    case Op.PROC_CALL, Op.PROC_CALL_DISCARD:
 		throw new System.NotImplementedException( "FIXME: proc call" );

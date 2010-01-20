@@ -47,6 +47,7 @@ namespace Parse {
 	// LLVM.Value global;
 	// LLVM.Value static_global;
 	LLVM.Value this_pointer;
+	// LLVM.Value return_value;
 
 	word ref_bits;
 
@@ -146,10 +147,10 @@ namespace Parse {
 	get LLVM.Module LLVMModule {
 	    // IO.Std.err.println( "get module for: " + HumanName );
 	    if( llvm_module == null ) {
-		IO.Std.err.println( "creating new module: " + DecoratedName );
+		// IO.Std.err.println( "creating new module: " + DecoratedName );
 		llvm_module = LLVM.Calls.LLVMModuleCreateWithName( DecoratedName.toCString() );
 	    }
-	    IO.Std.err.println( "module for " + HumanName + " is " + cast int(llvm_module) );
+	    // IO.Std.err.println( "module for " + HumanName + " is " + cast int(llvm_module) );
 	    return llvm_module;
 	}
 
@@ -244,6 +245,8 @@ namespace Parse {
 		return v;
 		}*/
 
+	    IO.Std.err.println( "get function global: " + DecoratedName + " " + HumanName + " in module " + cast int(state.Module) );
+
 	    char ptr name = DecoratedName.toCString();
 
 	    v = LLVM.Calls.LLVMGetNamedFunction(state.Module, name);
@@ -268,8 +271,6 @@ namespace Parse {
 
 		v = LLVM.Calls.LLVMAddFunction(state.Module, name, ft);
 	    }
-
-	    LLVMValue = v;
 	    
 	    return v;
 	}
@@ -286,7 +287,7 @@ namespace Parse {
 
 	    v = LLVM.Calls.LLVMGetNamedGlobal(state.Module, name);
 	    if( v == null ) {
-		v = LLVM.Calls.LLVMAddGlobal(state.Module, LLVM.Calls.LLVMArrayType(LLVM.Calls.LLVMVTableFunctionType(), VTableSize + IFaceOffset + 1), name);
+		v = LLVM.Calls.LLVMAddGlobal(state.Module, LLVM.Calls.LLVMArrayType(LLVM.Calls.LLVMVTableFunctionType(), VTableSize + IFaceOffset + 3), name);
 	    }
 
 	    LLVMValue = v;
@@ -297,7 +298,7 @@ namespace Parse {
 	void allocaLocals(CompileState state, Gen.IRBlock into) {
 	    foreach( Symbol s; members.SymbolList.elements() ) {
 		if( s.IsLocal ) {
-		    s.LLVMValue = into.Alloca( s.Type.getLLVMType(state), s.Name );
+		    s.LLVMValue = into.AllocaEntry( s.Type.getLLVMType(state), s.Name );
 		}
 	    }
 	}
@@ -313,6 +314,22 @@ namespace Parse {
 	set LLVM.Value ThisPointer = v {
 	    this_pointer = v;
 	}
+
+
+	/*
+        bool hasReturnValue() {
+	    return return_value != null;
+	}
+
+        LLVM.Value getReturnValue( CompileState state, IRBlock into ) {
+	    if( return_value == null ) {
+		var t = Type.getLLVMType(state);
+		return_value = into.AllocaEntry( t );
+	    }
+
+	    return return_value;
+	}
+	*/
 
 	get int IFaceOffset {
 	    if( iface_offset < 0 ) {
@@ -1384,7 +1401,7 @@ namespace Parse {
                 throw new Exception( "weird: build class tables for class with no member list: " + HumanName );
             }
 
-	    // IO.Std.err.println( "allocate members " + HumanName + ", itable offset " + address.itable_offset );
+	    IO.Std.err.println( "BBBB: allocate vtable " + HumanName + ", vtable offset " + address.vtable_offset );
 
 	    bool want_pack = state.WantPack;
 
@@ -1450,7 +1467,7 @@ namespace Parse {
                     }
                 
                     current.Address = stable_offset;
-                    stable_offset = stable_offset + Machine.WORD;
+                    stable_offset = stable_offset + 1;
                 } else if( k == Symbol.INSTANCE_VARIABLE ) {
                     if( current.IsAddressValid ) {
                         throw new Exception( "weird: instance variable " + current.HumanName + " already has an address" );
@@ -1505,11 +1522,12 @@ namespace Parse {
         
             itable_offset = address.itable_offset;
             vtable_offset = address.vtable_offset;
+	    IO.Std.err.println( "BBBB: setting vtable offset to: " + vtable_offset );
 	    this.stable_offset = stable_offset;
 	    this.ref_bits = ref_bits;
 
 	    // IO.Std.err.println( "ref bits now: " + ref_bits );
-
+	    
 	    IO.Std.err.println( "BBBB: vtable size now: " + VTableSize );
 	    
             tables_valid = true;
@@ -1539,10 +1557,48 @@ namespace Parse {
 
 	    IO.Std.err.println( "BBBB: after interface tables buffer has " + buffer.Length + " elements versus interface offset" + IFaceOffset );
 
-	    buffer.add( LLVM.Calls.LLVMConstPointerNull( LLVM.Calls.LLVMVTableFunctionType() ) );
-	    buffer.add( LLVM.Calls.LLVMConstPointerNull( LLVM.Calls.LLVMVTableFunctionType() ) );
+	    IO.Std.err.println( "BBBB: type table @ " + buffer.Length );
+	    // FIXME: type table
 	    buffer.add( LLVM.Calls.LLVMConstPointerNull( LLVM.Calls.LLVMVTableFunctionType() ) );
 
+	    IO.Std.err.println( "BBBB: name @ " + buffer.Length );
+	    // name
+	    buffer.add(
+		       LLVM.Calls.LLVMConstBitCast(
+						   ParseTree.makeCStringConstant( state, HumanName ),
+						   LLVM.Calls.LLVMVTableFunctionType()
+						   )
+		       );
+
+	    IO.Std.err.println( "BBBB: size @ " + buffer.Length );
+	    // size
+	    buffer.add(
+		       LLVM.Calls.LLVMConstIntToPtr(
+						   LLVM.Calls.LLVMConstInt(
+									   LLVM.Calls.LLVMInt64Type(),
+									   cast long(Size),
+									   0
+									   ),
+						   LLVM.Calls.LLVMVTableFunctionType()
+						   )
+		       );
+	    
+	    IO.Std.err.println( "BBBB: super vtable @ " + buffer.Length );
+	    // super class vtable 
+	    if( Super != null ) {
+		buffer.add(
+			   LLVM.Calls.LLVMConstPointerCast(
+							   ParseTree.makeLoadVTable( state, Super ),
+							   LLVM.Calls.LLVMVTableFunctionType()
+							   )
+			   );
+	    } else {
+		buffer.add( LLVM.Calls.LLVMConstPointerNull( LLVM.Calls.LLVMVTableFunctionType() ) );
+	    }
+
+	    IO.Std.err.println( "BBBB: reference bits @ " + buffer.Length );
+	    // FIXME: reference bits:
+	    buffer.add( LLVM.Calls.LLVMConstPointerNull( LLVM.Calls.LLVMVTableFunctionType() ) );
 
 	    IO.Std.err.println( "BBBB: before class tables buffer has " + buffer.Length + " elements" );
 	    emitClassTables( state, this, buffer );
@@ -1750,10 +1806,13 @@ namespace Parse {
             }
 
             if( parent != null ) {
+		IO.Std.err.println( "BBBB: parent methods @ " + buffer.Length );
                 parent.emitClassTables( state, for_class, buffer );
             }
 
 	    int ca = 0, sa = 0;
+
+	    IO.Std.err.println( "BBBB: first non override method @ " + buffer.Length );
 
             foreach( Symbol current; members.SymbolList.elements() ) { 
                 if( current == null ) {
@@ -1787,6 +1846,8 @@ namespace Parse {
                                 }
 				// state.Output.println( "# ca: " + ca + ", sa: " + candidate.Address );
 				*/
+				IO.Std.err.println( "BBBB: buffer[" + buffer.Length + " (" + (buffer.Length-(3+IFaceOffset)) + ")] = " + candidate.HumanName + " @ " + candidate.Address );
+
 				buffer.add(
 					   LLVM.Calls.LLVMConstPointerCast(
 									   candidate.getFunctionGlobal(state),
@@ -1794,7 +1855,6 @@ namespace Parse {
 									   )
 					   );
 
-				IO.Std.err.println( "BBBB: buffer[" + buffer.Length + "] = " + candidate.HumanName + " @ " + candidate.Address );
 
                                 Machine.emitDefPointer( state.Output, candidate.DecoratedName );
                             }

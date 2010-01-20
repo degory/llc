@@ -7,6 +7,7 @@ namespace Parse {
     use Gen.Machine;
     use Gen.TempFactory;
     use Gen.MBitSet;
+    use Gen.IRBlock;
   
     class ThrowStatement extends Statement {
         Expression expression;
@@ -27,6 +28,31 @@ namespace Parse {
 	void checkInline( CompileState state ) {
 	    expression.checkInline( state );
 	    // throw new CannotInlineException();
+	}
+
+	void compile( CompileState state, IRBlock into ) {
+            Type type = expression.getType( state );
+
+            if( type.TypeKind != Type.CLASS && type != undefined_type ) {
+                error( "throw can only throw objects" );
+                return;
+            }
+
+	    LLVM.Value f = getThrowFunction( state );
+
+	    callOrInvoke( state, into, f, { makeLLVMCast( expression.compileValue(state, into), object_type.getLLVMType(state), into ) } );
+	}
+
+	static LLVM.Value getThrowFunction( CompileState state ) {
+            var v = LLVM.Calls.LLVMGetNamedFunction(state.Module, `__throw`);
+            if( v == null ) {
+                var at = { object_type.getLLVMType(state) };
+                var ft = LLVM.Calls.LLVMFunctionType( LLVM.Calls.LLVMVoidType(), at.address, at.length, 0);
+
+                v = LLVM.Calls.LLVMAddFunction(state.Module, `__throw`, ft);
+            }
+
+	    return v;
 	}
 
         void compile( CompileState state, IBlock into ) {
@@ -61,7 +87,7 @@ namespace Parse {
     class Catch extends Statement {
         VariableDef match;
         Statement statement;
-        ILabel label;
+	LLVM.BasicBlock label;
 
         void init( int line_number, VariableDef v, Statement s ) {
             super.init( line_number );
@@ -70,9 +96,9 @@ namespace Parse {
             label = null;
         }
 
-        ILabel getLabel( CompileState state ) {
+        LLVM.BasicBlock getLabel( IRBlock into) {
             if( label == null ) {
-                label = TempFactory.nextLabel();
+                label = into.Block();
             }
             return label;
         }
@@ -96,15 +122,16 @@ namespace Parse {
 
         void compile(
 		     CompileState state, 
-		     IBlock into, 
-		     ILabel this_handler, 
-		     ILabel next_handler, 
-		     ILabel outer_descriptor,
-		     int exception_type, 
-		     int exception_value, 
+		     IRBlock into, 
+		     LLVM.BasicBlock this_handler, 
+		     LLVM.BasicBlock next_handler, 
+		     LLVM.BasicBlock outer_descriptor,
+		     LLVM.Value exception_type, 
+		     LLVM.Value exception_value, 
 		     bool first,
 		     bool last ) {
             Type type = match.getType( state );
+	    IO.Std.err.println( "TTTT: compile catch" );
             
             if( type == null || type.TypeKind != Type.CLASS ) {
                 error( "catch must be an object" );
@@ -127,167 +154,92 @@ namespace Parse {
 
             param.Defined = state.BlockLevel;
 
-	    ILabel outer_label = state.TopException.descriptor_label;
-	    ILabel outer_handler = state.TopException.code_label;
-	    ILabel l = TempFactory.nextLabel();
-	    ILabel m = TempFactory.nextLabel();
+	    LLVM.BasicBlock outer_label = state.TopException.descriptor_label;
+	    LLVM.BasicBlock outer_handler = state.TopException.code_label;
+	    LLVM.BasicBlock l = into.Block();
+	    LLVM.BasicBlock m = into.Block();
 
 	    // ILabel descriptor_label = TempFactory.nextLabel();
 	    // ILabel handler_label = TempFactory.nextLabel();
-
-	    IO.Writer f = state.Output;
-
-	    Machine.emitRoDataSegment( f );
-
-	    // catch type: 2 (catch)
-	    Machine.emitDefPointer( f, 2 );
-	    // catch vtable: 
-	    Machine.emitDefPointer( f, getVTableAsString( state, type.Clazz ) );
-	    // catch handler:
-	    Machine.emitDefPointerLabel( f, this_handler.getInt() );
-	    // back link:
-	    if( last ) {
-		Machine.emitDefPointerLabel( f, outer_descriptor.getInt() );
-	    } else {
-		Machine.emitDefPointer( f, 0 );
-	    }
-
-	    // at this point it's definitely an exception, need to decide if we catch it or pass it on:
-
-	    into.add( new ITree( 0, Op.COMMENT, 0, "catch " + type.Clazz.HumanName ) );
 
 	    if( !first ) {
 		// only emit label for this handler if not first handler in try because
 		// first handler has additional tests on entry that are already compiled
 		// with the label preceding them at this point:
-		into.add( new ITree( line_number, Op.LABEL, 0, this_handler ) );
+		into.Label( this_handler );
 	    }
 
-	    int vtable_temp = TempFactory.nextTemp();
-
-	    // copy exception value to a temporary:
-	    into.add( new ITree( line_number, Op.COPY, Machine.WORD,
-				 new ITree( line_number, Op.TEMP, Machine.WORD, vtable_temp ),
-				 new ITree( line_number, Op.TEMP, Machine.WORD, exception_value )
-				 )
-		      );
-
-	    into.add( new ITree( line_number, Op.LABEL, 0, m ) );
+	    LLVM.Type ptr_8 = LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0);
+	    LLVM.Type ptr_ptr_8 = LLVM.Calls.LLVMPointerType(ptr_8,0);
 	    
+	    LLVM.Value vtable_temp = into.AllocaEntry(ptr_ptr_8, "ex_vtable");
+
+	    into.Store(
+		       makeLLVMCast(
+				    into.Load(exception_value),
+				    ptr_ptr_8,
+				    into
+				    ),
+		       vtable_temp
+		       );
+
+	    into.Label( m );
+
 	    // get vtable or super class vtable:
-	    into.add( new ITree( line_number, Op.COPY, Machine.WORD,
-				 new ITree( line_number, Op.TEMP, Machine.WORD, vtable_temp ),
-				 // should never be null:
-				 new ITree( line_number, Op.INDIRECT, Machine.WORD,
-					    new ITree( line_number, Op.TEMP, Machine.WORD, vtable_temp )
-					    )
-				 )
-		      );
-	    
+	    into.Store(
+		       makeLLVMCast(
+				    into.Load(vtable_temp),
+				    ptr_ptr_8,
+				    into
+				    ),
+		       vtable_temp
+		       );
 
-	    if( !last ) {
-		// if the exception vtable is now null, it did not match this handler,
-		// jump to the next handler, which is another catch and where the data
-		// flow is predictable so we do not need to explicitly move the exception
-		// type and value into argument registers:
-		into.add( new ITree( line_number, Op.BRANCH, 0,
-				     new ITree( line_number, Op.EQ, Machine.WORD,
-						new ITree( line_number, Op.TEMP, Machine.WORD, vtable_temp ),
-						new ITree( line_number, Op.CONST, Machine.WORD, 0 )
-						),
-				     next_handler
-				     )
-			  );
-	    } else {
-		// same test but the next exception handler is our finally block which can be
-		// entered from unpredictable sources so we need to force the exception type and
-		// value into predictable registers. Need to reverse the sense of the above test
-		// and jump around a call to the handler preceded by a call arguments instruction
-		// otherwise temporaries might change registers before the jump is executed:
+	    // if( !last ) {
 
-		// if vtable is not null then it's possible we're a match for this exception
-		// jump around jump to next handler
-		into.add( new ITree( line_number, Op.BRANCH, 0,
-				     new ITree( line_number, Op.NE, Machine.WORD,
-						new ITree( line_number, Op.TEMP, Machine.WORD, vtable_temp ),
-						new ITree( line_number, Op.CONST, Machine.WORD, 0 )
-						),
-				     l
-				     )
-			  );
-				    
-		// otherwise arrange to pass exception arguments
-		into.add( new ITree( line_number, Op.ARG1, Machine.WORD,
-				     new ITree( line_number, Op.TEMP, Machine.WORD, exception_value ),					    
-				     new ITree( line_number, Op.ARG0, Machine.WORD,
-						new ITree( line_number, Op.TEMP, Machine.WORD, exception_type ),
-						new ITree( line_number, Op.COMMENT, 0, "exception param" )
-						)
-				     )
-			  );
-		
-		// jump to the finally with arguments in correct registers:
-		into.add( new ITree( line_number, Op.JUMP, 0, next_handler ) );
-		
-		// otherwise continue searching:
-		into.add( new ITree( line_number, Op.LABEL, 0, l ) );
-	    }
+	    // if vtable is null then jump to next handler:
+	    into.Branch(
+			into.ICmp(
+				  LLVM.LLVMIntPredicate.LLVMIntEQ,
+				  into.Load(vtable_temp),
+				  LLVM.Calls.LLVMConstPointerNull(ptr_ptr_8)
+				  ),
+			next_handler
+			);
 
+	    // if vtable doesn't match loop:
+	    into.Branch(
+			into.ICmp(
+				  LLVM.LLVMIntPredicate.LLVMIntNE,
+				  into.Load(vtable_temp),
+				  makeLLVMCast(
+					       makeLoadVTable( state, type.Clazz ),
+					       ptr_ptr_8,
+					       into
+					       )
+				  ),
+			m
+			);
 
-	    // does the exception vtable match our catch? If not loop and test exception's super
-	    // class vtable:
-	    into.add( new ITree( line_number, Op.BRANCH, 0,
-				 new ITree( line_number, Op.NE, Machine.WORD,
-					    new ITree( line_number, Op.TEMP, Machine.WORD, vtable_temp ),					    
-					    loadVTable( state, type.Clazz )
-					    ),
-				 m
-				 )
-		      );
-
-
-	    // thrown exception matches this catch, prepare to enter the catch block
-
-	    // restore the stack pointer:
-            into.add( new ITree( line_number, Op.COPY, Machine.WORD,
-                                 new ITree( line_number, Op.REGISTER, Machine.WORD, Machine.R_STACK ),
-				 new ITree( line_number, Op.INDIRECT, Machine.WORD, 
-					    loadGlobalTLS( state, into, Machine.EXCEPTION_RSP )
-					    ) ) );
-
-	    // set up outer exception handler:
-            into.add( new ITree( line_number, Op.COPY, Machine.WORD,
-                                 new ITree( line_number, Op.INDIRECT, Machine.WORD,
-					    loadGlobalTLS( state, into, Machine.EXCEPTION_TOP )
-					    ),
-				 
-				 loadGlobal( state, outer_descriptor.toString(), 0 )
-				 )
-		      );
-	    
-	    // copy exception value into local variable:
-	    addStoreIndirect( state, line_number, into, Machine.WORD, false,
-			      new ITree( line_number, Op.LOCAL, Machine.WORD, param.Address ),
-			      new ITree( line_number, Op.TEMP, Machine.WORD, exception_value )
-			      );
-                              
 	    
 	    // exception caught - fall through into body of catch statement:
 	    
             statement.compile( state, into );
 
-	    // call finally handler with stop exception (exception type = 0):
-	    into.add( new ITree( line_number, Op.ARG0, Machine.WORD,
-				 new ITree( line_number, Op.CONST, Machine.WORD, 0 ),
-				 new ITree( line_number, Op.COMMENT, 0, "exception param" )
-				 )
-		      );
 
-	    // exception caught, jump to finally:
-	    into.add( new ITree( 0, Op.JUMP, 0, outer_handler ) );
-            
-            // into.add( new ITree( line_number, Op.JUMP, 8, exit_label ) );
-	    into.add( new ITree( 0, Op.COMMENT, 0, "end catch " + type.Clazz.HumanName ) );
+	    // call finally handler with stop exception (exception type = 0):
+
+	    into.Store(
+		       LLVM.Calls.LLVMConstInt(
+					       LLVM.Calls.LLVMInt64Type(),
+					       0L, // exception caught
+					       0
+					       ),
+		       exception_type
+		       );
+					                                     
+
+	    into.Jump( outer_handler );
         }
 
         void dump( CompileState state, System.StringBuffer  buffer ) {
@@ -347,25 +299,86 @@ namespace Parse {
 	    }
 	}
 
-        int compile( CompileState state, IBlock into, ILabel finally_descriptor, ILabel finally_handler, int exception_type, int exception_value ) {
+	static LLVM.Value getPersonalityFunction( CompileState state ) {
+	    char ptr n =`__l_personality`;
+
+	    var v = LLVM.Calls.LLVMGetNamedFunction(state.Module, n);
+
+	    if( v == null ) {
+		var args = new LLVM.Type[0];
+		var ft = LLVM.Calls.LLVMFunctionType( LLVM.Calls.LLVMInt64Type(), args.address, 0, 0 );
+		
+		v = LLVM.Calls.LLVMAddFunction(state.Module, n, ft);				
+	    }
+	    
+	    return v;
+	}
+
+
+	static LLVM.Value getExceptionIntrinsic( CompileState state ) {
+	    char ptr n =`llvm.eh.exception.i64`;
+
+	    var v = LLVM.Calls.LLVMGetNamedFunction(state.Module, n);
+
+	    if( v == null ) {
+		var args = new LLVM.Type[0];
+		var ft = LLVM.Calls.LLVMFunctionType( LLVM.Calls.LLVMInt64Type(), args.address, 0, 0 );
+		
+		v = LLVM.Calls.LLVMAddFunction(state.Module, n, ft);				
+	    }
+	    
+	    return v;
+	}
+
+	static LLVM.Value getSelectorIntrinsic( CompileState state ) {
+	    char ptr n = `llvm.eh.selector.i64`;
+
+	    var v = LLVM.Calls.LLVMGetNamedFunction(state.Module, n);
+
+	    if( v == null ) {
+		var args = {
+		    // LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type() ,0),
+		    LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type() ,0),
+		    LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type() ,0)
+		};
+
+		var ft = LLVM.Calls.LLVMFunctionType(
+						 LLVM.Calls.LLVMInt64Type(),
+						 args.address,
+						 args.length,
+						 1 // 0
+						 );
+		
+		v = LLVM.Calls.LLVMAddFunction(state.Module, n, ft);				
+	    }
+	    
+	    return v;
+	}
+
+
+
+        int compile(
+		    CompileState state,
+		    IRBlock into,
+		    LLVM.BasicBlock finally_descriptor,
+		    LLVM.BasicBlock finally_handler,
+		    LLVM.Value exception_type,
+		    LLVM.Value exception_value
+		    ) {
 	    ExceptionDescriptor ed;
             int offset = 0;
-            ILabel skip_label = TempFactory.nextLabel();
+            LLVM.BasicBlock skip_label = into.Block();
 	    state.enterBlock();
 
-	    ILabel next_handler = TempFactory.nextLabel();
-	    ILabel this_handler = TempFactory.nextLabel();
-	    ILabel m = TempFactory.nextLabel();
-
-            foreach( Catch c; catches.elements() ) {
-                offset = offset + Machine.WORD;
-                // c.enter( state, into );
-            }
+	    LLVM.BasicBlock next_handler = into.Block();
+	    LLVM.BasicBlock this_handler = into.Block();
+	    LLVM.BasicBlock m = into.Block();
 
             bool outermost_frame = (state.ExceptionLevel == 1);
 
-	    into.add( new ITree(line_number, Op.COMMENT, 0, "start catch block" ) );
-	    into.add( new ITree(line_number, Op.LABEL, 0, this_handler ) );
+	    IO.Std.err.println( "TTTT: compile catches" );
+
+	    into.Label( this_handler );
 
 	    /*    
             foreach( Catch d; catches.elements() ) {
@@ -373,58 +386,39 @@ namespace Parse {
             }
 	    */
 
+	    into.Store(
+		       into.Call(
+				 getExceptionIntrinsic(state),
+				 new LLVM.Value[0]
+				 ),
+		       exception_value
+		       );
 
-	    // receive exception parameters:
-	    into.add( new ITree( line_number, Op.PARAM1, Machine.WORD,
-				 new ITree( line_number, Op.TEMP, Machine.WORD, exception_value ),					    
-				 new ITree( line_number, Op.PARAM0, Machine.WORD,
-					    new ITree( line_number, Op.TEMP, Machine.WORD, exception_type ),
-					    new ITree( line_number, Op.COMMENT, 0, "exception param" )
-					    )
-				 )
-		      );            
+	    into.Store(
+		       into.Call(
+				 getSelectorIntrinsic(state),
+				 {
+				     makeLLVMCast(into.Load(exception_value), LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0), into),
+				     makeLLVMCast(getPersonalityFunction(state), LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0), into),
+				     LLVM.Calls.LLVMConstPointerNull(LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0))
+				 }
+				 ),
+		       exception_type
+		       );
 
-	    // if this is an exception, jump to the first catch block:
-	    into.add( new ITree( line_number, Op.BRANCH, 0,
-				 new ITree( line_number, Op.EQ, Machine.WORD,
-					    new ITree( line_number, Op.TEMP, Machine.WORD, exception_type ),
-					    new ITree( line_number, Op.CONST, Machine.WORD, cast<int>(EDType.THROW_EXCEPTION ) )
-					    ),
-				 m
-				 )
-		      );
-
-	    // otherwise arrange to pass exception arguments
-	    into.add( new ITree( line_number, Op.ARG1, Machine.WORD,
-				 new ITree( line_number, Op.TEMP, Machine.WORD, exception_value ),					    
-				 new ITree( line_number, Op.ARG0, Machine.WORD,
-					    new ITree( line_number, Op.TEMP, Machine.WORD, exception_type ),
-					    new ITree( line_number, Op.COMMENT, 0, "exception param" )
-					    )
-				 )
-		      );
-
-
-	    // and jump to finally handler
-	    into.add( new ITree( line_number, Op.JUMP, 0, finally_handler ) );
-
-	    into.add( new ITree( line_number, Op.LABEL, 0, m ) );
-
-    
-            // block.add( new ITree( line_number, Op.DUMMY_JUMP, 8, exit_label ) );
+	    into.Branch(
+			into.ICmp(
+				  LLVM.LLVMIntPredicate.LLVMIntEQ,
+				  into.Load(exception_type),
+				  LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),0L,0)
+				  ),
+			finally_handler
+			);
 
 	    bool first = true;
             // block.add( new ITree( line_number, Op.JUMP, 8, skip_label ) );
 	    for( int i = 0; i < catches.Length; i = i + 1 ) {
 		Catch e = cast<Catch>(catches[i]);
-
-		/*
-		int et = TempFactory.nextTemp();
-		int ev = TempFactory.nextTemp();
-
-		into.add( makeStoreTemporary( et, Machine.WORD, makeLoadTemporary(exception_type,Machine.WORD) ) );
-		into.add( makeStoreTemporary( ev, Machine.WORD, makeLoadTemporary(exception_value,Machine.WORD) ) );
-		*/
 
 		bool last = i == catches.Length - 1;
 		if( last ) {
@@ -433,12 +427,9 @@ namespace Parse {
                 // e.compile( state, into, this_handler, next_handler, finally_descriptor, et, ev, first, last );
 		e.compile( state, into, this_handler, next_handler, finally_descriptor, exception_type, exception_value, first, last );
 		this_handler = next_handler;
-		next_handler = TempFactory.nextLabel();
+		next_handler = into.Block();
 		first = false;
-            }
-
-	    into.add( new ITree( line_number, Op.COMMENT, 0, "end catches" ) );
-	    
+            }	    
 	    
 	    // block.add( new ITree( line_number, Op.LABEL, 8, exit_label ) ) ;
 
@@ -514,31 +505,101 @@ namespace Parse {
 	    }
 	}
 
-        void compile( CompileState state, IBlock into ) {
+	static LLVM.Value getUnwindOrRethrowFunction( CompileState state ) {
+	    char ptr n = `_Unwind_Resume_or_Rethrow`;
+
+	    var v = LLVM.Calls.LLVMGetNamedFunction(state.Module, n);
+
+	    if( v == null ) {
+		var args = { LLVM.Calls.LLVMInt64Type() };
+		var ft = LLVM.Calls.LLVMFunctionType( LLVM.Calls.LLVMVoidType(), args.address, args.length, 0 );
+		
+		v = LLVM.Calls.LLVMAddFunction(state.Module, n, ft);				
+	    }
+	    
+	    return v;
+	}
+
+
+
+	void rethrowOrReturn(
+			     CompileState state,
+			     IRBlock into,
+			     LLVM.Value exception_type,
+			     LLVM.Value exception_value
+			   ) {
+	    var exit = into.Block();
+	    var return_ = into.Block();
+	    var rethrow = into.Block();	    
+	    
+	    LLVM.Value s = into.Switch( into.Load(exception_type), rethrow, 2 );
+
+	    into.AddCase( s, LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt64Type(), 0L, 0 ), exit );
+	    into.AddCase( s, LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt64Type(), 3L, 0 ), return_ );
+
+	    into.Label( rethrow );
+	    into.Call(
+		      getUnwindOrRethrowFunction(state), { into.Load(exception_value) }
+		      );
+	    // into.Unreachable();
+
+	    into.Label( return_ );
+	    if( !state.CurrentMethod.Type.isVoid() ) {
+		into.Ret(
+			 makeLLVMCast(
+				      into.Load(exception_value),
+				      state.CurrentMethod.Type.getLLVMType(state),
+				      into
+				      )
+			 );
+	    } else {
+		into.RetVoid();
+	    }
+	    
+	    into.Label(exit);
+	}
+
+	void rethrowOrDone(
+			     CompileState state,
+			     IRBlock into,
+			     LLVM.Value exception_type,
+			     LLVM.Value exception_value,
+			     LLVM.BasicBlock exit_label
+			   ) {
+	    
+	    into.Branch(
+			into.ICmp(
+				  LLVM.LLVMIntPredicate.LLVMIntNE,
+				  into.Load( exception_type ),
+				  LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),0L,0)
+				  ),
+			exit_label
+			);
+	}
+
+
+        void compile( CompileState state, IRBlock into ) {
+	    IO.Std.err.println( "TTTT: compile try" );
+
 	    ExceptionDescriptor ed;
 	    int old_exception_level = state.ExceptionLevel;
 
 	    IO.Writer f = state.Output;
+
+	    LLVM.Value exception_value = into.AllocaEntry( LLVM.Calls.LLVMInt64Type(), "ex_value" );
+	    LLVM.Value exception_type = into.AllocaEntry( LLVM.Calls.LLVMInt64Type(), "ex_type" );
 		
-	    ILabel body_label = TempFactory.nextLabel();
+	    LLVM.BasicBlock body_label = into.Block();
+	    LLVM.BasicBlock back_label;
 
-	    ILabel back_label;
+            LLVM.BasicBlock finally_descriptor = into.Block();
+	    LLVM.BasicBlock finally_handler = into.Block();
 
-            ILabel finally_descriptor = TempFactory.nextLabel();
-	    ILabel finally_handler = TempFactory.nextLabel();
-
-	    ILabel exit_label;
-
-	    int offset_exception_top;
-	    int offset_exception_rsp;
-
+	    LLVM.BasicBlock exit_label;
 
 	    // allocate temporaries for exception parameters. These are shared by all catches since the control
 	    // flow into the block is predictable (it's only entered at the top and these temporaries can safely
 	    // change register or go on the stack once they're received:
-
-	    int exception_type = TempFactory.nextTemp();
-	    int exception_value = TempFactory.nextTemp();
 
 	    // state.markSeenExceptionHandler();
 
@@ -549,46 +610,8 @@ namespace Parse {
 		// clean up handler will be output at this label:
 		bottom_level = true;
 
-		// allocate local variables to hold caller's exception state:
-		offset_exception_top = state.CurrentMethod.alloc( Symbol.FLAG_LOCAL );
-		offset_exception_rsp = state.CurrentMethod.alloc( Symbol.FLAG_LOCAL );
-
-		// copy caller's exception state onto stack:
-
-		// FIXME: this often ends up in registers anyway - could just put it in temporaries and
-		// let it spill if needed instead? This would waste less stack space in the in-register case
-		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
-				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
-						new ITree( line_number, Op.LOCAL, Machine.WORD, offset_exception_top )
-						),
-				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
-						loadGlobalTLS( state, into, Machine.EXCEPTION_TOP )
-						) ) );
-
-		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
-				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
-						new ITree( line_number, Op.LOCAL, Machine.WORD, offset_exception_rsp )
-						),
-				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
-						loadGlobalTLS( state, into, Machine.EXCEPTION_RSP )
-						) ) );
-
-
-		// output a descriptor for return/finally handler:
-
-		Machine.emitRoDataSegment( f );
-		Machine.emitLabel( f, finally_descriptor.getInt() );
-		// catch type: 0 (return)
-		Machine.emitDefPointer( f, 0 );
-		// catch vtable: null
-		Machine.emitDefPointer( f, state.CurrentMethod.DecoratedName );
-		// catch handler: return
-		Machine.emitDefPointerLabel( f, finally_handler.getInt() );
-		// back pointer: null
-		Machine.emitDefPointer( f, 0 );
-
 		// push descriptor for return cleanup handler:
-		ed = new ExceptionDescriptor( EDType.CATCH_RETURN, finally_descriptor, finally_handler );
+		ed = new ExceptionDescriptor( EDType.CATCH_RETURN, finally_descriptor, finally_handler, exception_type, exception_value );
 		state.pushException(ed);
 		// exception[exception_level] = ed;
 		// exception_level = exception_level + 1;
@@ -596,22 +619,7 @@ namespace Parse {
 		// not at outer most nesting level, output a finally (which may be empty
 		// of user code if no finally statement supplied:
 
-		// output a descriptor for finally handler:
-		Machine.emitRoDataSegment( f );
-		Machine.emitLabel( f, finally_descriptor.getInt() );
-		
-		back_label = state.TopException.descriptor_label;
-
-		// catch type: 1 (finally)
-		Machine.emitDefPointer( f, 1 );
-		// catch vtable: null
-		Machine.emitDefPointer( f, 0 );
-		// catch handler: 
-		Machine.emitDefPointerLabel( f, finally_handler.getInt() );
-		// back pointer:
-		Machine.emitDefPointerLabel( f, back_label.getInt() );
-		
-		ed = new ExceptionDescriptor( EDType.CATCH_FINALLY, finally_descriptor, finally_handler );
+		ed = new ExceptionDescriptor( EDType.CATCH_FINALLY, finally_descriptor, finally_handler, exception_type, exception_value );
 		state.pushException( ed );
 		// exception[exception_level] = ed;
 		// exception_level = exception_level + 1;
@@ -620,22 +628,19 @@ namespace Parse {
 	    // jump over code for catches to try body:
 	    // FIXME: would be nice to avoid having to take this jump - ideally the no-exception case should
 	    // be straight through. Could move catches block outside method body
-	    into.add( new ITree( line_number, Op.JUMP, 0, body_label ) );
+	    into.Jump( body_label );
 
 	    bool have_catches = false;
+
+	    
 
 	    // compile catches, if any:
 	    if( catches != null && catches.CatchCount > 0 ) {
 		have_catches = true;
-		ILabel catches_descriptor = TempFactory.nextLabel();
-		ILabel catches_handler = TempFactory.nextLabel();
-		into.add( new ITree( 0, Op.COMMENT, 0, "catch handlers" ) );
+		LLVM.BasicBlock catches_descriptor = into.Block();
+		LLVM.BasicBlock catches_handler = into.Block();
 
-		// output label for the catches descriptor:
-		Machine.emitRoDataSegment( f );
-		Machine.emitLabel( f, catches_descriptor.getInt() );
-
-		into.add( new ITree( line_number, Op.LABEL, 0, catches_handler ) );
+		into.Label(catches_handler);
 
 		// exception handler stack contains at least return handler or finally plus outer handlers:
 		// int compile( CompileState state, IBlock into, ILabel finally_descriptor, ILabel finally_handler, int exception_type, int exception_value )
@@ -646,101 +651,48 @@ namespace Parse {
 		// push an exception descriptor for the catches prior to compiling the try body statement
 		// so code within the body sees catches, then any finally/return handler, then any outer
 		// handlers from enclosing blocks:
-		ed = new ExceptionDescriptor( EDType.CATCH_EXCEPTION, catches_descriptor, catches_handler );
+		ed = new ExceptionDescriptor( EDType.CATCH_EXCEPTION, catches_descriptor, catches_handler, exception_type, exception_value );
 		state.pushException( ed );
 		// exception[exception_level] = ed;
 		// exception_level = exception_level + 1;
             }
 
-	    into.add( new ITree( 0, Op.COMMENT, 0, "try body statement" ) );
-	    into.add( new ITree( line_number, Op.LABEL, 0, body_label ) );
+	    into.Label( body_label );
 
 	    // which handler should catch exceptions throw in this block first:
-	    ILabel active_descriptor = state.TopException.descriptor_label; // exception[exception_level-1].descriptor_label;
+	    LLVM.BasicBlock active_descriptor = state.TopException.descriptor_label; // exception[exception_level-1].descriptor_label;
 
-	    // set up the active exception handler:
-	    // into.add( new ITree( line_number, Op.TRY, 0, loadGlobal( state, active_descriptor.toString(), 0 ), loadGlobalTLS(Machine.EXCEPTION_TOP) ) );
-	    into.add( 
-		     new ITree( line_number, Op.COPY, Machine.WORD,
-				new ITree( line_number, Op.INDIRECT, Machine.WORD,
-					   loadGlobalTLS(state, into, Machine.EXCEPTION_TOP)
-					   ),
-				loadGlobal(state, active_descriptor.toString(), 0)
-				)
-		      );
-
-	    // is this the outer most exception handler in this method?
-	    if( bottom_level ) {
-		// save the current stack pointer so it can be restored if an exception is caught
-		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
-				 new ITree( line_number, Op.INDIRECT, Machine.WORD,
-					    loadGlobalTLS( state, into, Machine.EXCEPTION_RSP )
-					    ),
-				 new ITree( line_number, Op.REGISTER, Machine.WORD, Machine.R_STACK ) ) );
-	    }
-
-	    Machine.emitTextSegment( f );
+	    IO.Std.err.println( "TTTT: compile body: " + try_statement );
 
 	    // compile the body statement, any exceptions will be caught by the active handler set above
             try_statement.compile( state, into );
 
-	    // pass a stop exception to the following finally block, which will cause it to execute and
-	    // fall through without re-throwing:
-	    into.add( new ITree( 0, Op.END_TRY, 0 ) );
+	    IO.Std.err.println( "TTTT: compiled body: " + try_statement );
 
-	    // this is either a finally, a return or a combined finally/return handler.
-	    // emit the handler label:
-            into.add( new ITree( line_number, Op.LABEL, 0, finally_handler ) );
+	    var ex_args = new LLVM.Value[0];
 
-	    exception_type = TempFactory.nextTemp();
-	    exception_value = TempFactory.nextTemp();
+	    into.Store(
+		       LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt64Type(), 0L, 0 ),
+		       exception_type
+		       );
 
-	    // prepare to accept the exception type and value parameters passed to this handler:
-	    into.add( new ITree( line_number, Op.PARAM0, Machine.WORD,
-				 new ITree( line_number, Op.TEMP, Machine.WORD, exception_type ),
-				 new ITree( line_number, Op.PARAM1, Machine.WORD,
-					    new ITree( line_number, Op.TEMP, Machine.WORD, exception_value ),
-					    new ITree( line_number, Op.COMMENT, 0, "exception param" )
-					    )
-				 )
-		      );
-	    
-	    // restore stack pointer:
-	    into.add( new ITree( line_number, Op.COPY, Machine.WORD,
-				 new ITree( line_number, Op.REGISTER, Machine.WORD, Machine.R_STACK ),
-				 new ITree( line_number, Op.INDIRECT, Machine.WORD,
-					    loadGlobalTLS( state, into, Machine.EXCEPTION_RSP )
-					    ) ) );
+	    into.Store(
+		       LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt64Type(), 0L, 0 ),
+		       exception_value
+		       );
+
+	    into.Label( finally_handler );
+
 	   
             state.ExceptionLevel = old_exception_level; 
 	    if( bottom_level ) {
 		// outer most exception handler - restore active handler from the stack at runtime:
-
-		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
-				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
-						loadGlobalTLS( state, into, Machine.EXCEPTION_TOP )
-						),
-				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
-						new ITree( line_number, Op.LOCAL, Machine.WORD, offset_exception_top )
-						) ) );
-
-		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
-				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
-						loadGlobalTLS( state, into, Machine.EXCEPTION_RSP )
-						),
-				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
-						new ITree( line_number, Op.LOCAL, Machine.WORD, offset_exception_rsp )
-						) ) );
+		// do nothing?
 	    } else {
 		// inner exception handler - restore active handler from compile time stack:
 		active_descriptor = state.TopException.descriptor_label; // exception[exception_level-1].descriptor_label;
 		exit_label = state.TopException.code_label; // exception[exception_level-1].code_label;
 
-		into.add( new ITree( line_number, Op.COPY, Machine.WORD,
-				     new ITree( line_number, Op.INDIRECT, Machine.WORD,
-						loadGlobalTLS( state, into, Machine.EXCEPTION_TOP )
-						),
-				     loadGlobal( state, active_descriptor.toString(), 0 ) ) );
 	    }
 
 	    if( finally_statement != null ) {
@@ -748,26 +700,13 @@ namespace Parse {
 	    }
 
 	    if( bottom_level ) {
-		exit_label = state.ReturnLabel;
+		// exit_label = state.ReturnLabel;
 
-		// either fall through out of the try {} finally {} construct, rethrow an unhandled
-		// exception or throw a return:
-		into.add( new ITree( 0, Op.END_FINALLY, 0,
-				     new ITree( line_number, Op.TEMP, Machine.WORD, exception_type ),
-				     new ITree( line_number, Op.TEMP, Machine.WORD, exception_value ),
-				     exit_label
-				     )
-			  );
+		rethrowOrReturn( state, into, exception_type, exception_value );
 	    } else {
 		exit_label = state.TopException.code_label; // exception[exception_level-1].code_label;
 
-		// if any unhandled exception is pending, jump to the next handler, otherwise
-		// fall through out of try/finally construct:
-		into.add( new ITree( 0, Op.COND_RETHROW, 0,
-				     new ITree( line_number, Op.TEMP, Machine.WORD, exception_type ),
-				     new ITree( line_number, Op.TEMP, Machine.WORD, exception_value ),
-				     exit_label )
-			  );
+		rethrowOrDone( state, into, exception_type, exception_value, exit_label );
 	    }
         }
 

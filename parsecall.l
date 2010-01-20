@@ -141,7 +141,7 @@ namespace Parse {
 		f = state.getRuntimeFunction( op );
 
 		size = argument.compileValue( state, into );
-		vtable = loadVTable( state, c, into );
+		vtable = makeLoadVTable( state, c );
 
 		IO.Std.err.print( "new array function: " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue( f );
@@ -156,9 +156,9 @@ namespace Parse {
 		LLVM.Calls.LLVMDumpType( st.getLLVMType(state) );
 
 		// PointerType on type here as ConstTypeSize will strip off one level of pointer and compute size of pointed to type:
-		args = { size, LLVM.Calls.LLVMConstTypeSize(st.getLLVMType(state)), loadVTable( state, c, into ) };
+		args = { size, LLVM.Calls.LLVMConstTypeSize(st.getLLVMType(state)), vtable };
 
-		v = into.Call( f, args );
+		v = callOrInvoke( state, into, f, args );
 
 		return into.PointerCast( v, getType(state).getLLVMType(state) );
             } else if( t.TypeKind == Type.CLASS ) {
@@ -171,7 +171,7 @@ namespace Parse {
 		if( class_symbol.IsStruct ) {
 		    vtable = LLVM.Calls.LLVMConstPointerNull(LLVM.Calls.LLVMVTableType());
 		} else {
-		    vtable = loadVTable( state, class_symbol, into );
+		    vtable = makeLoadVTable( state, class_symbol );
 
 		    // new ITree( line_number, Op.GLOBAL, Machine.WORD, 
 
@@ -199,8 +199,7 @@ namespace Parse {
 		LLVM.Calls.LLVMDumpValue(args[0]);
 		LLVM.Calls.LLVMDumpValue(args[1]);	       
 
-
-		v = into.Call( f, args );
+		v = callOrInvoke( state, into, f, args );
 		v = into.PointerCast( v, getType(state).getLLVMType(state) );
 				
 		IO.Std.err.println( "FIXME: new init method call" );
@@ -229,123 +228,6 @@ namespace Parse {
                     // IO.Std.err.println( "newing undefined type" );
                 }
 		return ErrorValue( getType(state).getLLVMType(state) );
-            }
-        }
-
-
-        ITree compileValue( CompileState state, IBlock into ) {
-            Container class_symbol = null;
-            Type t = getType(state);
-
-	    int op;
-
-	    ITree vtable;
-
-            if( t.TypeKind == Type.VECTOR ) {
-                Type st = t.SubType;
-		if( st.isReference() ) {
-		    op = Op.NEW_OBJ_ARRAY;
-		} else {
-		    // IO.Std.err.println( "new non reference array for: " + st );
-		    op = Op.NEW_ARRAY;
-		}
-
-		Container c = t.getBoxType(state).Clazz;
-
-		vtable = loadVTable( state, c );
-
-		return new ITree( line_number, op, 0,
-				  argument.compileValue( state,
-							 into ),
-				  vtable,
-				  st.Size );
-
-            } else if( t.TypeKind == Type.CLASS ) {
-                // int temp = TempFactory.nextTemp();
-		int result = TempFactory.nextTemp();
-
-                class_symbol = getType(state).Clazz;
-
-		into.add( new ITree( line_number, Op.COMMENT, 0, "new " + class_symbol.DecoratedName + " size " + class_symbol.Size + " into T" + result ) );
-
-		op = Op.NEW;
-
-		if( class_symbol.IsStruct ) {
-		    vtable = new ITree( line_number, Op.CONST, Machine.WORD, "0" );
-		} else {
-		    vtable = loadVTable( state, class_symbol );
-
-		    // new ITree( line_number, Op.GLOBAL, Machine.WORD, 
-
-		    // does this class override Object.finalize()? If so need to register it's 
-		    // finalizer with the garbage collector:
-
-		    Quality q = new Quality();
-		    Container m = class_symbol.findBestMethod( "dispose", new Generic.Vector<Type>(), q );
-
-		    if( m != null && m.Owner != object_type.Clazz ) {
-			// dispose method found and it's not Object.dispose() - need to register finalizer
-			op = Op.NEW_FINALIZE;
-		    }
-		}
-
-                into.add(
-                         makeStoreTemporary( result, Machine.WORD,
-                                             new ITree( line_number, op, 0,
-							new ITree( line_number, Op.CONST, Machine.WORD, class_symbol.Size ),
-                                                        vtable
-                                                        )
-                                             )
-                         );
-
-		/*
-		into.add( new ITree( line_number, Op.COMMENT, 0, "save allocated object as T" + result ) );
-
-		into.add( makeStoreTemporary( result, Machine.WORD, makeLoadTemporary( temp, Machine.WORD ) ) );
-		*/
-		// if( (arguments.List != null && arguments.List.Length > 0) || !method.AreAllOverridesEmpty ) {
-		    ITree thiz = makeLoadTemporary( result, Machine.WORD );
-
-		    // into.add( new ITree( line_number, Op.COMMENT, 0, "thiz: " + thiz ) );
-		
-		    int size = 0;
-
-		    Util.IntVector inline_args;
-		    if( state.InlineOK && method.IsInline ) {
-			inline_args = new Util.IntVector();
-		    }
-
-
-		    size = ExpressionList.compilePush( arguments,
-						       state,
-						       thiz,
-						       method.ArgTypes,
-						       into,
-						       true,
-						       false,
-						       inline_args);
-
-		    into.add( new ITree( line_number, Op.COMMENT, 0, "constructor " + method.DecoratedName ) );
-		    
-		    compileCall( state, into, null, Op.STATIC_CALL_DISCARD, method, method.DecoratedName, 0, size, inline_args );
-		    addDummyExceptionHandlerJump( state, line_number, into );
-		    //} else {
-		    // IO.Std.err.println( "not calling empty constructor " + method.HumanName + " (" + method.DecoratedName + ")" );
-		    // }
-
-		into.add( new ITree( line_number, Op.COMMENT, 0, "new result is T" + result ) );
-
-		//// IO.Std.err.println( "CCCCCCC: new expression: " + into );
-
-                return makeLoadTemporary( result, Machine.WORD );
-            } else {
-                if( type != undefined_type ) {
-                    error( "cannot new type " + type.dump() + " (K" + getType( state ).TypeKind + ")" );
-                } else {
-		    error( "cannot new undefined type" );
-                    // IO.Std.err.println( "newing undefined type" );
-                }
-                return new ITree( line_number, Op.ERROR, 0 );           
             }
         }
 
@@ -433,9 +315,40 @@ namespace Parse {
 	    throw new CannotInlineException();
 	}
 
-        ITree compileValue( CompileState state, IBlock into ) {
-            int count = 0;
+	LLVM.Value getFunction( CompileState state ) {
+	    LLVM.Value v;
+	    LLVM.Type ft;
 
+	    char ptr n = name.Name.toCString();
+
+	    v = LLVM.Calls.LLVMGetNamedFunction(state.Module, n );
+	    if( v == null ) {
+		var args = new LLVM.Type[0];
+		ft = LLVM.Calls.LLVMFunctionType( LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type() ,0), args.address, 0, 1 );
+
+		v = LLVM.Calls.LLVMAddFunction(state.Module, n, ft);
+
+		IO.Std.err.print( "NNNN: added native function: " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue( v );
+
+		IO.Std.err.print( "NNNN: added function type: " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpType( ft );
+
+	    } else {
+		IO.Std.err.print( "NNNN: existing native function: " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue( v );
+
+		ft = LLVM.Calls.LLVMTypeOf(v);
+
+		IO.Std.err.print( "NNNN: existing function type: " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpType( ft );
+	    }
+
+	    return v;
+	}
+
+
+        LLVM.Value compileValue( CompileState state, IRBlock into ) {
 	    // IO.Std.err.println( "call native function for value: " + name.getName() );
             
 	    if( state.WantMarkUnsafe ) {
@@ -445,14 +358,16 @@ namespace Parse {
                 warn( "calling native function " + name.Name );
             }
             
-	    count = ExpressionList.compilePush( arguments, state, null, null, into, false, true, null );
-            
-            int t = TempFactory.nextTemp();
-            
-            into.add( new ITree( line_number, Op.EXTERN, 0, name.Name ) );
+	    var arg_values = ExpressionList.compilePush( arguments, state, null, null, null, into, false, true );
+	    var function = getFunction( state );
 
-	    return compileCall( state, into, null, Op.STATIC_CALL, null, name.Name, 0, count, null );
+	    addDummyExceptionHandlerJump( state, line_number, into );
+	    return callOrInvoke( state, into, function, arg_values );
         }
+
+        void compileDiscardValue( CompileState state, IRBlock into ) {
+	    compileValue( state, into );
+	}
 
         void compileDiscardValue( CompileState state, IBlock into ) {
             int count = 0;

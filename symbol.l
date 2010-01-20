@@ -218,18 +218,12 @@ namespace Parse {
 	}
 
 	LLVM.Value getStaticGlobal(CompileState state) {
-	    if( llvm_value != null ) {
-		return llvm_value;
-	    }
-
 	    char ptr name = ("__static_" + Owner.DecoratedName + "_" + Name ).toCString();
 
 	    LLVM.Value v = LLVM.Calls.LLVMGetNamedGlobal(state.Module, name);
 	    if( v == null ) {
 		v = LLVM.Calls.LLVMAddGlobal(state.Module,Type.getLLVMType(state), name);
 	    }
-
-	    llvm_value = v;
 	    
 	    return v;
 	}
