@@ -19,7 +19,11 @@
 
 #include <gc/gc.h>
 
+#ifdef LLVM
+#define USE_GCJ_MALLOC 0
+#else
 #define USE_GCJ_MALLOC 1
+#endif
 
 typedef void ExFunc(int type, void *ex);
 
@@ -66,6 +70,8 @@ typedef struct _SigContext {
 
 #endif
 
+
+
 #ifdef B64
 
 typedef unsigned long WORD;
@@ -105,7 +111,165 @@ typedef struct _SigContext {
 #endif
 
 
+#ifdef LLVM
 
+#define ALLOC GC_malloc_ignore_off_page
+#define NON_OBJECT_ARRAY_ALLOC  GC_malloc_atomic_ignore_off_page
+	
+#define OBJECT_ARRAY_ALLOC ALLOC
+#define OBJECT_ALLOC ALLOC
+	
+
+int __get_word_size() {
+  return sizeof(WORD);
+}
+
+__thread WORD __tls1;
+__thread WORD __tls2;
+
+WORD __get_tls1() {
+  return __tls1;
+}
+
+void __set_tls1(WORD v) {
+  __tls1 = v;
+}
+
+WORD __get_tls2() {
+  return __tls2;
+}
+
+void __set_tls2(WORD v) {
+  __tls2 = v;
+}
+
+typedef WORD proc();
+
+WORD __proc_thunk5(proc *p, WORD a, WORD b, WORD c, WORD d, WORD e) {
+  return (*p)(a, b, c, d, e);
+}
+
+WORD __proc_thunk4(proc *p, WORD a, WORD b, WORD c, WORD d) {
+  return (*p)(a, b, c, d);
+}
+
+WORD __proc_thunk3(proc *p, WORD a, WORD b, WORD c) {
+  return (*p)(a, b, c);
+}
+
+WORD __proc_thunk2(proc *p, WORD a, WORD b) {
+  return (*p)(a, b);
+}
+
+WORD __proc_thunk1(proc *p, WORD a) {
+  return (*p)(a);
+}
+
+WORD __proc_thunk0(proc *p) {
+  return (*p)();
+}
+
+/*	
+.global __proc_thunk5
+__proc_thunk5:
+	mov %r8, %r9
+
+.global __proc_thunk4
+__proc_thunk4:
+	mov %rcx,%r8
+
+.global __proc_thunk3
+__proc_thunk3:
+	mov %rdx,%rcx
+	
+.global __proc_thunk2
+__proc_thunk2:
+	mov %rsi,%rdx	   # shift param #1 -> param #2
+	
+.global __proc_thunk1
+__proc_thunk1:
+	mov %rdi,%rsi      # shift param #0 -> param #1
+	
+.global __proc_thunk0
+__proc_thunk0:
+	mov 16(%rax),%rdi   # shift this -> param #0
+	jmp *24(%rax)
+*/
+
+typedef int vtable_function();
+
+unsigned char *allocago( int element_count, int element_size, vtable_function* vt ) {
+  int total_size = element_count * element_size + sizeof(WORD) * 2;
+
+  WORD *result = OBJECT_ARRAY_ALLOC(total_size);
+  result[0] = (WORD)vt;
+  result[1] = element_count;
+
+  return (unsigned char *)result;
+}
+
+unsigned char *allocagn( int element_count, int element_size, vtable_function* vt ) {
+  int total_size = element_count * element_size + sizeof(WORD) * 2;
+
+  WORD *result = NON_OBJECT_ARRAY_ALLOC(total_size);
+
+  memset(result,0,total_size);
+  result[0] = (WORD)vt;
+  result[1] = element_count;
+
+  return (unsigned char *)result;
+}
+
+unsigned char *alloco( int total_size ) {
+  return OBJECT_ALLOC(total_size);
+}
+
+int __geterrno() {
+  return errno;
+}
+
+char *__argv[] = { "FIXME: no program arguments", 0 };
+
+char **__get_argv() {
+  return __argv;
+}
+
+char *__envp[] = { "FIXME: no environment", 0 };
+
+char **__get_envp() {
+  return __envp;
+}
+
+void *_get_classes_info() {
+  fprintf( stderr, "FIXME: _get_classes_info" );
+  return 0;
+}
+
+void __throw_memoryexception() {
+  fprintf( stderr, "FIXME: __throw_memory_exception" );
+  exit(0);
+}
+
+
+
+
+
+void __throw_arrayboundsexception() {
+  fprintf( stderr, "FIXME: __throw_arrayboundsexception" );
+  exit(0);
+}
+
+void __throw_castexception() {
+  fprintf( stderr, "FIXME: __throw_castexception" );
+  exit(0);
+}
+
+void __catch_exception( WORD type, void *e, void *rip, Registers *regs ) {
+  fprintf( stderr, "FIXME: __throw_catchexception" );
+  exit(0);
+}  
+	
+#endif
 typedef struct _VTable {
   WORD    type;      // -12
   char *name;        // -8
@@ -250,7 +414,6 @@ int __get_time() {
 
 #if B32
 // C calling convention:
-extern __catch_exception( WORD type, void *e, void *rip, Registers *regs );
 
 // L calling convention on 32 bit x86 is fastcall - first two parameters in ecx and edx and callee pops arguments from stack:
 extern __attribute__((fastcall)) void _ZN6System6Thread16__set_pthread_idEu4word( void *thread, WORD id );
@@ -270,7 +433,6 @@ extern __attribute__((fastcall)) void _ZN6System20NullPointerException4initEPc( 
 extern __attribute__((fastcall)) char *_ZN6System6Object9toCStringEv( void *e );
 
 #else
-extern __catch_exception( WORD type, void *e, void *rip, Registers *regs );
 
 extern void _ZN6System6Thread16__set_pthread_idEu4word( void *thread, WORD id );
 extern void _ZN6System6Thread14__thread_entryEv( void *thread );
@@ -288,7 +450,7 @@ extern void _ZN6System20NullPointerException4initEPc( void *e, char *m );
 extern char *_ZN6System6Object9toCStringEv( void *e );
 #endif
 
-extern __throw_memoryexception();
+// extern __throw_memoryexception();
 
 #define STACK_SIZE (1024*1024*2)
 
@@ -1475,5 +1637,6 @@ long __get_nanotime() {
   }
 
 }
+
 
 

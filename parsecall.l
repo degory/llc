@@ -129,6 +129,7 @@ namespace Parse {
 	    LLVM.Value[] args;
 
             if( t.TypeKind == Type.VECTOR ) {
+		/*
                 Type st = t.SubType;
 		if( st.isReference() ) {
 		    op = RuntimeFunction.ALLOC_REF_ARRAY;
@@ -161,6 +162,8 @@ namespace Parse {
 		v = callOrInvoke( state, into, f, args );
 
 		return into.PointerCast( v, getType(state).getLLVMType(state) );
+		*/
+		return makeAllocateArray( state, into, t, argument.compileValue(state,into) );
             } else if( t.TypeKind == Type.CLASS ) {
                 // int temp = TempFactory.nextTemp();
 
@@ -188,22 +191,23 @@ namespace Parse {
 		}
 		
 		f = state.getRuntimeFunction( op );
-
+		/*
 		IO.Std.err.println( "about to emit call __alloc_object" ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue(f);
+		*/
 
 		// no PointerType on type here as class is already a pointer type and we want size of pointed to struct here:
 		args = { LLVM.Calls.LLVMConstTypeSizeIndirect(getType(state).getLLVMType(state)), vtable };
 
+		/*
 		IO.Std.err.println( "args are:\n" ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue(args[0]);
 		LLVM.Calls.LLVMDumpValue(args[1]);	       
+		*/
 
 		v = callOrInvoke( state, into, f, args );
 		v = into.PointerCast( v, getType(state).getLLVMType(state) );
 				
-		IO.Std.err.println( "FIXME: new init method call" );
-
 		args = ExpressionList.compilePush( arguments,
 						   state,
 						   v,
@@ -328,13 +332,15 @@ namespace Parse {
 
 		v = LLVM.Calls.LLVMAddFunction(state.Module, n, ft);
 
+		/*
 		IO.Std.err.print( "NNNN: added native function: " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue( v );
 
 		IO.Std.err.print( "NNNN: added function type: " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpType( ft );
-
+		*/
 	    } else {
+		/*
 		IO.Std.err.print( "NNNN: existing native function: " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue( v );
 
@@ -342,6 +348,7 @@ namespace Parse {
 
 		IO.Std.err.print( "NNNN: existing function type: " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpType( ft );
+		*/
 	    }
 
 	    return v;
@@ -857,7 +864,7 @@ namespace Parse {
 		// IO.Std.err.println( "block now:\n" + into );
 
 	    } else if( left_value != null && !left_value.isClass( state ) ) {
-		IO.Std.err.println( "call on non-class left value: " + left_value );
+		// IO.Std.err.println( "call on non-class left value: " + left_value );
                 t = left_value.compileValue( state, into );
 
 		// FIXME: this is a bad place for this but MethodCall doesn't make it easy
@@ -906,7 +913,7 @@ namespace Parse {
                 Container super_class = null;
                 if( super_call ) {
                     super_class = left_value.getType(state).Clazz;
-		    IO.Std.err.println( "super call..." );
+		    // IO.Std.err.println( "super call..." );
                 }
 
 		/*
@@ -914,7 +921,7 @@ namespace Parse {
 		IO.Std.err.println( "IIIIII: kind is " + method.Kind + " versus " + Symbol.STATIC_METHOD );
 		*/
 
-		IO.Std.err.println( "DDDD: arg types: " + method.ArgTypes );
+		// IO.Std.err.println( "DDDD: arg types: " + method.ArgTypes );
 
                 t = compileLoad( state, into, method, null, arguments, method.ArgTypes, t, flags, super_class );
 
@@ -931,7 +938,7 @@ namespace Parse {
                 if( left_value.isClass( state ) ) {
                     flags = flags | LOAD_FLAG_STATIC;
 		}
-		IO.Std.err.println( "DDDD: arg types: " + method.ArgTypes );
+		// IO.Std.err.println( "DDDD: arg types: " + method.ArgTypes );
 
                 t = compileLoad( state, into, method, null, arguments, method.ArgTypes, null, flags, null );
             } else {
@@ -939,7 +946,7 @@ namespace Parse {
                 if( state.CurrentMethod.IsStatic ) {
                     flags = flags | LOAD_FLAG_STATIC;
 		}
-		IO.Std.err.println( "DDDD: arg types: " + method.ArgTypes );
+		// IO.Std.err.println( "DDDD: arg types: " + method.ArgTypes );
 
                 t = compileLoad( state, into, method, null, arguments, method.ArgTypes, t, flags, null );
             }

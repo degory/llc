@@ -210,19 +210,19 @@ namespace Parse {
 
     class ExceptionDescriptor extends Object {
 	public EDType type;
-	public LLVM.BasicBlock descriptor_label;
-	public LLVM.BasicBlock code_label;
+	public LLVM.BasicBlock landing_pad;
+	public LLVM.BasicBlock handler;
 
 	public LLVM.Value exception_type;
 	public LLVM.Value exception_value;
 
-	void init( EDType type, LLVM.BasicBlock dl, LLVM.BasicBlock cl, LLVM.Value et, LLVM.Value ev ) {
+	void init( EDType type, LLVM.BasicBlock lp, LLVM.BasicBlock h, LLVM.Value et, LLVM.Value ev ) {
 	    this.type = type;
-	    descriptor_label = dl;
-	    code_label = cl;
+	    landing_pad = lp;
+	    handler = h;
 
-	    if( code_label == null ) {
-		IO.Std.err.println( "TTTT: exception descriptor with null code label from: " + new System.Backtrace() );
+	    if( landing_pad == null || handler == null) {
+		IO.Std.err.println( "TTTT: exception descriptor with null landing pad or handler from: " + new System.Backtrace() );
 	    }
 		
 	    exception_type = et;
@@ -236,6 +236,10 @@ namespace Parse {
         protected int line_number;
 
         protected const int
+	    CATCH_FINALLY = 0,
+	    CATCH_EXCEPT = 1,
+	    CATCH_RETURN = 2,
+
             LOAD_FLAG_ADDRESS = 1,
             LOAD_FLAG_STATIC = 2,
             LOAD_FLAG_DISCARD = 4,
@@ -363,6 +367,181 @@ namespace Parse {
 	}
 	*/
 
+
+	static LLVM.Value getPersonalityFunction( CompileState state ) {
+	    char ptr n =`__l_personality`;
+
+	    var v = LLVM.Calls.LLVMGetNamedFunction(state.Module, n);
+
+	    if( v == null ) {
+		var args = new LLVM.Type[0];
+		var ft = LLVM.Calls.LLVMFunctionType( LLVM.Calls.LLVMInt64Type(), args.address, 0, 0 );
+		
+		v = LLVM.Calls.LLVMAddFunction(state.Module, n, ft);				
+	    }
+	    
+	    return v;
+	}
+
+
+	static LLVM.Value getExceptionIntrinsic( CompileState state ) {
+	    char ptr n =`llvm.eh.exception`;
+
+	    var v = LLVM.Calls.LLVMGetNamedFunction(state.Module, n);
+
+	    if( v == null ) {
+		var args = new LLVM.Type[0];
+		var ft = LLVM.Calls.LLVMFunctionType(
+						     LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(), 0),
+						     args.address,
+						     0,
+						     0
+						     );
+		
+		v = LLVM.Calls.LLVMAddFunction(state.Module, n, ft);				
+	    }
+	    
+	    return v;
+	}
+
+	static LLVM.Value getSelectorIntrinsic( CompileState state ) {
+	    char ptr n = `llvm.eh.selector.i64`;
+
+	    var v = LLVM.Calls.LLVMGetNamedFunction(state.Module, n);
+
+	    if( v == null ) {
+		var args = {
+		    // LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type() ,0),
+		    LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type() ,0),
+		    LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type() ,0)
+		};
+
+		var ft = LLVM.Calls.LLVMFunctionType(
+						 LLVM.Calls.LLVMInt64Type(),
+						 args.address,
+						 args.length,
+						 1 // 0
+						 );
+		
+		v = LLVM.Calls.LLVMAddFunction(state.Module, n, ft);				
+	    }
+	    
+	    return v;
+	}
+
+	static void addLandingPad(
+			   CompileState state,
+			   IRBlock into,
+			   LLVM.Value exception_type,
+			   LLVM.Value exception_value,
+			   LLVM.Value l_exception_value,
+			   LLVM.BasicBlock landing_pad,
+			   LLVM.BasicBlock handler,
+			   bool is_finally) {
+	    // control arrives here from unwind library:
+
+	    into.Label( landing_pad );
+
+	    LLVM.Value type_info;
+
+	    // identify this basic block as a landing pad to LLVM and
+	    // store the struct _Unwind_Exception* value passed from unwind library in exception_value
+	    into.Store(
+		       into.Call(
+				 getExceptionIntrinsic(state),
+				 new LLVM.Value[0]
+				 ),
+		       exception_value
+		       );
+	    
+	    if( is_finally ) {
+		// if this is a finally landing pad then we want to catch all exceptions, including foreign ones:
+		type_info = LLVM.Calls.LLVMConstPointerNull(LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0));
+	    } else {
+		// otherwise if it's a catches block we want to catch a L exceptions. The string constant is a dummy
+		// type info that the L personality function should recognize causing a non-zero return from
+		// llvm.eh.selector
+		type_info = makeCStringConstant(state, "");
+	    }
+
+	    // find out whether we've matched an L exception or not by calling llvm.eh.selector and normalize the result to
+	    // 0 (foreign exception) or 1 (L exception)
+	    into.Store(
+		       into.Select(
+				   into.ICmp(
+					     LLVM.LLVMIntPredicate.LLVMIntEQ,
+					     into.Call(
+						       getSelectorIntrinsic(state),
+						       {
+							   makeLLVMCast(
+									into.Load(exception_value),
+									LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0),
+									into
+									),
+							   makeLLVMCast(
+									getPersonalityFunction(state),
+									LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0),
+									into
+									),
+							   type_info 
+						       }
+						       ),
+					     LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),0L,0)
+					     ),
+				   LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),cast long(CATCH_FINALLY),0),
+				   LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),cast long(CATCH_EXCEPT),0)
+				   ),
+		       exception_type
+		       );
+
+	    if( !is_finally ) {
+		into.Branch(
+			    into.ICmp(
+				      LLVM.LLVMIntPredicate.LLVMIntNE,
+				      into.Load(exception_type),
+				      LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),cast long(CATCH_EXCEPT),0)
+				      ),
+			    handler
+			    );
+
+		into.Store(
+			   makeLExceptionValue(state, into, exception_value),
+			   l_exception_value
+			   );
+	    }
+
+
+	    into.Label( handler );
+	}
+
+
+	static LLVM.Value makeLExceptionValue(
+				       CompileState state,
+				       IRBlock into,
+				       LLVM.Value exception_value
+				       ) {
+
+	    // get pointer to third 64-bit word in exception structure:
+	    LLVM.Value ep = into.InBoundsGEP(
+					     makeLLVMCast(
+							  into.Load(exception_value),
+							  LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt64Type(),0),
+							  into
+							  ),
+					     { LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(),3L,0) }
+					     );
+
+	    // load the word, cast to i8* and return
+	    return makeLLVMCast(
+				into.Load(ep),
+				LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0),
+				into
+				);
+
+	}
+
+
+
 	static LLVM.Value callOrInvoke(
 				       CompileState state,
 				       IRBlock into,
@@ -372,24 +551,61 @@ namespace Parse {
 	    if( state.InExceptionHandler ) {		
 		LLVM.BasicBlock l = into.Block();
 
-		LLVM.BasicBlock handler = state.TopException.code_label;
-		if( handler == null ) {
-		    throw new System.Exception( "call or invoke: in exception handler but no code label" );
+		LLVM.BasicBlock landing_pad = state.TopException.landing_pad;
+		if( landing_pad == null ) {
+		    throw new System.Exception( "call or invoke: in exception handler but no landing pad set" );
+		    /*
 		} else {
 		    IO.Std.err.print( "TTTT: invoke f: " ); IO.Std.err.flush();
 		    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(f) );
 
 		    IO.Std.err.print( "TTTT: handler: " ); IO.Std.err.flush();
 		    LLVM.Calls.LLVMDumpValue( LLVM.Calls.LLVMBasicBlockAsValue(handler) );
+		    */
 		}
 
-		var v = into.Invoke( f, args, l, handler );
+		var v = into.Invoke( f, args, l, landing_pad );
 
 		into.Label(l);
 		return v; 
 	    } else {
 		return into.Call( f, args );
 	    }
+	}
+
+	LLVM.Value makeAllocateArray( CompileState state, IRBlock into, Type t, LLVM.Value element_count ) {
+	    RuntimeFunction op;
+	    Type st = t.SubType;
+
+	    if( st.isReference() ) {
+		op = RuntimeFunction.ALLOC_REF_ARRAY;
+	    } else {
+		// IO.Std.err.println( "new non reference array for: " + st );
+		op = RuntimeFunction.ALLOC_ARRAY;
+	    }
+
+	    Container c = t.getBoxType(state).Clazz;
+	    var f = state.getRuntimeFunction( op );
+
+	    var vtable = makeLoadVTable( state, c );
+	    
+	    /*
+	    IO.Std.err.print( "new array function: " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpValue( f );
+
+	    IO.Std.err.print( "new vtable: " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpValue( vtable );
+
+	    IO.Std.err.print( "new sub type: " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpType( st.getLLVMType(state) );
+	    */
+
+	    // PointerType on type here as ConstTypeSize will strip off one level of pointer and compute size of pointed to type:
+	    var args = { element_count, LLVM.Calls.LLVMConstTypeSize(st.getLLVMType(state)), vtable };
+
+	    var v = callOrInvoke( state, into, f, args );
+
+	    return into.PointerCast( v, t.getLLVMType(state) );
 	}
 
 
@@ -402,15 +618,20 @@ namespace Parse {
                                                0
 					       );
 
+	    /*
 	    IO.Std.err.print( "const C string:  " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpValue( v );
+	    */
 
 	    var g = LLVM.Calls.LLVMAddGlobal( state.Module, LLVM.Calls.LLVMTypeOf(v), ("__string_" + string_number).toCString() );
 	    string_number = string_number + 1;
 	    LLVM.Calls.LLVMSetInitializer( g, v );
+	    LLVM.Calls.LLVMSetLinkage( g, LLVM.LLVMLinkage.LLVMPrivateLinkage );
 
+	    /*
 	    IO.Std.err.print( "global C string: " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpValue( g );
+	    */
 
 	    var elements = {
 		LLVM.Calls.LLVMConstInt(
@@ -426,7 +647,7 @@ namespace Parse {
 	    };
 
 
-	    IO.Std.err.println( "returning GEP" );
+	    // IO.Std.err.println( "returning GEP" );
 	    return LLVM.Calls.LLVMConstInBoundsGEP(g,
 						   elements.address,
 						   elements.length
@@ -449,11 +670,12 @@ namespace Parse {
 		// should do null check here
 	    }
 
-	    IO.Std.err.println( "add store indirect" ); IO.Std.err.flush();
+	    // IO.Std.err.println( "add store indirect" ); IO.Std.err.flush();
 
 	    LLVM.Type dt = LLVM.Calls.LLVMGetElementType(LLVM.Calls.LLVMTypeOf(d));
 	    LLVM.Type st = LLVM.Calls.LLVMTypeOf(s);
 
+	    /*
 	    IO.Std.err.print( "value dest:   " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpValue( d );
 	    IO.Std.err.print( "type dest:    " ); IO.Std.err.flush();
@@ -463,12 +685,14 @@ namespace Parse {
 	    LLVM.Calls.LLVMDumpValue( s );
 	    IO.Std.err.print( "type source:  " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpType( st );
-
+	    */
 	    s = makeLLVMCast( s, dt, into );
 
 	    LLVM.Value v = into.Store( s, d );
 
+	    /*
 	    LLVM.Calls.LLVMDumpValue( v );
+	    */
 	}
 
 	// load a value allowing for a jump from the run-time on null pointer to any active exception
@@ -498,13 +722,13 @@ namespace Parse {
 	// understands live values must transfer from here to there:
 	protected static void addDummyExceptionHandlerJump( CompileState state, int line_number, IRBlock into ) {
 	    if( state.InExceptionHandler ) {
-		IO.Std.err.println( "FIXME: should use invoke here with landing pad: state.TopException.code_label" );
+		IO.Std.err.println( "FIXME: should use invoke here with landing pad: state.TopException.landing_pad" );
 	    }
 	}
 
 	protected static void addDummyExceptionHandlerJump( CompileState state, int line_number, IBlock into ) {
 	    if( state.InExceptionHandler ) {
-		IO.Std.err.println( "FIXME: should use invoke here with landing pad: state.TopException.code_label" );
+		IO.Std.err.println( "FIXME: should use invoke here with landing pad: state.TopException.landing_pad" );
 	    }
 	}
 
@@ -525,13 +749,15 @@ namespace Parse {
 		return v;
 	    }
 
-	    IO.Std.err.println( "LLVM Value type mis-match: casting..." ); IO.Std.err.flush();
-
 	    LLVM.TypeKind kv = LLVM.Calls.LLVMGetTypeKind(tv);
 	    LLVM.TypeKind kt = LLVM.Calls.LLVMGetTypeKind(t);
 
+	    /*
+	    IO.Std.err.println( "LLVM Value type mis-match: casting..." ); IO.Std.err.flush();
+
 	    LLVM.Calls.LLVMDumpType( tv );
 	    LLVM.Calls.LLVMDumpType( t );
+	    */
 
 	    if( kt == LLVM.TypeKind.LLVMPointerTypeKind || kt == LLVM.TypeKind.LLVMArrayTypeKind ) {
 		if( kv == LLVM.TypeKind.LLVMPointerTypeKind || kv == LLVM.TypeKind.LLVMArrayTypeKind || kv == LLVM.TypeKind.LLVMFunctionTypeKind ) {
@@ -557,13 +783,15 @@ namespace Parse {
 		return v;
 	    }
 
-	    IO.Std.err.println( "LLVM Value type mis-match: casting..." ); IO.Std.err.flush();
-
 	    LLVM.TypeKind kv = LLVM.Calls.LLVMGetTypeKind(tv);
 	    LLVM.TypeKind kt = LLVM.Calls.LLVMGetTypeKind(t);
 
+	    /*
+	    IO.Std.err.println( "LLVM Value type mis-match: casting..." ); IO.Std.err.flush();
+
 	    LLVM.Calls.LLVMDumpType( tv );
 	    LLVM.Calls.LLVMDumpType( t );
+	    */
 
 	    if( kt == LLVM.TypeKind.LLVMPointerTypeKind || kt == LLVM.TypeKind.LLVMArrayTypeKind ) {
 		if( kv == LLVM.TypeKind.LLVMPointerTypeKind || kv == LLVM.TypeKind.LLVMArrayTypeKind || kv == LLVM.TypeKind.LLVMFunctionTypeKind ) {
@@ -899,6 +1127,13 @@ namespace Parse {
 	    throw new System.NotImplementedException( "oops: can't compile address: " + Class.Name );
         }
 
+	LLVM.Value QuietErrorValue() {
+	    return QuietErrorValue(LLVM.Calls.LLVMVoidType());
+	}
+
+	LLVM.Value QuietErrorValue(LLVM.Type t) {
+	    return LLVM.Calls.LLVMGetUndef(t);
+	}	    
 
 	LLVM.Value ErrorValue() {
 	    IO.Std.err.println( "untyped error value from: " + new System.Backtrace() );
@@ -1549,7 +1784,7 @@ namespace Parse {
 		into.Store(
 			   makeLLVMCast(
 					return_value,
-					LLVM.Calls.LLVMInt64Type(),
+					LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0),
 					into
 					),
 			   exception_value
@@ -1605,21 +1840,18 @@ namespace Parse {
             
             // if we're in an exception handler, and we're not in an outermost finally, then we need to throw a return
 
+	    ExceptionDescriptor ed;
             if( state.InExceptionHandler ) {
+		ed = state.TopFinallyOrReturn;
+	    }
 
-
-		ExceptionDescriptor ed = state.TopFinallyOrReturn;
-
-		if( ed == null ) {
-		    throw new Exception( "no finally or return handler found on exception handler stack" );
-		}
-
-		LLVM.BasicBlock return_label = ed.code_label;
+	    if( ed != null ) {
+		LLVM.BasicBlock return_label = ed.handler;
 
 		throwReturn(
 			    state,
 			    into, 
-			    ed.code_label,
+			    ed.handler,
 			    t,
 			    ed.exception_type,
 			    ed.exception_value
@@ -1954,7 +2186,6 @@ namespace Parse {
 	    IO.Std.err.println( "left value:  " + left_value );
 	    IO.Std.err.println( "right value: " + right_value  );
 	    */
-
 	    left_value.clear(state);
 	    right_value.clear(state);
 	}
@@ -1973,17 +2204,15 @@ namespace Parse {
 	}
 
         void compile( CompileState state, IRBlock into ) {
-	    IO.Std.err.println( "assignment: " + this );
-
 	    left_value.wantSetProperty( state, right_value );
 	    Type tl = left_value.getType( state );
 	    Type tr = right_value.getType( state );
-	    
-	    /*
-	      IO.Std.err.println( "assign left value:  " + left_value + " type: " + tl );
-	      IO.Std.err.println( "assign right value: " + right_value + " type: " + tr );
+
+	    /*	    
+	    IO.Std.err.println( "assign left value:  " + left_value + " type: " + tl );
+	    IO.Std.err.println( "assign right value: " + right_value + " type: " + tr );
 	    */
-	    
+
 	    if( !left_value.isProperty(state) && !left_value.isLeftValue(state) ) {
 		error( "cannot assign to non lvalue " + left_value.dump(state) );
 	    }
@@ -2001,11 +2230,13 @@ namespace Parse {
 		
 		LLVM.Value l = left_value.compileAddress( state, into );
 
+		/*
 		IO.Std.err.print( "left value:  " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue( l );
 
 		IO.Std.err.print( "left type:   " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(l) );
+		*/
 
 		LLVM.Value r = right_value.compileValue( state, into );
 
@@ -2014,12 +2245,13 @@ namespace Parse {
 		    IO.Std.err.println( "root type is: " + right_value.Class.Name );
 		}
 		   
-
+		/*
 		IO.Std.err.print( "right value: " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue( r );
 
 		IO.Std.err.print( "right type:  " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(r) );
+		*/
 
 		addStoreIndirect( state, line_number, into, true, l, r );
 	    }
@@ -2214,7 +2446,7 @@ namespace Parse {
 
 	    if( method_call != null ) {
 		IO.Std.err.println( "oops: should not compileAddress for indexed object property access" );		
-		return ErrorValue();
+		return QuietErrorValue(getType(state).getLLVMType(state));
 	    }
 
             cl = left_value.compileValue(state, into);
@@ -2274,9 +2506,9 @@ namespace Parse {
 	    } else {
 		// IO.Std.err.println( "have method call: " + this + ", type: " + type );
 		if( want_set_value ) {
-		    // IO.Std.err.println( "array access setter method has no value here: " + new System.Backtrace() );
+		    IO.Std.err.println( "array access setter method has no value here: " + new System.Backtrace() );
 		    method_call.compileDiscardValue( state, into );
-		    return ErrorValue();
+		    return QuietErrorValue(getType(state).getLLVMType(state));
 		} else {
 		    return method_call.compileValue( state, into );
 		}

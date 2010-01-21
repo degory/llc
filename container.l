@@ -245,7 +245,7 @@ namespace Parse {
 		return v;
 		}*/
 
-	    IO.Std.err.println( "get function global: " + DecoratedName + " " + HumanName + " in module " + cast int(state.Module) );
+	    // IO.Std.err.println( "get function global: " + DecoratedName + " " + HumanName + " in module " + cast int(state.Module) );
 
 	    char ptr name = DecoratedName.toCString();
 
@@ -333,11 +333,8 @@ namespace Parse {
 
 	get int IFaceOffset {
 	    if( iface_offset < 0 ) {
-		IO.Std.err.println( "BBBB: need to calculate iface offset" );
 		// if iface offset not yet calculated, calculate it now:
 		iface_offset = calcIFaceOffset();
-	    } else {
-		IO.Std.err.println( "BBBB: return existing iface offset " + iface_offset );
 	    }
 
 	    return iface_offset;
@@ -411,18 +408,30 @@ namespace Parse {
 
 
 	int getGEPDepth( Symbol s ) {
-	    IO.Std.err.println( "GEP depth: " + s.HumanName + ", owner: " + s.Owner.HumanName + ", from: " + HumanName + "..." );
+	    /*
+	    IO.Std.err.println( "GGGG: symbol: " + s );
+	    IO.Std.err.println( "GGGG: owner: " + s.Owner );
+	    IO.Std.err.println( "GGGG: container: " + this );
+	    IO.Std.err.println( "GGGG: parent: " + parent );
+	    IO.Std.err.println( "GGGG: owner: " + Owner );
+
+	    IO.Std.err.println( "GGGG: GEP depth: " + s.HumanName + ", owner: " + s.Owner.HumanName + ", from: " + HumanName + "..." );
+	    */
+
 	    if( this == null ) {
-		IO.Std.err.println( "getGEPDepth: " + s.HumanName + " null owner from: " + new System.Backtrace() );
+		IO.Std.err.println( "GGGG: getGEPDepth: " + s.HumanName + " null owner from: " + new System.Backtrace() );
 	    } else if( s.Owner == this ) {
-		IO.Std.err.println( "GEP: " + HumanName + "." + s.Name );
+		// IO.Std.err.println( "GGGG: GEP: " + HumanName + "." + s.Name );
 		return 1;
 	    } else if( parent == null ) {
-		IO.Std.err.println( "getGEPDepth: " + s.HumanName + " not found from: " + new System.Backtrace() );
+		IO.Std.err.println( "GGGG: getGEPDepth: " + s.HumanName + " not found from: " + new System.Backtrace() );
 		throw new System.NotImplementedException( "GEP not owner: " + s.HumanName );
 	    } else {
-		IO.Std.err.println( "GEP: strip " + HumanName );
-		return parent.getGEPDepth(s) + 1;
+		
+		// IO.Std.err.println( "GGGG: GEP: strip " + HumanName );
+		var result = parent.getGEPDepth(s) + 1;
+		// IO.Std.err.println( "GGGG: GEP: returning " + result );
+		return result;
 	    }
 	}
 
@@ -1393,15 +1402,13 @@ namespace Parse {
                 address.itable_offset = 0;
             }
 
-	    IO.Std.err.println( "build class tables: " + HumanName );
+	    // IO.Std.err.println( "build class tables: " + HumanName );
 
             int stable_offset = 0;
         
             if( members == null ) {
                 throw new Exception( "weird: build class tables for class with no member list: " + HumanName );
             }
-
-	    IO.Std.err.println( "BBBB: allocate vtable " + HumanName + ", vtable offset " + address.vtable_offset );
 
 	    bool want_pack = state.WantPack;
 
@@ -1434,7 +1441,7 @@ namespace Parse {
                     
                         current.Address = address.vtable_offset;
 
-			IO.Std.err.println( "BBBB: method " + current.HumanName + " @ " + address.vtable_offset );
+			// IO.Std.err.println( "BBBB: method " + current.HumanName + " @ " + address.vtable_offset );
 
 			// method doesn't override anything - it needs its own vtable slot:
                         address.vtable_offset = address.vtable_offset + 1;
@@ -1459,7 +1466,7 @@ namespace Parse {
                             current.Address = ancestor.Address;
                         }
 
-			IO.Std.err.println( "BBBB: override " + current.HumanName + " @ " + current.Address );
+			// IO.Std.err.println( "BBBB: override " + current.HumanName + " @ " + current.Address );
                     }
                 } else if( k == Symbol.STATIC_VARIABLE ) {
                     if( current.IsAddressValid ) {
@@ -1522,13 +1529,13 @@ namespace Parse {
         
             itable_offset = address.itable_offset;
             vtable_offset = address.vtable_offset;
-	    IO.Std.err.println( "BBBB: setting vtable offset to: " + vtable_offset );
+
 	    this.stable_offset = stable_offset;
 	    this.ref_bits = ref_bits;
 
 	    // IO.Std.err.println( "ref bits now: " + ref_bits );
 	    
-	    IO.Std.err.println( "BBBB: vtable size now: " + VTableSize );
+	    // IO.Std.err.println( "BBBB: vtable size now: " + VTableSize );
 	    
             tables_valid = true;
         }
@@ -1550,18 +1557,13 @@ namespace Parse {
 
 	void emitTables( CompileState state, ParseTree from ) {
 
-	    IO.Std.err.println( "BBBB: emit tables: " + HumanName );
 	    var buffer = new Generic.Vector<LLVM.Value>();
 
 	    emitInterfaceTables( state, from, buffer );
 
-	    IO.Std.err.println( "BBBB: after interface tables buffer has " + buffer.Length + " elements versus interface offset" + IFaceOffset );
-
-	    IO.Std.err.println( "BBBB: type table @ " + buffer.Length );
 	    // FIXME: type table
 	    buffer.add( LLVM.Calls.LLVMConstPointerNull( LLVM.Calls.LLVMVTableFunctionType() ) );
 
-	    IO.Std.err.println( "BBBB: name @ " + buffer.Length );
 	    // name
 	    buffer.add(
 		       LLVM.Calls.LLVMConstBitCast(
@@ -1570,7 +1572,6 @@ namespace Parse {
 						   )
 		       );
 
-	    IO.Std.err.println( "BBBB: size @ " + buffer.Length );
 	    // size
 	    buffer.add(
 		       LLVM.Calls.LLVMConstIntToPtr(
@@ -1583,7 +1584,6 @@ namespace Parse {
 						   )
 		       );
 	    
-	    IO.Std.err.println( "BBBB: super vtable @ " + buffer.Length );
 	    // super class vtable 
 	    if( Super != null ) {
 		buffer.add(
@@ -1596,25 +1596,12 @@ namespace Parse {
 		buffer.add( LLVM.Calls.LLVMConstPointerNull( LLVM.Calls.LLVMVTableFunctionType() ) );
 	    }
 
-	    IO.Std.err.println( "BBBB: reference bits @ " + buffer.Length );
 	    // FIXME: reference bits:
 	    buffer.add( LLVM.Calls.LLVMConstPointerNull( LLVM.Calls.LLVMVTableFunctionType() ) );
 
-	    IO.Std.err.println( "BBBB: before class tables buffer has " + buffer.Length + " elements" );
 	    emitClassTables( state, this, buffer );
 
-	    IO.Std.err.println( "BBBB: after class tables buffer has " + buffer.Length + " elements versus " + (VTableSize + IFaceOffset + 3) );
-
 	    var v = buffer.Array;
-
-	    IO.Std.err.println( "v length: " + v.length );
-
-	    for( var i = 0; i < v.length; i = i + 1 ) {
-		if( cast<word>(v[i]) != cast<word>(buffer[i]) ) {
-		    IO.Std.err.println( "wrong at index " + i );
-		}
-	    }
-	    IO.Std.err.flush();
 
 	    var a = LLVM.Calls.LLVMConstArray(
 					      LLVM.Calls.LLVMVTableFunctionType(),
@@ -1622,18 +1609,20 @@ namespace Parse {
 					      v.length
 					      );	    
 
+	    /*
 	    IO.Std.err.print( "ctable initializer value is: " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpValue( a );
 	    IO.Std.err.print( "ctable initializer type is:  " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf( a ) );
-
+	    */
 	    var ct = getCTableGlobal(state);
 
+	    /*
 	    IO.Std.err.print( "ctable global variable is:   " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpValue( ct );
 	    IO.Std.err.print( "ctable global type is:       " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf( ct ) );
-
+	    */
 	    LLVM.Calls.LLVMSetInitializer(
 					  ct,
 					  // ParseTree.makeLLVMConstCast( a, LLVM.Calls.LLVMGetElementType(LLVM.Calls.LLVMTypeOf(ct)) )
@@ -1646,9 +1635,9 @@ namespace Parse {
 	}
 
 	void emitInterfaceTables( CompileState state, ParseTree from, Generic.Vector<LLVM.Value> buffer ) {
-	    IO.Std.err.println( "BBBB: emit interface tables " + HumanName + " expect to need " + iface_offset + " slots" );
+	    // IO.Std.err.println( "BBBB: emit interface tables " + HumanName + " expect to need " + iface_offset + " slots" );
 	    if( implements_list == null ) {
-		IO.Std.err.println( "BBBB: no interfaces implemented" );
+		// IO.Std.err.println( "BBBB: no interfaces implemented" );
 		// Machine.emitWeak( state.Output, "__ctable__" + DecoratedName );
 		return;
 	    }
@@ -1699,7 +1688,7 @@ namespace Parse {
 			IO.Std.err.println( "weird: already implemented: " + slots[slot].HumanName + " versus " + i.HumanName );
 		    }
 		    
-		    IO.Std.err.println( "BBBB: implement slot #" + slot + ": " + i.HumanName );
+		    // IO.Std.err.println( "BBBB: implement slot #" + slot + ": " + i.HumanName );
 		    slots[slot] = i;
 		}
 	    }
@@ -1750,7 +1739,7 @@ namespace Parse {
 	    Container i;
 	    int io = -1;
 
-	    IO.Std.err.println( "BBBB: calc iface offset for " + HumanName );
+	    // IO.Std.err.println( "BBBB: calc iface offset for " + HumanName );
 
 	    foreach( Container c; implemented.elements() ) {
 		foreach( Symbol s; c.members.SymbolList.elements() ) {
@@ -1763,13 +1752,13 @@ namespace Parse {
 		    // IO.Std.err.println( "looking for method: " + s.HumanName + "..." );
 
 		    if( slot > io ) {
-			IO.Std.err.println( "BBBB: largest slot so far is " + slot );
+			// IO.Std.err.println( "BBBB: largest slot so far is " + slot );
 			io = slot;
 		    }
 		}
 	    }
 
-	    IO.Std.err.println( "BBBB: result is " + io + 1 );
+	    // IO.Std.err.println( "BBBB: result is " + io + 1 );
 	    return io + 1;
 	}
 
@@ -1786,33 +1775,31 @@ namespace Parse {
 	}
 
 	void refineClassTypeHandle( CompileState state ) {
-	    IO.Std.err.println( "about to refine: " + HumanName );
-	    IO.Std.err.flush();
+	    // IO.Std.err.println( "about to refine: " + HumanName );
+	    // IO.Std.err.flush();
 
 	    if( llvm_opaque_type_handle != null ) {
 		LLVM.Calls.LLVMRefineType( LLVM.Calls.LLVMResolveTypeHandle( llvm_opaque_type_handle ), LLVM.Calls.LLVMResolveTypeHandle( llvm_struct_type_handle ) );
-		LLVM.Calls.LLVMAddTypeName( state.Module, HumanName.toCString(), LLVM.Calls.LLVMResolveTypeHandle( llvm_struct_type_handle ) );
+		// LLVM.Calls.LLVMAddTypeName( state.Module, HumanName.toCString(), LLVM.Calls.LLVMResolveTypeHandle( llvm_struct_type_handle ) );
 
 		llvm_opaque_type_handle = null;
 	    }
 	}
 
         void emitClassTables( CompileState state, Container for_class, Generic.Vector<LLVM.Value> buffer ) {
-	    IO.Std.err.println( "emit class tables " + for_class.HumanName );	    
-
             if( !tables_valid ) {
                 IO.Std.err.println( "skipping class with invalid tables: " + HumanName );
                 return;
             }
 
             if( parent != null ) {
-		IO.Std.err.println( "BBBB: parent methods @ " + buffer.Length );
+		// IO.Std.err.println( "BBBB: parent methods @ " + buffer.Length );
                 parent.emitClassTables( state, for_class, buffer );
             }
 
 	    int ca = 0, sa = 0;
 
-	    IO.Std.err.println( "BBBB: first non override method @ " + buffer.Length );
+	    // IO.Std.err.println( "BBBB: first non override method @ " + buffer.Length );
 
             foreach( Symbol current; members.SymbolList.elements() ) { 
                 if( current == null ) {
@@ -1846,7 +1833,7 @@ namespace Parse {
                                 }
 				// state.Output.println( "# ca: " + ca + ", sa: " + candidate.Address );
 				*/
-				IO.Std.err.println( "BBBB: buffer[" + buffer.Length + " (" + (buffer.Length-(3+IFaceOffset)) + ")] = " + candidate.HumanName + " @ " + candidate.Address );
+				// IO.Std.err.println( "BBBB: buffer[" + buffer.Length + " (" + (buffer.Length-(3+IFaceOffset)) + ")] = " + candidate.HumanName + " @ " + candidate.Address );
 
 				buffer.add(
 					   LLVM.Calls.LLVMConstPointerCast(

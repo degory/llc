@@ -16,7 +16,7 @@ namespace System is
     class String /* implements Iterable<char> */ is
 	@NoWarnHide;
 
-	protected char ptr _buffer;
+        protected  char ptr _buffer;
 	protected int _length;
 
         static Map<String,String> pool = new Map<String,String>(65419);

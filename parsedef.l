@@ -870,12 +870,13 @@ namespace Parse {
             if( body != null ) {
 		resetTemporary();
 
+		// IO.Std.err.println( "GGGG: begin compile class " + c.HumanName );
+
                 state.beginCompileClass( this, c, name.Name );
                 // c.buildClassTables( state );
 
 		// c.referenceSelf();
 
-		IO.Std.err.println( "compile class " + c.HumanName  );
                 var s = state.needCompile( state.CurrentSourceFileName, c.FileName, c.Hash );
 
 		if( s == CompileStatus.BAD_HASH ) {
@@ -903,7 +904,6 @@ namespace Parse {
 		    if( state.WantVerbose ) {
 			message( "compile class: " + c.HumanName );
 		    }
-		    IO.Std.err.println( "compiling: "+ c.getDecoratedName() );
                     state.openOutput( c.FileName, false );
                     
                     state.dumpActiveClasses( null );
@@ -1024,7 +1024,9 @@ namespace Parse {
                     }
 		    */
                     
+		    // IO.Std.err.println( "GGGG: begin compile class body " + c.HumanName );
                     body.compile( state );
+		    // IO.Std.err.println( "GGGG: end compile class body " + c.HumanName );
 
                     int unsafe_flags = state.UnsafeFlags;
                     if( unsafe_flags != 0 ) {
@@ -1070,10 +1072,12 @@ namespace Parse {
                     if( !errors_occurred ) {
 		        // IO.Std.err.println( "assembling: " + c.getHumanName() );
                         state.assembleFile( c.FileName );
-		    
+
+			/*		    
 			IO.Std.err.println( "ZZZZ: compiled: " + c.HumanName + ", try write module " + cast int(c.LLVMModule) + " to file..." ); IO.Std.err.flush();
 
 			LLVM.Calls.LLVMDumpModule(c.LLVMModule);
+			*/
 			LLVM.Calls.LLVMWriteBitcodeToFile(c.LLVMModule, (state.CacheDir + c.DecoratedName + ".bc").toCString() );
 
 			state.dumpActiveClasses( c.FileName );
@@ -1602,8 +1606,6 @@ namespace Parse {
 
 	    // m.IsEmpty = is_empty;
 
-	    // IO.Std.err.println( "declare class symbols: " + m.HumanName );
-
 	    // m.IsPIC = state.WantPIC;
 
 	    if( state.WantVirtual ) {
@@ -1656,8 +1658,6 @@ namespace Parse {
 	    }
 	    */
 
-	    IO.Std.err.println( "compile arguments " + state.CurrentMethod.HumanName );
-
 	    int i;
 
 	    LLVM.Value f = m.getFunctionGlobal(state);
@@ -1684,7 +1684,6 @@ namespace Parse {
 		    state.CurrentMethod.ThisPointer = v;
 		}
 
-		IO.Std.err.println( "add store indirect..." );
 		addStoreIndirect( state, line_number, into, false, v, LLVM.Calls.LLVMGetParam( f, i ) );
 	    }
 
@@ -1812,6 +1811,12 @@ namespace Parse {
             var decorated = m.DecoratedName;
 
             state.beginCompileMethod( this, m, decorated );
+	    /*
+	    IO.Std.err.println( "HHHH: declare symbols for: " + m.HumanName );
+	    IO.Std.err.println( "HHHH: owner: " + m.Owner.HumanName );
+	    IO.Std.err.println( "HHHH: current method: " + state.CurrentMethod.HumanName );
+	    IO.Std.err.println( "HHHH: current class: " + state.CurrentClass.HumanName );
+	    */
             state.IsInline = true;
 
             // IO.Std.err.println( "return label is: " + state.ReturnLabel );
@@ -2101,9 +2106,8 @@ namespace Parse {
 	}
 
         void compile( CompileState state ) {
-	    IO.Std.err.println( "method def actual compile: " + m + ", name: " + name + " args: " + args );
-
 	    m = state.nextMethodByIndex( name.Name );
+	    // IO.Std.err.println( "GGGG: compile method " + m.HumanName + " in class " + m.Owner.HumanName );
 
 	    progress();
 
@@ -2130,6 +2134,8 @@ namespace Parse {
             }
 
             state.beginCompileMethod( this, m, decorated );
+
+	    // IO.Std.err.println( "GGGG: current method " + state.CurrentMethod.HumanName + " in class " + state.CurrentClass.HumanName );
                       
             // state.beginParseMethodBody(m);            
 
@@ -2180,7 +2186,9 @@ namespace Parse {
 	    compileArguments(state, into, !m.IsStatic);
 
 	    try {
+		// IO.Std.err.println( "GGGG: start compile body method " + state.CurrentMethod.HumanName + " in class " + state.CurrentClass.HumanName );
 		body.compile( state, into );
+		// IO.Std.err.println( "GGGG: end compile body method " + state.CurrentMethod.HumanName + " in class " + state.CurrentClass.HumanName );
 
 		if( m.Type.isVoid() ) {
 		    into.RetVoid();
@@ -2269,16 +2277,14 @@ namespace Parse {
 
 	    if( success ) {
 		LLVM.Calls.LLVMDumpValue( fg );
-
 		LLVM.Calls.LLVMCleanUpFunction(fg);
 
-
-		LLVM.Calls.LLVMDumpValue( fg );
 		if( LLVM.Calls.LLVMVerifyFunction( fg, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction ) != 0 ) {
 		    IO.Std.err.println( "VVVV: AA failed to function verify: " + human ); IO.Std.err.flush();
+
+		    LLVM.Calls.LLVMDumpValue( fg );
 		}
 
-		LLVM.Calls.LLVMDumpValue( fg );
 		native.__flush_stdout();
 
 		char ptr msg;
@@ -2287,8 +2293,10 @@ namespace Parse {
 		if( LLVM.Calls.LLVMVerifyModule( state.Module, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction, msg.address ) != 0 ) {
 		    IO.Std.err.println( "VVVV: failed to module verify: " + human + " " + state.CurrentClass.HumanName + " " + cast int(state.Module)); IO.Std.err.flush();
 		    if( msg != null ) {
-			IO.Std.err.println( "message: " + new String(msg) );
+			IO.Std.err.println( "message: " + new String(msg) ); IO.Std.err.flush();
 		    }
+
+		    LLVM.Calls.LLVMDumpValue( fg );
 		}
 	    }
 	    /*

@@ -163,8 +163,7 @@ namespace Parse {
 	void process() {
 	    // IO.Std.err.println( "process, temp_factory: " + temp_factory );
 	    // TempFactory.Instance = temp_factory;
-	    // IO.Std.err.println( "process: " + state );
-	    IO.Std.err.println( "process: " + c.HumanName );
+	    // IO.Std.err.println( "process: " + c.HumanName );
 	    class_def.compile2( state, c );
 	}
 
@@ -525,9 +524,9 @@ namespace Parse {
 
 	    // IO.Std.err.println( "sp is: " + sp );
 
-	    assert(exception_level == 0);
+	    assert(exception_level == -1);
 
-	    result.exception_level = 0;
+	    result.exception_level = -1;
 	    result.exception = new ExceptionDescriptor[32];
 
 	    assert(sp == 0);
@@ -571,7 +570,7 @@ namespace Parse {
             state = new State[30];
             state[sp] = new State( STATE_OUTSIDE_CLASS, null, null, null, DEFAULT_WARN_FLAGS );
 
-	    exception_level = 0;
+	    exception_level = -1;
 	    exception = new ExceptionDescriptor[32];
 
 	    loop_stack = new LoopStack();
@@ -796,7 +795,7 @@ namespace Parse {
 	}
 
 	void resetExceptionLevel() {
-	    exception_level = 0;
+	    exception_level = -1;
 	}
 
 	get ExceptionDescriptor Exception[int n] {
@@ -808,25 +807,28 @@ namespace Parse {
 	}
 
 	void pushException(ExceptionDescriptor e) {
-	    exception[exception_level] = e;
 	    exception_level = exception_level + 1;
+	    exception[exception_level] = e;
 	}
 
 	ExceptionDescriptor popException() {
+	    var result = exception[exception_level];
 	    exception_level = exception_level - 1;
-	    return exception[exception_level];
+	    return result;
 	}
 
 	get ExceptionDescriptor TopException {
-	    return exception[exception_level-1];
+	    // IO.Std.err.println( "get top exception: exception_level = " + exception_level );
+	    return exception[exception_level];
 	}
 
 	get bool InExceptionHandler {
-	    return exception_level > 0;
+	    // IO.Std.err.println( "in exception handler? exception_level = " + exception_level );
+	    return exception_level >= 0;
 	}
 
 	get ExceptionDescriptor TopFinallyOrReturn {
-	    for( int i = exception_level-1; i >= 0; i = i - 1 ) {
+	    for( int i = exception_level; i >= 0; i = i - 1 ) {
 		if( exception[i].type == EDType.CATCH_FINALLY ||
 		    exception[i].type == EDType.CATCH_RETURN ) {
 		    return exception[i];
@@ -1865,6 +1867,13 @@ namespace Parse {
 		    if( alloc_direction == -1 ) {
 			k = k | Symbol.FLAG_LOCAL;
 		    }
+
+		    /*
+		    IO.Std.err.println( "HHHH: local " + symbol.HumanName );
+		    IO.Std.err.println( "HHHH: owner " + symbol.Owner.HumanName );
+		    IO.Std.err.println( "HHHH: method " + CurrentMethod.HumanName );
+		    IO.Std.err.println( "HHHH: class " + CurrentClass.HumanName );
+		    */
 
                     int address = current_method.alloc( k );
                     symbol.setAddress( address );

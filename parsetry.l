@@ -40,16 +40,21 @@ namespace Parse {
 
 	    LLVM.Value f = getThrowFunction( state );
 
-	    callOrInvoke( state, into, f, { makeLLVMCast( expression.compileValue(state, into), object_type.getLLVMType(state), into ) } );
+	    callOrInvoke(
+			 state,
+			 into,
+			 f,
+			 { makeLLVMCast( expression.compileValue(state, into),  LLVM.Calls.LLVMPointerType( LLVM.Calls.LLVMInt8Type(), 0 ), into ) }
+			 );
 	}
 
 	static LLVM.Value getThrowFunction( CompileState state ) {
-            var v = LLVM.Calls.LLVMGetNamedFunction(state.Module, `__throw`);
+            var v = LLVM.Calls.LLVMGetNamedFunction(state.Module, `__throw_exception`);
             if( v == null ) {
-                var at = { object_type.getLLVMType(state) };
+                var at = { LLVM.Calls.LLVMPointerType( LLVM.Calls.LLVMInt8Type(), 0 ) };
                 var ft = LLVM.Calls.LLVMFunctionType( LLVM.Calls.LLVMVoidType(), at.address, at.length, 0);
 
-                v = LLVM.Calls.LLVMAddFunction(state.Module, `__throw`, ft);
+                v = LLVM.Calls.LLVMAddFunction(state.Module, `__throw_exception`, ft);
             }
 
 	    return v;
@@ -87,21 +92,23 @@ namespace Parse {
     class Catch extends Statement {
         VariableDef match;
         Statement statement;
-	LLVM.BasicBlock label;
+	// LLVM.BasicBlock label;
 
         void init( int line_number, VariableDef v, Statement s ) {
             super.init( line_number );
             match = v;
             statement = s;
-            label = null;
+            // label = null;
         }
 
+	/*
         LLVM.BasicBlock getLabel( IRBlock into) {
             if( label == null ) {
                 label = into.Block();
             }
             return label;
         }
+	*/
 
 
         void declareSymbols( CompileState state ) {
@@ -117,7 +124,7 @@ namespace Parse {
 	void clear( CompileState state ) {
 	    match.clear( state );
 	    statement.clear( state );
-	    label = null;
+	    // label = null;
 	}
 
         void compile(
@@ -125,7 +132,8 @@ namespace Parse {
 		     IRBlock into, 
 		     LLVM.BasicBlock this_handler, 
 		     LLVM.BasicBlock next_handler, 
-		     LLVM.BasicBlock outer_descriptor,
+		     LLVM.BasicBlock exit_label,
+		     // LLVM.BasicBlock outer_descriptor,
 		     LLVM.Value exception_type, 
 		     LLVM.Value exception_value, 
 		     bool first,
@@ -154,8 +162,8 @@ namespace Parse {
 
             param.Defined = state.BlockLevel;
 
-	    LLVM.BasicBlock outer_label = state.TopException.descriptor_label;
-	    LLVM.BasicBlock outer_handler = state.TopException.code_label;
+	    // LLVM.BasicBlock outer_landing_pad = state.TopException.landing_pad;
+	    // LLVM.BasicBlock outer_handler = state.TopException.handler;
 	    LLVM.BasicBlock l = into.Block();
 	    LLVM.BasicBlock m = into.Block();
 
@@ -172,7 +180,7 @@ namespace Parse {
 	    LLVM.Type ptr_8 = LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0);
 	    LLVM.Type ptr_ptr_8 = LLVM.Calls.LLVMPointerType(ptr_8,0);
 	    
-	    LLVM.Value vtable_temp = into.AllocaEntry(ptr_ptr_8, "ex_vtable");
+	    LLVM.Value vtable_temp = into.AllocaEntry(ptr_ptr_8, ".ex_vtable");
 
 	    into.Store(
 		       makeLLVMCast(
@@ -239,7 +247,7 @@ namespace Parse {
 		       );
 					                                     
 
-	    into.Jump( outer_handler );
+	    into.Jump( exit_label );
         }
 
         void dump( CompileState state, System.StringBuffer  buffer ) {
@@ -299,78 +307,19 @@ namespace Parse {
 	    }
 	}
 
-	static LLVM.Value getPersonalityFunction( CompileState state ) {
-	    char ptr n =`__l_personality`;
-
-	    var v = LLVM.Calls.LLVMGetNamedFunction(state.Module, n);
-
-	    if( v == null ) {
-		var args = new LLVM.Type[0];
-		var ft = LLVM.Calls.LLVMFunctionType( LLVM.Calls.LLVMInt64Type(), args.address, 0, 0 );
-		
-		v = LLVM.Calls.LLVMAddFunction(state.Module, n, ft);				
-	    }
-	    
-	    return v;
-	}
-
-
-	static LLVM.Value getExceptionIntrinsic( CompileState state ) {
-	    char ptr n =`llvm.eh.exception.i64`;
-
-	    var v = LLVM.Calls.LLVMGetNamedFunction(state.Module, n);
-
-	    if( v == null ) {
-		var args = new LLVM.Type[0];
-		var ft = LLVM.Calls.LLVMFunctionType( LLVM.Calls.LLVMInt64Type(), args.address, 0, 0 );
-		
-		v = LLVM.Calls.LLVMAddFunction(state.Module, n, ft);				
-	    }
-	    
-	    return v;
-	}
-
-	static LLVM.Value getSelectorIntrinsic( CompileState state ) {
-	    char ptr n = `llvm.eh.selector.i64`;
-
-	    var v = LLVM.Calls.LLVMGetNamedFunction(state.Module, n);
-
-	    if( v == null ) {
-		var args = {
-		    // LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type() ,0),
-		    LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type() ,0),
-		    LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type() ,0)
-		};
-
-		var ft = LLVM.Calls.LLVMFunctionType(
-						 LLVM.Calls.LLVMInt64Type(),
-						 args.address,
-						 args.length,
-						 1 // 0
-						 );
-		
-		v = LLVM.Calls.LLVMAddFunction(state.Module, n, ft);				
-	    }
-	    
-	    return v;
-	}
-
-
-
         int compile(
 		    CompileState state,
 		    IRBlock into,
-		    LLVM.BasicBlock finally_descriptor,
 		    LLVM.BasicBlock finally_handler,
 		    LLVM.Value exception_type,
-		    LLVM.Value exception_value
+		    LLVM.Value exception_value_l
 		    ) {
 	    ExceptionDescriptor ed;
             int offset = 0;
-            LLVM.BasicBlock skip_label = into.Block();
+
 	    state.enterBlock();
 
-	    LLVM.BasicBlock next_handler = into.Block();
+	    LLVM.BasicBlock next_handler; // = into.Block();
 	    LLVM.BasicBlock this_handler = into.Block();
 	    LLVM.BasicBlock m = into.Block();
 
@@ -386,35 +335,6 @@ namespace Parse {
             }
 	    */
 
-	    into.Store(
-		       into.Call(
-				 getExceptionIntrinsic(state),
-				 new LLVM.Value[0]
-				 ),
-		       exception_value
-		       );
-
-	    into.Store(
-		       into.Call(
-				 getSelectorIntrinsic(state),
-				 {
-				     makeLLVMCast(into.Load(exception_value), LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0), into),
-				     makeLLVMCast(getPersonalityFunction(state), LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0), into),
-				     LLVM.Calls.LLVMConstPointerNull(LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0))
-				 }
-				 ),
-		       exception_type
-		       );
-
-	    into.Branch(
-			into.ICmp(
-				  LLVM.LLVMIntPredicate.LLVMIntEQ,
-				  into.Load(exception_type),
-				  LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),0L,0)
-				  ),
-			finally_handler
-			);
-
 	    bool first = true;
             // block.add( new ITree( line_number, Op.JUMP, 8, skip_label ) );
 	    for( int i = 0; i < catches.Length; i = i + 1 ) {
@@ -425,9 +345,12 @@ namespace Parse {
 		    next_handler = finally_handler;
 		}
                 // e.compile( state, into, this_handler, next_handler, finally_descriptor, et, ev, first, last );
-		e.compile( state, into, this_handler, next_handler, finally_descriptor, exception_type, exception_value, first, last );
-		this_handler = next_handler;
-		next_handler = into.Block();
+		e.compile( state, into, this_handler, next_handler, finally_handler, exception_type, exception_value_l, first, last );
+		if( !last ) {
+		    this_handler = next_handler;		
+		    next_handler = into.Block(".catch");
+		}
+
 		first = false;
             }	    
 	    
@@ -539,7 +462,7 @@ namespace Parse {
 
 	    into.Label( rethrow );
 	    into.Call(
-		      getUnwindOrRethrowFunction(state), { into.Load(exception_value) }
+		      getUnwindOrRethrowFunction(state), { into.PtrToInt(into.Load(exception_value),LLVM.Calls.LLVMInt64Type()) }
 		      );
 	    // into.Unreachable();
 
@@ -560,11 +483,11 @@ namespace Parse {
 	}
 
 	void rethrowOrDone(
-			     CompileState state,
-			     IRBlock into,
-			     LLVM.Value exception_type,
-			     LLVM.Value exception_value,
-			     LLVM.BasicBlock exit_label
+			   CompileState state,
+			   IRBlock into,
+			   LLVM.Value exception_type,
+			   LLVM.Value exception_value,
+			   LLVM.BasicBlock exit_label
 			   ) {
 	    
 	    into.Branch(
@@ -578,6 +501,7 @@ namespace Parse {
 	}
 
 
+
         void compile( CompileState state, IRBlock into ) {
 	    IO.Std.err.println( "TTTT: compile try" );
 
@@ -586,14 +510,14 @@ namespace Parse {
 
 	    IO.Writer f = state.Output;
 
-	    LLVM.Value exception_value = into.AllocaEntry( LLVM.Calls.LLVMInt64Type(), "ex_value" );
-	    LLVM.Value exception_type = into.AllocaEntry( LLVM.Calls.LLVMInt64Type(), "ex_type" );
+	    LLVM.Value exception_value = into.AllocaEntry( LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0), ".ex_value" );
+	    LLVM.Value exception_value_l = into.AllocaEntry( LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0), ".ex_value_l" );
+	    LLVM.Value exception_type = into.AllocaEntry( LLVM.Calls.LLVMInt64Type(), ".ex_type" );
 		
-	    LLVM.BasicBlock body_label = into.Block();
-	    LLVM.BasicBlock back_label;
+	    LLVM.BasicBlock body_label = into.Block(".try_body");
 
-            LLVM.BasicBlock finally_descriptor = into.Block();
-	    LLVM.BasicBlock finally_handler = into.Block();
+            LLVM.BasicBlock finally_pad;
+	    LLVM.BasicBlock finally_handler;
 
 	    LLVM.BasicBlock exit_label;
 
@@ -605,24 +529,20 @@ namespace Parse {
 
 	    bool bottom_level = false;
 	    if( state.ExceptionLevel == 0 ) {
-		// outermost handler in this method. Any finally statement will be included in the return handler
-		
-		// clean up handler will be output at this label:
 		bottom_level = true;
+	    }
+
+	    if( finally_statement != null ) {
+		finally_pad = into.Block(".finally_pad");
+		finally_handler = into.Block(".finally_handler");	    
 
 		// push descriptor for return cleanup handler:
-		ed = new ExceptionDescriptor( EDType.CATCH_RETURN, finally_descriptor, finally_handler, exception_type, exception_value );
+		ed = new ExceptionDescriptor( EDType.CATCH_RETURN, finally_pad, finally_handler, exception_type, exception_value );
 		state.pushException(ed);
 		// exception[exception_level] = ed;
 		// exception_level = exception_level + 1;
 	    } else {
-		// not at outer most nesting level, output a finally (which may be empty
-		// of user code if no finally statement supplied:
-
-		ed = new ExceptionDescriptor( EDType.CATCH_FINALLY, finally_descriptor, finally_handler, exception_type, exception_value );
-		state.pushException( ed );
-		// exception[exception_level] = ed;
-		// exception_level = exception_level + 1;
+		finally_handler = into.Block(".done");
 	    }
 
 	    // jump over code for catches to try body:
@@ -630,37 +550,41 @@ namespace Parse {
 	    // be straight through. Could move catches block outside method body
 	    into.Jump( body_label );
 
-	    bool have_catches = false;
-
-	    
+	    bool have_catches = false;	    
 
 	    // compile catches, if any:
 	    if( catches != null && catches.CatchCount > 0 ) {
 		have_catches = true;
-		LLVM.BasicBlock catches_descriptor = into.Block();
-		LLVM.BasicBlock catches_handler = into.Block();
+		LLVM.BasicBlock catches_pad = into.Block(".catches_pad");
+		LLVM.BasicBlock catches_handler = into.Block(".catches_handler");
 
-		into.Label(catches_handler);
+		addLandingPad(
+			      state,
+			      into,
+			      exception_type,
+			      exception_value,
+			      exception_value_l,
+			      catches_pad,
+			      catches_handler,
+			      false
+			      );
 
 		// exception handler stack contains at least return handler or finally plus outer handlers:
 		// int compile( CompileState state, IBlock into, ILabel finally_descriptor, ILabel finally_handler, int exception_type, int exception_value )
-                catches.compile( state, into, finally_descriptor, finally_handler, exception_type, exception_value );
+                catches.compile( state, into, finally_handler, exception_type, exception_value_l );
 
 		// previous_label = catches_label;
 
 		// push an exception descriptor for the catches prior to compiling the try body statement
 		// so code within the body sees catches, then any finally/return handler, then any outer
 		// handlers from enclosing blocks:
-		ed = new ExceptionDescriptor( EDType.CATCH_EXCEPTION, catches_descriptor, catches_handler, exception_type, exception_value );
+		ed = new ExceptionDescriptor( EDType.CATCH_EXCEPTION, catches_pad, catches_handler, exception_type, exception_value );
 		state.pushException( ed );
 		// exception[exception_level] = ed;
 		// exception_level = exception_level + 1;
             }
 
 	    into.Label( body_label );
-
-	    // which handler should catch exceptions throw in this block first:
-	    LLVM.BasicBlock active_descriptor = state.TopException.descriptor_label; // exception[exception_level-1].descriptor_label;
 
 	    IO.Std.err.println( "TTTT: compile body: " + try_statement );
 
@@ -671,43 +595,67 @@ namespace Parse {
 
 	    var ex_args = new LLVM.Value[0];
 
+	    /*
+
 	    into.Store(
 		       LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt64Type(), 0L, 0 ),
 		       exception_type
 		       );
 
 	    into.Store(
-		       LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt64Type(), 0L, 0 ),
+		       LLVM.Calls.LLVMConstPointerNull( LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(), 0) ),
 		       exception_value
 		       );
+	    */
 
-	    into.Label( finally_handler );
 
-	   
-            state.ExceptionLevel = old_exception_level; 
+	    if( have_catches ) {
+		state.popException();
+	    }
+
+	    if( finally_statement != null ) {
+		state.popException();
+
+		addLandingPad(
+			      state,
+			      into,
+			      exception_type,
+			      exception_value,
+			      exception_value_l,
+			      finally_pad,
+			      finally_handler,
+			      true 
+			      );
+	    } else {
+		into.Label( finally_handler );
+	    }
+
+	    /*
 	    if( bottom_level ) {
 		// outer most exception handler - restore active handler from the stack at runtime:
 		// do nothing?
 	    } else {
 		// inner exception handler - restore active handler from compile time stack:
-		active_descriptor = state.TopException.descriptor_label; // exception[exception_level-1].descriptor_label;
-		exit_label = state.TopException.code_label; // exception[exception_level-1].code_label;
+		exit_label = state.TopException.handler; // exception[exception_level-1].code_label;
 
 	    }
+	    */
 
 	    if( finally_statement != null ) {
 		finally_statement.compile( state, into );
 	    }
 
+	    /*
 	    if( bottom_level ) {
 		// exit_label = state.ReturnLabel;
 
 		rethrowOrReturn( state, into, exception_type, exception_value );
 	    } else {
-		exit_label = state.TopException.code_label; // exception[exception_level-1].code_label;
+		exit_label = state.TopException.handler; // exception[exception_level-1].code_label;
 
 		rethrowOrDone( state, into, exception_type, exception_value, exit_label );
 	    }
+	    */
         }
 
 	void print( CompileState state, Printer p ) {

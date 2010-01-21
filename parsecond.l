@@ -342,8 +342,6 @@ namespace Parse {
             true_block.compile( state, into );
             
             if( false_block != null ) {
-		IO.Std.err.println( "if jump-label" );
-
 		LLVM.BasicBlock e = into.Block();
 	    
 		into.JumpLabel( e, f );

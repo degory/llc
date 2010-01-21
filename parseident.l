@@ -46,6 +46,7 @@ namespace Parse {
 	    container = null;
 	    set_value = null;
 	    want_set_value = false;
+	    // indexer_value = null;
 	    want_call = false;
 	    if( left_value != null ) {
 		left_value.clear( state );
@@ -185,7 +186,6 @@ namespace Parse {
 
 		    type = method_call.Type;		   
 		    symbol = null;
-		    // IO.Std.err.println( "have an accessor method: " + method_call );
 		} else {
 		    // IO.Std.err.println( "quality is null" );
 
@@ -196,7 +196,6 @@ namespace Parse {
 		    symbol = null;
 		    // although we found an accessor name, we didn't find a matching method
 		    // so look again ignoring accessors:
-		    // IO.Std.err.println( "about to look for alternative symbol " + name + "..." );
 
 		    if( want_indexer ) {
 			// try again without indexed accessor:
@@ -207,8 +206,6 @@ namespace Parse {
 		    }
 
 		    symbol = getSymbol( state, name, false, Symbol.FIND_NON_ACCESSOR );
-
-		    // IO.Std.err.println( "no matching accessor method " + name + " found, alternative symbol: " + symbol );
 		}
 
 		/*
@@ -351,12 +348,12 @@ namespace Parse {
         Symbol getSymbol( CompileState state, String name, bool complain, int find_what ) {
 	    // IO.Std.err.println( "YYYYYY: get symbol: " + this );
             if( symbol != null ) {
-		// IO.Std.err.println( "returning cached symbol: " + symbol );
+		// IO.Std.err.println( "returning cached symbol: " + symbol.HumanName );
 
                 return symbol;
-            }
-            
-	    // IO.Std.err.println( "looking for " + this );
+		//} else {
+		// IO.Std.err.println( "YYYYYY: must look for " + this );
+	    }
 
             Symbol result = null;
             if( left_value != null ) {
@@ -446,6 +443,12 @@ namespace Parse {
                 result = state.findSymbol( name, find_what );
 		// IO.Std.err.println( "result is: " + result );
                 if( result != null ) {
+		    /*
+		    IO.Std.err.println( "result is: " + result.HumanName );
+		    if( result.Owner != null ) {
+			IO.Std.err.println( " with owner " + result.Owner.HumanName );
+		    }
+		    */
                     checkAccess( result, state );
                 } else {
 		    if( complain ) {
@@ -465,6 +468,13 @@ namespace Parse {
         }
 
 	LLVM.Value compileValue( CompileState state, IRBlock into ) {
+	    /*
+	    IO.Std.err.println( "XXXXX: compile value, before get type for " + this );
+	    IO.Std.err.println( "XXXXX: type initiallly: " + type );
+	    IO.Std.err.println( "XXXXX: symbol initially: " + symbol );
+	    IO.Std.err.println( "XXXXX: symbol initially: " + cast int(symbol) );
+	    */
+
             getType( state ); // ensure any property method is initialized
 
 	    if( method_call != null ) {
@@ -472,7 +482,7 @@ namespace Parse {
 		if( want_set_value ) {		    
 		    // warn( "property setter method has no value here: " + this + ", from: " + new System.Backtrace() );
 		    method_call.compileDiscardValue( state, into );
-		    return ErrorValue();
+		    return QuietErrorValue();
 		} else {
 		    return method_call.compileValue( state, into );
 		}
@@ -538,9 +548,11 @@ namespace Parse {
 	    } else if( k == Symbol.ATTRIBUTE_SIZE ) {
 		at = left_value.getType( state );
 
+		/*
 		IO.Std.err.println( "size of type: " + at );
 		IO.Std.err.print( "LLVM type: " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpType( at.getLLVMType(state) );
+		*/
 
 		return LLVM.Calls.LLVMConstTypeSize( at.getLLVMType(state) );
 	    } else if( k == Symbol.ATTRIBUTE_BOX ) {
@@ -584,14 +596,25 @@ namespace Parse {
 		    return LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0);
 		}
             } else if( k == Symbol.CONST ) {
-		IO.Std.err.println( "FIXME: store LLVM.Value in const symbol" );
+		// IO.Std.err.println( "FIXME: store LLVM.Value in const symbol" );
 		return LLVM.Calls.LLVMConstInt(getType(state).getLLVMType(state), cast long(symbol.Address), 1);
             } else if( ( k & Symbol.FLAG_STATIC ) == 0 ) {
+		/*
 		IO.Std.err.println( "ident compile load, container is: " + container );
 		IO.Std.err.println( "ident compile load, left value is: " + left_value );
-	     
+		*/
+
+		// IO.Std.err.println( "GGGG: this is: " + this );
 
                 if( left_value == null ) {
+		    /*
+		    IO.Std.err.println( "GGGG: compile load ident " + symbol.HumanName );
+		    if( symbol.Owner != null ) {
+			IO.Std.err.println( "GGGG: symbol owner is: " + symbol.Owner.HumanName );
+		    }
+		    IO.Std.err.println( "GGGG: current class is: " + state.CurrentClass.HumanName );
+		    IO.Std.err.println( "GGGG: current method is: " + state.CurrentMethod.HumanName );
+		    */
                     result = compileLoad( state, into, symbol, state.CurrentClass, null, null, null, ref_flag, null );
                     
                     return result;
@@ -601,7 +624,14 @@ namespace Parse {
 		    }
 
 		    LLVM.Value t = left_value.compileValue( state, into );
+		    /*
+		    IO.Std.err.println(	"GGGG: compile load ident " + symbol.HumanName );
+		    IO.Std.err.println( "GGGG: container is: " + state.CurrentClass.HumanName );
+		    IO.Std.err.println( "GGGG: left value.Type.Clazz is: " + left_value.getType(state).Clazz.HumanName );
+
+
 		    IO.Std.err.println( "FIXME: relying on container being correct here, left_value.getType(state).Clazz might be better?" );
+		    */
                     result = compileLoad( state, into, symbol, container, null, null, t, ref_flag, null );
                     
                     return result;
@@ -613,6 +643,12 @@ namespace Parse {
 	}
 
         LLVM.Value compileAddress( CompileState state, IRBlock into ) {
+	    /*
+	    IO.Std.err.println( "XXXXX: compile address, before get type for " + this );
+	    IO.Std.err.println( "XXXXX: type initiallly: " + type );
+	    IO.Std.err.println( "XXXXX: symbol initially: " + symbol );
+	    IO.Std.err.println( "XXXXX: symbol initially: " + cast int(symbol) );
+	    */
 	    getType(state);
 
 	    if( method_call != null ) {

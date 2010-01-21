@@ -672,6 +672,10 @@ namespace Parse {
                 initializer.clear( state );
             }
 
+	    if( condition != null ) {
+		condition.clear( state );
+	    }
+
             if( increment != null ) {
                 increment.clear( state );
             } 
@@ -683,6 +687,10 @@ namespace Parse {
             if( initializer != null ) {
                 initializer.checkTemplates( state );
             }
+
+	    if( condition != null ) {
+		condition.checkTemplates( state );
+	    }
 
             if( increment != null ) {
                 increment.checkTemplates( state );
