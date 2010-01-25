@@ -493,6 +493,7 @@ namespace Parse {
         
         int unsafe_flags;
 
+	Container main_class;
         String main_class_name;
         String main_class_decorated;
 	String main_class_init;
@@ -1257,14 +1258,10 @@ namespace Parse {
 	    if( !WantPIC ) {
 		if( main_class_decorated != null ) {
 		    // IO.Std.err.println( "writing out entry point for main class " + main_class_decorated );
-		    
-		    IO.Writer f = IO.File.openCreate( this.CacheDir + "entry.s" );
-		    
-		    Machine.emitEntryPoint( f, main_class_decorated, main_class_init );
-		    
-		    f.close();
-		    assembleFile( "entry" );
-		    addLinkFile( getObjectFileName("entry", ".o") );
+
+		    emitEntryPoint();
+
+		    addLinkFile( getObjectFileName("entry", ".bc") );
 		} else {
 		    ParseTree.message( "*** no main class ***" );
 		    return;
@@ -1279,13 +1276,51 @@ namespace Parse {
 	    }
 	   
 	    LLVM.Calls.LLVMDumpModule( module );
-	    LLVM.Calls.LLVMWriteBitcodeToFile(Module, `test.bc`);
+	    // LLVM.Calls.LLVMWriteBitcodeToFile(Module, `test.bc`);
 
 
-	    // linkObjectFiles();
+	    linkObjectFiles();
 
 	    ParseTree.message( "done" );
         }
+
+	void emitEntryPoint() {	       
+	    var m = LLVM.Calls.LLVMModuleCreateWithName( `entry` );
+
+	    var args_init = {
+		LLVM.Calls.LLVMPointerType( main_class.Type.getLLVMType(this), 0 )
+	    };
+
+	    var main_init_function =
+		LLVM.Calls.LLVMAddFunction(
+					   m,
+					   main_class_init.toCString(),
+					   LLVM.Calls.LLVMFunctionType(
+								       LLVM.Calls.LLVMVoidType(),
+								       args_init.address,
+								       args_init.length,
+								       0
+								       )
+					   );
+
+	    var args_entry = new LLVM.Type[0];
+
+	    var entry_init_function = LLVM.Calls.LLVMAddFunction(
+					       m,
+					       `__entry_point`,
+                                               LLVM.Calls.LLVMFunctionType(
+                                                                           LLVM.Calls.LLVMVoidType(),
+                                                                           args_entry.address,
+                                                                           args_entry.length,
+                                                                           0
+                                                                           )
+					       );
+
+	    
+
+	    LLVM.Calls.LLVMWriteBitcodeToFile(m, getObjectFileName("entry", ".bc").toCString() );
+
+	}
 
 	static void dumpMemory( Object o ) {
 	    IO.Std.out.println( "\tAAAAA\t" + o.ClassName + "\t" + o.MemoryUse + "\t" );
@@ -1297,7 +1332,7 @@ namespace Parse {
 
 	    var p = new Util.Process();
 	    var v = new Vector<String>();
-	    // IO.Std.err.println( "going to link. output: '" + executable_name + "'" );
+	    IO.Std.err.println( "going to link. output: '" + executable_name + "'" );
 	    String exe;
 
 	    IO.Std.err.flush();
@@ -1315,10 +1350,11 @@ namespace Parse {
 		v.add( executable_name + ".so" );
 
 	    } else {
-		exe = "gcc";
-		v.add( "gcc" );
-		v.add( Machine.GCC_SWITCH );
-		v.add( LIBRARY_DIR + "lrt-" + Machine.NAME + "-" + RUNTIME_VERSION + ".o" );
+		exe = "llvm-ld";
+		v.add( "llvm-ld" );
+		v.add( CacheDir + "entry.bc" );
+		v.add( LIBRARY_DIR + "lrt-llvm-" + RUNTIME_VERSION + ".bc" );
+		/*
 		// v.add( LIBRARY_DIR + "lrt0.o" );
 		if( !WantLineNumbers ) {
 		    v.add( "-s" );
@@ -1327,14 +1363,12 @@ namespace Parse {
 		    v.add( "-Xlinker" );
 		    v.add( "-E" );
 		}
-
+		*/
 		v.add( "-L/usr/lang/lib/" );
 
 		v.add( "-o" );
 		v.add( executable_name );
-	    }
-		
-
+	    }		
 
 	    foreach( String s; to_link_set.elements() ) {
 		v.add( s );
@@ -2155,6 +2189,7 @@ namespace Parse {
             
             if( class_symbol.Name.equals("Main") ) {
                 if( main_class_name == null ) {
+		    main_class = class_symbol;
                     main_class_name = class_symbol.HumanName;
                     main_class_decorated = class_symbol.DecoratedName;
 		    main_class_init = "_Z" + main_class_decorated.substring(0,main_class_decorated.Length-1) + "4initEv";

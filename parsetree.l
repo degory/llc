@@ -439,24 +439,23 @@ namespace Parse {
 			   LLVM.BasicBlock handler,
 			   bool is_finally) {
 	    // control arrives here from unwind library:
+	    //into.Unreachable();
 
 	    into.Label( landing_pad );
 
 	    LLVM.Value type_info;
 
-	    // identify this basic block as a landing pad to LLVM and
-	    // store the struct _Unwind_Exception* value passed from unwind library in exception_value
-	    into.Store(
-		       into.Call(
-				 getExceptionIntrinsic(state),
-				 new LLVM.Value[0]
-				 ),
-		       exception_value
-		       );
+	    LLVM.Value ex_value = into.Call(
+					    getExceptionIntrinsic(state),
+					    new LLVM.Value[0]
+					    );
+
+
 	    
-	    if( is_finally ) {
+	    if( true /* is_finally */ ) {
 		// if this is a finally landing pad then we want to catch all exceptions, including foreign ones:
-		type_info = LLVM.Calls.LLVMConstPointerNull(LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0));
+		// type_info = LLVM.Calls.LLVMConstPointerNull(LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0));
+		type_info = LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),0L,0);
 	    } else {
 		// otherwise if it's a catches block we want to catch a L exceptions. The string constant is a dummy
 		// type info that the L personality function should recognize causing a non-zero return from
@@ -466,33 +465,40 @@ namespace Parse {
 
 	    // find out whether we've matched an L exception or not by calling llvm.eh.selector and normalize the result to
 	    // 0 (foreign exception) or 1 (L exception)
+	    
+	    LLVM.Value ex_type = into.Call(
+				 getSelectorIntrinsic(state),
+				 {
+				     ex_value,
+					 /*
+					   makeLLVMCast(
+					   into.Load(exception_value),
+					   LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0),
+					   into
+					   ),
+					 */
+					 makeLLVMCast(
+						      getPersonalityFunction(state),
+						      LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0),
+						      into
+						      ) } );
+
+
+
+	    // identify this basic block as a landing pad to LLVM and
+	    // store the struct _Unwind_Exception* value passed from unwind library in exception_value
 	    into.Store(
-		       into.Select(
-				   into.ICmp(
-					     LLVM.LLVMIntPredicate.LLVMIntEQ,
-					     into.Call(
-						       getSelectorIntrinsic(state),
-						       {
-							   makeLLVMCast(
-									into.Load(exception_value),
-									LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0),
-									into
-									),
-							   makeLLVMCast(
-									getPersonalityFunction(state),
-									LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0),
-									into
-									),
-							   type_info 
-						       }
-						       ),
-					     LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),0L,0)
-					     ),
-				   LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),cast long(CATCH_FINALLY),0),
-				   LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),cast long(CATCH_EXCEPT),0)
-				   ),
+		       ex_value,
+		       exception_value
+		       );
+
+
+	    into.Store(
+		       ex_type,
 		       exception_type
 		       );
+
+
 
 	    if( !is_finally ) {
 		into.Branch(

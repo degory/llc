@@ -1091,7 +1091,7 @@ namespace Parse {
 		    state.addHashFile( c, s );
 		}
 
-		// state.addLinkFile( state.getObjectFileName( c.DecoratedName, ".o" ) );
+		state.addLinkFile( state.getObjectFileName( c.DecoratedName, ".bc" ) );
 		// IO.Std.err.println( "compilation complete: " + c.getHumanName() );
 
                 state.endCompileClass( c );
@@ -2276,7 +2276,7 @@ namespace Parse {
 	    // message( human );
 
 	    if( success ) {
-		LLVM.Calls.LLVMDumpValue( fg );
+		// LLVM.Calls.LLVMDumpValue( fg );
 		LLVM.Calls.LLVMCleanUpFunction(fg);
 
 		if( LLVM.Calls.LLVMVerifyFunction( fg, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction ) != 0 ) {

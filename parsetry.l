@@ -591,6 +591,8 @@ namespace Parse {
 	    // compile the body statement, any exceptions will be caught by the active handler set above
             try_statement.compile( state, into );
 
+	    into.Jump( finally_handler );
+
 	    IO.Std.err.println( "TTTT: compiled body: " + try_statement );
 
 	    var ex_args = new LLVM.Value[0];
