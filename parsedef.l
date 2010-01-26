@@ -2280,6 +2280,7 @@ namespace Parse {
 		LLVM.Calls.LLVMCleanUpFunction(fg);
 
 		if( LLVM.Calls.LLVMVerifyFunction( fg, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction ) != 0 ) {
+		    error( "failed to function verify: " + human );
 		    IO.Std.err.println( "VVVV: AA failed to function verify: " + human ); IO.Std.err.flush();
 
 		    LLVM.Calls.LLVMDumpValue( fg );
@@ -2291,6 +2292,7 @@ namespace Parse {
 		// IO.Std.err.println( "VVVV: will verify module: " + m.Owner.HumanName ); IO.Std.err.flush();
 
 		if( LLVM.Calls.LLVMVerifyModule( state.Module, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction, msg.address ) != 0 ) {
+		    error( "failed to module verify: " + human );
 		    IO.Std.err.println( "VVVV: failed to module verify: " + human + " " + state.CurrentClass.HumanName + " " + cast int(state.Module)); IO.Std.err.flush();
 		    if( msg != null ) {
 			IO.Std.err.println( "message: " + new String(msg) ); IO.Std.err.flush();

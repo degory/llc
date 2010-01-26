@@ -228,17 +228,28 @@ int __geterrno() {
   return errno;
 }
 
-char *__argv[] = { "FIXME: no program arguments", 0 };
+char **__argv;
 
 char **__get_argv() {
   return __argv;
 }
 
-char *__envp[] = { "FIXME: no environment", 0 };
+char **__envp;
 
 char **__get_envp() {
   return __envp;
 }
+
+extern void __entry_point(void);
+
+int main(int argc, char **argv, char **envp) {
+  __argv = argv;
+  __envp = envp;
+  __l_personality(-1,0,0,0);
+  __entry_point();
+}
+
+
 
 void *_get_classes_info() {
   fprintf( stderr, "FIXME: _get_classes_info" );

@@ -26,6 +26,7 @@ namespace Parse {
     use Gen.ILabel;
     use Gen.IString;
     use Gen.ITree;
+    use Gen.IRBlock;
     use Gen.Machine;
     use Gen.MBitSet;
     use Gen.TempFactory;
@@ -1011,7 +1012,7 @@ namespace Parse {
 	    // IO.Std.err.println( "add object: " + c );
 	    if( !need_compile.isInLibrary( c.DecoratedName ) ) {
 		// IO.Std.err.println( "need link: " + c + " lcache_dir is: " + CacheDir );
-		addLinkFile( CacheDir + c.DecoratedName + ".o" );
+		addLinkFile( getObjectFileName( c.DecoratedName, ".bc" ) );
 	    }
 	}
 
@@ -1261,7 +1262,6 @@ namespace Parse {
 
 		    emitEntryPoint();
 
-		    addLinkFile( getObjectFileName("entry", ".bc") );
 		} else {
 		    ParseTree.message( "*** no main class ***" );
 		    return;
@@ -1275,7 +1275,7 @@ namespace Parse {
 		ParseTree.message( "linking objects..." );
 	    }
 	   
-	    LLVM.Calls.LLVMDumpModule( module );
+	    // LLVM.Calls.LLVMDumpModule( module );
 	    // LLVM.Calls.LLVMWriteBitcodeToFile(Module, `test.bc`);
 
 
@@ -1285,10 +1285,12 @@ namespace Parse {
         }
 
 	void emitEntryPoint() {	       
+	    var om = module;
 	    var m = LLVM.Calls.LLVMModuleCreateWithName( `entry` );
+	    module = m;
 
 	    var args_init = {
-		LLVM.Calls.LLVMPointerType( main_class.Type.getLLVMType(this), 0 )
+		main_class.Type.getLLVMType(this)
 	    };
 
 	    var main_init_function =
@@ -1305,7 +1307,7 @@ namespace Parse {
 
 	    var args_entry = new LLVM.Type[0];
 
-	    var entry_init_function = LLVM.Calls.LLVMAddFunction(
+	    var entry_point_function = LLVM.Calls.LLVMAddFunction(
 					       m,
 					       `__entry_point`,
                                                LLVM.Calls.LLVMFunctionType(
@@ -1316,10 +1318,32 @@ namespace Parse {
                                                                            )
 					       );
 
-	    
+            var into = new IRBlock( this, entry_point_function );
+
+
+	    // int temp = TempFactory.nextTemp();
+
+	    var op = RuntimeFunction.ALLOC_OBJECT;
+	    var vtable = ParseTree.makeLoadVTable( this, main_class );
+
+	    var alloc_function = getRuntimeFunction( op );
+
+	    var v = into.Call(
+			      alloc_function,
+			      { LLVM.Calls.LLVMConstTypeSizeIndirect(main_class.Type.getLLVMType(this)), vtable }
+			      );
+	   
+	    into.Call( main_init_function, { ParseTree.makeLLVMCast( v, main_class.Type.getLLVMType(this), into ) } );
+	    into.RetVoid();
+	    into.Close();
 
 	    LLVM.Calls.LLVMWriteBitcodeToFile(m, getObjectFileName("entry", ".bc").toCString() );
+	    LLVM.Calls.LLVMDisposeModule(m);
 
+	    module = om;
+
+
+	    addLinkFile( getObjectFileName("entry", ".bc") );
 	}
 
 	static void dumpMemory( Object o ) {
@@ -1352,7 +1376,7 @@ namespace Parse {
 	    } else {
 		exe = "llvm-ld";
 		v.add( "llvm-ld" );
-		v.add( CacheDir + "entry.bc" );
+		v.add( "-disable-opt" );
 		v.add( LIBRARY_DIR + "lrt-llvm-" + RUNTIME_VERSION + ".bc" );
 		/*
 		// v.add( LIBRARY_DIR + "lrt0.o" );

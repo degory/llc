@@ -870,33 +870,14 @@ namespace Parse {
 		// FIXME: this is a bad place for this but MethodCall doesn't make it easy
 		// to do this in the caller:
 		if( compare_operation ) {
-		    throw new System.NotImplementedException("compare operation");
-
 		    /*
-		    // check for null left and compare against first argument so
-		    // null =~ value does not fault:
 		    lt = TempFactory.nextLabel();
 
 		    tr = TempFactory.nextTemp();
 
-		    if( !t.isPrettySimple() ) {
-			tt = TempFactory.nextTemp();
-			into.add( makeStoreTemporary( tt, Machine.WORD, t ) );
-			t = makeLoadTemporary( tt, Machine.WORD );
-		    }
+		    var a = arguments[0].compileValue(state,into);
 
-		    ITree a = arguments[0].compileValue(state,into);
-
-		    if( !a.isPrettySimple() ) {
-			ta = TempFactory.nextTemp();		    
-			into.add( makeStoreTemporary( ta, Machine.WORD, a ) );
-			arguments[0] = new LoadTemporary( line_number, arguments[0].getType(state), ta );
-			a = makeLoadTemporary( ta, Machine.WORD );
-		    }
-
-		    into.add( new ITree( line_number, Op.COMMENT, 0,
-					 "reference equality and null check prior to calling opEquals" ) );
-
+		    t = makeObjectEquals(t, a);
 		    // don't not the result here - caller must do it:
 
 		    into.add( new ITree( line_number, Op.OBJ_EQ, 0,
