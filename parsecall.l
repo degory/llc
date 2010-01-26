@@ -785,7 +785,7 @@ namespace Parse {
         void compileDiscardValue( CompileState state, IRBlock into ) {
             compileValue( state, into, false );
         }
-
+	/*
         ITree compileValue( CompileState state, IBlock into ) {
             return compileValue( state, into, true );
         }
@@ -793,7 +793,7 @@ namespace Parse {
         void compileDiscardValue( CompileState state, IBlock into ) {
             compileValue( state, into, false );
         }
-
+	*/
         LLVM.Value compileValue( CompileState state, IRBlock into, bool need_value ) {
 	    int tt, ta, tr;
 	    ILabel lt;
@@ -952,179 +952,6 @@ namespace Parse {
 	    return t;
         }
 
-
-        ITree compileValue( CompileState state, IBlock into, bool need_value ) {
-	    int tt, ta, tr;
-	    ILabel lt;
-	    /*
-	    IO.Std.err.println( "call method, current class: " + state.CurrentClass );
-	    if( type != null ) {		
-		IO.Std.err.println( "QQQQQQ: method call type not null on entry: " + type );
-	    }
-	    if( method != null ) {
-		IO.Std.err.println( "QQQQQQ: method call method not null on entry: " + method );
-	    }
-	    */
-
-            getType( state );
-
-	    if( method_call != null ) {
-		return method_call.compileValue( state, into, need_value );
-	    }
-
-            bool load_this = false;
-	    bool proc_call = proc_type != null;
-
-            if( method == undefined_method ) {
-                return new ITree( line_number, Op.ERROR, 0 );
-            } else if( method == null && !proc_call ) {
-                // result of compile error
-		error( "no method here" );
-                return new ITree( line_number, Op.ERROR, 0 );
-            }
-
-	    Identifier name;
-	    var left_value = this.left_value;
-
-	    if( !proc_call ) {
-		name = cast Identifier(left_value);
-		left_value = name.LeftValue;
-	    
-		// IO.Std.err.println( "call method " + method.Owner.HumanName + " " + method.Name );
-
-		if( !super_call && left_value != null && !left_value.isThis( state ) ) {
-		    // IO.Std.err.println( "IIIIII: load this" );
-		    load_this = true;
-		}
-	    }
-            
-            int size = 0;
-	    /*
-            if( method.getKind() == Symbol.INSTANCE_METHOD ) {
-                size = 4;                       // FIXME: not always
-            }
-	    */
-            
-            int flags = LOAD_FLAG_ADDRESS;
-            
-            if( !need_value ) {
-                flags = flags | LOAD_FLAG_DISCARD;
-            }
-            
-            ITree t = null;
-
-	    if( proc_call ) {
-		flags = flags | LOAD_FLAG_PROC_CALL;
-                t = left_value.compileValue( state, into );
-
-		// IO.Std.err.println( "compile proc call on type: " + proc_type );
-                t = compileLoad( state, into, null, null, arguments, proc_type.Clazz.ArgTypes, t, Machine.WORD, flags, null );
-
-		// IO.Std.err.println( "block now:\n" + into );
-
-	    } else if( left_value != null && !left_value.isClass( state ) ) {
-		// Std.err.println( "call A..." );
-                t = left_value.compileValue( state, into );
-
-		// FIXME: this is a bad place for this but MethodCall doesn't make it easy
-		// to do this in the caller:
-		if( compare_operation ) {
-		    // check for null left and compare against first argument so
-		    // null =~ value does not fault:
-		    lt = TempFactory.nextLabel();
-
-		    tr = TempFactory.nextTemp();
-
-		    if( !t.isPrettySimple() ) {
-			tt = TempFactory.nextTemp();
-			into.add( makeStoreTemporary( tt, Machine.WORD, t ) );
-			t = makeLoadTemporary( tt, Machine.WORD );
-		    }
-
-		    ITree a = arguments[0].compileValue(state,into);
-
-		    if( !a.isPrettySimple() ) {
-			ta = TempFactory.nextTemp();		    
-			into.add( makeStoreTemporary( ta, Machine.WORD, a ) );
-			arguments[0] = new LoadTemporary( line_number, arguments[0].getType(state), ta );
-			a = makeLoadTemporary( ta, Machine.WORD );
-		    }
-
-		    into.add( new ITree( line_number, Op.COMMENT, 0,
-					 "reference equality and null check prior to calling opEquals" ) );
-
-		    // don't not the result here - caller must do it:
-		    /*
-		    if( not_result ) {
-			into.add( new ITree( line_number, Op.OBJ_NE, 0,
-					     new ITree( line_number, Op.PAIR, 8,
-							t, a ),
-					     new ITree( line_number, Op.TEMP, 1, tr ),
-					     lt
-					     )
-				  );
-              	    } else { */
-		    into.add( new ITree( line_number, Op.OBJ_EQ, 0,
-					 new ITree( line_number, Op.PAIR, Machine.WORD,
-						    t, a ),
-					 new ITree( line_number, Op.TEMP, 1, tr ),
-					 lt
-					 )
-			      );
-		    // }
-
-		}
-
-                Container super_class = null;
-                if( super_call ) {
-                    super_class = left_value.getType(state).Clazz;
-                }
-
-		/*
-		IO.Std.err.println( "method call calling load: " + method );
-		IO.Std.err.println( "IIIIII: kind is " + method.Kind + " versus " + Symbol.STATIC_METHOD );
-		*/
-
-                t = compileLoad( state, into, method, null, arguments, method.ArgTypes, t, Machine.WORD, flags, super_class );
-
-		if( compare_operation ) {
-		    into.add( makeStoreTemporary( tr, 1, t ) );
-		    into.add( new ITree( line_number, Op.LABEL, 0, lt ) );
-
-		    t = makeLoadTemporary( tr, 1 );
-		}
-            } else if( left_value != null ) {
-		// Std.err.println( "call B..." );
-                if( left_value.isClass( state ) ) {
-                    flags = flags | LOAD_FLAG_STATIC;
-		}
-
-                t = compileLoad( state, into, method, null, arguments, method.ArgTypes, null, Machine.WORD, flags, null );
-            } else {
-		// Std.err.println( "call C..." );
-                if( state.CurrentMethod.IsStatic ) {
-                    flags = flags | LOAD_FLAG_STATIC;
-		}
-
-                t = compileLoad( state, into, method, null, arguments, method.ArgTypes, t, Machine.WORD, flags, null );
-            }
-            
-            int temp = 0;
-            if( need_value ) {
-                temp = TempFactory.nextTemp();
-                into.add( makeStoreTemporary( temp, Machine.WORD, t ) );
-            } else {
-                into.add( t );
-            }
-	    if( size > 0 ) {
-		into.add( new ITree( line_number, Op.RELEASE, 0, size ) );
-	    }
-            if( need_value ) {
-                return makeLoadTemporary( temp, getType( state ).RegSize );
-            } else {
-                return null;
-            }
-        }
 
         void dump( CompileState state, StringBuffer buffer ) {
 	    if( left_value != null ) {

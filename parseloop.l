@@ -415,7 +415,7 @@ namespace Parse {
 		MethodCall next_element_call =
 		    new MethodCall(
 				   line_number,
-				   new LoadTemporary( line_number, t, 0 ),  // spoof a 'this' for the call
+				   new LoadTemporary( line_number, t, null, true ),  // spoof a 'this' for the call
 				   new Identifier( line_number, "nextElement" ),
 				   null );
 
@@ -429,12 +429,12 @@ namespace Parse {
 
 	}
 
-        void compile( CompileState state, IBlock into ) {
-            ILabel exit = TempFactory.nextLabel();
-            ILabel top = TempFactory.nextLabel();
-            ILabel cont = TempFactory.nextLabel();
+        void compile( CompileState state, IRBlock into ) {
+            LLVM.BasicBlock exit = into.Block();
+            LLVM.BasicBlock top = into.Block();
+            LLVM.BasicBlock cont = into.Block();
             // bool is_vector = false;
-            int temp = TempFactory.nextTemp();
+	    LLVM.Value temp;
             Assignment assignment;
 
 	    Cast next_element_cast;
@@ -452,6 +452,7 @@ namespace Parse {
              
             // MethodCall *elements_call = new MethodCall( line_number, expr, new Identifier( line_number, "elements" ), 0 );
             Type t = expr.getType(state);
+	    /*
             if( t.TypeKind == Type.VECTOR ) {
 		bool reference;
 		Type it = type_expr.parseType(state);
@@ -522,10 +523,7 @@ namespace Parse {
 				      );
 		}
 
-		/*                
-                assignment = new Assignment( line_number, ident, new LoadTemporary( line_number, et, address ) );
-                assignment.compile( state, into );
-                */
+
                 statement.compile( state, into );
                 
                 // into.add( new ITree( line_number, Op.LABEL, Machine, count ) );
@@ -540,32 +538,73 @@ namespace Parse {
                 
                 into.add( new ITree( line_number, Op.LABEL, 0, exit ) );
                 
-            } else if( iterator_type.isAssignableFrom(t) ) {
-                into.add( makeStoreTemporary( temp, Machine.WORD, expr.compileValue( state, into ) ) );
-                has_more_elements_call = new MethodCall( line_number, new LoadTemporary( line_number, iterator_type, temp ), new Identifier( line_number, "hasMoreElements" ), null );
+		} else*/
+	    Type et;
+	    LLVM.Type let;
+
+	    if( iterator_type.isAssignableFrom(t) ) {
+		et = type_expr.parseType(state);
+		let = type_expr.parseType(state).getLLVMType(state);
+		temp = into.AllocaEntry( let, ".iterator" );
+		into.Store(
+			   makeLLVMCast(
+					expr.compileValue( state, into ),
+					let,
+					into
+					),
+			   temp
+			   );
+			   
+                has_more_elements_call = new MethodCall(
+							line_number,
+							new LoadTemporary( line_number, iterator_type, temp, true ),
+							new Identifier( line_number, "hasMoreElements" ), null );
                 
                 has_more_elements_call.compileBoolean( state, into, exit, false ); // exit loop
-                into.add( new ITree( line_number, Op.LABEL, 0, top ) );
+
+		into.Label( top );
                 
-                next_element_cast = new Cast( line_number, type_expr, new MethodCall( line_number, new LoadTemporary( line_number, iterator_type, temp ), new Identifier( line_number, "nextElement" ), null ) );
+                next_element_cast = new Cast(
+					     line_number,
+					     type_expr,
+					     new MethodCall(
+							    line_number,
+							    new LoadTemporary( line_number, iterator_type, temp, true ),
+							    new Identifier( line_number, "nextElement" ), null ) );
                 
                 assignment = new Assignment( line_number, ident, next_element_cast );
                 assignment.compile( state, into );
                 
                 statement.compile( state, into );
-                
-                into.add( new ITree( line_number, Op.LABEL, 0, cont ) );
-                has_more_elements_call.compileBoolean( state, into, top, true ); // exit loop
-                
-                into.add( new ITree( line_number, Op.LABEL, 0, exit ) );    
-            } else {
-		// IO.Std.err.println( "QQQQQQ: iterator type is: " + t );
+ 
+		into.Label( cont );
 
-		into.add( makeStoreTemporary( temp, Machine.WORD, expr.compileValue( state, into ) ) );
+                has_more_elements_call.compileBoolean( state, into, top, true ); // exit loop
+
+		into.Label( exit );
+            } else {
+		// IO.Std.err.println( "QQQQQQ: iterator type is: " + type_expr );
+		et = type_expr.parseType(state);
+
+		if( et.TypeKind == Type.INFER ) {
+		    et = t;
+		}
+		IO.Std.err.println( "QQQQQQ: iterator type is: " + et );
+		let = et.getLLVMType(state);
+		temp = into.AllocaEntry( let, ".iterator" );
+		into.Store(
+			   makeLLVMCast(
+					expr.compileValue( state, into ),
+					let,
+					into
+					),
+			   temp
+			   );
+
 		has_more_elements_call =
 		    new MethodCall(
 				   line_number,
-				   new LoadTemporary( line_number, t, temp ),
+				   new LoadTemporary( line_number, t, temp, true ),
 				   new Identifier( line_number, "hasMoreElements" ),
 				   null );
 		
@@ -575,12 +614,13 @@ namespace Parse {
 		}
 		
 		has_more_elements_call.compileBoolean( state, into, exit, false ); // exit loop
-		into.add( new ITree( line_number, Op.LABEL, 0, top ) );
+
+		into.Label( top );
 		
 		next_element_call =
 		    new MethodCall(
 				   line_number,
-				   new LoadTemporary( line_number, t, temp ),
+				   new LoadTemporary( line_number, t, temp, true ),
 				   new Identifier( line_number, "nextElement" ),
 				   null );
 		
@@ -588,11 +628,12 @@ namespace Parse {
 		assignment.compile( state, into );
 		
 		statement.compile( state, into );
-		
-		into.add( new ITree( line_number, Op.LABEL, 0, cont ) );
+
+		into.Label( cont );
+
 		has_more_elements_call.compileBoolean( state, into, top, true ); // exit loop
-		
-		into.add( new ITree( line_number, Op.LABEL, 0, exit ) );    
+
+		into.Label( exit );
             }
             
             state.Loops.popLoop();

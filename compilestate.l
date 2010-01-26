@@ -1416,7 +1416,7 @@ namespace Parse {
 	    v.add( "-lgc" );
 	    // v.add( "/usr/lang/lib/libgcX.a" );
 	    v.add( "-ldl" );	    
-	    v.add( "-lpthread" );
+	    // v.add( "-lpthread" );
 
 	    foreach( String t; libraries.elements() ) {
 		if( t.endsWith(".o") ) {

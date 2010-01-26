@@ -319,12 +319,14 @@ namespace Parse {
 
     /// Load an intermediate code temporary as if it were a source expression
     class LoadTemporary extends Expression {
-        int temporary;
+	bool indirect;
+	LLVM.Value temporary;
 
-        void init( int line_number, Type type, int temporary ) {
+        void init( int line_number, Type type, LLVM.Value temporary, bool indirect ) {
             super.init( line_number );
             this.type = type;
             this.temporary = temporary;
+	    this.indirect = indirect;
         }
 
         void calcType( CompileState state ) {
@@ -339,12 +341,12 @@ namespace Parse {
 	    IO.Std.err.println( "oops: load temporary check templates: this probably won't work" );
 	}
 
-        ITree compileValue( CompileState state, IBlock into ) {
-            return makeLoadTemporary( temporary, type.Size );
-        }
-
-        void dump( CompileState state, StringBuffer buffer ) {
-            buffer.append( "LoadTemporary #" + temporary );   
+        LLVM.Value compileValue( CompileState state, IRBlock into ) {
+	    if( indirect ) {
+		return into.Load( temporary );
+	    } else {
+		return temporary;
+	    }
         }
     }
 
