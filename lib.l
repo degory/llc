@@ -8,13 +8,14 @@ import gc;
 import environment;
 import unwind;
 import klass;
-import library;
+// import library;
 import thread;
 import lock;
 import signal;
 import stat;
 import args;
 
+/*
 
 namespace System {
     use Generic.Vector;
@@ -43,3 +44,4 @@ namespace System {
 	}
     }
 }
+*/

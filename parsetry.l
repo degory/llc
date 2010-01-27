@@ -205,6 +205,10 @@ namespace Parse {
 
 	    // if( !last ) {
 
+	    if( next_handler == null ) {
+		throw new System.Exception( "next handler is null compiling: " + this );
+	    }
+
 	    // if vtable is null then jump to next handler:
 	    into.Branch(
 			into.ICmp(
@@ -343,12 +347,16 @@ namespace Parse {
 		bool last = i == catches.Length - 1;
 		if( last ) {
 		    next_handler = finally_handler;
+		} else {
+		    next_handler = into.Block(".catch");
 		}
+
+		IO.Std.err.println( "last: " + last + ", i: " + i + ", catches.Length: " + catches.Length );
+		IO.Std.err.println( "compile: " + e + ", next handler: " + cast int(next_handler) );
                 // e.compile( state, into, this_handler, next_handler, finally_descriptor, et, ev, first, last );
 		e.compile( state, into, this_handler, next_handler, finally_handler, exception_type, exception_value_l, first, last );
 		if( !last ) {
 		    this_handler = next_handler;		
-		    next_handler = into.Block(".catch");
 		}
 
 		first = false;

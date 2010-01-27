@@ -799,6 +799,16 @@ namespace Parse {
 	    LLVM.Calls.LLVMDumpType( t );
 	    */
 
+	    if( kt == LLVM.TypeKind.LLVMVoidTypeKind ) {
+		IO.Std.err.println( "left type is void" ); IO.Std.err.flush();	       
+		throw new System.Exception( "left type is void" );
+	    }
+
+	    if( kv == LLVM.TypeKind.LLVMVoidTypeKind ) {
+		IO.Std.err.println( "right type is void" ); IO.Std.err.flush();	       
+		throw new System.Exception( "right type is void" );
+	    }
+
 	    if( kt == LLVM.TypeKind.LLVMPointerTypeKind || kt == LLVM.TypeKind.LLVMArrayTypeKind ) {
 		if( kv == LLVM.TypeKind.LLVMPointerTypeKind || kv == LLVM.TypeKind.LLVMArrayTypeKind || kv == LLVM.TypeKind.LLVMFunctionTypeKind ) {
 		    return into.PointerCast( v, t );
@@ -2514,7 +2524,7 @@ namespace Parse {
 		if( want_set_value ) {
 		    IO.Std.err.println( "array access setter method has no value here: " + new System.Backtrace() );
 		    method_call.compileDiscardValue( state, into );
-		    return QuietErrorValue(getType(state).getLLVMType(state));
+		    return QuietErrorValue();
 		} else {
 		    return method_call.compileValue( state, into );
 		}

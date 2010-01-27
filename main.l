@@ -20,11 +20,14 @@ namespace Parse {
 
     class Main {
 	void init() {
+
+	    IO.Std.err.println( "starting up..." ); IO.Std.err.flush();
 	    var args = System.Arguments.ProgramArguments;
 
 	    CompileState.resetStatic();
 
 	    var c = new Compiler();
+	    IO.Std.err.println( "run proper..." ); IO.Std.err.flush();
 	    var result = c.run2(args);
 
 	    IO.Std.err.flush();

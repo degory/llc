@@ -1,4 +1,4 @@
-import library;
+// import library;
 
 namespace System {
     class Compiler {
@@ -9,6 +9,7 @@ namespace System {
 	    pragma Virtual;
 	}
 
+	/*
 	static get Compiler Create {
 	    if( c == null ) {
 		var l = new Library("/usr/lang/lib/unsafe/llc.so");
@@ -16,5 +17,6 @@ namespace System {
 	    }
 	    return cast Compiler(c.create());
 	}
+	*/
     }
 }

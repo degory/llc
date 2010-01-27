@@ -1111,7 +1111,7 @@ namespace Parse {
 		t = method_call.compileValue( state, into );
 
 		if( not_result ) {
-		    t = into.Not( t );
+		    return into.Not( t );
 		} else if( inequality ) {
 		    if( reverse ) {
 			op = getReverseJumpOp( op, true );
@@ -2279,10 +2279,9 @@ namespace Parse {
 		}
 
 	    case Op.DYNAMIC_CALL, Op.DYNAMIC_CALL_DISCARD:
-		/*
 		IO.Std.err.print( "actual dynamic call through " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue(from);
-		*/
+
 		addDummyExceptionHandlerJump( state, line_number, into );
 		v = into.PointerCast( from, LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMVTableType(),0) );
 		/*
@@ -2334,7 +2333,9 @@ namespace Parse {
 		return callOrInvoke( state, into, v, args );
 
 	    case Op.PROC_CALL, Op.PROC_CALL_DISCARD:
-		throw new System.NotImplementedException( "FIXME: proc call" );
+		IO.Std.err.println( "FIXME: proc call" );
+		return LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt64Type(), 0L, 0 );
+		// throw new System.NotImplementedException( "FIXME: proc call" );
 
 	    }
 
@@ -3511,6 +3512,10 @@ namespace Parse {
 		      result = new ITree( line_number, Op.CAST_FROM4, 8, result );
 		      }
 		    */
+		}
+
+		if( v == null ) {
+		    IO.Std.err.println( "compiling expression list go null element: " + this + " cause: " + e + " type: " + e.Class.Name );
 		}
 
 		if( t != null ) {

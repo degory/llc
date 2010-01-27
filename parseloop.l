@@ -584,12 +584,12 @@ namespace Parse {
 		into.Label( exit );
             } else {
 		// IO.Std.err.println( "QQQQQQ: iterator type is: " + type_expr );
-		et = type_expr.parseType(state);
+		et = t;
 
-		if( et.TypeKind == Type.INFER ) {
-		    et = t;
-		}
-		IO.Std.err.println( "QQQQQQ: iterator type is: " + et );
+		IO.Std.err.println( "iterator type is: " + et );
+		IO.Std.err.println( "expr is: " + expr );
+		IO.Std.err.println( "expr type: " + expr.getType(state) );
+
 		let = et.getLLVMType(state);
 		temp = into.AllocaEntry( let, ".iterator" );
 		into.Store(

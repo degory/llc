@@ -1072,7 +1072,6 @@ namespace Parse {
 		    state.InlineOK = false;
 
 		    // block.add( new ITree( 0, Op.DUMMY_JUMP, 8, dummy_exit ) );
-		    IO.Std.err.println( "FIXME: not compiling class body for " + c.getDecoratedName() );
 		    /*
                     body.compile( state, block );
                     
@@ -1388,7 +1387,10 @@ namespace Parse {
                     } else {
                         symbol.Address = t.Value.Int;
                     }
-                }
+                } else if( kind == Symbol.FLAG_STATIC ) {
+		    // FIXME: initialize LLVM global value
+		    symbol.getStaticGlobal(state);
+		}
             }
         }
 
