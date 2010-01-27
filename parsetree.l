@@ -265,7 +265,7 @@ namespace Parse {
 	public static int inline_method_count;
         public static int inline_call_count;
 
-        protected static Type
+        public static Type
             undefined_type,
             string_type,
             object_type,

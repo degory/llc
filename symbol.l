@@ -215,11 +215,21 @@ namespace Parse {
 	}
 
 	LLVM.Value getStaticGlobal(CompileState state) {
+	    IO.Std.err.println( "static decorated name would be: " + DecoratedName );
+
 	    char ptr name = ("__static_" + Owner.DecoratedName + "_" + Name ).toCString();
 
 	    LLVM.Value v = LLVM.Calls.LLVMGetNamedGlobal(state.Module, name);
 	    if( v == null ) {
 		v = LLVM.Calls.LLVMAddGlobal(state.Module,Type.getLLVMType(state), name);
+
+		Owner.markHasStatic();
+
+		if( Owner == state.CurrentClass ) {
+		    IO.Std.err.println( "owner: " + Owner.HumanName );
+		    IO.Std.err.println( "current: " + state.CurrentClass.HumanName );
+		    LLVM.Calls.LLVMSetInitializer(v, Type.getLLVMNull(state));
+		}
 	    }
 	    
 	    return v;

@@ -1293,6 +1293,7 @@ namespace Parse {
 		main_class.Type.getLLVMType(this)
 	    };
 
+	    /*
 	    var main_init_function =
 		LLVM.Calls.LLVMAddFunction(
 					   m,
@@ -1304,6 +1305,24 @@ namespace Parse {
 								       0
 								       )
 					   );
+
+	    */
+
+	    var args_run1 = { ParseTree.object_type.getLLVMType(this) };
+
+	    // System.Startup.run1(Object):
+	    var run1_function = 
+		LLVM.Calls.LLVMAddFunction(
+					   m,
+					   `_ZN6System7Startup4run1EN6System6ObjectE`,
+					   LLVM.Calls.LLVMFunctionType(
+								       LLVM.Calls.LLVMVoidType(),
+								       args_run1.address,
+								       args_run1.length,
+								       0
+								       )
+					   );
+
 
 	    var args_entry = new LLVM.Type[0];
 
@@ -1333,7 +1352,7 @@ namespace Parse {
 			      { LLVM.Calls.LLVMConstTypeSizeIndirect(main_class.Type.getLLVMType(this)), vtable }
 			      );
 	   
-	    into.Call( main_init_function, { ParseTree.makeLLVMCast( v, main_class.Type.getLLVMType(this), into ) } );
+	    into.Call( run1_function, { ParseTree.makeLLVMCast( v, ParseTree.object_type.getLLVMType(this), into ) } );
 	    into.RetVoid();
 	    into.Close();
 

@@ -72,6 +72,7 @@ namespace Parse {
 	bool cannot_inline;
 	bool want_pack;
 	bool has_if;
+	bool has_static;
 
 	LLVM.TypeHandle llvm_opaque_type_handle;
 	LLVM.TypeHandle llvm_struct_type_handle;
@@ -236,6 +237,15 @@ namespace Parse {
 	get int VTableSize {
 	    return vtable_offset;
 	}
+
+	get bool HasStatic {
+	    return has_static;
+	}
+
+	void markHasStatic() {
+	    has_static = true;
+	}
+
 
 	LLVM.Value getFunctionGlobal(CompileState state) {
 	    LLVM.Value v;

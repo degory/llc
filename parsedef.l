@@ -860,6 +860,63 @@ namespace Parse {
 	    state.submit( work );
 	}
 
+	void compileBody( CompileState state, Container c ) {
+
+	    var ft = LLVM.Calls.LLVMFunctionType(
+						 LLVM.Calls.LLVMVoidType(),
+						 new LLVM.Type[0].address,
+						 0,
+						 0
+						 );
+
+	    var f =
+		LLVM.Calls.LLVMAddFunction(
+					   state.Module, 
+					   ("__static_init_" + c.DecoratedName).toCString(),
+					   ft
+					   );
+
+	    var into = new IRBlock( state, f );
+
+	    body.compile( state, into );
+
+	    into.RetVoid();
+
+	    into.Close();
+
+	    var pft = LLVM.Calls.LLVMStructType(
+						{ LLVM.Calls.LLVMInt32Type(),
+						  LLVM.Calls.LLVMPointerType(ft,0) }.address,
+						2,
+						0
+						);
+
+	    var v = LLVM.Calls.LLVMAddGlobal(
+				     state.Module,
+				     LLVM.Calls.LLVMArrayType(pft,1),
+				     `llvm.global_ctors`
+				     );
+
+	    LLVM.Calls.LLVMSetLinkage(
+				      v,
+				      LLVM.LLVMLinkage.LLVMAppendingLinkage
+				      );
+
+	    var fa = {
+		LLVM.Calls.LLVMConstStruct( { LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(), 0L, 0),
+					f }.address, 2, 0 )
+	    };
+
+	    LLVM.Calls.LLVMSetInitializer(
+					  v,
+					  LLVM.Calls.LLVMConstArray(
+								    pft,								   							 fa.address,
+								    1
+								    )
+					  );
+
+	}
+
         void compile2( CompileState state, Container c ) {
 	    if( IsInterface ) {
 		IO.Std.err.println( "not compiling interface: " + c.HumanName );
@@ -1006,6 +1063,10 @@ namespace Parse {
 
 		    ILabel dummy_exit = TempFactory.nextLabel();
                     
+		    if( c.HasStatic ) {
+			compileBody( state, c );
+		    }
+
                     IBlock block = new IBlock();
 		    block.WantLineNumbers = state.WantLineNumbers;
 		    state.InlineOK = false;
