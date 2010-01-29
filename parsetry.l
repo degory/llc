@@ -486,7 +486,10 @@ namespace Parse {
 	    
 	    LLVM.Value s = into.Switch( into.Load(exception_type), rethrow, 2 );
 
-	    into.AddCase( s, LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt64Type(), 0L, 0 ), exit );
+	    // 1 == 'exception caught'
+	    into.AddCase( s, LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt64Type(), 1L, 0 ), exit );
+
+	    // 3 == 'throw return'
 	    into.AddCase( s, LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt64Type(), 3L, 0 ), return_ );
 
 	    into.Label( rethrow );
@@ -516,17 +519,31 @@ namespace Parse {
 			   IRBlock into,
 			   LLVM.Value exception_type,
 			   LLVM.Value exception_value,
-			   LLVM.BasicBlock exit_label
+			   ExceptionDescriptor next
 			   ) {
+
+	    var l = into.Block();
 	    
 	    into.Branch(
 			into.ICmp(
-				  LLVM.LLVMIntPredicate.LLVMIntNE,
+				  LLVM.LLVMIntPredicate.LLVMIntEQ,
 				  into.Load( exception_type ),
-				  LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),0L,0)
+				  // 1 == 'exception caught'
+				  LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),1L,0)
 				  ),
-			exit_label
+			l
 			);
+
+
+	    into.Store(
+		       into.Load(exception_type),
+		       next.exception_type );
+
+	    into.Store(
+		       into.Load(exception_value),
+		       next.exception_value );
+
+	    into.JumpLabel( next.handler, l );
 	}
 
 
@@ -539,8 +556,8 @@ namespace Parse {
 
 	    IO.Writer f = state.Output;
 
-	    LLVM.Value exception_value = into.AllocaEntry( LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0), ".ex_value" );
-	    LLVM.Value exception_value_l = into.AllocaEntry( LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0), ".ex_value_l" );
+	    LLVM.Value exception_value = into.AllocaEntry( LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0), ".ex_unwind" );
+	    LLVM.Value exception_value_l = into.AllocaEntry( LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0), ".ex_object" );
 	    LLVM.Value exception_type = into.AllocaEntry( LLVM.Calls.LLVMInt64Type(), ".ex_type" );
 		
 	    LLVM.BasicBlock body_label = into.Block(".try_body");
@@ -563,10 +580,10 @@ namespace Parse {
 
 	    if( finally_statement != null ) {
 		finally_pad = into.Block(".finally_pad");
-		finally_handler = into.Block(".finally_handler");	    
+		finally_handler = into.Block(".finally_handler");
 
 		// push descriptor for return cleanup handler:
-		ed = new ExceptionDescriptor( EDType.CATCH_RETURN, finally_pad, finally_handler, exception_type, exception_value );
+		ed = new ExceptionDescriptor( EDType.CATCH_RETURN, finally_pad, finally_handler, exception_type, exception_value_l );
 		state.pushException(ed);
 		// exception[exception_level] = ed;
 		// exception_level = exception_level + 1;
@@ -607,13 +624,23 @@ namespace Parse {
 		// push an exception descriptor for the catches prior to compiling the try body statement
 		// so code within the body sees catches, then any finally/return handler, then any outer
 		// handlers from enclosing blocks:
-		ed = new ExceptionDescriptor( EDType.CATCH_EXCEPTION, catches_pad, catches_handler, exception_type, exception_value );
+		ed = new ExceptionDescriptor( EDType.CATCH_EXCEPTION, catches_pad, catches_handler, exception_type, exception_value_l );
 		state.pushException( ed );
 		// exception[exception_level] = ed;
 		// exception_level = exception_level + 1;
             }
 
 	    into.Label( body_label );
+
+	    into.Store(
+		       LLVM.Calls.LLVMConstInt(
+					       LLVM.Calls.LLVMInt64Type(),
+					       1L,
+					       0
+					       ),
+		       // 1 == 'exception caught' or stop after finally
+		       exception_type
+		       );
 
 	    // IO.Std.err.println( "TTTT: compile body: " + try_statement );
 
@@ -676,17 +703,18 @@ namespace Parse {
 		finally_statement.compile( state, into );
 	    }
 
-
-	    if( state.InBottomExceptionHandler ) {
-		// exit_label = state.ReturnLabel;
-
-		rethrowOrReturn( state, into, exception_type, exception_value );
-	    } else if( state.InExceptionHandler) {
-		exit_label = state.TopException.handler; // exception[exception_level-1].code_label;
-
-		rethrowOrDone( state, into, exception_type, exception_value, exit_label );
+	    ExceptionDescriptor fd;
+	    
+	    if( state.InExceptionHandler ) {
+		fd = state.TopException;
 	    }
-        }
+
+	    if( fd != null ) {
+		rethrowOrDone( state, into, exception_type, exception_value_l, fd );
+	    } else {
+		rethrowOrReturn( state, into, exception_type, exception_value );
+	    }
+	}
 
 	void print( CompileState state, Printer p ) {
 	    pl(p);
