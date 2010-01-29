@@ -375,7 +375,7 @@ namespace Parse {
 
 	    if( v == null ) {
 		var args = new LLVM.Type[0];
-		var ft = LLVM.Calls.LLVMFunctionType( LLVM.Calls.LLVMInt64Type(), args.address, 0, 0 );
+		var ft = LLVM.Calls.LLVMFunctionType( LLVM.Calls.LLVMInt64Type(), args.address, 0, 1 );
 		
 		v = LLVM.Calls.LLVMAddFunction(state.Module, n, ft);				
 	    }
@@ -452,7 +452,7 @@ namespace Parse {
 
 
 	    
-	    if( true /* is_finally */ ) {
+	    if( is_finally ) {
 		// if this is a finally landing pad then we want to catch all exceptions, including foreign ones:
 		// type_info = LLVM.Calls.LLVMConstPointerNull(LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0));
 		type_info = LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),0L,0);
@@ -481,8 +481,8 @@ namespace Parse {
 						      getPersonalityFunction(state),
 						      LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0),
 						      into
-						      ) } );
-
+						      ),
+				     type_info } );
 
 
 	    // identify this basic block as a landing pad to LLVM and
@@ -493,27 +493,37 @@ namespace Parse {
 		       );
 
 
+	    // ignore selector value and store 2 ('uncaught exception') in exception type:
 	    into.Store(
-		       ex_type,
+		       // ex_type,
+		       LLVM.Calls.LLVMConstInt(
+					       LLVM.Calls.LLVMInt64Type(),
+					       2L,
+					       0
+					       ),
 		       exception_type
 		       );
 
 
 
 	    if( !is_finally ) {
+		/* shouldn't be needed - should only get here for L exceptions:
 		into.Branch(
 			    into.ICmp(
-				      LLVM.LLVMIntPredicate.LLVMIntNE,
+				      LLVM.LLVMIntPredicate.LLVMIntSLE,
 				      into.Load(exception_type),
-				      LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),cast long(CATCH_EXCEPT),0)
+				      LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),0L,0)
 				      ),
 			    handler
 			    );
+		*/
 
 		into.Store(
 			   makeLExceptionValue(state, into, exception_value),
 			   l_exception_value
 			   );
+
+
 	    }
 
 
@@ -526,18 +536,18 @@ namespace Parse {
 				       IRBlock into,
 				       LLVM.Value exception_value
 				       ) {
-
-	    // get pointer to third 64-bit word in exception structure:
+	    // get pointer to fifth 64-bit word in exception structure:
 	    LLVM.Value ep = into.InBoundsGEP(
 					     makeLLVMCast(
 							  into.Load(exception_value),
 							  LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt64Type(),0),
 							  into
 							  ),
-					     { LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(),3L,0) }
+					     // get address of l_exception element
+					     { LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(),4L,0) }
 					     );
 
-	    // load the word, cast to i8* and return
+	    // load the L exception object, cast to i8* and return
 	    return makeLLVMCast(
 				into.Load(ep),
 				LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0),
@@ -567,7 +577,7 @@ namespace Parse {
 
 		    IO.Std.err.print( "TTTT: handler: " ); IO.Std.err.flush();
 		    LLVM.Calls.LLVMDumpValue( LLVM.Calls.LLVMBasicBlockAsValue(handler) );
-		    */
+		    */ 
 		}
 
 		var v = into.Invoke( f, args, l, landing_pad );

@@ -166,7 +166,7 @@ namespace Parse {
 	    // LLVM.BasicBlock outer_handler = state.TopException.handler;
 	    LLVM.BasicBlock l = into.Block();
 	    LLVM.BasicBlock m = into.Block();
-
+	    
 	    // ILabel descriptor_label = TempFactory.nextLabel();
 	    // ILabel handler_label = TempFactory.nextLabel();
 
@@ -196,7 +196,9 @@ namespace Parse {
 	    // get vtable or super class vtable:
 	    into.Store(
 		       makeLLVMCast(
-				    into.Load(vtable_temp),
+				    into.Load(
+					      into.Load(vtable_temp)
+					      ),
 				    ptr_ptr_8,
 				    into
 				    ),
@@ -233,9 +235,17 @@ namespace Parse {
 			m
 			);
 
-	    
 	    // exception caught - fall through into body of catch statement:
-	    
+
+	    into.Store(
+		       makeLLVMCast(
+				    into.Load(exception_value),
+				    param.Type.getLLVMType(state),
+				    into
+				    ),
+		       param.getLocal(state,into)
+		       );
+
             statement.compile( state, into );
 
 
@@ -244,7 +254,7 @@ namespace Parse {
 	    into.Store(
 		       LLVM.Calls.LLVMConstInt(
 					       LLVM.Calls.LLVMInt64Type(),
-					       0L, // exception caught
+					       1L, // exception caught
 					       0
 					       ),
 		       exception_type
@@ -332,6 +342,17 @@ namespace Parse {
 	    IO.Std.err.println( "TTTT: compile catches" );
 
 	    into.Label( this_handler );
+
+	    into.Branch(
+			into.ICmp(
+				  LLVM.LLVMIntPredicate.LLVMIntNE,
+				  into.Load(exception_type),
+				  // 2 == 'uncaught exception':
+				  LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),2L,0)
+				  ),
+			finally_handler
+			);
+
 
 	    /*    
             foreach( Catch d; catches.elements() ) {
@@ -437,7 +458,7 @@ namespace Parse {
 	}
 
 	static LLVM.Value getUnwindOrRethrowFunction( CompileState state ) {
-	    char ptr n = `_Unwind_Resume_or_Rethrow`;
+	    char ptr n = `_Unwind_RaiseException`;
 
 	    var v = LLVM.Calls.LLVMGetNamedFunction(state.Module, n);
 
@@ -594,14 +615,14 @@ namespace Parse {
 
 	    into.Label( body_label );
 
-	    IO.Std.err.println( "TTTT: compile body: " + try_statement );
+	    // IO.Std.err.println( "TTTT: compile body: " + try_statement );
 
 	    // compile the body statement, any exceptions will be caught by the active handler set above
             try_statement.compile( state, into );
 
 	    into.Jump( finally_handler );
 
-	    IO.Std.err.println( "TTTT: compiled body: " + try_statement );
+	    // IO.Std.err.println( "TTTT: compiled body: " + try_statement );
 
 	    var ex_args = new LLVM.Value[0];
 
@@ -655,17 +676,16 @@ namespace Parse {
 		finally_statement.compile( state, into );
 	    }
 
-	    /*
-	    if( bottom_level ) {
+
+	    if( state.InBottomExceptionHandler ) {
 		// exit_label = state.ReturnLabel;
 
 		rethrowOrReturn( state, into, exception_type, exception_value );
-	    } else {
+	    } else if( state.InExceptionHandler) {
 		exit_label = state.TopException.handler; // exception[exception_level-1].code_label;
 
 		rethrowOrDone( state, into, exception_type, exception_value, exit_label );
 	    }
-	    */
         }
 
 	void print( CompileState state, Printer p ) {

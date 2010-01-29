@@ -829,6 +829,10 @@ namespace Parse {
 	    return exception_level >= 0;
 	}
 
+	get bool InBottomExceptionHandler {
+	    return exception_level == 0;
+	}
+
 	get ExceptionDescriptor TopFinallyOrReturn {
 	    for( int i = exception_level; i >= 0; i = i - 1 ) {
 		if( exception[i].type == EDType.CATCH_FINALLY ||

@@ -156,8 +156,7 @@ namespace Parse {
 	}
 
         void dump( CompileState  state, StringBuffer  buffer ) {
-	    throw new System.Exception( "dump unknown type: " + Class.Name );
-            buffer.append("<unknown type>");
+            buffer.append("<" + Class.Name + ">");
         }
 
         void dump( StringBuffer human, StringBuffer  decorate ) {
