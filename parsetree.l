@@ -214,9 +214,10 @@ namespace Parse {
 	public LLVM.BasicBlock handler;
 
 	public LLVM.Value exception_type;
-	public LLVM.Value exception_value;
+	public LLVM.Value exception_unwind;
+	public LLVM.Value exception_object;
 
-	void init( EDType type, LLVM.BasicBlock lp, LLVM.BasicBlock h, LLVM.Value et, LLVM.Value ev ) {
+	void init( EDType type, LLVM.BasicBlock lp, LLVM.BasicBlock h, LLVM.Value et, LLVM.Value uw, LLVM.Value ob ) {
 	    this.type = type;
 	    landing_pad = lp;
 	    handler = h;
@@ -226,7 +227,8 @@ namespace Parse {
 	    }
 		
 	    exception_type = et;
-	    exception_value = ev;
+	    exception_unwind = uw;
+	    exception_object = ob;
 	}
     }
 
@@ -1880,7 +1882,7 @@ namespace Parse {
 			    ed.handler,
 			    t,
 			    ed.exception_type,
-			    ed.exception_value
+			    ed.exception_unwind
 			    );
 	    } else {
                 // regular return

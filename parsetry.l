@@ -135,7 +135,7 @@ namespace Parse {
 		     LLVM.BasicBlock exit_label,
 		     // LLVM.BasicBlock outer_descriptor,
 		     LLVM.Value exception_type, 
-		     LLVM.Value exception_value, 
+		     LLVM.Value exception_object, 
 		     bool first,
 		     bool last ) {
             Type type = match.getType( state );
@@ -184,7 +184,7 @@ namespace Parse {
 
 	    into.Store(
 		       makeLLVMCast(
-				    into.Load(exception_value),
+				    into.Load(exception_object),
 				    ptr_ptr_8,
 				    into
 				    ),
@@ -239,7 +239,7 @@ namespace Parse {
 
 	    into.Store(
 		       makeLLVMCast(
-				    into.Load(exception_value),
+				    into.Load(exception_object),
 				    param.Type.getLLVMType(state),
 				    into
 				    ),
@@ -326,7 +326,7 @@ namespace Parse {
 		    IRBlock into,
 		    LLVM.BasicBlock finally_handler,
 		    LLVM.Value exception_type,
-		    LLVM.Value exception_value_l
+		    LLVM.Value exception_object
 		    ) {
 	    ExceptionDescriptor ed;
             int offset = 0;
@@ -375,7 +375,7 @@ namespace Parse {
 		IO.Std.err.println( "last: " + last + ", i: " + i + ", catches.Length: " + catches.Length );
 		IO.Std.err.println( "compile: " + e + ", next handler: " + cast int(next_handler) );
                 // e.compile( state, into, this_handler, next_handler, finally_descriptor, et, ev, first, last );
-		e.compile( state, into, this_handler, next_handler, finally_handler, exception_type, exception_value_l, first, last );
+		e.compile( state, into, this_handler, next_handler, finally_handler, exception_type, exception_object, first, last );
 		if( !last ) {
 		    this_handler = next_handler;		
 		}
@@ -478,7 +478,7 @@ namespace Parse {
 			     CompileState state,
 			     IRBlock into,
 			     LLVM.Value exception_type,
-			     LLVM.Value exception_value
+			     LLVM.Value exception_unwind
 			   ) {
 	    var exit = into.Block();
 	    var return_ = into.Block();
@@ -494,7 +494,7 @@ namespace Parse {
 
 	    into.Label( rethrow );
 	    into.Call(
-		      getUnwindOrRethrowFunction(state), { into.PtrToInt(into.Load(exception_value),LLVM.Calls.LLVMInt64Type()) }
+		      getUnwindOrRethrowFunction(state), { into.PtrToInt(into.Load(exception_unwind),LLVM.Calls.LLVMInt64Type()) }
 		      );
 	    // into.Unreachable();
 
@@ -502,7 +502,7 @@ namespace Parse {
 	    if( !state.CurrentMethod.Type.isVoid() ) {
 		into.Ret(
 			 makeLLVMCast(
-				      into.Load(exception_value),
+				      into.Load(exception_unwind),
 				      state.CurrentMethod.Type.getLLVMType(state),
 				      into
 				      )
@@ -518,7 +518,7 @@ namespace Parse {
 			   CompileState state,
 			   IRBlock into,
 			   LLVM.Value exception_type,
-			   LLVM.Value exception_value,
+			   LLVM.Value exception_object,
 			   ExceptionDescriptor next
 			   ) {
 
@@ -540,8 +540,8 @@ namespace Parse {
 		       next.exception_type );
 
 	    into.Store(
-		       into.Load(exception_value),
-		       next.exception_value );
+		       into.Load(exception_object),
+		       next.exception_object );
 
 	    into.JumpLabel( next.handler, l );
 	}
@@ -556,8 +556,8 @@ namespace Parse {
 
 	    IO.Writer f = state.Output;
 
-	    LLVM.Value exception_value = into.AllocaEntry( LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0), ".ex_unwind" );
-	    LLVM.Value exception_value_l = into.AllocaEntry( LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0), ".ex_object" );
+	    LLVM.Value exception_unwind = into.AllocaEntry( LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0), ".ex_unwind" );
+	    LLVM.Value exception_object = into.AllocaEntry( LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0), ".ex_object" );
 	    LLVM.Value exception_type = into.AllocaEntry( LLVM.Calls.LLVMInt64Type(), ".ex_type" );
 		
 	    LLVM.BasicBlock body_label = into.Block(".try_body");
@@ -583,7 +583,7 @@ namespace Parse {
 		finally_handler = into.Block(".finally_handler");
 
 		// push descriptor for return cleanup handler:
-		ed = new ExceptionDescriptor( EDType.CATCH_RETURN, finally_pad, finally_handler, exception_type, exception_value_l );
+		ed = new ExceptionDescriptor( EDType.CATCH_RETURN, finally_pad, finally_handler, exception_type, exception_unwind, exception_object );
 		state.pushException(ed);
 		// exception[exception_level] = ed;
 		// exception_level = exception_level + 1;
@@ -608,8 +608,8 @@ namespace Parse {
 			      state,
 			      into,
 			      exception_type,
-			      exception_value,
-			      exception_value_l,
+			      exception_unwind,
+			      exception_object,
 			      catches_pad,
 			      catches_handler,
 			      false
@@ -617,14 +617,14 @@ namespace Parse {
 
 		// exception handler stack contains at least return handler or finally plus outer handlers:
 		// int compile( CompileState state, IBlock into, ILabel finally_descriptor, ILabel finally_handler, int exception_type, int exception_value )
-                catches.compile( state, into, finally_handler, exception_type, exception_value_l );
+                catches.compile( state, into, finally_handler, exception_type, exception_object );
 
 		// previous_label = catches_label;
 
 		// push an exception descriptor for the catches prior to compiling the try body statement
 		// so code within the body sees catches, then any finally/return handler, then any outer
 		// handlers from enclosing blocks:
-		ed = new ExceptionDescriptor( EDType.CATCH_EXCEPTION, catches_pad, catches_handler, exception_type, exception_value_l );
+		ed = new ExceptionDescriptor( EDType.CATCH_EXCEPTION, catches_pad, catches_handler, exception_type, exception_unwind, exception_object );
 		state.pushException( ed );
 		// exception[exception_level] = ed;
 		// exception_level = exception_level + 1;
@@ -678,8 +678,8 @@ namespace Parse {
 			      state,
 			      into,
 			      exception_type,
-			      exception_value,
-			      exception_value_l,
+			      exception_unwind,
+			      exception_object,
 			      finally_pad,
 			      finally_handler,
 			      true 
@@ -710,9 +710,9 @@ namespace Parse {
 	    }
 
 	    if( fd != null ) {
-		rethrowOrDone( state, into, exception_type, exception_value_l, fd );
+		rethrowOrDone( state, into, exception_type, exception_object, fd );
 	    } else {
-		rethrowOrReturn( state, into, exception_type, exception_value );
+		rethrowOrReturn( state, into, exception_type, exception_unwind );
 	    }
 	}
 
