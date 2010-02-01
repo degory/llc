@@ -27,6 +27,8 @@ namespace Parse {
     }
 
     class Container extends Symbol {
+	const int INTERFACE_OFFSET = 4;
+
         Container parent;
 	Container template;
         SymbolList members;
@@ -48,6 +50,8 @@ namespace Parse {
 	// LLVM.Value static_global;
 	LLVM.Value this_pointer;
 	// LLVM.Value return_value;
+
+	public LLVM.Value first_static, last_static;
 
 	word ref_bits;
 
@@ -246,6 +250,12 @@ namespace Parse {
 	    has_static = true;
 	}
 
+	void hasStatic( LLVM.Value v ) {
+	    if( first_static == null ) {
+		first_static = v;
+	    }
+	    last_static = v;
+	}
 
 	LLVM.Value getFunctionGlobal(CompileState state) {
 	    LLVM.Value v;
@@ -1381,7 +1391,7 @@ namespace Parse {
 
 		// IO.Std.err.println( "final now: " + c.IsFinal + " for " + c.HumanName );
 
-		c.Address = -(Machine.INTERFACE_OFFSET + Machine.WORD * slot_index);
+		c.Address = -(INTERFACE_OFFSET + slot_index);
 		if( CompileState.Instance.WantVeryVerbose ) {
 		    ParseTree.message( "interface slot #" + slot_index + ": " + c.HumanName + " @ " + c.Address );
 		}
@@ -1668,7 +1678,7 @@ namespace Parse {
 		    }
 
 		    Container e = cast Container(s);
-		    var slot = (-e.Address - Machine.INTERFACE_OFFSET) / Machine.WORD;
+		    var slot = (-e.Address - INTERFACE_OFFSET);
 		    // IO.Std.err.println( "looking for method: " + s.HumanName + "..." );
 
 		    if( e.IsFinal ) {
@@ -1758,7 +1768,7 @@ namespace Parse {
 		    }
 
 		    Container e = cast Container(s);
-		    var slot = (-e.Address - Machine.INTERFACE_OFFSET) / Machine.WORD;
+		    var slot = -e.Address - INTERFACE_OFFSET;
 		    // IO.Std.err.println( "looking for method: " + s.HumanName + "..." );
 
 		    if( slot > io ) {

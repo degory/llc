@@ -97,6 +97,15 @@ typedef signed char int8_t;
 
 struct OurExceptionType;
 
+void __debug_init( char *name ) {
+  printf( "intialize: %s\n", name ); fflush(stdout);
+}
+
+void __add_roots( void *b, void *e ) {
+  printf( "GC_add_roots(%p,%p)\n", b, e ); fflush(stdout);
+  GC_add_roots( b, e );  
+}
+
 void cleanup( _Unwind_Reason_Code reason, struct _Unwind_Exception *e ) {
   // do nothing
 }
@@ -117,6 +126,26 @@ struct _Unwind_Exception_L {
 };
 
 #define D(x)
+
+
+extern char **backtrace_symbols(void **, int);
+
+#define MAX_BACKTRACE_DEPTH 16
+#define MAX_BACKTRACE_LENGTH 512
+char *__get_backtrace() {
+  void *buffer[MAX_BACKTRACE_DEPTH];
+  char *result = (char *)GC_malloc(MAX_BACKTRACE_LENGTH);
+  int i;
+  int n = backtrace(buffer, MAX_BACKTRACE_DEPTH);
+
+  char **symbols = backtrace_symbols(buffer, n);
+
+  for( i = 0; i < n; i++ ) {
+    printf( symbols[i] );
+  }
+
+  return "argh";
+}
 
 
 struct _Unwind_Exception *makeException( void *l_exception ) {
@@ -424,10 +453,11 @@ int handleActionValue(
     
     int type = 1;
     
+    /*
     fprintf(stderr,
 	    "handleActionValue(...): exceptionObject = <%p>\n",
 	    exceptionObject );
-    
+    */
     uint8 *actionPos = (uint8*) actionEntry,
       *tempActionPos;
     
@@ -444,28 +474,31 @@ int handleActionValue(
       tempActionPos = actionPos;
       actionOffset = readSLEB128(&tempActionPos);
       
+      /*
       fprintf(stderr,
 	      "handleActionValue(...):typeOffset: <%lld>, "
 	      "actionOffset: <%lld>.\n",
 	      typeOffset,
 	      actionOffset);
-      
+      */   
       // Note: A typeOffset == 0 implies that a cleanup llvm.eh.selector
       //       argument has been matched.
       //
       if ((typeOffset > 0)/* &&
 			     (type == (classInfo[-typeOffset])->type)*/) {
+	/*
 	fprintf(stderr,
 		"handleActionValue(...):actionValue <%d> found.\n",
 		i);
-	
+	*/	
 	*resultAction = i + 1;
 	ret = 1;
 	break;
       } else {
+	/*
 	fprintf(stderr,
 		"handleActionValue(...):actionValue not found.\n");
-
+	*/
 	if (actionOffset) {
 	  actionPos += actionOffset;
 	} else {
@@ -486,6 +519,10 @@ _Unwind_Reason_Code handleLsda(
 			       struct _Unwind_Exception* exceptionObject,
                                struct _Unwind_Context *context
 			       ) {
+
+  if( version < 0 ) {
+    return _URC_CONTINUE_UNWIND;
+  }
 
   _Unwind_Reason_Code ret = _URC_CONTINUE_UNWIND;
   
@@ -698,7 +735,7 @@ _Unwind_Reason_Code handleLsda(
 }
 
 
-_Unwind_Reason_Code __l_personality(
+ __attribute__((noinline)) _Unwind_Reason_Code __l_personality(
 				    int version, 
 				    _Unwind_Action actions,
 				    uint64 exceptionClass, 

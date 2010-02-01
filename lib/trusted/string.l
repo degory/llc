@@ -93,6 +93,7 @@ namespace System is
 	// Construct a new String by copying the supplied C-string
 	// \param s a C-string to copy. Must be terminated with cast char(0)
 	void init( char ptr s ) is
+	// System.Exit.check("S1");
 	    super.init();
 
 	    int i = 0;
@@ -105,12 +106,18 @@ namespace System is
 
 	    _length = _c_getLength( s );
 
-	    _buffer = cast char ptr( native.GC_malloc_atomic( _length + 1) );
+//  native.printf( `length of %s is %d\n`, s, _length ); native.__flush_stdout();
+ 	    _buffer = cast char ptr( native.GC_malloc_atomic( _length + 1) );
 	    // native.printf( `%p len %d string\n`, _buffer, _length+1 );
 	    while i <= _length do
+			   // native.printf( `[%p+%d] <- %c\n`, _buffer, i, [s + i] ); native.__flush_stdout();
+
 		[_buffer + i] = [s + i];
 		i = i + 1;
+// System.Exit.check("S3");
 	    od
+
+	    //System.Exit.check("S2");
 	end
 
 	/// Construct a new String by copying the supplied String
@@ -598,12 +605,21 @@ namespace System is
 
 	/// Implements + operator. 
 	StringBuffer opAdd( String s ) is
+	// System.Exit.check("A0");
 	    return new StringBuffer( toCString() ).append( s );
 	end
 
 	/// Implements + operator. 
 	StringBuffer opAdd( int i ) is
-	    return new StringBuffer( toCString() ).append( i );
+	// System.Exit.check("C1");
+            var c = toCString();
+// System.Exit.check("C2");
+            var b = new StringBuffer( c );
+//            System.Exit.check("C3");
+            var r = b.append(i);
+//            System.Exit.check("C4");
+            return r;
+// return new StringBuffer( toCString() ).append( i );
 	end
 
 	/// Implements + operator. 
@@ -618,6 +634,8 @@ namespace System is
 
 	/// Implements + operator. 
 	StringBuffer opAdd( char c ) is
+	//	    System.Exit.check("A2");
+
 	    return new StringBuffer( toCString() ).append( c );
 	end
 
@@ -632,11 +650,15 @@ namespace System is
 
 	/// Implements + operator. 
 	StringBuffer opAdd( char ptr s ) is
+	    //	    System.Exit.check("A3");
+
 	    return new StringBuffer( toCString() ).append( s );
 	end
 
 	/// Implements + operator. 
 	StringBuffer opAdd( Object o ) is
+	//	    System.Exit.check("A4");
+
 	    return new StringBuffer( toCString() ).append( o );
 	end
 
@@ -675,6 +697,8 @@ namespace System is
 	end
 
 	get String Freeze is
+	    return this;
+
 	    var f = pool[this];
 	    if f == null then
 	        f = this.copy();
@@ -720,12 +744,15 @@ namespace System is
 	private int _allocated_length;
 
 	void init( char ptr s ) is
+	/*
+	    if s != null then
+   	        native.printf( `new string buffer from [%s]\n`, s );
+            else
+		native.printf( `new string buffer from null\n` );
+	    fi
+	*/
 	    super.init(s);
-            // IO.Std.err.println( "init StringBuffer from char ptr is unsafe: " + new Backtrace() );
-
-	    _allocated_length = _length;
-
-	    // mark();
+            _allocated_length = _length;
 	end
 
 	void init( String s ) is
@@ -850,6 +877,7 @@ namespace System is
 	        
 
 	StringBuffer append( char c ) is
+	    //	    System.Exit.check( "E" );
 	    _reserve( _length + 1 );
 
 	    // checkIndex(_length);
@@ -857,24 +885,28 @@ namespace System is
 	    _length = _length + 1;
 
 	    // check();
+//  	    System.Exit.check( "F" );
 
 	    return this;
 	end
 
 	StringBuffer append( char ptr s ) is
+	//  	    System.Exit.check( "G" );
 	    _reserve( _length + _c_getLength( s ) );
 
 	    while [s] != cast char(0) do
 	        // checkIndex(_length);
 		[_buffer + _length] = [s];
 		_length = _length + 1;
-
+//  	        System.Exit.check( "I" );
 		s = s + 1;
 	    od
 
 	    // native.printf( `%p: will check at %d (%d)\n`, this, _allocated_length, _length );
 
 	    // check();
+
+	    //  	    System.Exit.check( "H" );
 
 	    return this;
 	end
@@ -912,6 +944,8 @@ namespace System is
 	    char ptr digit = `0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ`;
 
 	    // native.printf( `entry v is %d...\n`, v );
+
+//            System.Exit.check("M");
                 
 	    if b > 36 then
 		append( "#base>36#" );
@@ -923,6 +957,7 @@ namespace System is
 		opSet( _length, cast char(45) );
 		v = 0-v;
 		i = 1;
+//                System.Exit.check("N");
 	    elif v == 0 then
 		opSet( _length, cast char(48) );
 		return this;
@@ -940,7 +975,7 @@ namespace System is
 	    od
 
 	    // native.printf( `number %d length is %d chars\n`, v, i );
-
+	    //  	    System.Exit.check( "J" );
 	    _reserve( i + _length ); // avoid repeated mallocs
 
 	
@@ -954,7 +989,7 @@ namespace System is
 		this[i] = c;
 	    
 	    od
-
+	    //  	    System.Exit.check( "K" );
 	    // check();
 
 	    return this;

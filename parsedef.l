@@ -876,7 +876,63 @@ namespace Parse {
 					   ft
 					   );
 
+
 	    var into = new IRBlock( state, f );
+	    var pi8 = LLVM.Calls.LLVMPointerType( LLVM.Calls.LLVMInt8Type(), 0 );
+
+	    var d =
+		LLVM.Calls.LLVMAddFunction(
+					   state.Module,
+					   `__debug_init`,
+					   LLVM.Calls.LLVMFunctionType(
+								       LLVM.Calls.LLVMVoidType(),
+	                                                               {
+									   pi8,
+								       }.address,
+								       1,
+								       0
+								       )
+					   );
+
+	    into.Call(
+		      d,
+		      { makeCStringConstant(state, c.HumanName ) }
+		      );
+
+
+	    if( c.first_static != null ) {
+		var gcar =
+		    LLVM.Calls.LLVMAddFunction(
+					       state.Module,
+					       `__add_roots`,
+					       LLVM.Calls.LLVMFunctionType(
+									   LLVM.Calls.LLVMVoidType(),
+		                                                           {
+									       pi8,
+									       pi8
+									   }.address,
+									   2,
+									   0
+									   )
+					       );
+
+		IO.Std.err.print( "SSSS: " + c.HumanName + ": first static: " ); native.__flush_stdout();
+		LLVM.Calls.LLVMDumpValue( c.first_static );
+		IO.Std.err.print( "SSSS: " + c.HumanName + ": last static:  " ); native.__flush_stdout();	       
+		LLVM.Calls.LLVMDumpValue( c.last_static );
+		into.Call(
+			  gcar,
+			  {
+			      LLVM.Calls.LLVMConstPointerCast( c.first_static, pi8 ),
+  			      LLVM.Calls.LLVMConstGEP(
+						      LLVM.Calls.LLVMConstPointerCast( c.last_static, pi8 ),
+						      { LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(),8L,0) }.address,
+						      1
+						      )
+			  }
+			  );
+			  
+	    }		
 
 	    body.compile( state, into );
 

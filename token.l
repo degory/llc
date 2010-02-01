@@ -506,7 +506,6 @@ namespace Parse {
 	}
 
 	
-
         Token readToken2(bool for_comment) {
 	    Token r;
 

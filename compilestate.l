@@ -559,9 +559,11 @@ namespace Parse {
 	    // be sure Machine.NAME is initialized:
 	    lcache_dir = null;
 
+	    /*
 	    LLVM.Calls.LLVMLinkInJIT();
 	    LLVM.Calls.LLVMInitializeX86TargetInfo();
 	    LLVM.Calls.LLVMInitializeX86Target();
+	    */
 
 	    module = LLVM.Calls.LLVMModuleCreateWithName(`test`);
 	    local_variables = new Generic.Vector<LLVM.Value>();
@@ -1442,10 +1444,12 @@ namespace Parse {
 	    // v.add( "-lpthread" );
 
 	    foreach( String t; libraries.elements() ) {
-		if( t.endsWith(".o") ) {
+		if( t.endsWith(".o") || t.endsWith(".bc") ) {
 		    v.add( t ); 
 		} else if( !t.endsWith(".so") ) {
 		    v.add( "-l" + t );
+		} else {
+		    IO.Std.err.println( "oops: ignoring import file: " + v );		
 		}
 	    }
 

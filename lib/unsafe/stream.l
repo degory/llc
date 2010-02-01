@@ -479,6 +479,7 @@ namespace IO {
 	/// Internal method for LockedWriter
 	void _writeUnlocked( char b ) {
 	    if( position < capacity ) {
+		// native.printf( `write %c at %p[%d] of %d/%d\n`, b, buffer, position, capacity, buffer.length ); native.__flush_stdout();
 		buffer[position] = b;
 		position = position + 1;
 	    }

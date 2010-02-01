@@ -151,7 +151,7 @@ namespace Gen {
             VECTOR_LENGTH_OFFSET = 8,
 	    VECTOR_DATA_OFFSET = 16,
 
-	    INTERFACE_OFFSET = 32;  // negative relative to the super class pointer
+	    INTERFACE_OFFSET = 4;  // negative relative to the super class pointer
 
 	static void initOpNames() {
 	    char quote = '"';

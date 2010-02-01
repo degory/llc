@@ -583,8 +583,9 @@ void __GC_finalize( GC_PTR obj, GC_PTR p ) {
 
 void *__alloc_object( WORD size, WORD *vtable ) {
   // GC_find_leak = 1;
-
   WORD *result;
+
+
   if( vtable != 0 ) {
 #if USE_GCJ_MALLOC
     result = GC_gcj_malloc( size, vtable );
@@ -602,7 +603,7 @@ void *__alloc_object( WORD size, WORD *vtable ) {
   if( vtable != 0 ) {
     char *class_name = ((char **)vtable)[-2];
     int class_size = ((WORD *)vtable)[-1];
-    printf( "\tAAAAA\t%s\t%d\t\n", class_name, class_size );
+    printf( "\tAAAAA\t%s\t%d\t\n", class_name, size );
   }
 #endif
 

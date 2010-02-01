@@ -2279,7 +2279,7 @@ namespace Parse {
 		}
 
 	    case Op.DYNAMIC_CALL, Op.DYNAMIC_CALL_DISCARD:
-		IO.Std.err.print( "actual dynamic call through " ); IO.Std.err.flush();
+		// IO.Std.err.print( "actual dynamic call through " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue(from);
 
 		addDummyExceptionHandlerJump( state, line_number, into );
@@ -2293,6 +2293,14 @@ namespace Parse {
 		IO.Std.err.print( "vtable is " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue(v);
 		*/
+
+		if( offset < 0 ) {
+		    if( symbol != null ) {
+			IO.Std.err.println( "interface call: " + symbol.HumanName + " @ " + offset );
+		    } else {
+			IO.Std.err.println( "interface call: " + name + " @ " + offset );
+		    }
+		}
 
 		v = into.InBoundsGEP(
 

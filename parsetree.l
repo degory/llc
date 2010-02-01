@@ -1238,7 +1238,7 @@ namespace Parse {
 	    }
 	    
 	    if( err_is_tty && need_newline ) {
-		IO.Std.err.print( backspace );
+		IO.Std.err.print( "" + 13C ); // backspace );
 		need_newline = false;
 	    }
 	}
@@ -1667,6 +1667,8 @@ namespace Parse {
 	}
 
         void parseImports( CompileState state ) {
+	    IO.Std.err.println( "parse imports: " + Class.Name );
+	    IO.Std.err.flush();
         }
 
         get String LoopName {
@@ -1968,13 +1970,41 @@ namespace Parse {
 
 
         void parseImports( CompileState state ) {
+	    int l = list.Length;
+	    int i;
+
+	    int t = cast int(this);
+
+	    for( i = 0; i < l; i = i + 1 ) {
+		IO.Std.err.println( "AA: " + t + " element " + i + " of " + l ); IO.Std.err.flush();
+		var u = list[i];
+		if( u != null ) {
+		    IO.Std.err.println( "AA: " + t + " element is " + cast int(u) ); IO.Std.err.flush();
+		    IO.Std.err.println( "AA: " + t + " element is " + u.Class.Name ); IO.Std.err.flush();
+		} else {
+		    IO.Std.err.println( "AA: " + t + " element is null" ); IO.Std.err.flush();
+		}
+	    }
+
+	    i = 0;
+
             foreach( Statement s; list.elements() ) {
+		IO.Std.err.println( "BB: " + t + " element " + i + " of " + l ); IO.Std.err.flush();
                 if( s != null ) {
+		    IO.Std.err.println( "BB: " + t + " s is " + cast int(s) ); IO.Std.err.flush();
+		    IO.Std.err.println( "BB: " + t + " will parse import: " + s.Class.Name ); IO.Std.err.flush();
+
                     s.parseImports( state );
+		    IO.Std.err.println( "BB: " + t + " done " + cast int(s) ); IO.Std.err.flush();
+
                 } else {
                     throw new Exception( "null statement\n" );
                 }
+
+		i = i + 1;
             }
+
+	    IO.Std.err.println( "BB: " + t + " done parse imports" ); IO.Std.err.flush();
         }
 
         void declareGlobalSymbols( CompileState state ) {

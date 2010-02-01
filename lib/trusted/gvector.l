@@ -106,6 +106,12 @@ namespace Generic is
 	    return _length;
 	end
 
+	/*
+	    void dispose() is 
+	    native.printf( `will dispose vector...\n` ); native.fflush_stdout();
+	    IO.Std.err.println( "dispose: " + this );
+	    end*/
+
 	/// Append a new value to the end of this Vector immediately after the current last element
 	void add( T o ) is
 	    reserve( _length + 1 );
@@ -315,11 +321,11 @@ namespace Generic is
 		    a = l;
 		fi
 
-		if T.isreference then 
+		// if T.isreference then 
 		    new_values = cast T ptr(native.GC_malloc_ignore_off_page( a * T.sizeof ));
-		else
-		    new_values = cast T ptr(native.GC_malloc_atomic_ignore_off_page( a * T.sizeof ));
-		fi
+//else
+//		    new_values = cast T ptr(native.GC_malloc_atomic_ignore_off_page( a * T.sizeof ));
+//		fi
 
 		// Util.Vector.total_allocated_g = Util.Vector.total_allocated_g + a * T.sizeof;
 
@@ -380,7 +386,14 @@ namespace Generic is
 
 	    for int i = 0; i < _length; i = i + 1 do
 		T o = [_values+i];
-                result.append( o.toString() );
+                if o != T.none then
+		    var s = o.toString();
+		    native.printf( `have '%s'\n`, s.toCString() ); native.__flush_stdout();
+                    result.append( s );
+		    else
+		    native.printf( `have null\n` ); native.__flush_stdout();
+		    result.append( "<null>" );
+                fi
 
 		if i < _length - 1 then
 		    result.append( ',' );

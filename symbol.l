@@ -226,6 +226,7 @@ namespace Parse {
 		Owner.markHasStatic();
 
 		if( Owner == state.CurrentClass ) {
+		    Owner.hasStatic(v);
 		    IO.Std.err.println( "owner: " + Owner.HumanName );
 		    IO.Std.err.println( "current: " + state.CurrentClass.HumanName );
 		    LLVM.Calls.LLVMSetInitializer(v, Type.getLLVMNull(state));

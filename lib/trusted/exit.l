@@ -24,6 +24,22 @@ namespace System {
 	    return o;
 	}
 
+	static String last_check = "none";
+	/*
+	static void check(String s) {
+	    //	    return;
+
+	    if( shutdown_objects != null ) {
+		if( shutdown_objects[2].length != 32 ) {
+		    native.printf( `%s->%s: level 2 length is %d\n`, last_check.toCString(), s.toCString(), shutdown_objects[2].length ); native.__flush_stdout();
+		    char ptr p;
+		    [p] = 'x';
+		}
+		last_check = s;
+	    }
+	}
+	*/
+
 	static Object add( Object o ) {
 	    return add( 0, o );
 	}
@@ -40,12 +56,15 @@ namespace System {
 
 	    for( int j = NUM_LEVEL-1; j >= 0; j = j - 1 ) {
 		Object[] so = shutdown_objects[j];
+
 		for( int i = so.length-1; i >= 0; i = i - 1 ) {
 		    Object o = so[i];
+
 		    if( o != null ) {
 			try {
 			    o.dispose();
 			} catch( System.Exception e ) {
+			    native.printf( `caught %s\n`, e.Class.Name.toCString() ); native.__flush_stdout();
 			    // do nothing
 			}
 		    }
