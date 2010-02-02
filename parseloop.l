@@ -586,10 +586,6 @@ namespace Parse {
 		// IO.Std.err.println( "QQQQQQ: iterator type is: " + type_expr );
 		et = t;
 
-		IO.Std.err.println( "iterator type is: " + et );
-		IO.Std.err.println( "expr is: " + expr );
-		IO.Std.err.println( "expr type: " + expr.getType(state) );
-
 		let = et.getLLVMType(state);
 		temp = into.AllocaEntry( let, ".iterator" );
 		into.Store(

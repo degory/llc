@@ -20,9 +20,8 @@ namespace Parse {
 
     class Main {
 	void init() {
-
 	    native.GC_init();
-	    native.GC_disable();
+	    // native.GC_disable();
 
 	    IO.Std.err.println( "starting up..." ); IO.Std.err.flush();
 	    var args = System.Arguments.ProgramArguments;

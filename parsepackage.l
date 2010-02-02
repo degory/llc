@@ -26,21 +26,14 @@ namespace Parse {
         }
 
         void parseImports( CompileState state ) {
-	    IO.Std.err.println( "package.parseImports..." ); IO.Std.err.flush();
             state.beginPackage( file_name, null );
-	    IO.Std.err.println( "package.parseImports: begin package" ); IO.Std.err.flush();
 	    setFileName();
-	    IO.Std.err.println( "package.parseImports: set file name" ); IO.Std.err.flush();
 
 	    is_trusted = state.isSourceFileTrusted( file_name );
-	    IO.Std.err.println( "package.parseImports: is trusted" ); IO.Std.err.flush();
 	    state.setTrusted( is_trusted );
 
-	    IO.Std.err.println( "package.parseImports: set trusted" ); IO.Std.err.flush();            
             body.parseImports( state );
-	    IO.Std.err.println( "package.parseImports: body.parse imports" ); IO.Std.err.flush();
             state.endPackage();
-	    IO.Std.err.println( "package.parseImports: end package" ); IO.Std.err.flush();
         }
                
         void declareGlobalSymbols( CompileState state ) {

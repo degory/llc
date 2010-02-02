@@ -139,7 +139,6 @@ namespace Parse {
 		     bool first,
 		     bool last ) {
             Type type = match.getType( state );
-	    IO.Std.err.println( "TTTT: compile catch" );
             
             if( type == null || type.TypeKind != Type.CLASS ) {
                 error( "catch must be an object" );
@@ -339,8 +338,6 @@ namespace Parse {
 
             bool outermost_frame = (state.ExceptionLevel == 1);
 
-	    IO.Std.err.println( "TTTT: compile catches" );
-
 	    into.Label( this_handler );
 
 	    into.Branch(
@@ -372,8 +369,6 @@ namespace Parse {
 		    next_handler = into.Block(".catch");
 		}
 
-		IO.Std.err.println( "last: " + last + ", i: " + i + ", catches.Length: " + catches.Length );
-		IO.Std.err.println( "compile: " + e + ", next handler: " + cast int(next_handler) );
                 // e.compile( state, into, this_handler, next_handler, finally_descriptor, et, ev, first, last );
 		e.compile( state, into, this_handler, next_handler, finally_handler, exception_type, exception_object, first, last );
 		if( !last ) {
@@ -549,8 +544,6 @@ namespace Parse {
 
 
         void compile( CompileState state, IRBlock into ) {
-	    IO.Std.err.println( "TTTT: compile try" );
-
 	    ExceptionDescriptor ed;
 	    int old_exception_level = state.ExceptionLevel;
 

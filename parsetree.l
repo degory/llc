@@ -739,15 +739,19 @@ namespace Parse {
 	// inserting a dummy jump instruction to the active exception handler so register allocator
 	// understands live values must transfer from here to there:
 	protected static void addDummyExceptionHandlerJump( CompileState state, int line_number, IRBlock into ) {
+	    /*
 	    if( state.InExceptionHandler ) {
 		IO.Std.err.println( "FIXME: should use invoke here with landing pad: state.TopException.landing_pad" );
 	    }
+	    */
 	}
 
 	protected static void addDummyExceptionHandlerJump( CompileState state, int line_number, IBlock into ) {
+	    /*
 	    if( state.InExceptionHandler ) {
 		IO.Std.err.println( "FIXME: should use invoke here with landing pad: state.TopException.landing_pad" );
 	    }
+	    */
 	}
 
 
@@ -1667,8 +1671,6 @@ namespace Parse {
 	}
 
         void parseImports( CompileState state ) {
-	    IO.Std.err.println( "parse imports: " + Class.Name );
-	    IO.Std.err.flush();
         }
 
         get String LoopName {
@@ -1970,41 +1972,13 @@ namespace Parse {
 
 
         void parseImports( CompileState state ) {
-	    int l = list.Length;
-	    int i;
-
-	    int t = cast int(this);
-
-	    for( i = 0; i < l; i = i + 1 ) {
-		IO.Std.err.println( "AA: " + t + " element " + i + " of " + l ); IO.Std.err.flush();
-		var u = list[i];
-		if( u != null ) {
-		    IO.Std.err.println( "AA: " + t + " element is " + cast int(u) ); IO.Std.err.flush();
-		    IO.Std.err.println( "AA: " + t + " element is " + u.Class.Name ); IO.Std.err.flush();
-		} else {
-		    IO.Std.err.println( "AA: " + t + " element is null" ); IO.Std.err.flush();
-		}
-	    }
-
-	    i = 0;
-
             foreach( Statement s; list.elements() ) {
-		IO.Std.err.println( "BB: " + t + " element " + i + " of " + l ); IO.Std.err.flush();
                 if( s != null ) {
-		    IO.Std.err.println( "BB: " + t + " s is " + cast int(s) ); IO.Std.err.flush();
-		    IO.Std.err.println( "BB: " + t + " will parse import: " + s.Class.Name ); IO.Std.err.flush();
-
                     s.parseImports( state );
-		    IO.Std.err.println( "BB: " + t + " done " + cast int(s) ); IO.Std.err.flush();
-
                 } else {
                     throw new Exception( "null statement\n" );
                 }
-
-		i = i + 1;
             }
-
-	    IO.Std.err.println( "BB: " + t + " done parse imports" ); IO.Std.err.flush();
         }
 
         void declareGlobalSymbols( CompileState state ) {
@@ -2372,6 +2346,7 @@ namespace Parse {
 	MethodCall method_call;
 	bool want_set_value;
 	Expression set_value;
+	static bool warned;
 
         void init( int line_number, Expression left_value, Expression right_value ) {
             super.init( line_number );
@@ -2511,8 +2486,10 @@ namespace Parse {
             cr = right_value.compileValue(state, into);
 
 	    if( state.WantBoundsCheck ) {
-
-		IO.Std.err.println( "FIXME: array bounds check here" );
+		if( !warned ) {
+		    IO.Std.err.println( "FIXME: array bounds check here" );
+		    warned = true;
+		}
 		/*
 
 		cl = cl.foldConstants();
@@ -2564,7 +2541,7 @@ namespace Parse {
 	    } else {
 		// IO.Std.err.println( "have method call: " + this + ", type: " + type );
 		if( want_set_value ) {
-		    IO.Std.err.println( "array access setter method has no value here: " + new System.Backtrace() );
+		    // IO.Std.err.println( "array access setter method has no value here: " + new System.Backtrace() );
 		    method_call.compileDiscardValue( state, into );
 		    return QuietErrorValue();
 		} else {

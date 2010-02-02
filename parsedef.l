@@ -915,11 +915,12 @@ namespace Parse {
 									   0
 									   )
 					       );
-
+		/*
 		IO.Std.err.print( "SSSS: " + c.HumanName + ": first static: " ); native.__flush_stdout();
 		LLVM.Calls.LLVMDumpValue( c.first_static );
 		IO.Std.err.print( "SSSS: " + c.HumanName + ": last static:  " ); native.__flush_stdout();	       
 		LLVM.Calls.LLVMDumpValue( c.last_static );
+		*/
 		into.Call(
 			  gcar,
 			  {
@@ -975,7 +976,6 @@ namespace Parse {
 
         void compile2( CompileState state, Container c ) {
 	    if( IsInterface ) {
-		IO.Std.err.println( "not compiling interface: " + c.HumanName );
 		return;
 	    }
 
@@ -1489,16 +1489,7 @@ namespace Parse {
                     } else if( symbol.IsStatic ) {
 			// in_static_initializer = true;
 
-			// FIXME: static initializer
-			/*
-			into.add( new ITree( line_number, Op.PUSHSEG, 0 ) );
-                        into.add( new ITree( line_number, Op.STATIC, 0 ) );
-			*/
-			IO.Std.err.println( "FIXME: static initializer" );
                         a.compile( state, into );
-                        /*
-                        into.add( new ITree( line_number, Op.POPSEG, 0 ) );
-			*/
 			// in_static_initializer = false;
                     } else if( symbol.IsLocal ) {
                         a.compile( state, into );

@@ -215,11 +215,15 @@ namespace Parse {
 	    right.checkInline(state);
 	}
 
+	static bool warned = false;
         LLVM.Value compileValue( CompileState state, IRBlock into ) {
             Type r = right.getType( state );
             
             if( requires_runtime_check ) {
-		IO.Std.err.println( "FIXME: cast runtime check" );
+		if( !warned ) {
+		    IO.Std.err.println( "FIXME: cast runtime check" );
+		    warned = true;
+		}
 		/*
 		int t;
 
@@ -1227,7 +1231,7 @@ namespace Parse {
 		    return into.SDiv( cl, cr );
 		    
 		case Op.MOD:
-		    IO.Std.err.println( "FIXME: does URem = modulo?" );
+		    // IO.Std.err.println( "FIXME: does URem = modulo?" );
 		    return into.SRem( cl, cr );
 		    
 		case Op.SHL:
@@ -2280,7 +2284,7 @@ namespace Parse {
 
 	    case Op.DYNAMIC_CALL, Op.DYNAMIC_CALL_DISCARD:
 		// IO.Std.err.print( "actual dynamic call through " ); IO.Std.err.flush();
-		LLVM.Calls.LLVMDumpValue(from);
+		// LLVM.Calls.LLVMDumpValue(from);
 
 		addDummyExceptionHandlerJump( state, line_number, into );
 		v = into.PointerCast( from, LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMVTableType(),0) );
@@ -2293,14 +2297,6 @@ namespace Parse {
 		IO.Std.err.print( "vtable is " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue(v);
 		*/
-
-		if( offset < 0 ) {
-		    if( symbol != null ) {
-			IO.Std.err.println( "interface call: " + symbol.HumanName + " @ " + offset );
-		    } else {
-			IO.Std.err.println( "interface call: " + name + " @ " + offset );
-		    }
-		}
 
 		v = into.InBoundsGEP(
 

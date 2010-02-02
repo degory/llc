@@ -387,11 +387,8 @@ namespace Generic is
 	    for int i = 0; i < _length; i = i + 1 do
 		T o = [_values+i];
                 if o != T.none then
-		    var s = o.toString();
-		    native.printf( `have '%s'\n`, s.toCString() ); native.__flush_stdout();
-                    result.append( s );
-		    else
-		    native.printf( `have null\n` ); native.__flush_stdout();
+                    result.append( o.toString() );
+                else
 		    result.append( "<null>" );
                 fi
 

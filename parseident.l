@@ -637,7 +637,7 @@ namespace Parse {
                     return result;
                 }
             } else {
-		IO.Std.err.println( "FIXME: static or local - container not needed here" );
+		// IO.Std.err.println( "FIXME: static or local - container not needed here" );
                 return compileLoad( state, into, symbol, container, null, null, null, LOAD_FLAG_STATIC, null );
             }
 	}
@@ -679,12 +679,12 @@ namespace Parse {
                 if( left_value == null ) {
                     return compileLoad( state, into, symbol, state.CurrentClass, null, null, null, ref_flag, null );
                 } else {
-		    IO.Std.err.println( "FIXME: relying on container being correct here, left_value.getType(state).Clazz might be better?" );
+		    // IO.Std.err.println( "FIXME: relying on container being correct here, left_value.getType(state).Clazz might be better?" );
                     LLVM.Value t = left_value.compileValue( state, into );
                     return compileLoad( state, into, symbol, container, null, null, t, ref_flag, null );
                 }
             } else {
-		IO.Std.err.println( "FIXME: static or local - container not needed here" );
+		// IO.Std.err.println( "FIXME: static or local - container not needed here" );
                 return compileLoad( state, into, symbol, container, null, null, null, LOAD_FLAG_ADDRESS | LOAD_FLAG_STATIC, null );
             }
         }
