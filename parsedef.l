@@ -6,14 +6,8 @@ namespace Parse {
     use System.Exception;
     use Generic.Vector;
 
-    use Gen.ITree;
-    use Gen.IBlock;
     use Gen.IRBlock;
-    use Gen.ILabel;
-    use Gen.IString;
     use Gen.Machine;
-    use Gen.TempFactory;
-    use Gen.MBitSet;
 
     class ArgumentsDef extends Statement {
         Vector<VariableDef> list;
@@ -80,39 +74,19 @@ namespace Parse {
         }
         
         void declareSymbols( CompileState state, bool skip_this ) {
-	    int n = 0;
-
 	    state.beginParseStackParams();
 
 	    // IO.Std.err.println( "reg params" );
 
             foreach( VariableDef s; list.elements() ) {
-		/*
-		IO.Std.err.println( "parse argument #" + n + ": " + s );
-		IO.Std.err.println( "current namespace: " + state.CurrentNameSpace );
-		IO.Std.err.println( "top use list: " + state.CurrentNameSpace.UseList );
-		*/
-
-
                 if( s != null ) {
                     s.declareSymbols( state );
                 } else {
                     error( "oops: null argument definition" );
                 }
-
-		n = n + 1;
             }
         }
         
-        void compile( CompileState state, IBlock into ) {
-            foreach( VariableDef s; list.elements() ) {
-                if( s != null ) {
-                    s.compile( state, into );
-                } else {
-                    error( "oops: null argument definition" );
-                }
-            }
-        }
 
 	void print( CompileState state, Printer p ) {
 	    // pl(p);
@@ -286,30 +260,29 @@ namespace Parse {
         void declareSymbols( CompileState state ) {
             // fprintf( stderr, "EnumDef parse: %s %X...\n", name.getName(), e );
             if( members != null ) {
-                int next_enum_value = 0;
+                LLVM.Value next_enum_value = LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(),0L,0);
                 state.beginParseEnum( this, e );
                 var list = members.List;
                 foreach( Identifier m; list.elements() ) {
                     Expression ex = m.Initializer;
-                    int address = 0;
+		    LLVM.Value address;
                     
                     if( ex != null ) {
                         if( !ex.getType(state).isInteger() ) {
                             error( "initializer for " + e.HumanName + "." + m.Name + " must be integer" );
                         } else {
-                            IBlock dummy = new IBlock();
-                            ITree t = ex.compileValue( state, dummy );
-			    t = t.foldConstants();
-                            if( t.RawOp != Op.CONST ) {
+			    var d = getDummyIRBlock(state);
+                            LLVM.Value t = ex.compileValue( state, d );
+			    if( LLVM.Calls.LLVMIsConstant(t) == 0 ) {
                                 error( "initializer for " + e.HumanName + "." + e.Name + " must be constant" );
                             } else {
-                                address = t.Value.Int;
-                                next_enum_value = address+1;
+                                address = t;
+                                next_enum_value = LLVM.Calls.LLVMConstAdd( t, LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(),1L,0) );
                             }
                         }
                     } else {
                         address = next_enum_value;
-                        next_enum_value = next_enum_value + 1;
+                        next_enum_value = LLVM.Calls.LLVMConstAdd( next_enum_value, LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(),1L,0) );
                     }
                     state.declareEnumMember( this, m.Name, address );
                 }
@@ -767,81 +740,6 @@ namespace Parse {
 	    }
 	}
 
-	void checkInline( CompileState state ) {
-	    if( !is_generic ) {
-		checkInline( state, c );
-	    } else {
-		foreach( Container d; generic_instances.elements() ) {
-		    body.clear( state );	    	    
-		    // IO.Std.err.println( "check inline instance: " + d );
-		    checkInline( state, d );
-		}
-	    }
-	}
-
-	void checkInline( CompileState state, Container c ) {
-	    // IO.Std.err.println( "check inline: " + c.HumanName );
-	    state.beginCompileClass( this, c, name.Name );
-	    c.resetMethodIndex();
-	    body.checkInline( state );
-	    state.endCompileClass( c );
-	}
-
-	void prepareInline( CompileState state ) {
-	    if( !is_generic ) {
-		// IO.Std.err.println( "inline: " + c );
-		prepareInline( state, c );
-	    } else {
-		foreach( Container d; generic_instances.elements() ) {
-		    body.clear( state );
-		    // IO.Std.err.println( "inline instance: " + d );
-		    prepareInline( state, d );
-		}
-	    }
-	}
-
-        void prepareInline( CompileState state, Container c ) {
-            Container super_class = null;
-   
-	    c.resetMethodIndex();
-
-            if( body != null ) {
-		if( state.WantVeryVerbose ) {
-		    message( "prepare inlined methods: " + c.HumanName );
-		}
-
-                state.beginCompileClass( this, c, name.Name );
-
-                body.prepareInline( state );
-                state.endCompileClass( c );
-            }
-        }
-
-	// static int[] attempt_static = { Gen.MFlow.GEN_COALESCE | Gen.MFlow.GEN_REGVARS, Gen.MFlow.GEN_REGVARS, 0 };
-	static int[] attempt_static = { Gen.MFlow.GEN_REGVARS, 0 };
-
-	void genMethod( CompileState state, IBlock block, MBitSet address_taken, int ref frame_flags ) {
-	    // for( int i = 0; i < attempt_static.length; i = i + 1 ) {
-   	        int a = Gen.MFlow.GEN_REGVARS;
-
-		if( !state.WantCSE ) {
-		    a = a & ~Gen.MFlow.GEN_CSE;
-		}
-
-		if( !state.WantCoalesce ) {
-		    a = a & ~Gen.MFlow.GEN_COALESCE;
-		}
-		if( !state.WantRegVars ) {
-		    a = a & ~Gen.MFlow.GEN_REGVARS;
-		}
-
-		if( block.genMethod( a, state.Output, null, null, 0, address_taken, frame_flags ) ) {
-		    return;
-		}
-
-	    throw new Exception( "code generation for static initializers in class " + c.HumanName + " failed" );
-	}
-
 	void compile( CompileState state ) {
 	    if( !is_generic ) {
 		// IO.Std.err.println( "compile: " + c );
@@ -981,7 +879,6 @@ namespace Parse {
 
 	    c.resetMethodIndex();
             if( body != null ) {
-		resetTemporary();
 
 		// IO.Std.err.println( "GGGG: begin compile class " + c.HumanName );
 
@@ -1017,32 +914,10 @@ namespace Parse {
 		    if( state.WantVerbose ) {
 			message( "compile class: " + c.HumanName );
 		    }
-                    state.openOutput( c.FileName, false );
                     
                     state.dumpActiveClasses( null );
                     
-                    var l = TempFactory.nextLabel();
-		    var m = TempFactory.nextLabel();
-
 		    int frame_flags;
-
-                    IO.Writer f = state.Output;
-
-		    // class info is list of name/vtable pairs for runtime class lookup:
-		    Machine.emitClassSegment( f );
-		    // class name$__... is a variable, we want direct pointer to name string here:
-                    Machine.emitDefPointerLabel( f, l.Int );
-		    Machine.emitDefPointer( f, "__get_vtable_" + c.DecoratedName );
-                    
-		    Machine.emitRoDataSegment( f );
-
-                    Machine.emitAlign( f, Machine.WORD );
-
-                    Machine.emitLabel( f, l.Int );
-                    Machine.emitDefAsciiz( f, c.HumanName );
-                    Machine.emitAlign( f, Machine.WORD );
-
-		    Machine.emitVTableSegment( f, c.DecoratedName );
 
 		    c.emitTables( state, this );
 
@@ -1071,74 +946,22 @@ namespace Parse {
 
                     c.emitClassTables( state, c );
 		    */
-		    Machine.emitDefLong( f, 0 );
 
-                    Machine.emitGlobalData( f, "__size_" + c.DecoratedName );
-                    Machine.emitLabel( f, "__size_" + c.DecoratedName );
-                    Machine.emitDefLong( f, c.getSize() );
-
-		    Machine.emitTextSegment( f );
-
-                    Machine.emitGlobalFunction( f, "__get_vtable_" + c.DecoratedName ); // , c.VTableSize );		    
-		    Machine.emitLabel( f, "__get_vtable_" + c.DecoratedName ); 
-
-		    var offset = (c.IFaceOffset + VTABLE_FIXED_SIZE) * Machine.WORD;
-
-		    // IO.Std.err.println( "vtable offset for " + c.HumanName + " is " + offset );
-		    if( state.WantPIC ) {
-			Machine.emitVTableFunctionPIC( f, c.DecoratedName, offset );
-		    } else {
-			Machine.emitVTableFunction( f, c.DecoratedName, offset );
-                    }
-
-		    Machine.emitRoDataSegment( f );
-
-                    Machine.emitLabel( f, m.Int );		    
-                    Machine.emitDefByte( f, Machine.WORD );
+		    // var offset = (c.IFaceOffset + VTABLE_FIXED_SIZE) * Machine.WORD;
 
                     c.emitTypeTables( state );
 
-		    Machine.emitDefByte( f, 0 );
+		    if( c.StaticSize > 0 && !c.HasStatic ) {
+			IO.Std.err.println( "oops: " + c.HumanName + " needs GC roots added" );
+		    }
 
-		    Machine.emitAlign( f, Machine.WORD );
-
-		    if( c.StaticSize > 0 ) {                    
-			Machine.emitBSSSegment( f );
-			// Machine.emitDataSegment( f );
-			Machine.emitAlign( f, Machine.WORD );
-
-			String st = "stable$__" + c.DecoratedName;
-
-			Machine.emitGlobalData( f, st, c.StaticSize );
-			Machine.emitLabel( f, st );
-                             
-			c.emitStaticTables( state );
-                    }
-
-                    Machine.emitTextSegment( f );
-
-		    ILabel dummy_exit = TempFactory.nextLabel();
-                    
 		    if( c.HasStatic ) {
 			compileBody( state, c );
 		    }
 
-                    IBlock block = new IBlock();
-		    block.WantLineNumbers = state.WantLineNumbers;
+		    // block.WantLineNumbers = state.WantLineNumbers;
 		    state.InlineOK = false;
 
-		    // block.add( new ITree( 0, Op.DUMMY_JUMP, 8, dummy_exit ) );
-		    /*
-                    body.compile( state, block );
-                    
-		    // block.add( new ITree( 0, Op.LABEL, 8, dummy_exit ) );
-
-                    if( !errors_occurred ) {
-			Gen.MBitSet address_taken = state.AddressesTaken;
-			// IO.Std.err.println( "gen class body, address taken: " + address_taken );
-			genMethod( state, block, address_taken, frame_flags );
-                    }
-		    */
                     
 		    // IO.Std.err.println( "GGGG: begin compile class body " + c.HumanName );
                     body.compile( state );
@@ -1187,7 +1010,7 @@ namespace Parse {
                     
                     if( !errors_occurred ) {
 		        // IO.Std.err.println( "assembling: " + c.getHumanName() );
-                        state.assembleFile( c.FileName );
+                        // state.assembleFile( c.FileName );
 
 			/*		    
 			IO.Std.err.println( "ZZZZ: compiled: " + c.HumanName + ", try write module " + cast int(c.LLVMModule) + " to file..." ); IO.Std.err.flush();
@@ -1199,7 +1022,7 @@ namespace Parse {
 			state.dumpActiveClasses( c.FileName );
                     } else {
 		        // IO.Std.err.println( "removing output file: " + c.getHumanName() );
-                        state.removeOutput( c.FileName );
+                        // state.removeOutput( c.FileName );
                     }
 		}
 
@@ -1432,16 +1255,13 @@ namespace Parse {
                         continue;
                     }
                     
-                    IBlock dummy = new IBlock();
-                    ITree t = e.compileValue( state, dummy );
-                    t = t.foldConstants();
-                    if( t.Operator == Op.ERROR ) {
-                        IO.Std.err.println( "constant expression returns error ITree" );
-                        continue;
-                    } else if( t.RawOp != Op.CONST ) {
-                        error( "initializer for " + symbol.HumanName + " must be constant" );                  
-                    } else {
-                        symbol.Address = t.Value.Int;
+                    IRBlock d = getDummyIRBlock(state);
+                    LLVM.Value t = e.compileValue( state, d );
+
+		    if( LLVM.Calls.LLVMIsConstant(t) == 0 ) { 
+                        error( "initializer for " + symbol.HumanName + " must be constant" );
+		    } else {
+                        symbol.LLVMValue = t;
                     }
                 } else if( kind == Symbol.FLAG_STATIC ) {
 		    // FIXME: initialize LLVM global value
@@ -1505,61 +1325,6 @@ namespace Parse {
             }
         }
 
-
-        void compile( CompileState state, IBlock into ) {
-            // seen_variables = true;
-            Assignment a;
-
-	    // IO.Std.err.println( "compile variable def, symbol table: " + state.symbol_table );
-            
-            var v = list.List;
-            foreach( Identifier ident; v.elements() ) {
-                String name = ident.Name;
-                                
-                Symbol symbol = state.findSymbol( name, Symbol.FIND_ANY );
-		if( symbol == null ) {
-		    IO.Std.err.println( "looking for " + name );
-		    IO.Std.err.flush();
-
-		    error( "could not find previous defitition of " + name );
-		    if( state.CurrentClass != null ) {
-			error( "in class " + state.CurrentClass.HumanName );
-		    }
-		    if( state.CurrentMethod != null ) {
-			error( "in method " + state.CurrentMethod.HumanName );
-		    }
-		    IO.Std.err.flush();
-		}
-
-                symbol.Defined = state.BlockLevel;
-                
-                if( ident.Initializer != null ) {
-                    a = new Assignment( line_number, ident, ident.Initializer );                    
-                    if( symbol.Kind == Symbol.CONST ) {
-                        continue;
-                    } else if( symbol.IsStatic ) {
-			// in_static_initializer = true;
-
-			into.add( new ITree( line_number, Op.PUSHSEG, 0 ) );
-                        into.add( new ITree( line_number, Op.STATIC, 0 ) );
-                        a.compile( state, into );
-                        
-                        into.add( new ITree( line_number, Op.POPSEG, 0 ) );
-
-			// in_static_initializer = false;
-                    } else if( symbol.IsLocal ) {
-                        a.compile( state, into );
-                    } else {
-                        error( "cannot initialize " + symbol.HumanName + " in this context" );
-                    }
-                } else if( state.CurrentMethod != null ) {
-                    a = new Assignment( line_number, ident, new Constant( line_number, Type.NULL, "0" ) );
-                    a.compile( state, into );
-                }
-
-		symbol.markValueValid();
-            }
-        }
         
         Type getType( CompileState state ) {
             return type_expr.parseType( state );
@@ -1800,101 +1565,6 @@ namespace Parse {
 	    return 0;
 	}
 
-	int compileArguments( CompileState state, IBlock into, bool include_this ) {
-	    Vector<Type> a = m.ArgTypes;
-
-	    int num_args = 0;
-	    int to_pop = 0;
-	    if( a != null ) {
-		num_args = a.Length;
-	    }
-
-	    if( include_this ) {
-		num_args = num_args + 1;
-	    }
-
-	    if( Machine.CALLEE_POPS_ARGUMENTS && num_args > Machine.NUM_REG_PARAM ) {
-		to_pop = (num_args - Machine.NUM_REG_PARAM) * Machine.WORD;
-	    }
-
-	    if( num_args > Machine.NUM_REG_PARAM ) {
-		num_args = Machine.NUM_REG_PARAM;
-	    } else if( num_args == 0 ) {
-		// IO.Std.err.println( "BBBBBB: no arguments or this" );
-		return 0;
-	    }
-
-	    // IO.Std.err.println( "BBBBBB: compile " + num_args + ": " + a );
-
-	    ITree param = null;
-	    ITree r = null;
-
-	    int i;
-	    
-	    var p = new Vector<ITree>();
-
-	    for( i = 0; i < num_args; i = i + 1 ) {
-		int temp = TempFactory.nextTemp();
-
-		if( r != null ) {
-		    r.Right = new ITree( line_number, Op.PARAM0 + i * 8, Machine.WORD,
-					 new ITree( line_number, Op.TEMP, Machine.WORD, temp )
-					 );
-
-		    r = r.Right;
-		} else {
-		    param = new ITree( line_number, Op.PARAM0 + i * 8, Machine.WORD,
-					new ITree( line_number, Op.TEMP, Machine.WORD, temp )
-					);
-		    r = param;
-		}
-
-		int j;
-		int size;
-
-		if( include_this ) {
-		    j = i - 1;
-		} else {
-		    j = i;
-		}
-
-		ITree t;
-		if( j >= 0 ) {
-		    Symbol sy = m.getSymbolByIndex( j );
-
-		    // IO.Std.err.println( "BBBBBB: param " + i + " is " + sy + " at offset " + sy.getAddress() );
-
-		    Type tp = a[j];
-		    size = tp.RegSize;
-		    t = new ITree( line_number, Op.INDIRECT, size,
-				   new ITree( line_number, Op.LOCAL, size, sy.Address )
-				   );
-		} else {
-		    t = makeLoadThis(state,0,into);
-		    // IO.Std.err.println( "BBBBBB: param 0 is this: " + t );
-		    size = Machine.WORD;
-		}
-
-		p.add(
-		      new ITree( line_number, Op.COPY, size,
-				 t,
-				 new ITree( line_number, Op.TEMP, size, temp )
-				 )
-			 );
-	    }
-
-	    if( param != null ) {
-		r.Right = new ITree( line_number, Op.COMMENT, 0, "last param" );
-		into.add( param );
-		
-		foreach( ITree u; p.elements() ) {
-		    into.add( u );
-		}
-	    }
-
-	    return to_pop;
-	}
-
 
 	void checkOverride( CompileState state ) {
 	    Container override = m.Override;
@@ -1950,270 +1620,6 @@ namespace Parse {
 	    state.endCompileMethod(m);
 	}
 
-	void checkInline( CompileState state ) {
-	    progress();
-	    m = state.nextMethodByIndex( name.Name );
-
-	    // IO.Std.err.println( "check inline: " + m.HumanName );
-
-            var decorated = m.DecoratedName;
-
-	    try {
-		state.clearInlineCount();
-		state.beginCompileMethod( this, m, decorated );
-		state.IsInline = true;
-		
-		if( m == null ) {
-		    IO.Std.err.println( "method def check inline - m not valid yet" );
-		}
-		
-		Vector<Type> a = m.ArgTypes;
-		
-		// more args (including 'this' than will fit in parameter registers?)
-		if( a != null && a.Length+1 > Machine.NUM_REG_PARAM ) {
-		    // don't inline:
-		    m.markCannotInline();
-		    return;
-		}
-		
-		/*
-		// FIXME: can't see any reason not to inline reference parameters: 
-		foreach( Type t; a.elements() ) {
-		if( t.TypeKind == Type.REFERENCE ) {
-		m.markNotLeaf();
-		return;
-		}
-		}
-		*/
-
-		body.checkInline( state );
-
-		// IO.Std.err.println( "maybe can inline: " + m.HumanName );
-	    } catch( CannotInlineException e ) {
-		// IO.Std.err.println( "cannot inline: " + m.HumanName );
-		m.markCannotInline();
-	    } finally {
-		state.endCompileMethod( m );
-	    }
-	}
-
-	static int inline_count = 0;
-	public static String last_inline_name = "";
-
-	void prepareInline( CompileState state ) {
-	    progress();
-	    bool last = false;
-	    bool nearly_last = false;
-
-	    // IO.Std.err.println( "attempt to prepare inline: " + name );
-	    m = state.nextMethodByIndex( name.Name );
-	    // IO.Std.err.println( "method def inline: " + m );
-
-	    if( m.IsInline || !m.IsFinal || m.CannotInline ) {
-		return;
-	    }
-
-	    state.IsInline = true;
-
-	    // IO.Std.err.println( "method def inline: " + m );
-
-	    int max_inline_count = state.MaxInlineCount;
-
-	    if( max_inline_count > 0 && inline_count < max_inline_count && inline_count + 50 >= max_inline_count ) {
-		nearly_last = true;
-	    }
-  
-	    if( max_inline_count > 0 && inline_count >= max_inline_count ) {
-		if( inline_count == max_inline_count ) {
-		    last = true;
-		    last_inline_name = m.HumanName;
-		    IO.Std.err.println( "last inlined method is: " + last_inline_name );
-		    inline_count = inline_count + 1;
-		} else {
-		    return;
-		}
-	    } else {
-		inline_count = inline_count + 1;
-	    }
-
-            var decorated = m.DecoratedName;
-
-	    if( state.WantVeryVerbose ) {
-		message( "prepare inline version of method: " + m.HumanName );
-	    }
-
-            int saved_label = TempFactory.CurrentLabel;
-            // IO.Std.err.println( "saved label: .L" + saved_label );
-
-            TempFactory.resetLabel( 0 );
-	    resetTemporary();
-            
-            state.beginCompileMethod( this, m, decorated );
-            state.IsInline = true;
-
-            // IO.Std.err.println( "return label is: " + state.ReturnLabel );
-            
-            IBlock into = new IBlock();
-	    into.WantLineNumbers = state.WantLineNumbers;
-            
-	    // required to set stack alloc direction for arguments?
-            state.endParseMethodBody(m);
-
-            compileArguments(state, into, !m.IsStatic);
-            // IO.Std.err.println( "local depth B: " + m.getLocalOffset() );           
-
-	    /*
-	    if( state.WantReturnJumpElim && body.IsLastReturn ) {
-		// IO.Std.err.println( "method def: inline, last is return" );
-                
-		last_return = true;
-		body.markLastReturns();
-	    }
-	    */
-	    ITree.KillAfter = CompileState.INLINE_MAX * 2;
-
-	    bool can_inline = true;
-	    try {
-		body.compile( state, into );
-
-		if( m.Type.TypeKind != Type.VOID ) {
-		    if( last_return ) {
-			// IO.Std.err.println( "last return - no fall through return needed" );
-			into.add( new ITree( line_number, Op.COMMENT, 0, "no default return here" ) );
-		    } else {
-			// IO.Std.err.println( "not last return - fall through return is needed" );
-			into.add( new ITree( line_number, Op.COMMENT, 0, "may not explictly return - default return here" ) );
-			// not certain if all possible paths through function end with return statements - emit fall through result of zero/null
-			into.add( new ITree( line_number, Op.RESULT_F, 0, new ITree( line_number, Op.CONST, Machine.WORD, 0 ) ) );
-		    }
-		    // } else {
-		    // IO.Std.err.println( "void return" );
-		}
-
-		into.add( new ITree( line_number, Op.LABEL, 0, state.ReturnLabel ) );
-	    } catch( NotLeafInlineException nle ) {
-		// couldn't inline at this time due to encountering non-inlineable
-		// method calls but may try again:		
-
-		// IO.Std.err.println( "not leaf: " + human );
-		can_inline = false;
-	    } catch( CannotInlineException e ) {
-		// IO.Std.err.println( "mark cannot inline: " + m.HumanName + " cause: " + e );
-		// encountered non-inlineable construct: do not try and inline this method again:
-		m.markCannotInline();
-
-		// IO.Std.err.println( "cannot inline: discarding inline intermediate code for " + decorated );
-		can_inline = false;
-	    }
-	    ITree.KillAfter = 0;
-
-	    // compilation might detect calls or other non-inlineable constructs
-	    // that initial checkInline scan missed (e.g. property method calls)
-	    if( can_inline ) {
-		into.prepareForInline();
-		// IO.Std.err.println( into );
-
-		m.InlineBlock = into;
-	        if( state.WantVeryVerbose ) {
-		    message( "will inline: " + m.HumanName );
-		}
-		inline_method_count = inline_method_count + 1;
-	    }
-
-	    if( nearly_last ) {
-		IO.Std.err.println( "nearly last inline method " + m.HumanName + ", inlineable: " + can_inline );
-	    }
-		
-
-	    if( last && !can_inline ) {
-		IO.Std.err.println( "last inline method " + last_inline_name + " not actually inlineable" );
-	    }
-
-            state.endCompileMethod(m);
-
-	    // IO.Std.err.println( "restored label: .L" + saved_label );
-	    TempFactory.resetLabel( saved_label );
-
-	    // aborting compilation might have left the exception descriptor stack non-empty:
-	    state.resetExceptionLevel();
-	}
-
-	void compileProfileEntry( CompileState state, IBlock into, Container method ) {
-	    into.add( new ITree( 0, Op.RESULT_F, 0,
-				 loadGlobal( state, method.DecoratedName, 0 )
-				 )
-		      );
-	    into.add( new ITree( 0, Op.STATIC_CALL_DISCARD, 0, "__prof_enter" ) );
-	}
-
-	void compileProfileExit(  CompileState state, IBlock into, Container method, int to_pop ) {
-	    into.add( new ITree( 0, Op.ARG0, Machine.WORD,
-				 loadGlobal( state, method.DecoratedName, 0 ),
-				 new ITree( 0, Op.COMMENT, 0, "last arg" )
-				 )
-		      );
-	    into.add( new ITree( 0, Op.STATIC_CALL_DISCARD, 0, "__prof_exit" ) );
-	}
-
-	static int[] attempt_inline = { Gen.MFlow.GEN_COALESCE | Gen.MFlow.GEN_REGVARS, Gen.MFlow.GEN_REGVARS };
-	static int[] attempt_no_inline = { Gen.MFlow.GEN_COALESCE | Gen.MFlow.GEN_REGVARS, Gen.MFlow.GEN_REGVARS, 0 };
-	bool genMethod(
-		       CompileState state,
-		       IBlock into,
-		       String decorated,
-		       String human,
-		       int[] attempt,
-		       Gen.MBitSet address_taken,
-		       int ref frame_flags ) {
-	    // IO.Std.err.println( "gen method " + human );
-	    /*
-	    for( int i = 0; i < attempt.length; i = i + 1 ) {
-		int a = attempt[i];
-
-		if( !state.WantCoalesce && a & Gen.MFlow.GEN_COALESCE != 0 ) {
-		    IO.Std.err.println( "don't want coalesce" );
-		    continue;
-		}
-		if( !state.WantRegVars ) {
-		    IO.Std.err.println( "don't want reg vars coalesce" );
-		    continue;
-		}
-
-		IO.Std.err.println( "gen method " + human + ", pass: " + i + ", attempt: " + attempt[i] );
-		if( into.genMethod( a, state.Output, decorated, human, m.LocalOffset ) ) {
-		    IO.Std.err.println( "gen method success" );
-		    return true;
-		}
-
-	    }
-	    */
-
-	    int a = 0;
-	    if( state.WantCSE ) {
-		a = a | Gen.MFlow.GEN_CSE;
-	    }
-	    
-	    if( state.WantCoalesce ) {
-		a = a | Gen.MFlow.GEN_COALESCE;
-	    }
-
-	    if( state.WantRegVars ) {
-		a = a | Gen.MFlow.GEN_REGVARS;
-	    }
-
-	    try {
-		System.GC.disable();
-
-		if( into.genMethod( a, state.Output, decorated, human, m.LocalOffset, address_taken, frame_flags ) ) {
-		    // IO.Std.err.println( "gen method success" );
-		    return true;
-		}
-		return false;
-	    } finally {
-		System.GC.enable();
-		// System.GC.collect();
-	    }
-	}
 
         void compile( CompileState state ) {
 	    m = state.nextMethodByIndex( name.Name );
@@ -2223,8 +1629,6 @@ namespace Parse {
 
             var human = m.HumanName;
             var decorated = m.DecoratedName;
-
-            resetTemporary();
 
 	    var fg = m.getFunctionGlobal(state);
 
@@ -2266,7 +1670,6 @@ namespace Parse {
 	    }
 	    */
 
-	    Machine.emitStartUnwindInfo( state.Output, decorated, human, state.WantLineNumbers );
 
 	    // IO.Std.err.println( "local depth B: " + m.getLocalOffset() );
 
@@ -2565,7 +1968,6 @@ namespace Parse {
 		return;
 	    }
 
-            Machine.emitExtern( state.Output, m.Name );
 	    if( state.WantMarkUnsafe ) {
 		state.markCodeUnsafe( CompileState.UNSAFE_NATIVE );
 	    }

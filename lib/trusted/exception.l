@@ -24,12 +24,13 @@ namespace System is
 
     /// Root of Exception heirarchy. Runtime expects all thrown objects to inherit from Exception
     class Exception extends Object is
-    	// actually a handle to a structure managed by exception.c but must be a pointer type here 
-	// otherwise garbage collector may prematurely free it:
-        word ptr _backtrace_info;  
+	const int MAX_BACKTRACE_DEPTH = 16;
+        word ptr ptr _backtrace_info;  
 
 	String _backtrace;
 	String _message;
+
+	int _backtrace_depth;
 
 	/// Construct a new exception for the supplied frame
 	/// \deprecated
@@ -41,6 +42,7 @@ namespace System is
 	/// \param m message text to include in this Exception
 	void init( String m ) is
 	    super.init();
+            initBacktrace();
 	    _message = m;
 	end
 
@@ -48,8 +50,14 @@ namespace System is
 	/// \param m C-string message text to include in this Exception
 	void init( char ptr m ) is
 	    super.init();
+            initBacktrace();
 	    _message = new String(m);
 	end
+
+        void initBacktrace() is
+	    _backtrace_info = cast word ptr ptr(native.malloc(MAX_BACKTRACE_DEPTH * System.Environment.WORD_BYTES));
+	    _backtrace_depth = cast int(native.backtrace(_backtrace_info, MAX_BACKTRACE_DEPTH));
+	end 
 
 	String toString() is
 	    getBacktrace();
@@ -76,23 +84,23 @@ namespace System is
 
 	/// Internal interface for runtime to set backtrace token
 	void setBacktraceInfo( word info ) is
-	    this._backtrace_info = cast word ptr(info);
+
 	end
 
 	/// Get the bracktrace string for this Exception
 	get String Backtrace is
-	    // run time does not produce a human readable backtrace at exception throw time as
-	    // it's an expensive operation and the results might not be needed
-	    // instead it buffers the information required to determine line numbers
-	    // at a later point and stores a token (in fact buffer address) in 
-	    // _backtrace_info. If token is set then call runtime to have it render
-	    // the human readable backtrace:
-
 	    if _backtrace_info != null then
-		_backtrace = new System.StringBuffer();
-		native.__find_line_numbers( _backtrace, _backtrace_info );
+		var b = new System.StringBuffer();
+	        char ptr ptr symbols = cast char ptr ptr(native.backtrace_symbols(_backtrace_info,_backtrace_depth));
 
-		// clear pointer to allow buffer to be reclaimed:
+		for var i = 0; i < _backtrace_depth; i = i + 1 do
+		    b.append( [symbols + i] );
+                    b.append( '\n' );
+		od
+
+  	        native.free( _backtrace_info );
+		native.free( symbols );
+                _backtrace = b;
 		_backtrace_info = null;
 	    fi
 

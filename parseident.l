@@ -6,14 +6,8 @@ namespace Parse {
     use System.Exception;
     use Generic.Vector;
 
-    use Gen.ITree;
-    use Gen.IBlock;
     use Gen.IRBlock;
-    use Gen.ILabel;
-    use Gen.IString;
     use Gen.Machine;
-    use Gen.TempFactory;
-    use Gen.MBitSet;
 
     class Identifier extends LeftValue {
         protected String name;
@@ -248,21 +242,6 @@ namespace Parse {
             }
 
 	    // IO.Std.err.println( "\n" );
-        }
-
-        void markAddressTaken( CompileState state ) {
-            getType(state);
-            
-            if( symbol.Kind == Symbol.LOCAL_VARIABLE ) {
-		state.notLeaf();
-
-		if( method_call != null ) {
-		    error( "cannot pass property " + name + " by reference" );
-		} else {
-		    // IO.Std.err.println( "mark address taken: " + symbol.Address );
-		    state.markAddressTaken( symbol.Address );
-		}
-            }
         }
         
         bool isLeftValue( CompileState state ) {
@@ -538,7 +517,6 @@ namespace Parse {
 			makeGetArrayDataPointer( state, line_number, into, left_value.compileValue(state,into) );
 
 		} else if( !at.isContainer() ) {
-		    left_value.markAddressTaken(state);
 		    return left_value.compileAddress(state,into);
 		} else {
 		    error( "cannot take address of " + left_value );
@@ -597,7 +575,8 @@ namespace Parse {
 		}
             } else if( k == Symbol.CONST ) {
 		// IO.Std.err.println( "FIXME: store LLVM.Value in const symbol" );
-		return LLVM.Calls.LLVMConstInt(getType(state).getLLVMType(state), cast long(symbol.Address), 1);
+		return symbol.LLVMValue;
+		// return LLVM.Calls.LLVMConstInt(getType(state).getLLVMType(state), cast long(symbol.Address), 1);
             } else if( ( k & Symbol.FLAG_STATIC ) == 0 ) {
 		/*
 		IO.Std.err.println( "ident compile load, container is: " + container );
@@ -689,177 +668,6 @@ namespace Parse {
             }
         }
 
-
-        ITree compileValue( CompileState state, IBlock into ) {
-            getType( state ); // ensure any property method is initialized
-
-	    if( method_call != null ) {
-		// IO.Std.err.println( "identifier is property: " + this );
-		if( want_set_value ) {		    
-		    // warn( "property setter method has no value here: " + this + ", from: " + new System.Backtrace() );
-		    method_call.compileDiscardValue( state, into );
-		    return new ITree( line_number, Op.ERROR, 0 );
-		} else {
-		    return method_call.compileValue( state, into );
-		}
-	    }
-
-            int size = getType( state ).RegSize;
-
-            if( symbol == null ) {
-                return new ITree( line_number, Op.ERROR, 0 );
-            }
-
-            int k = symbol.Kind;
-            
-            int ref_flag = 0;
-            if( reference ) {
-                ref_flag = LOAD_FLAG_REFERENCE;
-            } 
-            
-	    Type at;
-            ITree result = null;
-	    if( k & Symbol.FLAG_METHOD != 0 ) {
-		error( "not calling method " + symbol.HumanName + " here" );
-		return new ITree( 0, Op.ERROR, 0 );
-	    } else if( k == Symbol.ATTRIBUTE_LENGTH ) {
-		// need to allow for null pointer exception to be thrown here:
-		return makeLoadIndirect( state, line_number, into, Machine.WORD, true,
-					 new ITree( line_number, Op.ADD, Machine.WORD, 
-						    left_value.compileValue(state,into),
-						    new ITree( line_number, Op.CONST, Machine.WORD, Machine.VECTOR_LENGTH_OFFSET )
-						    )
-					 );
-            } else if( k == Symbol.ATTRIBUTE_ARRAY ) {
-                return new ITree( line_number, Op.ADD, Machine.WORD,
-                                  left_value.compileValue(state,into),
-                                  new ITree( line_number, Op.CONST, Machine.WORD, Machine.VECTOR_OBJECT_OFFSET )
-                                  );
-            } else if( k == Symbol.ATTRIBUTE_STRUCT ) {
-                return new ITree( line_number, Op.ADD, Machine.WORD,
-                                  left_value.compileValue(state,into),
-                                  new ITree( line_number, Op.CONST, Machine.WORD, Machine.WORD )
-                                  );
-	    } else if( k == Symbol.ATTRIBUTE_ADDRESS ) {
-                at = left_value.getType( state );
-		if( at.TypeKind == Type.VECTOR ) {
-		    return new ITree( line_number, Op.ADD, Machine.WORD,
-				      left_value.compileValue(state,into),
-				      new ITree( line_number, Op.CONST, Machine.WORD, Machine.VECTOR_DATA_OFFSET )
-				      );
-		} else if( !at.isContainer() ) {
-		    left_value.markAddressTaken(state);
-		    return left_value.compileAddress(state,into);
-		} else {
-		    error( "cannot take address of " + left_value );
-		}
-	    } else if( k == Symbol.ATTRIBUTE_SIZE ) {
-		at = left_value.getType( state );
-		// IO.Std.err.println( "sizeof: " + left_value + ", type: " + at + " reg size: " + at.RegSize );
-
-		// FIXME: size should probably be a word but word type not well supported and objects with sizes
-		// larger than 2 Gig not likely (especially since we're returning the *register* size here...) 
-		return new ITree( line_number, Op.CONST, 4, at.RegSize );
-	    } else if( k == Symbol.ATTRIBUTE_BOX ) {
-		at = getType(state);
-		// IO.Std.err.println( "attribute type is: " + at );
-		// IO.Std.err.println( "attribute type is: " + at + "," + at.Clazz );
-		// does boxed type contain a box method?
-		Symbol bm = at.findSymbol( "box", Symbol.FIND_ANY );
-		if( bm != null && bm.Kind == Symbol.STATIC_METHOD ) {
-		    // compile '.box' attribute into a static call to type.box(left_value) - for example:
-		    // System.Int.box(123)
-		    MethodCall box_call =
-			new MethodCall(
-				       line_number,
-				       new WrapTypeAsExpression(line_number, at),
-				       new Identifier(line_number, "box"),
-				       new ExpressionList(line_number, left_value)
-				       );
-		    return box_call.compileValue( state, into );
-		} else {
-		    // compile '.box' attribute into an unchecked cast:
-		    return left_value.compileValue( state, into );
-		}
-	    } else if( k == Symbol.ATTRIBUTE_PASS ) {
-		return left_value.compileValue( state, into );
-	    } else if( k == Symbol.ATTRIBUTE_NONE ) {
-		return new ITree( line_number, Op.CONST, size, 0 );
-	    } else if( k == Symbol.ATTRIBUTE_ISOBJECT ) {
-		at = left_value.getType( state );
-		k = at.TypeKind;
-		if( k == Type.CLASS || k == Type.VECTOR ) {
-		    return new ITree( line_number, Op.CONST, 1, 1 );
-		} else {
-		    return new ITree( line_number, Op.CONST, 1, 0 );
-		}
-	    } else if( k == Symbol.ATTRIBUTE_ISREFERENCE ) {
-		at = left_value.getType( state );
-		if( at.isReference() ) {
-		    return new ITree( line_number, Op.CONST, 1, 1 );
-		} else {
-		    return new ITree( line_number, Op.CONST, 1, 0 );
-		}
-            } else if( k == Symbol.CONST ) {
-                return new ITree( line_number, Op.CONST, size, symbol.Address );
-            } else if( ( k & Symbol.FLAG_STATIC ) == 0 ) {
-                if( left_value == null ) {
-                    result = compileLoad( state, into, symbol, container, null, null, null, size, ref_flag, null );
-                    
-                    return result;
-                } else {
-		    ITree t = left_value.compileValue( state, into );
-                    result = compileLoad( state, into, symbol, container, null, null, t, size, ref_flag, null );
-                    
-                    return result;
-                }
-            } else {
-                return compileLoad( state, into, symbol, container, null, null, null, size,
-                                    LOAD_FLAG_STATIC, null );
-            }
-        }
-
-        ITree compileAddress( CompileState state, IBlock into ) {
-	    if( method_call != null ) {
-		IO.Std.err.println( "oops: should not compile address for property here" + new System.Backtrace() );
-		return new ITree( line_number, Op.ERROR, 0 );
-	    }
-            int size = getType( state ).RegSize;
-
-            if( symbol == null ) {
-                return new ITree( line_number, Op.ERROR, 0 );
-            }
-
-            int ref_flag;
-            if( reference ) {
-                ref_flag = LOAD_FLAG_ADDRESS | LOAD_FLAG_REFERENCE;
-            } else {
-                ref_flag = LOAD_FLAG_ADDRESS;
-            }
-
-	    int k = symbol.Kind;
-
-	    if( k >= Symbol.ATTRIBUTE ) {
-		error( "cannot take address of attribue " + symbol.HumanName );
-	    } else if( k == Symbol.CONST ) {
-                error( "cannot take address of constant " + symbol.HumanName );
-                return new ITree( line_number, Op.ERROR, 0 );
-            } else if( (k & Symbol.FLAG_STATIC) == 0 ) {
-                if( left_value == null ) {
-                    return compileLoad( state, into, symbol, container, null, null, null, size, ref_flag, null );
-                } else {
-                    ITree t = left_value.compileValue( state, into );
-                    int s = size;
-                    if( reference ) {
-                        s = Machine.WORD;
-                    }
-                    ITree result = compileLoad( state, into, symbol, container, null, null, t, s, ref_flag, null );
-                    return result;
-                }
-            } else {
-                return compileLoad( state, into, symbol, container, null, null, null, size, LOAD_FLAG_ADDRESS | LOAD_FLAG_STATIC, null );
-            }
-        }
 
 	int getDepth() {
 	    if( left_value != null ) {
@@ -954,10 +762,6 @@ namespace Parse {
 	    left.checkTemplates( state );
 	}
 
-	void checkInline( CompileState state ) {
-	    left.checkInline( state );
-	}
-        
         LLVM.Value compileValue( CompileState state, IRBlock into ) {
 	    // need to allow for null pointer exception to be thrown here:
             return makeLoadIndirect( state, line_number, into, true,
@@ -969,17 +773,6 @@ namespace Parse {
             return left.compileValue( state, into );
         }
 
-        ITree compileValue( CompileState state, IBlock into ) {
-	    // need to allow for null pointer exception to be thrown here:
-            return makeLoadIndirect( state, line_number, into, getType( state ).RegSize, true,
-				     left.compileValue( state, into )
-				     );
-        }
-
-        ITree compileAddress( CompileState  state, IBlock into ) {
-            return left.compileValue( state, into );
-        }
-       
         bool isLeftValue( CompileState state ) {
             return true;
         }

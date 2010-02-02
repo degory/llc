@@ -2,7 +2,7 @@
 
 import type;
 import symbol;
-import intermediate;
+// import intermediate;
 import operation;
 
 import parsecall;
@@ -22,15 +22,8 @@ namespace Parse {
     use System.Exception;
     use Generic.Vector;
 
-    use Gen.ITree;
-    use Gen.IBlock;
     use Gen.IRBlock;
-    use Gen.ILabel;
-    use Gen.IString;
     use Gen.Machine;
-    use Gen.TempFactory;
-    use Gen.MBitSet;
-
     
     enum EDType {
 	CATCH_RETURN = 0,
@@ -293,6 +286,15 @@ namespace Parse {
                         undefined_type );
 
         protected static Container undefined_class = new Container( null, null, "#undefined class#" );
+
+	protected static IRBlock dummy;
+	IRBlock getDummyIRBlock( CompileState state ) {
+	    if( dummy == null ) {
+		dummy = new IRBlock(state);
+	    }
+
+	    return dummy;
+	}
 
         protected static void parseFile( String file ) {
         }
@@ -713,17 +715,6 @@ namespace Parse {
 	    */
 	}
 
-	// load a value allowing for a jump from the run-time on null pointer to any active exception
-	// handler:
-	protected static ITree makeLoadIndirect( CompileState state, int line_number, IBlock into, int size, bool could_be_null, ITree t ) {
-	    IO.Std.err.println( "old make load indirect called" );
-	}
-
-	// store a value allowing for a jump from the run-time on null pointer to any active exception
-	// handler:
-	protected static void addStoreIndirect( CompileState state, int line_number, IBlock into, int size, bool could_be_null, ITree d, ITree s ) {
-	    IO.Std.err.println( "old make store indirect called" );
-	}
 
 	/*
 	// load a value allowing for a jump from the run-time on null pointer to any active exception
@@ -745,20 +736,6 @@ namespace Parse {
 	    }
 	    */
 	}
-
-	protected static void addDummyExceptionHandlerJump( CompileState state, int line_number, IBlock into ) {
-	    /*
-	    if( state.InExceptionHandler ) {
-		IO.Std.err.println( "FIXME: should use invoke here with landing pad: state.TopException.landing_pad" );
-	    }
-	    */
-	}
-
-
-        protected static void resetTemporary() {
-	    ITree.resetTemp();
-            // IO.Std.err.println( "implement ParseTree.resetTemporary" );
-        }
 
         static set String CurrentFileName = cfn {
             current_file_name = cfn;
@@ -1018,28 +995,6 @@ namespace Parse {
 
         // static int next_temporary = 0;
 
-        static ITree makeLoadTemporary( int t, int size ) {
-            return new ITree( 0, Op.REG_VAR, size, t );
-        }
-        
-        static ITree makeStoreTemporary( int t, int size, ITree value ) {
-            return new ITree( 0, Op.COPY, size, new ITree( 0, Op.REG_VAR, size, t ), value );
-        }
-
-        static ITree makeLoadThis( CompileState state, int line_number, IBlock into ) {
-	    // no need to allow for a dummy jump to exception handler here. 
-	    // this may be null if a final method is called on a null object but
-	    // loading this cannot in itself cause a null pointer exception as
-	    // this is either on the stack or will be assigned to register:
-
-	    return makeLoadIndirect( state, line_number, into, Machine.WORD, false,
-				     new ITree( line_number, Op.LOCAL,
-						Machine.WORD, -Machine.THIS_OFFSET )
-				     );
-
-
-        }
-
         static LLVM.Value makeLoadThis( CompileState state, int line_number, IRBlock into ) {
 	    // no need to allow for a dummy jump to exception handler here. 
 	    // this may be null if a final method is called on a null object but
@@ -1082,13 +1037,6 @@ namespace Parse {
 	void useTypes( CompileState state ) {
 	}
 
-	void prepareInline( CompileState state ) {
-	}
-
-	void checkInline( CompileState state ) {
-	    state.countInline();
-	}
-
 	bool isProperty( CompileState state ) {
 	    return false;
 	}
@@ -1114,10 +1062,6 @@ namespace Parse {
 	}
 	*/
 
-        void compile( CompileState state, IBlock into ) {
-            // IO.Std.err.println( "compiling: " + this );
-        }
-
 	void compile( CompileState state, IRBlock into ) {
 
 	}
@@ -1134,18 +1078,6 @@ namespace Parse {
             warn( "oops: can't compile: " + Class.Name + " from " + new System.Backtrace() );
 	    throw new System.NotImplementedException( "oops: can't compile: " + Class.Name );
             // IO.Std.err.println( "compiling: " + this + " results in ERROR" );
-        }
-
-
-
-        ITree compileValue( CompileState state, IBlock into ) {
-            error( "oops: can't compile value: " + Class.Name + " from " + new System.Backtrace() );
-	    throw new System.NotImplementedException( "oops: can't compile value: " + Class.Name );
-        }
-
-        ITree compileAddress( CompileState state, IBlock into ) {
-            error( "oops: can't compile address: " + Class.Name + " from " + new System.Backtrace() );
-	    throw new System.NotImplementedException( "oops: can't compile address: " + Class.Name );
         }
 
 
@@ -1387,27 +1319,6 @@ namespace Parse {
         }
 
 
-	ITree castTo( int to_size, int from_size, ITree t ) {
-	    if( to_size == from_size ) {
-		return t;
-	    } else if( from_size == 1 ) {
-		return new ITree( line_number, Op.CAST_FROM1,
-				  to_size,
-				  t );
-	    } else if( from_size == 4 ) {
-		return new ITree( line_number, Op.CAST_FROM4,
-				  to_size,
-				  t );
-	    } else if( from_size == 8 ) {
-		return new ITree( line_number, Op.CAST_FROM8,
-				  to_size,
-				  t );
-	    } else {
-		error( "cast from unexpected size: " + from_size );
-	    }
-	}
-
-
 	public const int VTABLE_FIXED_SIZE = 3;
 
 	static LLVM.Value makeLoadVTable( CompileState state, Container c ) {
@@ -1425,73 +1336,6 @@ namespace Parse {
 						   1
 						   );
 
-	}
-
-	static ITree loadVTable( CompileState state, Container c ) {	    
-	    return loadGlobal( state, "__ctable_" + c.DecoratedName, (c.IFaceOffset + VTABLE_FIXED_SIZE) * Machine.WORD );
-	}
-
-	static String getVTableAsString( CompileState state, Container c ) {
-	    return "__ctable_" + c.DecoratedName + "+" + (c.IFaceOffset + VTABLE_FIXED_SIZE) * Machine.WORD;
-	}
-
-	static ITree loadGlobalTLS( CompileState state, IBlock into, String name ) {
-	    if( state.WantPIC ) {
-		int t = TempFactory.nextTemp();
-		int u = TempFactory.nextTemp();
-
-		into.add( new ITree( 0, Op.LEA, Machine.WORD, 
-			   new ITree( 0, Op.TEMP, Machine.WORD, u ),
-			   new ITree( 0, Op.GLOBAL, Machine.WORD, name + "@TLSGD(%rip)" )
-				     ) );
-
-		
-		into.add( new ITree( 0, Op.ARG0, Machine.WORD,
-				     makeLoadTemporary( u, Machine.WORD ),
-				     new ITree( 0, Op.COMMENT, 0, "# last arg" ) ) );
-
-		into.add( new ITree( 0, Op.STATIC_CALL, 0,
-			  new ITree( 0, Op.TEMP, Machine.WORD, t ),
-				     "__tls_get_addr" ) );
-
-                return makeLoadTemporary( t, Machine.WORD );
-	    } else {
-		return new ITree( 0, Op.GLOBAL, Machine.WORD, "%fs:" + name + "@TPOFF" );
-	    }
-	}
-
-	static ITree loadGlobal( CompileState state, String name, int offset ) {
-	    if( state.WantPIC ) {
-		/*
-		if( offset == 0 ) {
-		    return new ITree( 0, Op.INDIRECT, Machine.WORD,
-				      new ITree( 0, Op.GLOBAL, Machine.WORD, name + "@GOTPCREL(%rip)" ) );
-		} else {
-		    return new ITree( 0, Op.ADD, Machine.WORD,
-				      new ITree( 0, Op.INDIRECT, Machine.WORD,
-						 new ITree( 0, Op.GLOBAL, Machine.WORD, name + "@GOTPCREL(%rip)" ) ),
-				      new ITree( 0, Op.CONST, Machine.WORD, offset ) );
-
-		}
-		*/
-
-		if( offset == 0 ) {
-		    return new ITree( 0, Op.INDIRECT, Machine.WORD,
-				      new ITree( 0, Op.GLOBAL, Machine.WORD, name + "@GOTPCREL(%rip)" ) );
-		} else {
-		    return new ITree( 0, Op.ADD, Machine.WORD,
-				      new ITree( 0, Op.INDIRECT, Machine.WORD,
-						 new ITree( 0, Op.GLOBAL, Machine.WORD, name + "@GOTPCREL(%rip)" ) ),
-				      new ITree( 0, Op.CONST, Machine.WORD, offset )
-				      );
-		}			
-	    } else {
-		if( offset == 0 ) {
-		    return new ITree( 0, Op.GLOBAL, Machine.WORD, name );
-		} else {
-		    return new ITree( 0, Op.GLOBAL, Machine.WORD, name + "+" + offset );
-		}
-	    }
 	}
     }
 
@@ -1610,19 +1454,11 @@ namespace Parse {
 	    apply( state );
 	}
 
-	void checkInline( CompileState state ) {
-	    apply( state );
-	}
-
-	void prepareInline( CompileState state ) {
-	    apply( state );
-	}
-        
         void compile( CompileState state ) {
 	    apply( state );
         }	
 
-        void compile( CompileState state, IBlock into ) {
+        void compile( CompileState state, IRBlock into ) {
 	    apply( state );
 	}
     }
@@ -1743,15 +1579,6 @@ namespace Parse {
 	    expression.checkTemplates( state );
 	}
 
-        void compile( CompileState state, IBlock into ) {
-	    ILabel ok = TempFactory.nextLabel();
-
-            expression.compileBoolean( state, into, ok, false );
-            
-            into.add( new ITree( line_number, Op.STATIC_CALL_DISCARD, 0, "__throw_assertexception" ) );
-            into.add( new ITree( line_number, Op.LABEL, 0, ok ) );
-        }
-
 	void print( CompileState state, Printer p ) {
 	    pl(p);
 
@@ -1783,12 +1610,6 @@ namespace Parse {
 	void checkTemplates( CompileState state ) {
 	    if( expression != null ) {
 		expression.checkTemplates( state );
-	    }
-	}
-
-	void checkInline( CompileState state ) {
-	    if( expression != null ) {
-		expression.checkInline( state );
 	    }
 	}
 
@@ -1902,10 +1723,6 @@ namespace Parse {
 	    }
         }
 
-
-        void compile( CompileState state, IBlock into ) {
-
-        }
 
 	void print( CompileState state, Printer p ) {
 	    pl(p);
@@ -2021,35 +1838,6 @@ namespace Parse {
             }
         }
 
-
-	void prepareInline( CompileState state ) {
-            foreach( Statement s; list.elements() ) {
-                if( s != null ) {
-                    s.prepareInline( state );
-                } else {
-                    throw new Exception( "null statement\n" );
-                }
-            }
-	}
-
-	void checkInline( CompileState state ) {
-	    state.enterBlock();
-	    /*
-	    if( !state.CurrentMethod != null && state.CurrentMethod.IsLeaf ) {
-		return;
-	    }
-	    */
-            foreach( Statement s; list.elements() ) {
-                if( s != null ) {
-                    s.checkInline( state );
-                } else {
-                    throw new Exception( "null statement\n" );
-                }
-            }
-
-	    state.exitBlock();
-	}
-
 	get bool IsLastReturn {
 	    last_return = false;
 	    if( list != null && list.Length > 0 ) {
@@ -2083,25 +1871,6 @@ namespace Parse {
 	}
 
         void compile( CompileState state, IRBlock into ) {
-	    state.enterBlock();
-            // block_level = block_level + 1;
-            // seen_variables = false;
-            foreach( Statement s; list.elements() ) {
-                if( s != null ) {
-                    s.compile( state, into );
-                } else {
-                    throw new Exception( "null statement\n" );
-                }
-            }
-   
-            if( /* seen_variables && */ state.CurrentMethod != null ) {
-                state.CurrentMethod.stripDefined( state.BlockLevel );
-            }
-            // block_level = block_level - 1;
-	    state.exitBlock();
-        }
-
-        void compile( CompileState state, IBlock into ) {
 	    state.enterBlock();
             // block_level = block_level + 1;
             // seen_variables = false;
@@ -2230,11 +1999,6 @@ namespace Parse {
         void declareSymbols( CompileState state ) {
         }
 
-	void checkInline( CompileState state ) {
-	    left_value.checkInline( state );
-	    right_value.checkInline( state );
-	}
-
         void compile( CompileState state, IRBlock into ) {
 	    left_value.wantSetProperty( state, right_value );
 	    Type tl = left_value.getType( state );
@@ -2292,41 +2056,6 @@ namespace Parse {
 	    // into.add( new ITree( line_number, Op.COPY, tl.getRegSize(), makeLoadIndirect( line_number, into, Op.INDIRECT, tl.getRegSize(), l ), r ) );
         }
 
-
-
-        void compile( CompileState state, IBlock into ) {
-	    left_value.wantSetProperty( state, right_value );
-	    Type tl = left_value.getType( state );
-	    Type tr = right_value.getType( state );
-	    
-	    /*
-	      IO.Std.err.println( "assign left value:  " + left_value + " type: " + tl );
-	      IO.Std.err.println( "assign right value: " + right_value + " type: " + tr );
-	    */
-	    
-	    if( !left_value.isProperty(state) && !left_value.isLeftValue(state) ) {
-		error( "cannot assign to non lvalue " + left_value.dump(state) );
-	    }
-	    
-	    if( left_value.isProperty(state) ) {
-		left_value.compileValue( state, into );
-	    } else {
-		if( !tl.isAssignableFrom( tr ) && tl.TypeKind != Type.ERROR ) {
-		    /*
-		      IO.Std.err.println( "assign left value:  " + left_value + " type: " + tl );
-		      IO.Std.err.println( "assign right value: " + right_value + " type: " + tr );
-		    */
-		    error( tl.dump() + " is not assignable from " + tr.dump() );
-		}
-		
-		ITree l = left_value.compileAddress( state, into );
-		ITree r = right_value.compileValue( state, into );
-		addStoreIndirect( state, line_number, into, tl.RegSize, true, l, r );
-	    }
-	    
-
-	    // into.add( new ITree( line_number, Op.COPY, tl.getRegSize(), makeLoadIndirect( line_number, into, Op.INDIRECT, tl.getRegSize(), l ), r ) );
-        }
 
 	void print( CompileState state, Printer p ) {
 	    pl(p);
@@ -2468,12 +2197,6 @@ namespace Parse {
         void declareSymbols( CompileState state ) {
         }
 
-	void checkInline( CompileState state ) {
-	    left_value.checkInline(state);
-	    right_value.checkInline(state);
-	}
-
-        
         LLVM.Value compileAddress( CompileState state, IRBlock into ) {
             LLVM.Value cl, cr;
 
@@ -2550,119 +2273,6 @@ namespace Parse {
 	    }
         }
 
-        
-        ITree compileAddress( CompileState state, IBlock into ) {
-            ITree cl, cr;
-
-	    if( method_call != null ) {
-		IO.Std.err.println( "oops: should not compileAddress for indexed object property access" );
-		return new ITree( line_number, Op.ERROR, 0 );
-	    }
-
-            cl = left_value.compileValue(state, into);
-            cr = right_value.compileValue(state, into);
-
-	    int sr = right_value.getType(state).Size;
-
-	    if( sr == 1 ) {		
-		cr = new ITree( line_number, Op.CAST_FROM1, Machine.WORD, cr );
-	    } else if( sr == 4 && sr != Machine.WORD ) { // FIXME: constant == constant does not compile...
-		if( !state.WantCoalesce ) {
-		    // this is a cheat to avoid a movsx on every bounds check. It relies on
-		    // arrays being less than 2G elements long and amd64 clearing the top
-		    // half of registers on every 32bit operation. If the array index is a 
-		    // negative 32-bit number even without sign extension it will fail the 
-		    // bounds check because the unsigned 64bit comparison will view it as a very
-		    // large positive integer - larger than any bound up to 2G elements
-		    // the 2GB bound limit is required anyway as T[].sizeof has type int 
-		    cr = new ITree( line_number, Op.TREAT_AS, Machine.WORD, cr );
-		} else {
-		    // above cheat not safe if copy coalescing enabled as it can cause us
-		    // to end up with garbage in the high half of a 64 bit register if the
-		    // register is spilled:
-		    cr = new ITree( line_number, Op.CAST_FROM4, Machine.WORD, cr );
-		}
-	    }
-            // #ifdef CHECK_VECTOR_ACCESS
-
-	    if( state.WantBoundsCheck ) {
-
-		cl = cl.foldConstants();
-		cr = cr.foldConstants();
-
-		if( !cl.isSimple() ) {
-		    int tl = TempFactory.nextTemp();
-		    into.add( makeStoreTemporary( tl, Machine.WORD, cl ) );
-		    cl = makeLoadTemporary( tl, Machine.WORD );
-		}
-		
-		if( !cr.isSimple() ) {
-		    int tr = TempFactory.nextTemp();
-		    into.add( makeStoreTemporary( tr, Machine.WORD, cr ) );
-		    cr = makeLoadTemporary( tr, Machine.WORD );
-		}
-		
-		if( state.WantSplitBounds ) {
-		    ILabel bounds_label = TempFactory.nextLabel();
-		    
-		    into.add( new ITree( line_number, Op.BOUNDS_R, 0, cl, cr, bounds_label ) );
-		    into.addEpilog( new ITree( line_number, Op.BOUNDS_L, 0, bounds_label ) );
-		    
-		} else {
-		    into.add( new ITree( line_number, Op.BOUNDS, 0 /* getType(state).getRegSize() */, cl, cr ) );
-		}
-	    } else {
-		if( state.WantMarkUnsafe ) {
-		    state.markCodeUnsafe( CompileState.UNSAFE_BOUNDS );
-		}
-		if( state.WantWarnUnsafe ) {
-		    warn( "array subscript not checked at runtime" );
-		}
-	    }
-
-	    // let back end know jump to exception handler possible here:
-	    addDummyExceptionHandlerJump( state, line_number, into );
-
-            //#endif
-
-	    int element_size = getType( state ).RegSize;
-
-            if( element_size != 1 ) {
-                cr = new ITree( line_number, Op.MUL, Machine.WORD, cr,
-                                new ITree( line_number, Op.CONST, Machine.WORD, element_size ) );
-            }
-
-	    cl = new ITree( line_number, Op.ADD, Machine.WORD,
-			    cl,
-			    new ITree( line_number, Op.CONST, Machine.WORD, Machine.VECTOR_DATA_OFFSET )
-			    );
-
-
-	    ITree result = new ITree( line_number, Op.ADD, Machine.WORD, cl, cr );
-
-	    // IO.Std.err.println( "array access: " + result );
-	    return result;
-            
-        }
-
-        ITree compileValue( CompileState state, IBlock into ) {
-	    getType(state);
-	    if( method_call == null ) {
-		// IO.Std.err.println( "no method call: " + this + ", type: " + type );
-		// cannot throw null pointer exception as if null then previous bounds check would already have done so:
-		return makeLoadIndirect( state, line_number, into, getType(state).RegSize, false, compileAddress(state, into) );
-	    } else {
-		// IO.Std.err.println( "have method call: " + this + ", type: " + type );
-		if( want_set_value ) {
-		    // IO.Std.err.println( "array access setter method has no value here: " + new System.Backtrace() );
-		    method_call.compileDiscardValue( state, into );
-		    return new ITree( line_number, Op.ERROR, 0 );
-		} else {
-		    return method_call.compileValue( state, into );
-		}
-	    }
-        }
-
 	void print( CompileState state, Printer p ) {
 	    pl(p);
 
@@ -2687,10 +2297,6 @@ namespace Parse {
 
 	get bool IsEmpty {
 	    return left.IsEmpty;
-	}
-
-	void checkInline( CompileState state ) {
-	    left.checkInline( state );
 	}
 
 	void checkTemplates( CompileState state ) {

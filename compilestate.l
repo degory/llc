@@ -5,7 +5,7 @@ import oset;
 import machine;
 import symbol;
 import container;
-import intermediate;
+// import intermediate;
 import parsetree;
 import symboltable;
 import needcompile;
@@ -23,15 +23,8 @@ namespace Parse {
     use Generic.Vector;
     use Generic.Map;
 
-    use Gen.ILabel;
-    use Gen.IString;
-    use Gen.ITree;
     use Gen.IRBlock;
     use Gen.Machine;
-    use Gen.MBitSet;
-    use Gen.TempFactory;
-    // use Util.ThreadPool;
-
 
     class LibraryHashFile {
         String name;
@@ -132,7 +125,7 @@ namespace Parse {
 	Package package;
 	// TempFactory temp_factory;
 
-	void init( CompileState state, Package package, TempFactory temp_factory ) {
+	void init( CompileState state, Package package ) {
 	    this.state = state; // state.copy();
 
 	    // IO.Std.err.println( "copied: " + state + "->" + this.state );
@@ -487,8 +480,6 @@ namespace Parse {
 
         int spill_label;
 
-        ILabel return_label;
-
         IO.Writer output;
 	public String last_cleared_output_at;
         
@@ -723,7 +714,7 @@ namespace Parse {
 	    case RuntimeFunction.ALLOC_OBJECT:
 		name = `__alloc_object`;
 	    case RuntimeFunction.ALLOC_OBJECT_FINALIZE:
-		name = `__alloc_object`;
+		name = `__alloc_object_finalize`;
 	    case RuntimeFunction.ALLOC_ARRAY:
 		name = `allocagn`;
 	    case RuntimeFunction.ALLOC_REF_ARRAY:
@@ -969,9 +960,6 @@ namespace Parse {
 
 	    sp = sp - 1;
 	    output = state[sp].Output;
-	    if( output == null ) { 
-		last_cleared_output_at = new System.Backtrace().toString();
-	    }
 	}
         
         void popState() {
@@ -1180,51 +1168,6 @@ namespace Parse {
 	    // symbol table is complete and it is now possible to compile methods in any order
 	    // and we can attempt to prepare intermediate code versions of methods for inlining:
 
-            // IO.Std.err.println( "parsing definitions..." );
-	    if( WantInline ) {
-		Pass = CompilePass.CHECK_INLINE;
-
-		if( WantVeryVerbose ) {
-		    ParseTree.message( "checking inline methods..." );
-		}
-		// determine which methods can potentially be inlined (no exception handling,
-		// register only parameters etc.):
-		
-		// IO.Std.err.println( "parsing definitions..." );
-		for( i = 0; i < to_compile_list.Length; i = i + 1 ) {
-		    p = cast<Package>(to_compile_list[i]);
-		    p.checkInline(this);
-		}
-
-		// attempt to prepare inlineable intermediate code for any methods that:
-		//    were not marked as not inlineable by check-inline pass
-		//    are leaves (do not call other methods, except inlined methods)
-		//    are final (not overridden)
-
-		// this process is repeated as methods may initially be non-leaf but
-		// become leaf as methods they call are inlined:
-
-		Pass = CompilePass.PREPARE_INLINE;
-
-		for( j = 0; j < Machine.INLINE_DEPTH; j = j + 1 ) {
-		    // IO.Std.err.println( "start inline pass: " + i + " file " + file_name );
-		    if( WantVeryVerbose ) {
-			ParseTree.message( "preparing inline methods pass " + (j+1) + "..." );
-		    }
-
-		    if( j == Machine.INLINE_DEPTH-1 ) {
-			in_last_inline_pass = true;
-		    }
-		    
-		    for( i = 0; i < to_compile_list.Length; i = i + 1 ) {
-			p = cast<Package>(to_compile_list[i]);
-			p.prepareInline(this);
-		    }
-		}
-		in_last_inline_pass = false;
-	    }
-
-
 
 	    // actually compile:
 
@@ -1345,8 +1288,6 @@ namespace Parse {
 
             var into = new IRBlock( this, entry_point_function );
 
-
-	    // int temp = TempFactory.nextTemp();
 
 	    var op = RuntimeFunction.ALLOC_OBJECT;
 	    var vtable = ParseTree.makeLoadVTable( this, main_class );
@@ -1492,12 +1433,14 @@ namespace Parse {
 	    try {
 		String open_file_name = dir + file_name + extension;
 
-		// IO.Std.err.println( "try open: " + open_file_name );
-		IO.Reader in = IO.File.openRead( open_file_name );
-		if( in != null ) {
-		    // IO.Std.err.println( "success: " + in );
-		    file_name = open_file_name;
+		var s = IO.File.openStream( open_file_name, IO.File.O_RDONLY, 0, true );
+		if( s == null ) {
+		    return null;
 		}
+
+		var in = new IO.Reader(s);
+		file_name = open_file_name;
+
 		return in;
 	    } catch( IO.IOException ioe ) {
 		// IO.Std.err.println( "failure: " + ioe );
@@ -1640,32 +1583,6 @@ namespace Parse {
             throw new Exception( "implement me!" );
         }
 
-	void markAddressTaken( int offset ) {
-	    if( State == STATE_INSIDE_CLASS ) { 
-		CurrentClass.markAddressTaken( offset );
-	    } else if( State == STATE_INSIDE_METHOD ) {
-		CurrentMethod.markAddressTaken( offset );
-	    } else {
-		throw new Exception( "mark address taken " + offset + " from unexpected state " + State );
-	    }
-	}
-
-	get Gen.MBitSet AddressesTaken {
-	    Gen.MBitSet result;
-	    if( State == STATE_INSIDE_CLASS ) { 
-		result = CurrentClass.AddressesTaken;
-	    } else if( State == STATE_INSIDE_METHOD ) {
-		result = CurrentMethod.AddressesTaken;
-	    } else {
-		throw new Exception( "get addresses taken from unexpected state " + State );
-	    }
-	    /*
-	    if( result != null ) {
-		IO.Std.err.println( "compilestate, address taken: " + result );
-	    }
-	    */
-	    return result;
-	}
 
         void beginPackage( String source_file_name, SymbolList n ) {
 	    // IO.Std.err.println( "begin package: " + source_file_name + ", " + this );
@@ -1796,50 +1713,9 @@ namespace Parse {
 	    }
         }
 
-        void openOutput( String name, bool append ) {
-            StringBuffer buffer = new StringBuffer();
-
-            int hash = Util.Hash.hash( name );
-            label_prefix = "" + hash;
-            // fprintf( stderr, "label prefix is now '%s'\n", label_prefix );
-            
-            // fprintf( stderr, "opening output: '%s'\n", name );
-            
-            buffer.append( this.CacheDir );
-            buffer.append( name );
-            if( !one_file ) {
-                buffer.append( ".s" );
-            } else {
-                buffer.append( ".e" );
-            }
-            closeOutput();
-
-            if( append ) {
-		output = IO.File.openAppend( buffer );
-            } else {
-		output = IO.File.openCreate( buffer );
-            }
-           
-            if( !append ) {
-                Machine.emitFile( output, CurrentSourceFileName );
-                Machine.emitTextSegment( output );
-            }
-        }
 
         void removeOutput( String name ) {
-	    // FIXME: what are we trying to do here?
-            if( one_file ) {
-                StringBuffer buffer = new StringBuffer();
-                
-                buffer.append( this.CacheDir );
-                buffer.append( name );
-                if( !one_file ) {
-                    buffer.append( ".s" );
-                } else {
-                    buffer.append( ".e" );
-                }
-		IO.File.deleteQuiet( buffer );
-            }
+
         }
 
 	String getObjectFileName( String name, String extension ) {
@@ -1852,24 +1728,7 @@ namespace Parse {
 	    return file;
 	}
 
-        
-        void assembleFile( String name ) {
-            String assembler_file = getObjectFileName( name, ".s" );
-	    String object_file = getObjectFileName( name, ".o" );
-            
-	    if( WantVeryVerbose ) {
-		ParseTree.message( "assemble file: " + name );
-	    }
-            
-            closeOutput();
-            
-	    Util.Process assembler = new Util.Process();
-	    int result = assembler.run( "/usr/bin/as", { "/usr/bin/as", Machine.AS_SWITCH, cast<String>(assembler_file), "-o", object_file }, null);
-	    if( result != 0 ) {
-		throw new Exception( "assembly of file " + assembler_file + " failed with exit status " + result );
-	    }
-        }
-
+       
         void dumpActiveClasses( String name ) {
             IO.Writer wb = null;
             
@@ -1909,7 +1768,7 @@ namespace Parse {
                 return output;
             } else {
 		if( CurrentMethod != null ) {
-		    IO.Std.err.println( "no output for: " + CurrentMethod.HumanName );
+		    throw new System.Exception( "no output for: " + CurrentMethod.HumanName );
 		}
 		/*
 		IO.Std.err.println( "oops: no output stream: " + new System.Backtrace() );
@@ -1959,9 +1818,10 @@ namespace Parse {
 		    IO.Std.err.println( "HHHH: method " + CurrentMethod.HumanName );
 		    IO.Std.err.println( "HHHH: class " + CurrentClass.HumanName );
 		    */
-
+		    /*
                     int address = current_method.alloc( k );
                     symbol.setAddress( address );
+		    */
                     // IO.Std.err.println( "allocated symbol: " + symbol + ", address: " + symbol.getAddress() );
                 } else if( this.State != STATE_INSIDE_CLASS ) {
                     throw new Exception( "oops: unexpected compile state (" + this.State + ") when declaring symbol" );
@@ -2322,7 +2182,7 @@ namespace Parse {
             closeOutput();
         }
 
-        void declareEnumMember( ParseTree from, String name, int value ) {
+        void declareEnumMember( ParseTree from, String name, LLVM.Value value ) {
             Container enum_symbol = CurrentClass;
             Symbol symbol = symbol_table.findInCurrentScope( name, Symbol.FIND_ANY );
             
@@ -2337,7 +2197,7 @@ namespace Parse {
             
             symbol = declareSymbol( from, enum_symbol, name, Symbol.CONST, Symbol.ACCESS_PUBLIC, 1, enum_symbol.Type );
 
-            symbol.setAddress( value );
+            symbol.LLVMValue = value;
         }
 
         Container declareEnum( ParseTree from, String name, int access ) {
@@ -2508,7 +2368,6 @@ namespace Parse {
             
             alloc_direction = 1;
             
-            return_label = Gen.TempFactory.nextLabel();
 	    // IO.Std.err.println( "begin compile: " + decorated_name );
 	    // IO.Std.err.println( "return label initially: " + return_label );
             
@@ -2531,11 +2390,6 @@ namespace Parse {
             symbol_table.exitScope();
 
             popState();
-
-	    /*
-            ILabel l = Gen.TempFactory.nextLabel();
-            Machine.emitLabel( Output, l.getInt() );
-	    */
         }
 
         void beginParseMethodArgs( ParseTree from, Container method ) {
@@ -2547,11 +2401,13 @@ namespace Parse {
             pushState( STATE_INSIDE_METHOD, CurrentClass, method );
             
             // FIXME: this is not a good place for these constants
+	    /*
             if( method.IsStatic ) {
                 method.clearStackOffset( Machine.FIRST_ARGUMENT_OFFSET_STATIC, Machine.FIRST_LOCAL_OFFSET );
             } else {
                 method.clearStackOffset( Machine.FIRST_ARGUMENT_OFFSET, Machine.FIRST_LOCAL_OFFSET );
             }
+	    */
 	    beginParseRegParams();
         }
 
@@ -2564,7 +2420,7 @@ namespace Parse {
 	    in_parameters = false;
             
             method.SymbolList = symbol_table.CurrentScope;
-            // method.clearStackOffset( Machine.FIRST_LOCAL_OFFSET );
+
             symbol_table.exitScope();
             
             popState();
@@ -2572,7 +2428,6 @@ namespace Parse {
     
         void beginParseMethodBody( Container method ) {
             alloc_direction = -1;
-            // getCurrentMethod().clearStackOffset( Machine.FIRST_LOCAL_OFFSET );
         }
 
         void endParseMethodBody( Container method ) {
@@ -3150,11 +3005,6 @@ namespace Parse {
             }
             
             return null;
-        }
-
-        get ILabel ReturnLabel {
-	    // IO.Std.err.println( "return label now: " + return_label );
-            return return_label;
         }
     }
 

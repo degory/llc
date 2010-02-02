@@ -44,7 +44,6 @@ extern "C"
     unwrap<Function>(Fn)->removeFromParent();
   }
 
-
   void LLVMCleanUpFunction(LLVMValueRef function) {
     Function *f = unwrap<Function>(function);
     int changed;
@@ -76,6 +75,12 @@ extern "C"
 	}
       }
     } while( changed );
+  }
+
+  unsigned long long LLVMGetConstValue(LLVMValueRef c) {
+    ConstantInt *ci = unwrap<ConstantInt>(c);
+
+    return ci->getValue().getLimitedValue();
   }
 
 }

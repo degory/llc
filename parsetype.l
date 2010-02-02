@@ -5,13 +5,8 @@ namespace Parse {
     use System.Exception;
     use Generic.Vector;
 
-    use Gen.ITree;
-    use Gen.IBlock;
-    use Gen.ILabel;
-    use Gen.IString;
     use Gen.Machine;
-    use Gen.TempFactory;
-    use Gen.MBitSet;
+    use Gen.IRBlock;
 
     class WrapTypeExprAsExpression extends Expression {
 	TypeExpr type_expr;
@@ -34,7 +29,7 @@ namespace Parse {
 	    type = type_expr.parseType( state );
 	}
 
-	ITree compileValue( CompileState state, IBlock into ) {
+	LLVM.Value compileValue( CompileState state, IRBlock into ) {
 	    throw new Exception( "type " + type_expr + " has no value" );
 	}
 
@@ -74,7 +69,7 @@ namespace Parse {
 	    this.type = wrapped_type;
 	}
 
-	ITree compileValue( CompileState state, IBlock into ) {
+	LLVM.Value compileValue( CompileState state, IRBlock into ) {
 	    throw new Exception( "type " + type + " has no value" );
 	}
 

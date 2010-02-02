@@ -3,10 +3,13 @@ import symbol;
 import compilestate;
 import machine;
 import hash;
+import mbitset;
+import gsort;
 import gset;
 
 namespace Parse {
     use Gen.Machine;
+    use Gen.MBitSet;
     use System.Object;
     use System.String;
     use System.StringBuffer;
@@ -20,9 +23,8 @@ namespace Parse {
         
         void init() {
             super.init();
-            itable_offset = 1; // Machine.WORD;
-            vtable_offset = 2; // Machine.WORD * 2; // one word for super-class pointer, one word for reference bits
-            // hash = 0;
+            itable_offset = 1;
+            vtable_offset = 2; // one word for super-class pointer, one word for reference bits
         }
     }
 
@@ -39,9 +41,6 @@ namespace Parse {
 	Vector<Container> implements_list;
         String decorated;
         String human;
-
-	Gen.MBitSet address_taken;
-	Gen.IBlock inline_block;
 
 	CompileStatus compile_status;
 
@@ -92,8 +91,8 @@ namespace Parse {
             this.needs_body = true;
             this.override = null;
             this.tables_valid = false;
-            this.stack_offset = Machine.WORD;      // FIXME: machine dependant
-	    this.local_offset = -Machine.WORD;
+            this.stack_offset = 1;      // FIXME: clearly not referenced
+	    this.local_offset = -1;
 
             // this.arguments = null;
             this.hash_ = 0;
@@ -379,9 +378,6 @@ namespace Parse {
 	}
 	*/
 
-	get bool IsInline {
-	    return inline_block != null;
-	}
 
 	get bool IsNative {
 	    return is_native;
@@ -420,10 +416,6 @@ namespace Parse {
 
 	set bool AlreadyParsed = p {
 	    already_parsed = p;
-	}
-
-	static int mungStackOffset( int offset ) {
-	    return (offset / Machine.WORD) + 128;
 	}
 
 
@@ -486,41 +478,6 @@ namespace Parse {
 	    foreach( Container s; implements_list.elements() ) {
 		s.referenceSelf();
 	    }
-	}
-
-	void markAddressTaken( int offset ) {
-	    int n = mungStackOffset( offset );
-	    if( n < 0 ) {
-		// out of range: address must be assumed taken:
-		return;
-	    }
-	    if( address_taken == null ) {
-		address_taken = new Gen.MBitSet( n * 2 );
-	    } else {
-		address_taken.reserve( n + 1 );
-	    }	    
-	    address_taken.mark( n );
-	    // IO.Std.err.println( "address taken offset " + offset + " -> mark bit #" + n );
-	}
-
-	void clearAddressTaken() {
-	    address_taken = null;
-	}
-
-	bool isAddressTaken( int offset ) {
-	    offset = mungStackOffset( offset );
-	    if( offset < 0 ) {
-		return true;
-	    }
-	    if( address_taken == null || offset >= address_taken.Length ) {
-		return false;
-	    } else {
-		return address_taken[offset];
-	    }
-	}
-
-	get Gen.MBitSet AddressesTaken {
-	    return address_taken;
 	}
 
 	/*
@@ -707,14 +664,6 @@ namespace Parse {
             }
         }
 
-	get Gen.IBlock InlineBlock {
-	    return inline_block;
-	}
-
-	set Gen.IBlock InlineBlock = b {
-	    this.inline_block = b;
-	}
-
         bool isParentOf( Container c ) {
             while( c != null ) {
                 if( c == this ) {
@@ -726,6 +675,7 @@ namespace Parse {
             return false;
         }
 
+	/*
         int alloc( int kind ) {
             int result = 0;
             
@@ -734,13 +684,6 @@ namespace Parse {
             } else {
 		if( kind & FLAG_LOCAL != 0 ) {
 		    result = local_offset;
-
-		    /*
-		    if( (result / Machine.WORD) * Machine.WORD != result ) {
-			throw new Exception( "here: " + local_offset + "," + result + ": " + this );
-		    }
-		    local_offset = local_offset - Machine.WORD;
-		    */
 
 		    local_offset = local_offset + 1;
 		    // IO.Std.err.println( "alloc local: " + result );
@@ -752,13 +695,16 @@ namespace Parse {
             }
             return result;
         }
+	*/
 
+	/*
 	void checkAlign( int initial ) {
 	    if( (initial / Machine.WORD) * Machine.WORD != initial ) {
 		throw new Exception( "here: " + initial + ": " + this );
 	    }
 	}
 
+	
         void clearStackOffset( int initial_stack, int initial_local ) {
 	    checkAlign( initial_stack );
 	    checkAlign( initial_local );
@@ -766,6 +712,7 @@ namespace Parse {
             stack_offset = initial_stack;
 	    local_offset = -initial_local;
         }
+	*/
 
         get Container Override {
             return override;
@@ -832,14 +779,25 @@ namespace Parse {
 
                     if( current.Kind == Symbol.ENUM ) {
 			hash_ = Util.Hash.rotate(hash_) + current.Hash;
-		    } else {
+		    } else if( current.IsAddressValid ) {
                         hash_ = Util.Hash.rotate(hash_) + current.Address;
-                    }
+                    } else {
+			var v = current.LLVMValue;
+			if( v != null ) {
+			    if( LLVM.Calls.LLVMIsConstant(v) != 0 ) {
+				var ch = cast int(LLVM.Calls.LLVMGetConstValue(v));
+				// IO.Std.err.println( "using " + ch + " as hash value for " + current.Name + " when calculating hash for " + HumanName );
+				hash_ = Util.Hash.rotate(hash_) + ch;
+			    } else {
+				IO.Std.err.println( "ignoring " + current.Name + " with non const LLVM.Value when calculating hash for " + HumanName );
+			    } 
+			} else {
+			    IO.Std.err.println( "ignoring " + current.Name + " with no valid address when calculating hash for " + HumanName );
+			}
+		    }
                     
                     String s = current.DecoratedName;
                     hash_ = Util.Hash.rotate(hash_) + Util.Hash.hash(s);
-
-
 
 		    // IO.Std.err.println( HumanName + ": member " + s + "@" + current.Address + " hash " + hash_ );
                 }
@@ -884,6 +842,7 @@ namespace Parse {
             setup( parent );
         }
         
+	/*
         get int StackOffset {
             return stack_offset;
         }
@@ -891,6 +850,7 @@ namespace Parse {
 	get int LocalOffset {
 	    return local_offset;
 	}
+	*/
 
         bool isAssignableFrom( Container c ) {
             if( c == this ) {
@@ -1167,15 +1127,9 @@ namespace Parse {
             }
         }
 
-        void emitStaticTables( CompileState  state ) {
-            foreach( Symbol current; members.SymbolList.elements() ) {
-                if( current.Kind == Symbol.STATIC_VARIABLE ) {
-                    Machine.emitDefLongZero( state.Output );
-                }
-            }
-        }
-
         void emitTypeTables( CompileState  state ) {
+	    // FIXME: type tables
+	    /*
             if( parent != null ) {
                 parent.emitTypeTables( state );
             }
@@ -1194,9 +1148,10 @@ namespace Parse {
                     } else {
 			value = cast char(t.Size);
 		    }
-                    Machine.emitDefByte( state.Output, cast int(value) );
+                    // Machine.emitDefByte( state.Output, cast int(value) );
                 }
             }
+	    */
         }
 
         void buildClassTables( CompileState state ) {
@@ -1829,7 +1784,7 @@ namespace Parse {
                 
                     if( candidate == null ) {
                         throw new Exception( "strange: member missing: " + current.Name );
-                        Machine.emitDefPointer( state.Output, 0 );
+                        // Machine.emitDefPointer( state.Output, 0 );
                     } else {
                         Container owner = candidate.Owner;
                     
@@ -1863,7 +1818,7 @@ namespace Parse {
 					   );
 
 
-                                Machine.emitDefPointer( state.Output, candidate.DecoratedName );
+                                // Machine.emitDefPointer( state.Output, candidate.DecoratedName );
                             }
                         }
                     }
@@ -1873,7 +1828,7 @@ namespace Parse {
 			   current.Kind != Symbol.TYPE && current.Kind != Symbol.ACCESSOR ) {
                     throw new Exception( "oops: member " + current.Name + " is weird kind: " + current.Kind );
                 }
-		ca = ca + Machine.WORD;
+		ca = ca + 1; // FIXME: not referenced
             }
         }
 

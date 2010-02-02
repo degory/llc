@@ -6,14 +6,8 @@ namespace Parse {
     use System.Exception;
     use Generic.Vector;
 
-    use Gen.ITree;
-    use Gen.IBlock;
     use Gen.IRBlock;
-    use Gen.ILabel;
-    use Gen.IString;
     use Gen.Machine;
-    use Gen.TempFactory;
-    use Gen.MBitSet;
 
     class Loop extends Object {
         public LLVM.BasicBlock break_label;
@@ -38,10 +32,6 @@ namespace Parse {
         void pushLoop( String name, LLVM.BasicBlock break_label, LLVM.BasicBlock exit_label ) {
             label.add( new Loop(name,break_label,exit_label));
         }
-
-	void pushLoop( String name, ILabel break_label, ILabel exit_label ) {
-	    label.add( new Loop(name, null, null) );
-	}
 
         void popLoop() {
             label.pop();
@@ -209,14 +199,6 @@ namespace Parse {
 	    block.checkTemplates(state);
 	}
 
-	void checkInline( CompileState state ) {
-	    // throw new CannotInlineException();
-	    if( expression != null ) {
-		expression.checkInline(state);
-	    }
-	    block.checkInline( state );
-	}
-
         void compile( CompileState state, IRBlock into ) {
             LLVM.BasicBlock t = into.Block();
             LLVM.BasicBlock e = into.Block();
@@ -301,12 +283,6 @@ namespace Parse {
 	    block.checkTemplates(state);
 	}
 
-	void checkInline( CompileState state ) {
-	    expression.checkInline( state );
-	    block.checkInline( state );
-	}
-
-        
         void compile( CompileState state, IRBlock into ) {
             LLVM.BasicBlock t = into.Block();
             LLVM.BasicBlock c = into.Block();
@@ -372,10 +348,6 @@ namespace Parse {
             this.statement = statement;
         }
 
-	void checkInline( CompileState state ) {
-	    throw new CannotInlineException();
-	}
-	
         void declareSymbols( CompileState state ) {	   
 	    var te = type_expr;
 	    var t = type_expr.parseType( state );
@@ -680,18 +652,6 @@ namespace Parse {
             this.statement = statement;
         }
 
-	void checkInline( CompileState state ) {
-            if( initializer != null ) {
-                initializer.checkInline( state );
-            }
-
-            if( increment != null ) {
-                increment.checkInline( state );
-            } 
-
-            statement.checkInline( state );	    
-	}
-
         void declareSymbols( CompileState state ) {
             if( initializer != null ) {
                 initializer.declareSymbols( state );
@@ -736,12 +696,6 @@ namespace Parse {
             statement.checkTemplates( state );	
 	}
 
-	/*
-	void checkInline( CompileState state ) {
-	    throw new CannotInlineException();
-	}
-	*/
-  
         void compile( CompileState state, IRBlock into ) {
             LLVM.BasicBlock top = into.Block();
             LLVM.BasicBlock cont = into.Block();

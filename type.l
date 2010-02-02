@@ -8,6 +8,7 @@ namespace Parse {
     use System.String;
     use System.StringBuffer;
     use System.Exception;
+    use Gen.Machine;
     use Generic.Vector;
 
     class Type extends Object {
@@ -477,8 +478,15 @@ namespace Parse {
             case Type.INTEGER,Type.ENUM,Type.ERROR:
                 return 4;
 
-	    case Type.NONE,Type.NULL,Type.WORD,Type.LONG,Type.VECTOR,Type.REFERENCE,Type.POINTER,Type.CLASS,Type.PROC:
-		return Gen.Machine.WORD;
+	    case Type.LONG:
+		return 8;
+
+	    case Type.NONE,Type.NULL,Type.WORD,Type.VECTOR,Type.REFERENCE,Type.POINTER,Type.CLASS,Type.PROC:
+		if( Machine.Is64Bit ) {
+		    return 8;
+		} else {
+		    return 4;
+		}
 
             default:
                 throw new Exception( "oops: unknown type-kind " + cast<int>(getTypeKind()) + " in Type.getSize() on: " + this );

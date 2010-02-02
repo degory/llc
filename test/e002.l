@@ -3,6 +3,7 @@ namespace E001 {
     class Main {
 	void init() {
 	    try {
+		// native.GC_disable();
 		IO.Std.err.println( "Hello World!" );
 		var te = new System.Exception( "Oops" );
 		native.printf( `AAA: te is %p\n`, te ); native.__flush_stdout();
@@ -27,7 +28,7 @@ namespace E001 {
 
 		native.printf( `AAA: se is %p, %p\n`, se, [ue] );
 		IO.Std.err.println( "exception is: " + se.Class.Name );
-
+		IO.Std.err.println( "caught: " + se );
 	    } finally {
 		IO.Std.err.println( "Finally" ); native.__flush_stdout();
 	    }

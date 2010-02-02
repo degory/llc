@@ -1,12 +1,6 @@
 
 namespace Parse {
-    use Gen.ITree;
-    use Gen.IBlock;
-    use Gen.ILabel;
-    use Gen.IString;
     use Gen.Machine;
-    use Gen.TempFactory;
-    use Gen.MBitSet;
     use Gen.IRBlock;
   
     class ThrowStatement extends Statement {
@@ -23,11 +17,6 @@ namespace Parse {
 
 	void checkTemplates( CompileState state ) {
 	    expression.checkTemplates( state );
-	}
-
-	void checkInline( CompileState state ) {
-	    expression.checkInline( state );
-	    // throw new CannotInlineException();
 	}
 
 	void compile( CompileState state, IRBlock into ) {
@@ -59,20 +48,6 @@ namespace Parse {
 
 	    return v;
 	}
-
-        void compile( CompileState state, IBlock into ) {
-            Type type = expression.getType( state );
-
-            if( type.TypeKind != Type.CLASS && type != undefined_type ) {
-                error( "throw can only throw objects" );
-                return;
-            }
-
-            into.add( new 
-                      ITree( line_number, Op.THROW, Machine.WORD,
-                             expression.compileValue( state, into ) ) );
-            return;
-        }
 
 	get bool IsLastReturn {
 	    // doesn't return at all
@@ -428,10 +403,6 @@ namespace Parse {
             }
         }
 
-	void checkInline( CompileState state ) {
-	    throw new CannotInlineException();
-	}
-
 	void checkTemplates( CompileState state ) {
 	    if( catches != null ) {
 		catches.checkTemplates( state );
@@ -546,8 +517,6 @@ namespace Parse {
         void compile( CompileState state, IRBlock into ) {
 	    ExceptionDescriptor ed;
 	    int old_exception_level = state.ExceptionLevel;
-
-	    IO.Writer f = state.Output;
 
 	    LLVM.Value exception_unwind = into.AllocaEntry( LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0), ".ex_unwind" );
 	    LLVM.Value exception_object = into.AllocaEntry( LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0), ".ex_object" );

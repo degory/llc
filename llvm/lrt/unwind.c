@@ -98,11 +98,11 @@ typedef signed char int8_t;
 struct OurExceptionType;
 
 void __debug_init( char *name ) {
-  printf( "intialize: %s\n", name ); fflush(stdout);
+  // printf( "intialize: %s\n", name ); fflush(stdout);
 }
 
 void __add_roots( void *b, void *e ) {
-  printf( "GC_add_roots(%p,%p)\n", b, e ); fflush(stdout);
+  // printf( "GC_add_roots(%p,%p)\n", b, e ); fflush(stdout);
   GC_add_roots( b, e );  
 }
 
@@ -147,9 +147,16 @@ char *__get_backtrace() {
   return "argh";
 }
 
+typedef struct _Exception {
+  void   *vtable;
+  void   *backtrace;
+  void   *message;
+} Exception;
+
 
 struct _Unwind_Exception *makeException( void *l_exception ) {
   struct _Unwind_Exception_L *result = (struct _Unwind_Exception_L *)GC_malloc(sizeof(struct _Unwind_Exception_L));
+
   result->exception_class = L_EXCEPTION_CLASS;
   result->exception_cleanup = cleanup;
   result->l_exception = (uint64)l_exception;

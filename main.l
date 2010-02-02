@@ -5,7 +5,7 @@ import stream;
 
 import compiler;
 import compilestate;
-import mtree;
+// import mtree;
 
 import gc;
 
@@ -57,19 +57,6 @@ namespace Parse {
 	    state.ProjectName = name;
 	}
 
-	static Gen.TempFactory temp_factory;
-
-	void initForThreads() {
-	    // native.GC_expand_hp(512*1024*1024);
-
-	    // native.GC_enable_incremental();
-	    IO.Std.makeThreadSafe();
-	    temp_factory = new Gen.TempFactory( Gen.Machine.FIRST_SOFT_REG, 0 );
-	    // IO.Std.err.println( "setting temp factory: " + temp_factory + "..." );
-	  
-	    Gen.TempFactory.setInstance( temp_factory );
-	}
-	
 	void init() {
 
 	}
@@ -80,8 +67,6 @@ namespace Parse {
 	}
 
         int run2( String[] args ) {
-	    // initForThreads();
-
 	    state = new CompileState();
 	    bool first_file = true;
 	    int i, j;
@@ -306,8 +291,10 @@ namespace Parse {
 		    case 'i':
 			state.MaxInlineCount = name.substring(2).parseInt();
 
+			/*
 		    case 'c':
 			Gen.MFlow.MaxCoalesceCopies = name.substring(2).parseInt();
+			*/
 
 		    case 'W':
 			if( name.Length == 2 ) {
@@ -431,6 +418,7 @@ namespace Parse {
 
 		Parse.ParseTree.newline();
 
+		/*
 		if( Gen.MFlow.method_count != 0 && state.WantStatistics ) {
 		    IO.Std.err.println( "        " + Parse.Expression.type_lookups + " type lookups" );
 		    IO.Std.err.println( "        " + Parse.Expression.type_misses + " type misses" );
@@ -461,6 +449,7 @@ namespace Parse {
 		    IO.Std.err.println( "        " + Gen.MInst.spill_number + " total spills generated" );
 		    IO.Std.err.println( "        " + Gen.MInst.mem_number + " spills converted to direct memory references" );
 		}
+		*/
 		if( ParseTree.didErrorsOccur() ) {
 		    return 1;
 		} else {

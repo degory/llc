@@ -6,14 +6,8 @@ namespace Parse {
     use System.Exception;
     use Generic.Vector;
 
-    use Gen.ITree;
-    use Gen.IBlock;
     use Gen.IRBlock;
-    use Gen.ILabel;
-    use Gen.IString;
     use Gen.Machine;
-    use Gen.TempFactory;
-    use Gen.MBitSet;
 
     class CaseStatement extends LoopStatement {
         Expression expression;
@@ -55,10 +49,6 @@ namespace Parse {
                 c.declareSymbols( state );
             }
         }
-
-	void checkInline( CompileState state ) {
-	    throw new CannotInlineException();
-	}
 
         void compile( CompileState state, IRBlock into ) {
             LLVM.BasicBlock e = into.Block();
@@ -206,52 +196,6 @@ namespace Parse {
         }
 
         
-        void compile( CompileState state, IBlock into, ITree temp, Type type, ILabel exit ) {
-            Vector<Expression> list = expression_list.List;
-            ILabel next = TempFactory.nextLabel();
-
-            if( list.Length == 1 ) {
-                Expression expression = list[0];
-                if( !type.isAssignableFrom(expression.getType(state)) ) {
-                    error( "AA: case expression " + expression.dump(state) + " of type " + expression.getType(state).dump() + " not compatible with switch expression of type " + type.dump() );
-                } else {
-                    into.add( new ITree( line_number, Op.BRANCH, 0,
-                                         new ITree( line_number, Op.NE, type.Size,
-                                                    temp.clone(),
-                                                    expression.compileValue(state, into) ),
-                                         next )
-                              );
-                }
-                block.compile( state, into );
-            } else {
-                ILabel match = TempFactory.nextLabel();
-                
-                foreach( Expression e; list.elements() ) {
-                    if( !type.isAssignableFrom(e.getType(state)) ) {
-                        error( "BB: case expression " + e.dump(state) + " of type " + e.getType(state).dump() + " not compatible with switch expression of type " + type.dump() );                  
-                    } else {
-                        ITree t = e.compileValue(state, into);
-                        // t.dump( stderr, 0 );
-                        into.add( new ITree( line_number, Op.BRANCH, 0,
-                                             new ITree( line_number, Op.EQ, type.Size,
-                                                        temp.clone(),
-                                                        t ),
-                                             match )
-                                  );
-                    }
-                }
-                into.add( new ITree( line_number, Op.JUMP, 0, next ) );
-                into.add( new ITree( line_number, Op.LABEL, 0, match ) );
-                block.compile( state, into );
-            }
-
-            if( exit != null ) {
-                into.add( new ITree( line_number, Op.JUMP, 0, exit ) );
-            }
-            
-            into.add( new ITree( line_number, Op.LABEL, 0, next ) );
-        }
-
         void dump( CompileState state, StringBuffer into ) {
             into.append( "case " );
             expression_list.dump(state,into);
@@ -319,16 +263,6 @@ namespace Parse {
             }
         }
 
-	void checkInline( CompileState state ) {
-	    expression.checkInline( state );
-	    true_block.checkInline( state );
-	    if( false_block != null ) {
-		false_block.checkInline( state );
-	    }
-	    state.markCurrentMethodHasIf();
-	}
-
-
         void compile( CompileState state, IRBlock into ) {
             LLVM.BasicBlock f = into.Block();
 
@@ -355,30 +289,6 @@ namespace Parse {
         }
 
 
-        void compile( CompileState state, IBlock into ) {
-            ILabel e = TempFactory.nextLabel();
-            ILabel f = TempFactory.nextLabel();
-
-	    Type t = expression.getType(state); 
-	    if( t.TypeKind != Type.BOOL ) {
-	        error( "if condition is not bool: " + t );
-	    } else {
-		expression.compileBoolean( state, into, f, false );
-	    }
-
-            true_block.compile( state, into );
-            
-            if( false_block != null ) {
-                into.add( new ITree( line_number, Op.JUMP, 0, e ) );
-                into.add( new ITree( line_number, Op.LABEL, 0, f ) );
-                false_block.compile( state, into );
-                
-                into.add( new ITree( line_number, Op.LABEL, 0, e ) );
-            } else {
-                into.add( new ITree( line_number, Op.LABEL, 0, f ) );
-            }
-        }
-	
 	get bool IsLastReturn {
 	    bool result = true_block.IsLastReturn;
 	    if( false_block != null ) {

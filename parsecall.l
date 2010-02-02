@@ -5,13 +5,7 @@ namespace Parse {
     use System.StringBuffer;
     use System.Exception;
 
-    use Gen.ITree;
-    use Gen.IBlock;
-    use Gen.ILabel;
-    use Gen.IString;
     use Gen.Machine;
-    use Gen.TempFactory;
-    use Gen.MBitSet;
     use Gen.IRBlock;
 
     class NewExpression extends Expression {
@@ -103,17 +97,6 @@ namespace Parse {
                 }
             }
         }
-
-	void checkInline( CompileState state ) {
-	    left.checkInline( state );
-	    if( argument != null ) {
-		argument.checkInline( state );
-	    }
-	    if( arguments != null ) {
-		arguments.checkInline( state );
-	    }
-	}
-
 
         LLVM.Value compileValue( CompileState state, IRBlock into ) {
             Container class_symbol = null;
@@ -315,10 +298,6 @@ namespace Parse {
 	    }
 	}
 
-	void checkInline( CompileState state ) {
-	    throw new CannotInlineException();
-	}
-
 	LLVM.Value getFunction( CompileState state ) {
 	    LLVM.Value v;
 	    LLVM.Type ft;
@@ -375,25 +354,6 @@ namespace Parse {
         void compileDiscardValue( CompileState state, IRBlock into ) {
 	    compileValue( state, into );
 	}
-
-        void compileDiscardValue( CompileState state, IBlock into ) {
-            int count = 0;
-
-	    // IO.Std.err.println( "call native function for value: " + name.getName() );
-            
-	    if( state.WantMarkUnsafe ) {
-		state.markCodeUnsafe( CompileState.UNSAFE_NATIVE );
-	    }
-            if( state.WantWarnUnsafe ) {
-                warn( "calling native function " + name.Name );
-            }
-            
-	    count = ExpressionList.compilePush( arguments, state, null, null, into, false, true, null );
-            
-            into.add( new ITree( line_number, Op.EXTERN, 0, name.Name ) );
-
-	    compileCall( state, into, null, Op.STATIC_CALL_DISCARD, null, name.Name, 0, count, null );
-        }
 
 	get int Depth {
 	    if( arguments != null ) {
@@ -785,18 +745,10 @@ namespace Parse {
         void compileDiscardValue( CompileState state, IRBlock into ) {
             compileValue( state, into, false );
         }
-	/*
-        ITree compileValue( CompileState state, IBlock into ) {
-            return compileValue( state, into, true );
-        }
 
-        void compileDiscardValue( CompileState state, IBlock into ) {
-            compileValue( state, into, false );
-        }
-	*/
         LLVM.Value compileValue( CompileState state, IRBlock into, bool need_value ) {
 	    int tt, ta, tr;
-	    ILabel lt;
+
 	    /*
 	    IO.Std.err.println( "call method, current class: " + state.CurrentClass );
 	    if( type != null ) {		
@@ -1117,92 +1069,5 @@ namespace Parse {
 	    */
 	    checkAccess( symbol, state );	    
 	}
-
-        ITree compileValue( CompileState state, IBlock into ) {
-            getType( state );
-
-            if( method == null || method == undefined_method ) {
-                return new ITree( line_number, Op.ERROR, 0 );
-            }
-
-	    var load_this = false;
-	    Identifier name;
-	    var left_value = left;
-
-	    name = cast Identifier(left_value);
-	    left_value = name.LeftValue;
-	    
-
-	    // IO.Std.err.println( "call method " + method.Owner.HumanName + " " + method.Name );
-
-	    if( left_value != null && !left_value.isThis( state ) && !left_value.isSuper( state ) ) {
-		// IO.Std.err.println( "IIIIII: load this" );
-		load_this = true;
-	    }
-            
-            int size = 0;
-	    /*
-            if( method.getKind() == Symbol.INSTANCE_METHOD ) {
-                size = 4;                       // FIXME: not always
-            }
-	    */
-            
-	    bool instance = true;
-                        
-            ITree t = null;
-
-	    if( left_value != null && !left_value.isClass( state ) ) {
-		// Std.err.println( "call A..." );
-                t = left_value.compileValue( state, into );
-
-                Container scope = left_value.getType(state).Clazz;
-                Container super_class = null;
-                if( left_value.getType(state).TypeKind == Type.SUPER ) {
-                    super_class = scope;
-                }
-
-		if( method.IsStatic ) {
-		    error( "cannot make bound reference to static method here" );
-		    return new ITree( 0, Op.ERROR, 0 );
-		}
-
-		/*
-		IO.Std.err.println( "method call calling load: " + method );
-		IO.Std.err.println( "IIIIII: kind is " + method.Kind + " versus " + Symbol.STATIC_METHOD );
-		*/
-
-                t = compileLoadProcRef( state, into, method, type, method.ArgTypes, t, instance, super_class );
-            } else if( left_value != null ) {
-
-		// Std.err.println( "call B..." );
-                if( left_value.isClass( state ) ) {
-		    instance = false;
-		    if( !method.IsStatic ) {
-			error( "cannot make bound reference to instance method here" );
-			return new ITree( 0, Op.ERROR, 0 );
-		    }
-		} else {
-		    if( method.IsStatic ) {
-			error( "cannot make bound reference to static method here" );
-			return new ITree( 0, Op.ERROR, 0 );
-		    }
-		}
-
-                t = compileLoadProcRef( state, into, method, type, method.ArgTypes, null, instance, null );
-            } else {
-		if( state.CurrentMethod == null || state.CurrentMethod.IsStatic ) {
-		    error( "cannot make bound reference to instance method here" );
-		    return new ITree( 0, Op.ERROR, 0 );
-		}
-		// Std.err.println( "call C..." );
-                if( method.IsStatic ) {
-                    instance = false;
-		}
-
-                t = compileLoadProcRef( state, into, method, type, method.ArgTypes, t, instance, null );
-            }
-            
-	    return t;
-        }	
     }
 }

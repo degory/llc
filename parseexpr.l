@@ -7,14 +7,8 @@ namespace Parse {
     use Generic.Vector;
     use Generic.List;
 
-    use Gen.ITree;
-    use Gen.IBlock;
     use Gen.IRBlock;
-    use Gen.ILabel;
-    use Gen.IString;
     use Gen.Machine;
-    use Gen.TempFactory;
-    use Gen.MBitSet;
 
     /// Array literal
     class VectorList extends Expression {
@@ -75,12 +69,6 @@ namespace Parse {
         void declareSymbols( CompileState state ) {
             list.declareSymbols( state );
         }
-
-	void checkInline( CompileState state ) {
-            foreach( Expression f; list.List.elements() ) {
-		f.checkInline( state );
-	    }
-	}
 
 	void clear( CompileState state ) {
 	    super.clear( state );
@@ -211,10 +199,6 @@ namespace Parse {
 	    right.checkTemplates( state );
 	}
 
-	void checkInline( CompileState state ) {
-	    right.checkInline(state);
-	}
-
 	static bool warned = false;
         LLVM.Value compileValue( CompileState state, IRBlock into ) {
             Type r = right.getType( state );
@@ -258,53 +242,6 @@ namespace Parse {
             }
         }
 
-
-        ITree compileValue( CompileState state, IBlock into ) {
-            Type r = right.getType( state );
-            
-            if( requires_runtime_check ) {
-		int t;
-
-		ITree tr = right.compileValue(state, into);
-		if( !tr.isSimple() && state.InExceptionHandler ) { // make sure right completely evaluated before dummy jump to exception handler
-		    t = TempFactory.nextTemp();
-		    into.add( makeStoreTemporary( t, Machine.WORD, tr ) );
-		    tr = makeLoadTemporary( t, Machine.WORD );
-		}
-		addDummyExceptionHandlerJump( state, line_number, into );
-		ITree compare_vtable = loadVTable( state, type.Clazz);
-
-		if( !compare_vtable.isPrettySimple() ) {
-		    // FIXME: CAST_CHECK want's to rewrite it's right operand and this will fail for PIC loadVTable ITree so copy into a
-		    // temporary:
-		    t = TempFactory.nextTemp();
-
-		    into.add( makeStoreTemporary( t, Machine.WORD, compare_vtable ) );
-		    compare_vtable = makeLoadTemporary( t, Machine.WORD );
-		}
-
-                return new ITree( line_number, Op.CAST_CHECK, 0, tr, compare_vtable );
-            } else if( r.RegSize == getType(state).RegSize ) {
-                return right.compileValue( state, into );
-            } else {
-		if( r.RegSize == 8 ) {
-                    return new ITree( line_number, Op.CAST_FROM8,
-                                      getType( state ).RegSize,
-                                      right.compileValue( state, into ) );
-		} else if( r.RegSize == 4 ) {
-                    return new ITree( line_number, Op.CAST_FROM4,
-                                      getType( state ).RegSize,
-                                      right.compileValue( state, into ) );
-                } else if( r.RegSize == 1 ) {
-                    return new ITree( line_number, Op.CAST_FROM1,
-                                      getType( state ).RegSize,
-                                      right.compileValue( state, into ) );
-                } else {
-                    throw new Exception( "oops: cast from unexpected size: " + r.RegSize );
-                    return right.compileValue( state, into );
-                }
-            }
-        }
 	
 	get int Depth {
 	    return right.Depth + 1;
@@ -364,11 +301,6 @@ namespace Parse {
 	    return makeLoadThis( state, line_number, into );
 	}
         
-        ITree compileValue( CompileState state, IBlock  into ) {
-            // return new ITree( line_number, Op.THIS, 8 );
-            return makeLoadThis( state, line_number, into );
-        }
-
         void calcType( CompileState state ) {
             type = state.CurrentClass.Type;
         }
@@ -430,10 +362,6 @@ namespace Parse {
 	    left.checkTemplates( state );
 	}
 
-        ITree compileValue( CompileState  state, IBlock into ) {
-	    throw new Exception( "cannot compile class<>" );
-	}
-
 	get int Depth {
 	    return 1;
 	}
@@ -457,10 +385,6 @@ namespace Parse {
 	LLVM.Value compileValue( CompileState state, IRBlock into ) {
 	    return makeLoadThis( state, line_number, into );
 	}
-
-        ITree compileValue( CompileState state, IBlock into ) {
-            return makeLoadThis( state, line_number, into );
-        }
 
         void calcType( CompileState state ) {
             if( state.CurrentClass == null ) {
@@ -675,31 +599,6 @@ namespace Parse {
 	    IO.Std.err.println( "returning nothing" );
 
 	}
-
-        ITree compileValue( CompileState state, IBlock into ) {
-	    // IO.Std.err.println( "compiling constant: " + this );
-            if( type == string_type ) {
-		// IO.Std.err.println( "string constant" );
-		// native.printf( `value is %X\n`, value );
-		// IO.Std.err.println( "value: " + value );
-		ITree t = new ITree( line_number, Op.CONST_STR, 0, value );
-		// IO.Std.err.println( "result is: " + t );
-		return t;
-            } else if( type.TypeKind == Type.POINTER
-                       && type.SubType.TypeKind == Type.CHAR ) {
-		// IO.Std.err.println( "C String constant" );
-                return new ITree( line_number, Op.CONST_CSTR, 0, value );
-            } else {
-		// IO.Std.err.println( "other constant: '" + value + "'" );
-                return new ITree( line_number, Op.CONST,
-                                  getType( state ).RegSize, value );
-            }
-        }
-
-        ITree compileAddress( CompileState state, IBlock into ) {
-            error( "constant has no address" );
-            return new ITree( line_number, Op.ERROR, 0 );
-        }
 
         String toString() {
             return "Constant(" + value + "," + type + ")";
@@ -1082,15 +981,6 @@ namespace Parse {
         }
 
 
-	void checkInline( CompileState state ) {
-	    if( left != null ) {
-		left.checkInline( state );
-	    }
-	    if( right != null ) {
-		right.checkInline( state );
-	    }
-	}
-
 	void checkTemplates( CompileState state ) {
 	    if( left != null ) {
 		left.checkTemplates( state );
@@ -1306,107 +1196,6 @@ namespace Parse {
 		    throw new System.NotImplementedException( "unsupported unary operator: " + cast int(op) );
 		}
 	    }
-
-        }
-
-        ITree compileValue( CompileState  state, IBlock into ) {
-	    int op = operation;
-	    ITree t;
-	    // IO.Std.err.println( "ArithExpression.compileValue: " + this );
-            if( method_call != null ) {
-		// IO.Std.err.println( "compiling ArithExpression method call: " + method_call );
-		int size = method_call.getType(state).RegSize;
-
-		t = method_call.compileValue( state, into );
-
-		if( not_result ) {
-		    t = new ITree( line_number, Op.EQ, size, t, new ITree( line_number, Op.CONST, size, 0 ) );
-		} else if( inequality ) {
-		    if( reverse ) {
-			op = getReverseJumpOp( op, true );
-		    }
-		    t = new ITree( line_number, op, size, t, new ITree( line_number, Op.CONST, size, 0 ) );
-		}
-
-		return t;
-            } else if( right != null ) {
-                bool comparison = operation >= Op.EQ && operation <= Op.LE;
-                
-                ITree cl = left.compileValue( state, into );
-                ITree cr = right.compileValue( state, into );
-                
-                getType( state );
-                
-                Type tl = left.getType( state );
-                Type tr = right.getType( state );
-
-                bool pl = tl.TypeKind == Type.POINTER;
-                bool pr = tr.TypeKind == Type.POINTER;
-
-		if( (pl || pr) && !comparison ) {
-		    int element_size = type.SubType.RegSize;
-
-		    // IO.Std.err.println( "left: " + tl );
-		    // IO.Std.err.println( "right: " + tr );
-		    // IO.Std.err.println( "pointer expression, type: " + type + ", size: " + type.getRegSize() );
-		    
-		    if( pr ) {
-		     	if( tl.Size == 1 ) {
-			    cl = new ITree( line_number, Op.CAST_FROM1, Machine.WORD, cl );
-			} else if( tl.Size == 4 ) {
-			    cl = new ITree( line_number, Op.CAST_FROM4, Machine.WORD, cl );
-			}
-
-			if( element_size != 1 ) {
-			    cl = new ITree( line_number, Op.MUL, Machine.WORD, cl,
-					    new ITree( line_number,
-						       Op.CONST, Machine.WORD,
-						       element_size) );
-			}
-		    }
-
-		    if( pl ) {
-			if( tr.Size == 1 ) {
-			    cr = new ITree( line_number, Op.CAST_FROM1, Machine.WORD, cr );
-			} else if( tr.Size == 4 ) {
-			    cr = new ITree( line_number, Op.CAST_FROM4, Machine.WORD, cr );
-			}
-
-			if( element_size  != 1 ) {
-			    cr = new ITree( line_number, Op.MUL, Machine.WORD, cr,
-					    new ITree( line_number,
-						       Op.CONST, Machine.WORD,
-						       element_size ) );
-			}
-		    }
-		} else if( !pl && !pr && tl.RegSize != tr.RegSize ) {
-		    // IO.Std.err.println( "left: " + tl.getRegSize() + ", " + left );
-		    // IO.Std.err.println( "right: " + tr.getRegSize() + ", " + right );
-
-                    error( "oops: arithmetic operands are different register sizes" );
-                }
-
-
-		if( not_result && op == Op.EQ ) {
-		    t = new ITree( line_number, Op.NE,
-                                     left.getType( state ).RegSize,
-                                     cl, cr );
-		} else {
-		    t = new ITree( line_number, op,
-                                     left.getType( state ).RegSize,
-                                     cl, cr );
-		    if( not_result ) {
-			IO.Std.err.println( "VVVVVV: unexpected not result for non == operation" );
-
-			t = new ITree( line_number, Op.NE, 1, t, new ITree( line_number, Op.CONST, 1, 0 ) );
-		    }
-		}
-                return t;
-            } else {
-                return new ITree( line_number, operation,
-                                  left.getType( state ).RegSize,
-                                  left.compileValue( state, into ) );
-            }
 
         }
 
@@ -1702,10 +1491,8 @@ namespace Parse {
 
 			if( !reverse ) {
 			    op = getReverseJumpOp( operation, jump );
-			    IO.Std.out.println( "overload reverse op: " + operation + " jump: " + jump + " -> " + op );
 			} else {
 			    op = getJumpOp( operation, jump );
-			    IO.Std.out.println( "overload forward op: " + operation + " jump: " + jump + " -> " + op );
 			}
 			
 
@@ -1736,127 +1523,6 @@ namespace Parse {
 		}
             }
         }
-
-        ITree compileValue( CompileState state, IBlock into ) {
-	    getType(state);
-
-	    if( method_call != null || ( operation >= Op.EQ && operation <= Op.LE) ) {
-		// Std.err.println( "boolean expression compile value operation overload method: " + method_call );
-
-		// super.compileValue applies not result here:
-                return super.compileValue( state, into );
-            } else {
-                ILabel l = TempFactory.nextLabel();
-                ILabel m = TempFactory.nextLabel();
-                
-                int t = TempFactory.nextTemp();
-                
-		// compileBoolean applies not_result here:
-                compileBoolean( state, into, l, true );
-                into.add( makeStoreTemporary( t, 1,
-                                              new ITree( line_number,
-                                                         Op.CONST, 1, 0 )
-                                              )
-                          );
-                into.add( new ITree( line_number, Op.JUMP, 0, m ) );
-                into.add( new ITree( line_number, Op.LABEL, 0, l ) );
-                into.add( makeStoreTemporary( t, 1,
-                                              new ITree( line_number,
-                                                         Op.CONST, 1, 1 )
-                                              )
-                          );
-                into.add( new ITree( line_number, Op.LABEL, 0, m ) );
-                
-                return makeLoadTemporary( t, 1 );
-            }
-        }
-
-        void compileBoolean( CompileState state, IBlock into, ILabel label, bool jump ) {
-	    getType(state);
-
-            ILabel l2;
-
-	    if( not_result ) {
-		// if operation was !~ (i.e. objects not equal) applied to non-object operands then
-		// we will see operation == Op.EQ here with not_result set and need to reverse the sense
-		// of the test:
-		jump = !jump;
-	    }
-
-
-            if( operation == Op.BOOL_AND ) {
-                if( jump ) {
-                    l2 = TempFactory.nextLabel();
-                    left.compileBoolean( state, into, l2, false );
-                    right.compileBoolean( state, into, label, true );
-                    
-                    into.add( new ITree( line_number, Op.LABEL, 0, l2 ) );
-                } else {
-                    left.compileBoolean( state, into, label, false );
-                    right.compileBoolean( state, into, label, false );
-                }
-            } else if( operation == Op.BOOL_OR ) {
-                if( jump ) {
-                    left.compileBoolean( state, into, label, true );
-                    right.compileBoolean( state, into, label, true );
-                } else {
-                    l2 = TempFactory.nextLabel();
-                    left.compileBoolean( state, into, l2, true );
-                    right.compileBoolean( state, into, label, false );
-                    into.add( new ITree( line_number, Op.LABEL, 0, l2 ) );
-                }
-            } else if( operation == Op.BOOL_NOT ) {
-                left.compileBoolean( state, into, label, !jump );
-            } else if( operation >= Op.EQ && operation <= Op.LE ) {
-		int size;
-		if( method_call != null ) {
-		    size = method_type.RegSize;
-
-		    int op;
-		    if( operation == Op.EQ ) {
-			if( jump ) {
-			    op = Op.BRANCHNZ;
-			} else {
-			    op = Op.BRANCHZ;
-			}
-
-			into.add( new ITree( line_number, op, size,
-					     method_call.compileValue( state, into ),
-					     label ) );
-			
-		    } else {
-
-			if( !reverse ) {
-			    op = getReverseJumpOp( operation, jump );
-			    IO.Std.out.println( "overload reverse op: " + operation + " jump: " + jump + " -> " + op );
-			} else {
-			    op = getJumpOp( operation, jump );
-			    IO.Std.out.println( "overload forward op: " + operation + " jump: " + jump + " -> " + op );
-			}
-			
-			
-			into.add( new ITree( line_number, Op.BRANCH, 0,
-					     new ITree( line_number,
-							op, size,
-							method_call.compileValue( state, into ),
-							new ITree( line_number, Op.CONST, size, 0 )
-							),
-					     label ) );
-		    }
-		    
-		} else {	    
-		    size = left.getType(state).RegSize;
-		    ITree l = left.compileValue( state, into );
-		    ITree r = right.compileValue( state, into );
-
-		    // IO.Std.out.println( "compare op: " + operation + " jump: " + jump + " reverse: " + reverse + " -> " + getJumpOp(operation,jump) );
-		    into.add( new ITree( line_number, Op.BRANCH, 0,
-					 new ITree( line_number,
-						    getJumpOp( operation,jump ), size, l, r ), label )
-			      );
-		}
-            }
-        }
     }
 
     class Parenthesis extends Expression {
@@ -1880,7 +1546,8 @@ namespace Parse {
 	    left.qualifies(left_value);
         }
 
-        ITree compileValue( CompileState state, IBlock into, ILabel e, bool jump ) {
+	/*
+        LLVM.Value compileValue( CompileState state, IRBlock into, ILabel e, bool jump ) {
 	    return left.compileValue(state, into, e, jump);
         }
 
@@ -1896,6 +1563,7 @@ namespace Parse {
         void compileDiscardValue( CompileState state, IRBlock into ) {
 	    left.compileDiscardValue(state, into);
         }
+	*/
 
         bool isSuperConstructorCall( CompileState state ) {
 	    return left.isSuperConstructorCall(state);
@@ -1921,13 +1589,11 @@ namespace Parse {
 	    type = left.getType(state);
 	}
 
+	/*
         ITree compileAddress( CompileState state, IBlock into ) {
 	    return left.compileAddress( state, into );
         }
-
-        void markAddressTaken( CompileState state ) {
-	    left.markAddressTaken( state );
-        }
+	*/
 
 	void print( CompileState state, Printer p ) {
 	    p.print( "(" );
@@ -1963,20 +1629,17 @@ namespace Parse {
             error( "cannot qualify this" );
         }
 
-        ITree compileValue( CompileState state, IBlock into, ILabel e, bool jump ) {
+        LLVM.Value compileValue( CompileState state, IRBlock into, LLVM.BasicBlock e, bool jump ) {
             error( "not a boolean expression: " + this );
-            return new ITree( line_number, Op.ERROR, 0 );
+	    return ErrorValue();
         }
 
 
-        ITree compileValue( CompileState state, IBlock into ) {
+        LLVM.Value compileValue( CompileState state, IRBlock into ) {
             error( "this thing doesn't have a value\n" );
-            return new ITree( line_number, Op.ERROR, 0 );
+	    return ErrorValue();
         }
 
-        void compileDiscardValue( CompileState state, IBlock into ) {
-            error( "oops: can't compile discard value" );           
-        }
 
         void compileDiscardValue( CompileState state, IRBlock into ) {
             error( "oops: can't compile discard value" );           
@@ -2047,12 +1710,9 @@ namespace Parse {
             throw new Exception( "can't calcType for: " + this );
         }
 
-        ITree compileAddress( CompileState state, IBlock into ) {
-            throw new Exception( "expression has no address" );
-            return new ITree( line_number, Op.ERROR, 0 );
-        }
-
-        void markAddressTaken( CompileState state ) {
+        LLVM.Value compileAddress( CompileState state, IRBlock into ) {
+            error( "expression has no address" );
+	    return ErrorValue();
         }
 
 	static LLVM.Value makeComparison( int op, LLVM.Value cl, LLVM.Value cr, IRBlock into ) {
@@ -2163,34 +1823,10 @@ namespace Parse {
 			);
 	}
 
-        void compileBoolean( CompileState state, IBlock into, ILabel label, bool jump ) {
-            if( getType( state ).TypeKind != Type.BOOL ) {
-                error( "not a boolean expression: " + this );
-                return;
-            }
-
-            int op;
-            if( jump ) {
-                op = Op.BRANCHNZ;
-            } else {
-                op = Op.BRANCHZ;
-            }
-
-            into.add( new ITree( line_number, op, getType( state ).RegSize, compileValue( state, into ), label ) );
-        }
-
 
         void init( int line_number ) {
             super.init( line_number );
             type = null;
-        }
-
-        ITree makeInstance( CompileState state, int line_number, IBlock into, int offset ) {
-            return new ITree( line_number, Op.ADD, Machine.WORD,
-                              makeLoadThis( state, line_number, into ),
-                              new ITree( line_number, Op.CONST,
-                                         Machine.WORD, offset )
-                              );
         }
 
         LLVM.Value makeInstance( CompileState state, int line_number, IRBlock into, LLVM.Value t, Container from, Symbol symbol ) {
@@ -2347,152 +1983,7 @@ namespace Parse {
 	}
 
 
-	ITree compileCall(
-            CompileState state, 
-	    IBlock into, 
-	    ITree from, 
-	    int o, 
-	    Symbol symbol, 
-	    String name, 
-	    int offset, 
-	    int pop_size, 
-	    Util.IntVector inline_args )
-	{
-	    int t;
-
-	    if( o == Op.ERROR ) {
-		IO.Std.err.println( "oops: compiling call with op == Op.ERROR" );
-	    }
-
-	    if( inline_args != null ) {
-		if( symbol == null ) {
-		    IO.Std.err.println( "cannot call inline method with no symbol: " + name );
-		}
-
-		Container method = cast<Container>(symbol);
-		IBlock b = method.InlineBlock;
-
-		if( b != null ) {
-		    String s = "";
-		    if( state.IsInline ) {
-			s = " nested";
-		    }
-
-		    if( state.WantVeryVerbose ) {
-			message( "about to inline: " + method.HumanName );
-		    }
-
-		    if( method.HumanName.equals(MethodDef.last_inline_name) ) {
-			IO.Std.err.println( "about to inline last method: " + method.HumanName );
-			if( state.CurrentMethod != null ) {
-			    IO.Std.err.println( "called from: " + state.CurrentMethod.HumanName );
-			}
-		    }
-
-		    inline_call_count = inline_call_count + 1;
-
-		    into.add( new ITree( line_number, Op.COMMENT, 0, "begin" + s + " inline method " + method.HumanName ) );
-		    t = TempFactory.nextTemp();
-
-		    int[] v = new int[inline_args.Length + 1];
-
-		    int j = 0;
-		    for( int i = inline_args.Length-1; i >= 0; i = i - 1 ) {
-			v[j] = inline_args[i];
-			j = j + 1;
-		    }
-		    v[j] = t;
-
-		    b.duplicateForInline( into, line_number, v );
-
-
-		    into.add( new ITree( line_number, Op.COMMENT, 0, "end" + s + " inline method " + method.HumanName ) );
-
-		    return makeLoadTemporary( t, Machine.WORD );
-		} else {
-		    IO.Std.err.println( "cannot call inline with no intermediate code body: " + method.HumanName );
-		    state.notLeaf();
-		}
-	    } else {
-		// if we're preparing an inline version of a method and either this is not the last inline pass or if the current method
-		// has no if statement then abort inline preparation.
-
-		// rationale is to allow inlining of small methods with method calls that also contain an if statement in the hope that the
-		// method call is in the less frequently executed part of the if statement. This is allowed only on the last inline pass to
-		// avoid passing up on the possibility of inlining the called method as well.
-		if( state.IsInline && (!state.InLastInlinePass || !state.CurrentMethodHasIf) ) {
-		    // IO.Std.err.println( "would call not leaf here for call to: " + symbol.Owner.HumanName + "." + symbol.Name + "..." );
-		    /*
-
-		      IO.Std.err.println( "attempting to inline call to: " + symbol.Owner.HumanName + "." + symbol.Name + "..." );
-		      }
-		    */
-		    state.notLeaf();
-		}
-	    }
-
-	    switch( o ) {
-	    case Op.STATIC_CALL:
-		t = TempFactory.nextTemp();
-		into.add( new ITree( line_number, o, 0, new ITree( line_number, Op.TEMP, Machine.WORD, t ), name ) );
-		addDummyExceptionHandlerJump( state, line_number, into );
-
-		if( pop_size > 0 ) {
-		    into.add( new ITree( line_number, Op.RELEASE, 0, pop_size ) );
-		}
-		return new ITree( line_number, Op.TEMP, Machine.WORD, t );
-
-	    case Op.STATIC_CALL_DISCARD:
-		into.add( new ITree( line_number, o, 0, name ) );
-		addDummyExceptionHandlerJump( state, line_number, into );
-
-		if( pop_size > 0 ) {
-		    into.add( new ITree( line_number, Op.RELEASE, 0, pop_size ) );
-		}
-		return new ITree( line_number, Op.COMMENT, 0, "discard call result" );
-
-	    case Op.DYNAMIC_CALL:
-		t = TempFactory.nextTemp();
-		into.add( new ITree( line_number, o, 0, new ITree( line_number, Op.TEMP, Machine.WORD, t ), offset ) );
-		addDummyExceptionHandlerJump( state, line_number, into );
-
-		if( pop_size > 0 ) {
-		    into.add( new ITree( line_number, Op.RELEASE, 0, pop_size ) );
-		}
-		return new ITree( line_number, Op.TEMP, Machine.WORD, t );
-
-	    case Op.DYNAMIC_CALL_DISCARD:
-		into.add( new ITree( line_number, o, 0, offset ) );
-		addDummyExceptionHandlerJump( state, line_number, into );
-
-		if( pop_size > 0 ) {
-		    into.add( new ITree( line_number, Op.RELEASE, 0, pop_size ) );
-		}
-		return new ITree( line_number, Op.COMMENT, 0, "discard call result" );;
-
-	    case Op.PROC_CALL:
-		t = TempFactory.nextTemp();
-		into.add( new ITree( line_number, o, 0, from, new ITree( line_number, Op.TEMP, Machine.WORD, t ) ) );
-		addDummyExceptionHandlerJump( state, line_number, into );
-
-		if( pop_size > 0 ) {
-		    into.add( new ITree( line_number, Op.RELEASE, 0, pop_size ) );
-		}
-		return new ITree( line_number, Op.TEMP, Machine.WORD, t );
-		
-	    case Op.PROC_CALL_DISCARD:
-		into.add( new ITree( line_number, o, 0, from ) );
-		addDummyExceptionHandlerJump( state, line_number, into );
-
-		if( pop_size > 0 ) {
-		    into.add( new ITree( line_number, Op.RELEASE, 0, pop_size ) );
-		}
-		return new ITree( line_number, Op.COMMENT, 0, "proc call result" );;
-	    }
-
-	    throw new Exception( "bad call operation: " + o );
-	}
-
+	/*
 	ITree compileLoadStaticProcRef( CompileState state, IBlock into, Symbol symbol, Type proc_type ) {
 	    var l = TempFactory.nextLabel();
 	    into.add( new ITree( line_number, Op.RODATA, 0 ) );
@@ -2651,6 +2142,7 @@ namespace Parse {
 		return compileLoadStaticProcRef( state, into, symbol, proc_type );
 	    }
 	}
+	*/
 
         LLVM.Value compileLoad(
 	    CompileState state,
@@ -3032,6 +2524,7 @@ namespace Parse {
 	    return Op.ERROR;
 	}
 
+	/*
         ITree compileLoad(
 	    CompileState state,
 	    IBlock into,
@@ -3043,7 +2536,7 @@ namespace Parse {
 	    int size,
 	    int flags,
 	    Symbol super_class ) {
-	    /*
+
             String buffer;
             ITree t;
             int o, a, u;
@@ -3362,8 +2855,8 @@ namespace Parse {
                     }
                     return new ITree( line_number, Op.ERROR, 0 );
                 }
-		} */
-	}
+	    }
+	} */
     }
 
 
@@ -3503,7 +2996,6 @@ namespace Parse {
 		if( t != null && t.TypeKind == Type.REFERENCE ) {
 		    // IO.Std.err.println( "compile reference parameter: " + e );
 		    v = e.compileAddress( state, into );
-		    e.markAddressTaken( state );
 		} else {
 		    // IO.Std.err.println( "compile value parameter: " + e + " type " + e.getType(state) );
 
@@ -3532,198 +3024,6 @@ namespace Parse {
 
 
 	    return result;
-        }
-
-
-	static int compilePush(
-            ExpressionList l, 
-	    CompileState state,
-	    ITree thiz,
-	    Vector<Type> arg_types,
-	    IBlock into,
-	    bool skip_this,
-	    bool native_call,
-	    Util.IntVector inline_args )
-	{
-	    if( l == null ) {
-		l = new ExpressionList( 0 );
-	    }
-
-	    int size = l.compilePush( state, thiz, arg_types, into, skip_this, native_call, inline_args );
-	    /*
-	    if( size > Machine.NUM_REG_PARAM ) {
-		throw new Exception( "need to adjust stack to remove pushed arguments" );
-	    }
-	    */
-
-	    return size;
-	}
-
-        int compilePush(
-            CompileState state,
-	    ITree thiz,
-	    Vector<Type> arg_types,
-	    IBlock into,
-	    bool skip_this,
-	    bool native_call,
-	    Util.IntVector inline_args
-	) {
-	    // IO.Std.err.println( "AAAAAA: compilePush: " + this );
-            int size = 0;
-            ITree result;
-	    ITree param = null; 
-	    ITree r = null;
-            int s;
-	    int temp;
-	    int thiz_temp;
-
-	    int num_reg_param;
-
-	    if( native_call ) {
-		num_reg_param = Machine.NUM_REG_PARAM_NATIVE;
-	    } else {
-		num_reg_param = Machine.NUM_REG_PARAM;
-	    }
-
-	    bool seen_any_params = false;
-
-	    int n = list.Length;
-
-	    if( skip_this ) {
-		n = n + 1;
-	    }
-	    bool simple;
-	    // IO.Std.err.println( "pushing " + n + " arguments: " + arg_types  );
-
-	    if( thiz != null && (!thiz.isPrettySimple() || inline_args != null) ) {
-		thiz_temp = TempFactory.nextTemp();
-		into.add( new ITree( 0, Op.COPY, Machine.WORD,
-				  new ITree( 0, Op.TEMP, Machine.WORD, thiz_temp ),
-				     thiz ) );
-
-		thiz = new ITree( 0, Op.TEMP, Machine.WORD, thiz_temp );
-		/*
-		  if( inline_args != null ) {
-		    IO.Std.err.println( "inline call: this T" + thiz_temp );
-		}
-		*/
-	    }
-
-	    Generic.Iterator<Type> j = null;
-
-            if( arg_types != null ) {
-		// IO.Std.err.println( "have argument types: support reference parameters" );
-                j = arg_types.reverseElements();
-	    }
-
-	    foreach( Expression e; list.reverseElements() ) {
-		Type t = null;
-
-		if( j != null ) {
-		    t = cast<Type>(j.nextElement());
-		}
-
-		if( t != null && t.TypeKind == Type.REFERENCE ) {
-		    // IO.Std.err.println( "compile reference parameter: " + e );
-		    result = e.compileAddress( state, into );
-		    e.markAddressTaken( state );
-		    
-		    simple = result.isPrettySimple();
-		} else {
-		    // IO.Std.err.println( "compile value parameter: " + e + " type " + e.getType(state) );
-
-		    s = e.getType(state).RegSize;
-		    result = e.compileValue( state, into );
-		    
-		    simple = result.isPrettySimple();
-                    
-		    /*
-		      if( s == 1 ) {
-		      result = new ITree( line_number, Op.CAST_FROM1, 8, result );
-		      } else if( s == 4 ) {
-		      result = new ITree( line_number, Op.CAST_FROM4, 8, result );
-		      }
-		    */
-		}
-		
-		// IO.Std.err.println( "register weight: " + result.getWeight() + "\n" + result );
-		
-		if( n > num_reg_param ) {
-		    if( inline_args != null ) {
-			throw new Exception( "cannot inline call with stack arguments" );
-		    }
-		    // IO.Std.err.println( "compiling stack parameter" );
-		    into.add( new ITree( line_number, Op.PUSH, Machine.WORD, result ) );
-		    size = size + Machine.WORD;		    
-		} else {
-		    
-		    // IO.Std.err.println( "compiling register parameter #" + (n-1) );
-		    // copy argument into appropriate register
-		    
-		    if( !simple || inline_args != null ) {
-			temp = TempFactory.nextTemp();
-			
-			// IO.Std.err.println( "allocated T" + temp + " for register parameter" );
-			
-      			into.add( new ITree( line_number, Op.COPY, Machine.WORD,
-					     new ITree( line_number, Op.TEMP, Machine.WORD, temp ),
-					     result ) );
-			result = new ITree( line_number, Op.TEMP, Machine.WORD, temp );
-		    }
-		    
-		    
-		    /* into.add( result );
-		       
-		       param.add( new ITree( line_number, Op.ARG0 + (n - 1) * 8, 8,
-		       new ITree( line_number, Op.TEMP, 8, temp ) ) );
-		    */
-
-		    if( inline_args != null ) {
-			inline_args.add(temp);
-			// IO.Std.err.println( "inline call: arg T" + temp );
-		    } else if( param == null ) {
-		        param = new ITree( line_number, Op.ARG0 + (n - 1) * 8, Machine.WORD, result, null ); 
-			r = param;
-		    } else {
-			r.Right = new ITree( line_number, Op.ARG0 + (n - 1) * 8, Machine.WORD, result, null );
-			r = r.Right;
-		    }
-		}
-		
-		n = n - 1;
-	    }
-
-	    if( inline_args == null ) {
-		if( thiz != null ) {
-		    if( param == null ) {
-			param = new ITree( 0, Op.ARG0, Machine.WORD, thiz, null );
-			r = param;
-		    } else {
-			r.Right = new ITree( 0, Op.ARG0, Machine.WORD, thiz, null );
-			r = r.Right;
-		    } 
-		}
-
-		if( param != null ) {
-		    r.Right = new ITree( line_number, Op.COMMENT, 0, "last arg" );
-		    
-		    // IO.Std.err.println( "AAAAAA: call args param tree: " + param );
-		    
-		    into.add( param );
-		}
-		//} else {
-		// IO.Std.err.println( "inline args: " + inline_args );
-	    } else if( thiz != null ) {
-		inline_args.add( thiz_temp );
-	    }
-	    // IO.Std.err.println( "pushed " + size + " bytes of parameters" );
-
-	    if( Machine.CALLEE_POPS_ARGUMENTS && !native_call) {
-		// FIXME: assuming native functions never remove arguments from stack on return:
-		return 0;
-	    } else {
-		return size;
-	    }
         }
 
 	get int Depth {

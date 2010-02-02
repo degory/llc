@@ -25,10 +25,6 @@ namespace Gen {
 
 	// static int largest;
     
-        void init() {
-            init( TempFactory.CurrentTemp );
-        }
-
         static int calcStorageSize( int size ) {
             return (size + System.Environment.WORD_BITS) >> System.Environment.WORD_SHIFT;
         }
@@ -383,49 +379,7 @@ namespace Gen {
 	    }
 	}
 
-	void dump( IO.Writer f ) {
-	    for( int i = 0; i < size; i = i + 1 ) {
-		if( opGet( i ) ) {
-		    if( i <= Machine.LAST_MACHINE_REG ) {
-			f.write( "R" +  (i - Machine.FIRST_MACHINE_REG) + " " );
-		    } else if( i <= Machine.LAST_VAR_REG ) {
-			f.write( "RV" + i + " " );
-		    } else if( i <= Machine.LAST_TEMP_REG ) {
-			f.write( "T" + i + " " );
-		    } else {
-			f.write( "#" + i + " " );
-		    }
-		}
-	    }
-	}
-
-	String toString() {
-	    return toString(null);
-	}
-
-	String toString(int[] regs) {
-	    StringBuffer b = new StringBuffer();
-	    // b.append( "len " + getLength() + "/" + original_size + " " );
-
-	    for( int i = 0; i < original_size; i = i + 1 ) {
-		if( opGet( i ) ) {
-		    if( i >= Machine.FIRST_MACHINE_REG && i <= Machine.LAST_MACHINE_REG ) {
-			b.append( Machine.getRegName( i, Machine.WORD ) );
-			b.append( ' ' );
-		    } else {
-			b.append( 'T' );
-			b.append( i );
-			if( regs != null && i < regs.length && regs[i] > 0 ) {
-			    b.append(':');
-			    b.append( Machine.getRegName( regs[i], Machine.WORD ) );
-			}
-			b.append( ' ' );
-		    }
-		}
-	    }
-	    return b;
-	}
-
+	/*
 	void check() {
 	    int i, j, k, last;
 	    bool[] t = new bool[original_size];
@@ -455,6 +409,7 @@ namespace Gen {
 		}
 	    }
 	}
+	*/
 
 	void reset( int index ) {
 	    // IO.Std.err.println( "mbitset reset " + index + " : " + this );
@@ -558,7 +513,7 @@ namespace Gen {
 	    Generic.Vector<int> result = new Generic.Vector<int>(original_size);
 
 	    int c = 0;
-	    reset( Machine.FIRST_SOFT_REG );
+	    reset( 0 );
 	    for( int j = nextSet(); j != -1; j = nextSet() ) {
 		result.add( j );
 	    }

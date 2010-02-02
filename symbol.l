@@ -356,7 +356,7 @@ namespace Parse {
 
         get int Address {
             if( !is_address_valid ) {
-                throw new Exception( "taking address of symbol: " + getName() + ": address is not valid" );
+		IO.Std.err.println( "address not valid: " + HumanName ); IO.Std.err.flush();
             }
             return address;
         }

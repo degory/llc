@@ -904,7 +904,7 @@ namespace IO {
 
     /// Provides methods for opening files as FileStream objects and utility methods relating to paths, files and directories
     class File extends System.Object {
-	const int
+	public const int
 	    O_RDONLY = 0,
 	    O_WRONLY = 1,
 	    O_RDWR = 2,

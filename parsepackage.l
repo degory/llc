@@ -5,13 +5,7 @@ namespace Parse {
     use System.StringBuffer;
     use System.Exception;
 
-    use Gen.ITree;
-    use Gen.IBlock;
-    use Gen.ILabel;
-    use Gen.IString;
     use Gen.Machine;
-    use Gen.TempFactory;
-    use Gen.MBitSet;
 
     class Package extends ParseTree {
         Statement body;
@@ -84,26 +78,6 @@ namespace Parse {
             body.declareSymbols( state );
             state.endPackage();
         }
-
-
-	void checkInline( CompileState state ) {
-	    state.beginPackage( file_name, null );
-	    setFileName();
-	    state.setTrusted( is_trusted );
-            
-	    body.checkInline( state );
-	    state.endPackage();
-	}
-
-	void prepareInline( CompileState state ) {
-	    state.beginPackage( file_name, null );
-	    setFileName();
-	    state.setTrusted( is_trusted );
-            
-	    body.prepareInline( state );
-	    state.endPackage();
-	    // IO.Std.err.println( "end inline pass: " + i + " file " + file_name );
-	}
 
 	void compile( CompileState state ) {
 	    // var temp_factory = new TempFactory( TempFactory.CurrentTemp, 0 );
@@ -215,24 +189,6 @@ namespace Parse {
             }
             state.exitNameSpace( n );
         }	
-
-        void checkInline( CompileState state ) {
-            state.enterNameSpace( n );
-	    state.UseList = use_list;
-            if( body != null ) {
-                body.checkInline( state );
-            }
-            state.exitNameSpace( n );
-        }
-
-	void prepareInline( CompileState state ) {
-            state.enterNameSpace( n );
-	    state.UseList = use_list;
-            if( body != null ) {
-                body.prepareInline( state );
-            }
-            state.exitNameSpace( n );
-	}
 
         void compile( CompileState state ) {
             state.enterNameSpace( n );
