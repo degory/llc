@@ -120,7 +120,6 @@ namespace Parse {
 	    // IO.Std.err.println( "compile import-def does nothing" );
 	}
 
-
         void parseImports( CompileState state ) {
 	    state.visitFile( name.Name );
         }
@@ -798,38 +797,30 @@ namespace Parse {
 		      );
 
 
-	    if( c.first_static != null ) {
-		var gcar =
-		    LLVM.Calls.LLVMAddFunction(
-					       state.Module,
-					       `__add_roots`,
-					       LLVM.Calls.LLVMFunctionType(
-									   LLVM.Calls.LLVMVoidType(),
-		                                                           {
-									       pi8,
-									       pi8
-									   }.address,
-									   2,
-									   0
-									   )
-					       );
-		/*
-		IO.Std.err.print( "SSSS: " + c.HumanName + ": first static: " ); native.__flush_stdout();
-		LLVM.Calls.LLVMDumpValue( c.first_static );
-		IO.Std.err.print( "SSSS: " + c.HumanName + ": last static:  " ); native.__flush_stdout();	       
-		LLVM.Calls.LLVMDumpValue( c.last_static );
-		*/
-		into.Call(
-			  gcar,
-			  {
-			      LLVM.Calls.LLVMConstPointerCast( c.first_static, pi8 ),
-  			      LLVM.Calls.LLVMConstGEP(
-						      LLVM.Calls.LLVMConstPointerCast( c.last_static, pi8 ),
-						      { LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(),8L,0) }.address,
-						      1
-						      )
-			  }
-			  );
+	    var gcar =
+		LLVM.Calls.LLVMAddFunction(
+					   state.Module,
+					   `__add_root`,
+					   LLVM.Calls.LLVMFunctionType(
+								       LLVM.Calls.LLVMVoidType(),
+	                                                               {
+									   pi8
+								       }.address,
+								       1,
+								       0
+								       )
+					   );
+
+	    foreach( Symbol s; c.Members.elements() ) {
+		if( s.IsStatic && !s.IsMethod ) {
+		    // IO.Std.err.println( "SSSS: static var: " + c.HumanName + " . " + s.Name ); IO.Std.err.flush();
+		    into.Call(
+			      gcar,
+			      {
+				  LLVM.Calls.LLVMConstPointerCast( s.getStaticGlobal(state), pi8 )
+			      }
+			      );
+		}
 			  
 	    }		
 
@@ -952,7 +943,7 @@ namespace Parse {
                     c.emitTypeTables( state );
 
 		    if( c.StaticSize > 0 && !c.HasStatic ) {
-			IO.Std.err.println( "oops: " + c.HumanName + " needs GC roots added" );
+			throw new System.Exception( "oops: " + c.HumanName + " needs GC roots added" );
 		    }
 
 		    if( c.HasStatic ) {

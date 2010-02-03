@@ -20,7 +20,7 @@ lco.o: lco.s
 
 lco.bc: lc.bc
 	opt -f -O3 lc.bc -o lco.bc
-	cp lc.bc lco.bc
+
 
 lc.bc:	x
 	lc -Os -p test main.l -l llvm -o lc
