@@ -1,8 +1,7 @@
 
 
 import stream;
-import gproc;
-import "dl";
+// import gproc;
 
 namespace System {
     /// Thrown for errors with shared objects
@@ -16,20 +15,15 @@ namespace System {
 
     /// A dynamically loaded shared object
     class Library {
-	/// handle returned by dlopen for the shared object
-	word h;
-
 	/// path to file holding shared object
 	String so_name;
-
-	static Library self;
 
 	/// construct and load a shared object
 	/// \param so_name path to shared object to open
 	/// \throw LibraryException if the library cannot be opened
 	void init( String so_name ) {
-	    if( !so_name.endsWith(".so") ) {
-		so_name = so_name + ".so";
+	    if( !so_name.endsWith(".bc") ) {
+		so_name = so_name + ".bc";
 	    }
 
 	    if( !so_name.startsWith('/') ) {
@@ -38,25 +32,8 @@ namespace System {
 
 	    this.so_name = so_name;
 
-	    h = cast word(native.dlopen(so_name.toCString(),257)); // 257 = lazy binding + make symbols global 
-
-	    if( h == 0w ) {
-		throw new LibraryException( "could not open library " + so_name + ": " + dlerror() );
-	    }
+	    native.__load_module(so_name.toCString());
 	}
-
-	private void init(word h) {
-	    this.h = h;
-	}
-
-	static get Library Self {
-	    if( self == null ) {
-		self = new Library(0w);
-	    }
-
-	    return self;
-	}
-
 
 	/// convert a human readable class name to an internal get vtable function name. 
 	/// \param class_name fully qualified class name 
@@ -68,7 +45,7 @@ namespace System {
 	    // separate off all qualifiers:
 	    var q = class_name.split('.');
 
-	    var result = new StringBuffer( "__get_vtable_" );
+	    var result = new StringBuffer( "__get_ctable_" );
 
 	    // GCC decoration:
 	    if( q.length == 0 ) {
@@ -99,14 +76,6 @@ namespace System {
 		throw new LibraryException( "no class name supplied" );
 	    }
 
-	    if( h == 0w ) {
-		// special library referencing this process - try internal class table first:
-		var c = System.Class.find( class_name );
-		if( c != null ) {
-		    return c;
-		}
-	    }
-	  
 	    return findClassFromVTableName( decorateVTable(class_name) );
 	}
 
@@ -114,41 +83,16 @@ namespace System {
 	/// \param vtable_name the decorated get vtable function name for the class name to load
 	/// \return a Class object representing the requested class, if present in the shared object or null otherwise
 	/// \throw LibraryException if the vtable cannot be found
-	Class findClassFromVTableName( String vtable ) {
-	    word v = 0w;
+	Class findClassFromVTableName( String vtable_function ) {
+	    int ptr ptr v = cast int ptr ptr( native.__call_function( vtable_function.toCString() ) );
 
-	    if( h != 0w ) {
-		// look up get vtable function in this library only first:
-		v = cast word( native.dlsym( h, vtable.toCString() ) );
-	    }
-
-	    if( v == 0w ) {
-		// failing that search all libraries:
-		v = cast word( native.dlsym( 0, vtable.toCString() ) );
-	    }
-
-	    if( v != 0w ) {
-		// make a new proc reference from the get vtable function that returns the slightly odd type
-		// expected by System.Class.init():
-		var p = new Proc<int ptr ptr proc()>(v);
-
+	    if( v != null ) {
 		// create and return a new class from the vtable returned by the get vtable function:
-		return new Class( p() );
+		return new Class( v );
 	    } else {
 
 		// couldn't find the vtable in any loaded library:
-		throw new LibraryException( "no class " + vtable + " found in library " + so_name + ": " + dlerror() );
-	    }
-	}
-
-	/// get the last error reported by libdl as a string
-	/// \return the error string reported by dlerror() or null if no error occurred
-	String dlerror() {
-	    char ptr s = cast char ptr(native.dlerror());
-	    if( s != null ) {
-		return new String( s );
-	    } else {
-		return null;
+		throw new LibraryException( "class " + vtable_function + " not found" );
 	    }
 	}
     }

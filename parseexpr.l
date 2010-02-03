@@ -827,25 +827,21 @@ namespace Parse {
 			    */
 			    
 			case Op.GT:
-			    IO.Std.err.println( "overloaded > operator..." );
 			    op_string = ">";
 			    n = "opCompare";
 			    inequality = true;
 			    
 			case Op.LT:
-			    IO.Std.err.println( "overloaded < operator..." );
 			    op_string = "<";
 			    n = "opCompare";
 			    inequality = true;
 			    
 			case Op.GE:
-			    IO.Std.err.println( "overloaded >= operator..." );
 			    op_string = ">=";
 			    n = "opCompare";
 			    inequality = true;
 			    
 			case Op.LE:
-			    IO.Std.err.println( "overloaded <= operator..." );
 			    op_string = "<=";
 			    n = "opCompare";
 			    inequality = true;

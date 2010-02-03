@@ -303,6 +303,7 @@ typedef struct _Exception {
 } Exception;
 
 typedef struct _Stat {
+  void *dummy;
   int mtime;
   int size;
 } Stat;
@@ -1606,9 +1607,8 @@ int __stat_file( char *name, Stat *ls ) {
 
   int result = stat( name, &us );
   if( !result ) {
-    // printf( "__stat(%s) -> %ld\n", name, us.st_mtime );
+
     ls->mtime = us.st_mtime;
-    //    ls->size = us.st_size;
   }
 
   return result;

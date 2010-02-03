@@ -757,6 +757,30 @@ namespace Parse {
 	    state.submit( work );
 	}
 
+	void compileGetCTable( CompileState state, Container c ) {
+	    var pi8 = LLVM.Calls.LLVMPointerType( LLVM.Calls.LLVMInt8Type(), 0 );
+	    var ft = LLVM.Calls.LLVMFunctionType(
+						 LLVM.Calls.LLVMVTableType(),
+						 new LLVM.Type[0].address,
+						 0,
+						 0
+						 );
+
+	    var f =
+		LLVM.Calls.LLVMAddFunction(
+					   state.Module, 
+					   ("__get_ctable_" + c.DecoratedName).toCString(),
+					   ft
+					   );
+
+
+	    var into = new IRBlock( state, f );
+
+	    into.Ret( makeLoadVTable( state, c ) );
+
+	    into.Close();
+	}
+
 	void compileBody( CompileState state, Container c ) {
 
 	    var g = LLVM.Calls.LLVMAddGlobal(
@@ -950,6 +974,8 @@ namespace Parse {
 		    if( c.StaticSize > 0 && !c.HasStatic ) {
 			throw new System.Exception( "oops: " + c.HumanName + " needs GC roots added" );
 		    }
+
+		    compileGetCTable( state, c );
 
 		    if( c.HasStatic ) {
 			compileBody( state, c );

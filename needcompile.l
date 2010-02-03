@@ -105,7 +105,7 @@ namespace Parse {
 	    // IO.Std.err.println( "CCCCCC: need to compile '" + source_name + "' for class " + class_name + ", hash " + String.hex(hash) + "?" );
 
             IO.Stat s = new IO.Stat(), t = new IO.Stat();
-            StringBuffer output_name = state.CacheDir + class_name + ".o";
+            StringBuffer output_name = state.CacheDir + class_name + ".bc";
             int compiled_hash;
 
             if( !s.stat( source_name ) ) {
@@ -113,67 +113,58 @@ namespace Parse {
                 return true;
             }
 
-            if( t.stat( output_name ) && t.after(s) ) {
-		// have an existing object file and it's newer than the source so we may not need to compile it.
-		
-		// read the hash of the class definition in:
-                try {
-                    IO.Reader f = IO.File.openRead( state.CacheDir + class_name + ".hash" );
-                    compiled_hash = f.readInt();
-                    f.close();
-		} catch( IO.IOException ie1 ) {
-		    /*
-		    if( state.WantPIC ) {
-			IO.Std.err.println( "compiling " + class_name + " because no hash file present" );
-		    }
-		    */
-                    // IO.Std.err.println( "CCCCCC: no hash file present/problem reading hash for: " + class_name + ": " + ie1 );
-		    return true;
-		}
-		
-		try {
-		    // IO.Std.err.println( "compiled hash " + compiled_hash + " == " + hash + "?" );
-                    if( compiled_hash == hash ) {
-			// the parsed class defintion matches it's on disk hash (which it really ought to do
-			// since we don't think the source has changed since last compilation). Now check
-			// classes that this class depends on:
-                        if( !checkHashList( class_name ) ) {
-			    // no dependant classes have changed either so we can safely use the existing
-			    // object file without recompiling
+	    if( !t.stat( output_name ) ) {
+		return true;
+	    }
 
-			    // IO.Std.err.println( "hash list is OK for " + class_name );
-                            // state.addLinkFile( output_name );
-			    // IO.Std.err.println( "hashes OK, adding link file: " + output_name );
-                            return false;
-			    /*
-			} else {
-			    IO.Std.err.println( "CCCCCC: hash list is bad" );
-			    */
-			}
-			/*
-		    } else {
-			IO.Std.err.println( "CCCCCC: definition has changed" );
-			*/
-		    }
-                } catch( IO.IOException ie ) {
-		    IO.Std.err.println( "CCCCCC: problem checking dependancies for: " + class_name + ": " + ie );
-		    // could not check dependency hashes - need to compile
-                }
+	    if( !t.after(s) ) {
+		return true;
+	    }
 
+	    // have an existing object file and it's newer than the source so we may not need to compile it.
+	    
+	    // read the hash of the class definition in:
+	    try {
+		IO.Reader f = IO.File.openRead( state.CacheDir + class_name + ".hash" );
+		compiled_hash = f.readInt();
+		f.close();
+	    } catch( IO.IOException ie1 ) {
 		/*
-		if( state.WantPIC ) {
-		    IO.Std.err.println( "compiling " + class_name + " because of dependancy change" );
-		}
+		  if( state.WantPIC ) {
+		  IO.Std.err.println( "compiling " + class_name + " because no hash file present" );
+		  }
 		*/
-
-		/*
-	    } else {
-	        IO.Std.err.println( "CCCCCC: no object file or object file out of date: " + class_name );
-		*/
-	    } /* else if( state.WantPIC ) {
-		IO.Std.err.println( "compiling " + class_name + " because of source change" );
-		} */
+		// IO.Std.err.println( "CCCCCC: no hash file present/problem reading hash for: " + class_name + ": " + ie1 );
+		return true;
+	    }
 		
+	    try {
+		// IO.Std.err.println( "compiled hash " + compiled_hash + " == " + hash + "?" );
+		if( compiled_hash == hash ) {
+		    // the parsed class defintion matches it's on disk hash (which it really ought to do
+		    // since we don't think the source has changed since last compilation). Now check
+		    // classes that this class depends on:
+		    if( !checkHashList( class_name ) ) {
+			// no dependant classes have changed either so we can safely use the existing
+			// object file without recompiling
+			
+			// IO.Std.err.println( "hash list is OK for " + class_name );
+			// state.addLinkFile( output_name );
+			// IO.Std.err.println( "hashes OK, adding link file: " + output_name );
+			return false;			 
+		    }
+		}
+	    } catch( IO.IOException ie ) {
+		IO.Std.err.println( "CCCCCC: problem checking dependancies for: " + class_name + ": " + ie );
+		// could not check dependency hashes - need to compile
+	    }
+
+	    /*
+	      if( state.WantPIC ) {
+	      IO.Std.err.println( "compiling " + class_name + " because of dependancy change" );
+	      }
+	    */
+	    
 
 	    // source file changed since object file was last written - need to recompile.
 	    // write out the current class defition hash:
@@ -182,6 +173,7 @@ namespace Parse {
             g.write( "" + hash + "\n" );
             g.close();
 	    */
+
 	    // IO.Std.err.println( "CCCCCC: will compile: " + class_name );
             return true;
         }

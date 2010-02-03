@@ -192,7 +192,7 @@ namespace Parse {
 		return LLVM.Calls.LLVMPointerType( LLVM.Calls.LLVMInt8Type(), 0 );
 
 	    case Type.PROC:		
-		IO.Std.err.println( "want LLVM type for proc type: " + this + " c is: " + c );
+		// IO.Std.err.println( "want LLVM type for proc type: " + this + " c is: " + c );
 		return getBoxType(state).getLLVMType(state);
 
 	    case Type.ENUM:
