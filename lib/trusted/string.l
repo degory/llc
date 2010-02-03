@@ -572,6 +572,7 @@ namespace System is
 	String[] split( char delim ) is
 	    int i;
 	    int parts = 1;
+
 	    for i = 0; i < _length; i = i + 1 do
 		if [_buffer + i] == delim then
 		    parts = parts + 1;
@@ -590,7 +591,7 @@ namespace System is
 		    result[j] = t;
 		    j = j + 1;
 		    if j < parts then
-			t = new StringBuffer(_length);
+			t = new StringBuffer(16);
 			result[j] = t;
 		    else
 			break;

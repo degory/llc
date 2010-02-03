@@ -23,13 +23,12 @@ namespace Parse {
 	    native.GC_init();
 	    // native.GC_disable();
 
-	    IO.Std.err.println( "starting up..." ); IO.Std.err.flush();
 	    var args = System.Arguments.ProgramArguments;
 
 	    CompileState.resetStatic();
 
 	    var c = new Compiler();
-	    IO.Std.err.println( "run proper..." ); IO.Std.err.flush();
+
 	    var result = c.run2(args);
 
 	    IO.Std.err.flush();
@@ -38,7 +37,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1192;
+	const int BUILD = 1194;
 
 	CompileState state;
 
@@ -84,6 +83,7 @@ namespace Parse {
 	    state.WantWarnResolve = false;
 	    state.WantPack = true;
 	    state.WantBoundsCheck = true;
+	    state.WantLinkLibraries = true;
 
 	    bool set_executable_name = false;
 	    bool want_stats = false;
@@ -178,6 +178,12 @@ namespace Parse {
 
 		    case 's':
 			state.WantStatistics = true;
+
+		    case 'U':
+			state.WantLinkLibraries = true;
+
+		    case 'u':
+			state.WantLinkLibraries = false;
 
 		    case 'M':
 			if( name.Length >= 2 ) { 
@@ -403,13 +409,13 @@ namespace Parse {
 		    last_file = s;
 		    state.visitFile( s );
 
-		    if( s =~ "lang.ll" ) {
+		    if( s =~ "lang.lh" ) {
 			visit_standard_library = false;			
 		    }
 		}
 
 		if( visit_standard_library ) {
-		    state.visitFile( "lang.ll" );
+		    state.visitFile( "lang.lh" );
 		}
 
 		state.compilePending();

@@ -98,11 +98,11 @@ typedef signed char int8_t;
 struct OurExceptionType;
 
 void __debug_init( char *name ) {
-  printf( "intialize: %s\n", name ); fflush(stdout);
+  // printf( "intialize: %s\n", name ); fflush(stdout);
 }
 
 void __add_roots( void *b, void *e ) {
-  printf( "GC_add_roots(%p,%p)\n", b, e ); fflush(stdout);
+  // printf( "GC_add_roots(%p,%p)\n", b, e ); fflush(stdout);
   GC_add_roots( b, e );  
 }
 
@@ -114,29 +114,29 @@ void __add_root( char *g ) {
   char *old_low = __root_low;
   char *old_high = __root_high;
 
-  printf( "GC register root %p\n", g ); fflush(stdout);
+  // printf( "GC register root %p\n", g ); fflush(stdout);
 
   if( !__root_low || g < __root_low ) {
     changed = 1;
 
     __root_low = g;
-    printf( "GC low root will be: %p\n", g ); fflush(stdout);
+    // printf( "GC low root will be: %p\n", g ); fflush(stdout);
   }
 
   if( !__root_high || g > __root_high ) {
     changed = 1;
     __root_high = g;
 
-    printf( "GC high root will be: %p\n", g ); fflush(stdout);
+    // printf( "GC high root will be: %p\n", g ); fflush(stdout);
   }
 
   if( changed ) {
     if( old_low ) {
-      printf( "GC remove roots %p,%p\n", old_low, old_high );
+      // printf( "GC remove roots %p,%p\n", old_low, old_high );
       GC_remove_roots( old_low, old_high + 8); fflush(stdout);
     }
 
-    printf( "GC add roots %p,%p\n", __root_low, __root_high );
+    // printf( "GC roots now %p-%p\n", __root_low, __root_high );
     GC_add_roots( __root_low, __root_high + 8); fflush(stdout);
   }
 }

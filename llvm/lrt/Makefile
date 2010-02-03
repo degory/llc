@@ -1,7 +1,7 @@
 VERSION=0.2
 CFLAGS=-DB64 -g -O1 -DLLVM
 
-all: /usr/lang/lib/lrt-llvm-$(VERSION).bc
+all: /usr/lang/lib/lrt-llvm-$(VERSION).bc # /usr/lang/lib/lrd-llvm-$(VERSION).bc
 
 /usr/lang/lib/lrt-llvm-$(VERSION).bc: 	exception.o unwind.o throw.o
 	llvm-ld -disable-opt -o /usr/lang/lib/lrt-llvm-$(VERSION) exception.o unwind.o throw.o

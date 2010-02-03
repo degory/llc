@@ -472,6 +472,7 @@ namespace Parse {
 	bool want_safe;
 	bool want_line_numbers;
 	bool want_shared_standard_library;
+	bool want_link_libraries;
 	bool want_statistics;
 
 	int default_warn_flags;
@@ -985,10 +986,16 @@ namespace Parse {
 
 	void addLibrary( String name ) {
 	    if( !WantPIC ) {
-		if( WantVerbose ) {
-		    ParseTree.message( "adding library: " + name );
+		if( !WantLinkLibraries ) {
+		    if( WantVerbose ) {
+			ParseTree.message( "ignoring library: " + name );
+		    }
+		} else {
+		    if( WantVerbose ) {
+			ParseTree.message( "adding library: " + name );
+		    }
+		    libraries.add( name );
 		}
-		libraries.add( name );
 	    } else {
 		ParseTree.message( "ignoring library '" + name + "' in PIC mode" );
 	    }
@@ -1003,9 +1010,9 @@ namespace Parse {
         }
 
 	void addObject( Container c ) {
-	    // IO.Std.err.println( "add object: " + c );
+	    // IO.Std.err.println( "add object: " + c.HumanName );
 	    if( !need_compile.isInLibrary( c.DecoratedName ) ) {
-		// IO.Std.err.println( "need link: " + c + " lcache_dir is: " + CacheDir );
+		// IO.Std.err.println( "need link: " + c.HumanName + " lcache_dir is: " + CacheDir );
 		addLinkFile( getObjectFileName( c.DecoratedName, ".bc" ) );
 	    }
 	}
@@ -1048,7 +1055,7 @@ namespace Parse {
 		file_name = file_name.substring(0,i);
 	    }
 
-	    file_name = file_name + ".ll";
+	    file_name = file_name + ".lh";
 
 	    IO.File.deleteQuiet( file_name );
 	    library_hash_file = IO.File.openAppend( file_name );
@@ -1322,7 +1329,7 @@ namespace Parse {
 
 	    var p = new Util.Process();
 	    var v = new Vector<String>();
-	    IO.Std.err.println( "going to link. output: '" + executable_name + "'" );
+
 	    String exe;
 
 	    IO.Std.err.flush();
@@ -1330,31 +1337,24 @@ namespace Parse {
 	    // IO.Std.err.println( "want pic is: " + WantPIC );
 
 	    if( WantPIC ) {
-		exe = "ld";
-		v.add( "ld" );
-		v.add( "-shared" );
-		// IO.Std.err.println( "including PIC prolog in shared object" );
-		v.add( LIBRARY_DIR + "ldn-" + Machine.NAME + "-" + RUNTIME_VERSION + ".o" );
+		exe = "llvm-ld";
+		v.add( "llvm-ld" );
+		v.add( "-L/usr/lang/lib/" );
+
+		v.add( "-disable-opt" );
+		// v.add( LIBRARY_DIR + "lrt-llvm-" + RUNTIME_VERSION + ".bc" );
 
 		v.add( "-o" );
-		v.add( executable_name + ".so" );
+
+		v.add( executable_name );
 
 	    } else {
 		exe = "llvm-ld";
 		v.add( "llvm-ld" );
+		v.add( "-L/usr/lang/lib/" );
+
 		v.add( "-disable-opt" );
 		v.add( LIBRARY_DIR + "lrt-llvm-" + RUNTIME_VERSION + ".bc" );
-		/*
-		// v.add( LIBRARY_DIR + "lrt0.o" );
-		if( !WantLineNumbers ) {
-		    v.add( "-s" );
-		} else {
-		    // make executable re-linkable so we can dynamically load classes and link them into it
-		    v.add( "-Xlinker" );
-		    v.add( "-E" );
-		}
-		*/
-		v.add( "-L/usr/lang/lib/" );
 
 		v.add( "-o" );
 		v.add( executable_name );
@@ -1371,6 +1371,7 @@ namespace Parse {
 	    }
 	    // v.add( "-nostartfiles" );
 
+	    /*
 	    if( !WantPIC ) {
 		if( WantSharedStandardLibrary ) {
 		    v.add( LIBRARY_DIR + "exception-" + RUNTIME_VERSION + ".so" );
@@ -1378,6 +1379,7 @@ namespace Parse {
 		    v.add( LIBRARY_DIR + "exception-" + RUNTIME_VERSION + ".o" );
 		}
 	    }
+	    */
 
 	    v.add( "-lgc" );
 	    // v.add( "/usr/lang/lib/libgcX.a" );
@@ -1474,7 +1476,7 @@ namespace Parse {
 		    s = s + '/';
 		}
 
-		if( name.endsWith(".l") || name.endsWith(".ll") ) {
+		if( name.endsWith(".l") || name.endsWith(".lh") ) {
 		    // IO.Std.err.println( "l or ll extension, try open '" + name + "' directly" );
 		    in = tryOpen( s, name, "" );
 		    if( in != null ) {
@@ -1492,7 +1494,7 @@ namespace Parse {
 		    /*
 		    IO.Std.err.println( "other extension, try open '" + name + "' + '.ll'" );
 
-		    in = tryOpen( s, name, ".ll" );
+		    in = tryOpen( s, name, ".lh" );
 		    if( in != null ) {
 			file_name = name;
 			break;
@@ -1507,7 +1509,7 @@ namespace Parse {
 
 	    //IO.Std.err.println( "input file: '" + file_name + "'" );
 
-	    if( file_name.endsWith(".ll" ) ) {
+	    if( file_name.endsWith(".lh" ) ) {
 		// IO.Std.err.println( "input file is a library hash file..." );
 		addLibraryHashFile( name, in );
 	    } else {
@@ -1517,7 +1519,7 @@ namespace Parse {
         }
 
 	void addLibraryHashFile( String name, IO.Reader in ) {
-	    if( name.endsWith( ".ll" ) ) {
+	    if( name.endsWith( ".lh" ) ) {
 		name = name.substring( 0, name.Length - 3 ); // + ".so";
 	    }
 
@@ -1539,7 +1541,7 @@ namespace Parse {
 
 	    // IO.Std.err.println( "will link L library: " + name );
 	    // libraries.add( dir + name + ".so" );
-	    addLibrary( dir + name + ".so" );
+	    addLibrary( dir + name + ".bc" );
 	}
 
 	set String ExecutableName = s {
@@ -2709,6 +2711,14 @@ namespace Parse {
 
 	set bool WantSharedStandardLibrary = s {
 	    want_shared_standard_library = s;
+	}
+
+        get bool WantLinkLibraries {
+	    return want_link_libraries;
+	}
+
+        set bool WantLinkLibraries = l {
+	    want_link_libraries = l;
 	}
 
 	get bool WantSafe {

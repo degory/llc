@@ -759,6 +759,21 @@ namespace Parse {
 
 	void compileBody( CompileState state, Container c ) {
 
+	    var g = LLVM.Calls.LLVMAddGlobal(
+					     state.Module,
+					     LLVM.Calls.LLVMInt1Type(),
+					     ("__init_done_" + c.DecoratedName).toCString()
+					     );
+
+	    LLVM.Calls.LLVMSetInitializer(
+					  g,
+					  LLVM.Calls.LLVMConstInt(
+								  LLVM.Calls.LLVMInt1Type(),
+								  0L,
+								  0
+								  )
+					  );
+
 	    var ft = LLVM.Calls.LLVMFunctionType(
 						 LLVM.Calls.LLVMVoidType(),
 						 new LLVM.Type[0].address,
@@ -790,6 +805,22 @@ namespace Parse {
 								       0
 								       )
 					   );
+
+	    LLVM.BasicBlock l = into.Block();
+	    
+	    into.Branch(
+			into.Load(g),
+			l
+			);
+
+	    into.Store(
+		       LLVM.Calls.LLVMConstInt(
+					       LLVM.Calls.LLVMInt1Type(),
+					       1L,
+					       0
+					       ),
+		       g
+		       );
 
 	    into.Call(
 		      d,
@@ -825,6 +856,8 @@ namespace Parse {
 	    }		
 
 	    body.compile( state, into );
+
+	    into.Label( l );
 
 	    into.RetVoid();
 
@@ -881,10 +914,10 @@ namespace Parse {
                 var s = state.needCompile( state.CurrentSourceFileName, c.FileName, c.Hash );
 
 		if( s == CompileStatus.BAD_HASH ) {
-		    // warn( "class " + c.HumanName + " in library not compatible with source definition" );
+		    warn( "class " + c.HumanName + " in library not may not be compatible with source definition" );
 
 		    for( var ci = c; ci != null; ci = ci.Super ) {
-			// IO.Std.err.println( "" + ci.HumanName + ": sc: " + ci.Hash + " lc: " + state.Hash[ci.DecoratedName] );
+			// IO.Std.err.println( "check " + ci.HumanName + ": sc: " + ci.Hash + " lc: " + state.Hash[ci.DecoratedName] );
 
 			foreach( Symbol si; ci.Members.Iterator ) {
 			    if( si.IsMethod ) {
@@ -911,34 +944,6 @@ namespace Parse {
 		    int frame_flags;
 
 		    c.emitTables( state, this );
-
-		    /*		    
-		    c.emitInterfaceTables( state, this );
-		    // type table:
-		    Machine.emitDefPointerLabel( f, m.Int );
-
-                    Machine.emitDefPointerLabel( f, l.Int );
-                    Machine.emitDefLong( f, c.getSize() );
-
-                    if( c.Super != null ) {
-			String svt = getVTableAsString( state, c.Super );
-
-                        Machine.emitDefPointer( f, svt );
-
-                        // Machine.emitExtern( f, "stable$__" + c.Super.DecoratedName );
-                    } else {
-                        Machine.emitDefPointer( f, 0 );
-                    }
-
-
-		    Machine.emitDefLong( f, c.ReferenceBits );
-		    // Machine.emitDefLong( f, c.Size );
-		    // Machine.emitDefLong( f, 0 );
-
-                    c.emitClassTables( state, c );
-		    */
-
-		    // var offset = (c.IFaceOffset + VTABLE_FIXED_SIZE) * Machine.WORD;
 
                     c.emitTypeTables( state );
 
@@ -1020,8 +1025,7 @@ namespace Parse {
 		if( !errors_occurred ) {
 		    state.addHashFile( c, s );
 		}
-
-		state.addLinkFile( state.getObjectFileName( c.DecoratedName, ".bc" ) );
+		
 		// IO.Std.err.println( "compilation complete: " + c.getHumanName() );
 
                 state.endCompileClass( c );

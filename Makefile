@@ -23,4 +23,4 @@ lco.bc: lc.bc
 
 
 lc.bc:	x
-	lc -Os -p test main.l -l llvm -o lc
+	lc -p test main.l -l llvm -o lc
