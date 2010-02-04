@@ -1551,7 +1551,7 @@ namespace Parse {
 	    buffer.add(
 		       LLVM.Calls.LLVMConstIntToPtr(
 						   LLVM.Calls.LLVMConstInt(
-									   LLVM.Calls.LLVMInt64Type(),
+									   LLVM.Calls.LLVMInt32Type(),
 									   cast long(Size),
 									   0
 									   ),

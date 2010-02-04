@@ -379,7 +379,7 @@ namespace Parse {
 
 	    if( v == null ) {
 		var args = new LLVM.Type[0];
-		var ft = LLVM.Calls.LLVMFunctionType( LLVM.Calls.LLVMInt64Type(), args.address, 0, 1 );
+		var ft = LLVM.Calls.LLVMFunctionType( LLVM.Calls.LLVMInt32Type(), args.address, 0, 1 );
 		
 		v = LLVM.Calls.LLVMAddFunction(state.Module, n, ft);				
 	    }
@@ -409,7 +409,7 @@ namespace Parse {
 	}
 
 	static LLVM.Value getSelectorIntrinsic( CompileState state ) {
-	    char ptr n = `llvm.eh.selector.i64`;
+	    char ptr n = `llvm.eh.selector`;
 
 	    var v = LLVM.Calls.LLVMGetNamedFunction(state.Module, n);
 
@@ -421,7 +421,7 @@ namespace Parse {
 		};
 
 		var ft = LLVM.Calls.LLVMFunctionType(
-						 LLVM.Calls.LLVMInt64Type(),
+						 LLVM.Calls.LLVMInt32Type(),
 						 args.address,
 						 args.length,
 						 1 // 0
@@ -459,7 +459,7 @@ namespace Parse {
 	    if( is_finally ) {
 		// if this is a finally landing pad then we want to catch all exceptions, including foreign ones:
 		// type_info = LLVM.Calls.LLVMConstPointerNull(LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0));
-		type_info = LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),0L,0);
+		type_info = LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(),0L,0);
 	    } else {
 		// otherwise if it's a catches block we want to catch a L exceptions. The string constant is a dummy
 		// type info that the L personality function should recognize causing a non-zero return from
@@ -501,7 +501,7 @@ namespace Parse {
 	    into.Store(
 		       // ex_type,
 		       LLVM.Calls.LLVMConstInt(
-					       LLVM.Calls.LLVMInt64Type(),
+					       LLVM.Calls.LLVMInt32Type(),
 					       2L,
 					       0
 					       ),
@@ -516,7 +516,7 @@ namespace Parse {
 			    into.ICmp(
 				      LLVM.LLVMIntPredicate.LLVMIntSLE,
 				      into.Load(exception_type),
-				      LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),0L,0)
+				      LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(),0L,0)
 				      ),
 			    handler
 			    );
@@ -544,7 +544,7 @@ namespace Parse {
 	    LLVM.Value ep = into.InBoundsGEP(
 					     makeLLVMCast(
 							  into.Load(exception_value),
-							  LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt64Type(),0),
+							  LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt32Type(),0),
 							  into
 							  ),
 					     // get address of l_exception element
@@ -1626,7 +1626,7 @@ namespace Parse {
 	void throwReturn( CompileState state, IRBlock into, LLVM.BasicBlock handler, LLVM.Value return_value, LLVM.Value exception_type, LLVM.Value exception_value ) {
 	    into.Store(
 		       LLVM.Calls.LLVMConstInt(
-					       LLVM.Calls.LLVMInt64Type(),
+					       LLVM.Calls.LLVMInt32Type(),
 					       3L,
 					       0
 					       ),
