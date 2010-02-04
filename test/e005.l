@@ -1,6 +1,6 @@
 import "throw.o" ;
 
-namespace E001 { 
+namespace E005 { 
     class Main {
 	void init() {
 	    try {

@@ -227,7 +227,7 @@ namespace Parse {
 
 	    into.Store(
 		       LLVM.Calls.LLVMConstInt(
-					       LLVM.Calls.LLVMInt64Type(),
+					       LLVM.Calls.LLVMInt32Type(),
 					       1L, // exception caught
 					       0
 					       ),
@@ -320,7 +320,7 @@ namespace Parse {
 				  LLVM.LLVMIntPredicate.LLVMIntNE,
 				  into.Load(exception_type),
 				  // 2 == 'uncaught exception':
-				  LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),2L,0)
+				  LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(),2L,0)
 				  ),
 			finally_handler
 			);
@@ -429,7 +429,7 @@ namespace Parse {
 	    var v = LLVM.Calls.LLVMGetNamedFunction(state.Module, n);
 
 	    if( v == null ) {
-		var args = { LLVM.Calls.LLVMInt64Type() };
+		var args = { LLVM.Calls.LLVMPointerType( LLVM.Calls.LLVMInt8Type(), 0 ) };
 		var ft = LLVM.Calls.LLVMFunctionType( LLVM.Calls.LLVMVoidType(), args.address, args.length, 0 );
 		
 		v = LLVM.Calls.LLVMAddFunction(state.Module, n, ft);				
@@ -453,14 +453,14 @@ namespace Parse {
 	    LLVM.Value s = into.Switch( into.Load(exception_type), rethrow, 2 );
 
 	    // 1 == 'exception caught'
-	    into.AddCase( s, LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt64Type(), 1L, 0 ), exit );
+	    into.AddCase( s, LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt32Type(), 1L, 0 ), exit );
 
 	    // 3 == 'throw return'
-	    into.AddCase( s, LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt64Type(), 3L, 0 ), return_ );
+	    into.AddCase( s, LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt32Type(), 3L, 0 ), return_ );
 
 	    into.Label( rethrow );
 	    into.Call(
-		      getUnwindOrRethrowFunction(state), { into.PtrToInt(into.Load(exception_unwind),LLVM.Calls.LLVMInt64Type()) }
+		      getUnwindOrRethrowFunction(state), { into.PointerCast(into.Load(exception_unwind),LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0)) }
 		      );
 	    // into.Unreachable();
 
@@ -495,7 +495,7 @@ namespace Parse {
 				  LLVM.LLVMIntPredicate.LLVMIntEQ,
 				  into.Load( exception_type ),
 				  // 1 == 'exception caught'
-				  LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt64Type(),1L,0)
+				  LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(),1L,0)
 				  ),
 			l
 			);
@@ -520,7 +520,7 @@ namespace Parse {
 
 	    LLVM.Value exception_unwind = into.AllocaEntry( LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0), ".ex_unwind" );
 	    LLVM.Value exception_object = into.AllocaEntry( LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0), ".ex_object" );
-	    LLVM.Value exception_type = into.AllocaEntry( LLVM.Calls.LLVMInt64Type(), ".ex_type" );
+	    LLVM.Value exception_type = into.AllocaEntry( LLVM.Calls.LLVMInt32Type(), ".ex_type" );
 		
 	    LLVM.BasicBlock body_label = into.Block(".try_body");
 
@@ -596,7 +596,7 @@ namespace Parse {
 
 	    into.Store(
 		       LLVM.Calls.LLVMConstInt(
-					       LLVM.Calls.LLVMInt64Type(),
+					       LLVM.Calls.LLVMInt32Type(),
 					       1L,
 					       0
 					       ),
@@ -618,7 +618,7 @@ namespace Parse {
 	    /*
 
 	    into.Store(
-		       LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt64Type(), 0L, 0 ),
+		       LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt32Type(), 0L, 0 ),
 		       exception_type
 		       );
 

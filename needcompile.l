@@ -73,7 +73,7 @@ namespace Parse {
 	    return Hash[class_name] != 0;
 	}
 
-        CompileStatus needCompile( String source_name, String class_name, int hash ) {
+        CompileStatus needCompile( String source_name, String class_name, int hash, bool one_file ) {
 	    foreach( var l; libraries.Iterator ) {
 		var h = l.Hash[class_name];
 		if( h != 0 ) {
@@ -85,6 +85,10 @@ namespace Parse {
 			return CompileStatus.BAD_HASH;
 		    }
 		}
+	    }
+
+	    if( one_file ) {
+		return CompileStatus.STALE;
 	    }
 
 	    if( needCompile2( source_name, class_name, hash ) ) {
@@ -104,13 +108,13 @@ namespace Parse {
         bool needCompile2( String source_name, String class_name, int hash ) {
 	    // IO.Std.err.println( "CCCCCC: need to compile '" + source_name + "' for class " + class_name + ", hash " + String.hex(hash) + "?" );
 
-            IO.Stat s = new IO.Stat(), t = new IO.Stat();
-            StringBuffer output_name = state.CacheDir + class_name + ".bc";
+            var s = new IO.Stat(), t = new IO.Stat();
+            var output_name = state.CacheDir + class_name + ".bc";
+
             int compiled_hash;
 
             if( !s.stat( source_name ) ) {
-                // IO.Std.err.println( "CCCCCC: weird: source file " + source_name + " absent" );
-                return true;
+		throw new System.Exception( "oops: source file " + source_name + " absent" );
             }
 
 	    if( !t.stat( output_name ) ) {

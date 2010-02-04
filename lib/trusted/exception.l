@@ -168,6 +168,10 @@ namespace System is
 	    super.init( m );
 	end
 
+        static void throwNPE() is
+	    throw new NullPointerException("null pointer dereference");
+        end
+
 	/// \deprecated
 	void enableGC() is
 	    native.GC_enable();
@@ -206,6 +210,10 @@ namespace System is
 	void init( char ptr s ) is
 	    super.init( s );
 	end
+
+        static void throwBounds() is
+	    throw new ArrayBoundsException("array index out of bounds");
+        end
     end
 
     /// Exception thrown when the runtime detects an invalid cast

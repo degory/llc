@@ -1,5 +1,5 @@
 
-namespace E001 { 
+namespace E006 { 
     class Main {
 	void init() {
 	    try {

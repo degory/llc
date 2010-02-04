@@ -474,18 +474,11 @@ namespace Parse {
 				 getSelectorIntrinsic(state),
 				 {
 				     ex_value,
-					 /*
-					   makeLLVMCast(
-					   into.Load(exception_value),
-					   LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0),
-					   into
-					   ),
-					 */
-					 makeLLVMCast(
-						      getPersonalityFunction(state),
-						      LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0),
-						      into
-						      ),
+				     makeLLVMCast(
+						  getPersonalityFunction(state),
+						  LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0),
+						  into
+						  ),
 				     type_info } );
 
 
@@ -540,11 +533,11 @@ namespace Parse {
 				       IRBlock into,
 				       LLVM.Value exception_value
 				       ) {
-	    // get pointer to fifth 64-bit word in exception structure:
+	    // get pointer to fifth machine word in exception structure:
 	    LLVM.Value ep = into.InBoundsGEP(
 					     makeLLVMCast(
 							  into.Load(exception_value),
-							  LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt32Type(),0),
+							  LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0),0),
 							  into
 							  ),
 					     // get address of l_exception element
@@ -552,11 +545,14 @@ namespace Parse {
 					     );
 
 	    // load the L exception object, cast to i8* and return
-	    return makeLLVMCast(
+	    /* return makeLLVMCast(
 				into.Load(ep),
 				LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0),
 				into
 				);
+
+	    */
+	    return into.Load(ep);
 
 	}
 
@@ -674,9 +670,34 @@ namespace Parse {
 						   );
 	}
 
+	static void addNullCheck( CompileState state, IRBlock into, LLVM.Value t ) {
+	    var throw_function = state.getRuntimeFunction( RuntimeFunction.THROW_NULL );
+	    var l = into.Block();
+
+	    into.Branch(
+			into.ICmp(
+				  LLVM.LLVMIntPredicate.LLVMIntNE,
+				  t,
+				  LLVM.Calls.LLVMConstPointerNull(
+								  LLVM.Calls.LLVMTypeOf(t)
+								  )
+				  ),
+			l
+			);
+
+	    callOrInvoke(
+			 state,
+			 into,
+			 throw_function,
+			 new LLVM.Value[0]
+			 );
+	    
+	    into.Label( l );
+	}
+
 	protected static LLVM.Value makeLoadIndirect( CompileState state, int line_number, IRBlock into, bool could_be_null, LLVM.Value t ) {
-	    if( could_be_null ) {
-		// should do null check here
+	    if( could_be_null ) {		
+		addNullCheck( state, into, t );
 	    }
 
 	    return into.Load( t );
@@ -687,32 +708,13 @@ namespace Parse {
 	// handler:
 	protected static void addStoreIndirect( CompileState state, int line_number, IRBlock into, bool could_be_null, LLVM.Value d, LLVM.Value s ) {
 	    if( could_be_null ) {
-		// should do null check here
+		addNullCheck( state, into, d );
 	    }
 
-	    // IO.Std.err.println( "add store indirect" ); IO.Std.err.flush();
-
-	    LLVM.Type dt = LLVM.Calls.LLVMGetElementType(LLVM.Calls.LLVMTypeOf(d));
-	    LLVM.Type st = LLVM.Calls.LLVMTypeOf(s);
-
-	    /*
-	    IO.Std.err.print( "value dest:   " ); IO.Std.err.flush();
-	    LLVM.Calls.LLVMDumpValue( d );
-	    IO.Std.err.print( "type dest:    " ); IO.Std.err.flush();
-	    LLVM.Calls.LLVMDumpType( dt );
-
-	    IO.Std.err.print( "value source: " ); IO.Std.err.flush();
-	    LLVM.Calls.LLVMDumpValue( s );
-	    IO.Std.err.print( "type source:  " ); IO.Std.err.flush();
-	    LLVM.Calls.LLVMDumpType( st );
-	    */
+	    var dt = LLVM.Calls.LLVMGetElementType(LLVM.Calls.LLVMTypeOf(d));
 	    s = makeLLVMCast( s, dt, into );
 
 	    LLVM.Value v = into.Store( s, d );
-
-	    /*
-	    LLVM.Calls.LLVMDumpValue( v );
-	    */
 	}
 
 
@@ -1419,6 +1421,8 @@ namespace Parse {
 		    }
 		}
 	    } else if( n =~ "NoBoundsCheck" ) {
+		state.WantNullCheck = false;
+	    } else if( n =~ "NoNullCheck" ) {		
 		state.WantBoundsCheck = false;
 	    } else if( !warned ) {
 		warn( "ignoring undefined pragma " + name );
@@ -2208,49 +2212,47 @@ namespace Parse {
             cl = left_value.compileValue(state, into);
             cr = right_value.compileValue(state, into);
 
-	    if( state.WantBoundsCheck ) {
-		if( !warned ) {
-		    IO.Std.err.println( "FIXME: array bounds check here" );
-		    warned = true;
-		}
-		/*
-
-		cl = cl.foldConstants();
-		cr = cr.foldConstants();
-
-		if( !cl.isSimple() ) {
-		    int tl = TempFactory.nextTemp();
-		    into.add( makeStoreTemporary( tl, Machine.WORD, cl ) );
-		    cl = makeLoadTemporary( tl, Machine.WORD );
-		}
-		
-		if( !cr.isSimple() ) {
-		    int tr = TempFactory.nextTemp();
-		    into.add( makeStoreTemporary( tr, Machine.WORD, cr ) );
-		    cr = makeLoadTemporary( tr, Machine.WORD );
-		}
-		
-		if( state.WantSplitBounds ) {
-		    ILabel bounds_label = TempFactory.nextLabel();
-		    
-		    into.add( new ITree( line_number, Op.BOUNDS_R, 0, cl, cr, bounds_label ) );
-		    into.addEpilog( new ITree( line_number, Op.BOUNDS_L, 0, bounds_label ) );
-		    
-		} else {
-		    into.add( new ITree( line_number, Op.BOUNDS, 0, cl, cr ) );
-		}
-		*/
-	    } else {
-		if( state.WantMarkUnsafe ) {
-		    state.markCodeUnsafe( CompileState.UNSAFE_BOUNDS );
-		}
-		if( state.WantWarnUnsafe ) {
-		    warn( "array subscript not checked at runtime" );
-		}
+	    if( LLVM.Calls.LLVMTypeOf(cr) != LLVM.Calls.LLVMInt32Type() ) {
+		warn( "unexpected LLVM type for array bound" );
 	    }
+	    
+	    if( state.WantBoundsCheck ) {
+		var throw_function = state.getRuntimeFunction( RuntimeFunction.THROW_BOUNDS );
 
-	    // let back end know jump to exception handler possible here:
-	    addDummyExceptionHandlerJump( state, line_number, into );
+		// warn( "bounds check: " + this );
+
+		// IO.Std.err.print( "left: " ); IO.Std.err.flush();
+		// LLVM.Calls.LLVMDumpValue( cl ); native.__flush_stdout();
+
+		// IO.Std.err.print( "right: " ); IO.Std.err.flush();
+		// LLVM.Calls.LLVMDumpValue( cr ); native.__flush_stdout();
+
+		var l = into.Block();
+		into.Branch(
+			    into.ICmp(
+				      LLVM.LLVMIntPredicate.LLVMIntULT,
+				      makeLLVMCast(cr, LLVM.Calls.LLVMInt32Type(),into),
+				      makeGetArraySize(
+						       state,
+						       line_number,
+						       into,
+						       cl
+						       )
+				      ),
+			    l
+			    );
+
+		// IO.Std.err.println( "emitted ICmp instruction" );
+
+		callOrInvoke(
+			     state,
+			     into,
+			     throw_function,
+			     new LLVM.Value[0]
+			     );
+
+		into.Label( l );
+	    }
 
 	    return makeGetArrayDataPointer( state, line_number, into, cl, cr );            
         }

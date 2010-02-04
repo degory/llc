@@ -763,8 +763,8 @@ namespace Parse {
 	}
 
         LLVM.Value compileValue( CompileState state, IRBlock into ) {
-	    // need to allow for null pointer exception to be thrown here:
-            return makeLoadIndirect( state, line_number, into, true,
+	    // need to allow for null pointer exception to be thrown here but null test is too narrow to be much use here:
+            return makeLoadIndirect( state, line_number, into, false,
 				     left.compileValue( state, into )
 				     );
         }

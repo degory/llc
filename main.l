@@ -37,7 +37,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1194;
+	const int BUILD = 1195;
 
 	CompileState state;
 
@@ -78,16 +78,18 @@ namespace Parse {
 	    Gen.Machine.initOpNames();
             
 
+	    state.OptimizeLevel = 1;
 	    state.WantSharedStandardLibrary = true;
 	    state.WantRegVars = false;
 	    state.WantWarnResolve = false;
 	    state.WantPack = true;
 	    state.WantBoundsCheck = true;
 	    state.WantLinkLibraries = true;
+	    state.WantNative = false;
 
 	    bool set_executable_name = false;
 	    bool want_stats = false;
-	    bool want_standard_library = true;
+	    // bool want_standard_library = true;
 
             for( i = 1; i < args.length; i = i + 1 ) {
                 name = args[i];
@@ -97,25 +99,14 @@ namespace Parse {
 			usage( args[0] );
 		        return 1;
 
-			/*
 		    case 'A':
-			if( name.Length > 2 ) {
-			    CompileState.LibraryName = name.substring(2);
-			} else {
-			    i = i + 1;
-			    CompileState.LibraryName = args[i];
-			}
-			*/
+			state.WantBoundsCheck = true;
 
-			/*
 		    case 'a':
-			if( name.Length > 2 ) {
-			    CompileState.useLibrary( name.substring(2) );
-			} else {
-			    i = i + 1;
-			    CompileState.useLibrary( args[i] );
-			}
-			*/
+			state.WantBoundsCheck = false;
+
+		    case 'f':
+			state.WantForceLink = true;
 
 		    case 'j':
 			if( name.Length > 2 ) {
@@ -123,17 +114,9 @@ namespace Parse {
 			} else {
 			    i = i + 1;
 			    CompileState.WantJobs = args[i].toInt();
-			}
-		    		       
-                    case 'l':
-                        if( name.getLength() > 2 ) {
-                            state.addSearchPath( name.substring(2) );
-                        } else {
-                            i = i + 1;
-                            state.addSearchPath( args[i] );
-                        }
+			}		    		      
 
-		    case 'L':
+		    case 'l':
                         if( name.getLength() > 2 ) {
 			    state.addLibrary( name.substring(2) );
                         } else {
@@ -155,9 +138,6 @@ namespace Parse {
 			    setProjectName( args[i] );
 			}
 
-		    case 'P':
-			state.WantPrint = true;
-
 		    case 'o':
 			if( name.getLength() > 2 ) {
 			    ExecutableName = name.substring(2);
@@ -173,17 +153,38 @@ namespace Parse {
 		    case 'V':
 			state.WantVeryVerbose = true;
 
-		    case 'S':
+		    case 's':
+                        if( name.getLength() > 2 ) {
+                            state.addSearchPath( name.substring(2) );
+                        } else {
+                            i = i + 1;
+                            state.addSearchPath( args[i] );
+                        }
+
+
+		    case 'T':
 			state.WantSafe = true;
 
-		    case 's':
-			state.WantStatistics = true;
+		    case 'S':
+			state.WantOneFile = true;
 
 		    case 'U':
 			state.WantLinkLibraries = true;
 
 		    case 'u':
 			state.WantLinkLibraries = false;
+
+		    case 'W':
+			state.WantSharedStandardLibrary = true;
+
+		    case 'w':
+			state.WantSharedStandardLibrary = false;
+
+		    case 'N':
+			state.WantNative = true;
+
+		    case 'n':
+			state.WantNative = false;
 
 		    case 'M':
 			if( name.Length >= 2 ) { 
@@ -200,102 +201,23 @@ namespace Parse {
 
 			for( j = 2; j < name.Length; j = j + 1 ) {
 			    switch( name[j] ) {
-			    case 'C':
-				state.WantCoalesce = true;
-
-			    case 'c':
-				state.WantCoalesce = false;
-
-			    case 'I':
-				state.WantInline = true;
-
-			    case 'i':
-				state.WantInline = false;
-
-			    case 'V':
-				state.WantRegVars = true;
-
-			    case 'v':
-				state.WantRegVars = false;
-
-			    case 'R':
-				state.WantReturnJumpElim = true;
-
-			    case 'r':
-				state.WantReturnJumpElim = false;
-
-			    case 'B':
-				state.WantSplitBounds = true;
-
-			    case 'b':
-				state.WantSplitBounds = false;
-
-			    case 'E':
-				state.WantCSE = true;
-
-			    case 'e':
-				state.WantCSE = false;
-
-			    case 'Q':
-				state.WantProfile = true;
-			    
-			    case 'q':
-				state.WantProfile = false;
-
-			    case 'P':
-				state.WantPack = true;
-
-			    case 'p':
-				state.WantPack = false;
-
-			    case 'L':
-				state.WantPIC = true;
-
-			    case 'l':
-				state.WantPIC = false;
-
-			    case 'S':
-				state.WantSharedStandardLibrary = true;
-
-			    case 's':
-				state.WantSharedStandardLibrary = false;
-
-			    case 'A':
-				state.WantBoundsCheck = true;
-
-			    case 'a':
-				state.WantBoundsCheck = false;
-
-			    case 'Z':
-				state.WantRedZone = true;
-
-			    case 'z':
-				state.WantRedZone = false;
-    
-			    case '1':
-				state.WantCoalesce = true;
-				state.WantInline = true;
-				state.WantRegVars = true;
-				state.WantReturnJumpElim = true;
-				state.WantSplitBounds = true;
-				state.WantRedZone = true;
-
 			    case '0', 'd':
-				state.WantCoalesce = false;
-				state.WantInline = false;
-				state.WantRegVars = false;
-				state.WantReturnJumpElim = false;
-				state.WantSplitBounds = false;
-				state.WantRedZone = false;
+				state.OptimizeLevel = 0;
+
+			    case '1':
+				state.OptimizeLevel = 1;
+
+			    case '2':
+				state.OptimizeLevel = 2;
+
+			    case '3':
+				state.OptimizeLevel = 3;
 				
 			    default:
 				IO.Std.err.println( "unexpected code generation switch: '" + name[j] );
 				return 1;
 			    }
 			}
-
-		    case 'i':
-			state.MaxInlineCount = name.substring(2).parseInt();
 
 			/*
 		    case 'c':

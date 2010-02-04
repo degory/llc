@@ -1046,6 +1046,7 @@ namespace Parse {
 		        // IO.Std.err.println( "removing output file: " + c.getHumanName() );
                         // state.removeOutput( c.FileName );
                     }
+		    state.countCompiledClass();
 		}
 
 		if( !errors_occurred ) {
@@ -1055,6 +1056,8 @@ namespace Parse {
 		// IO.Std.err.println( "compilation complete: " + c.getHumanName() );
 
                 state.endCompileClass( c );
+
+
             } else {
 		IO.Std.err.println( "compile " + c.HumanName + ": null body" );
 	    }
@@ -1802,11 +1805,6 @@ namespace Parse {
 
 	    state.InlineOK = false;
 	    
-	    if( state.Module != m.Owner.LLVMModule ) {
-		throw new System.Exception( "WWWW: oops state.Module != method.LLVMModule" );
-	    }
-
-
 	    // message( human );
 
 	    if( success ) {

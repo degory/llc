@@ -183,7 +183,9 @@ namespace Parse {
 	ALLOC_OBJECT,
         ALLOC_OBJECT_FINALIZE,
         ALLOC_ARRAY,
-        ALLOC_REF_ARRAY
+	ALLOC_REF_ARRAY,
+        THROW_NULL,
+	THROW_BOUNDS
     }
 
 
@@ -393,7 +395,7 @@ namespace Parse {
 	    WANT_PIC = 7,
 	    WANT_VIRTUAL = 8,
 	    WANT_PACK = 9,
-	    WANT_RED_ZONE = 10,
+	    WANT_NULL_CHECK = 10,
 	    WANT_BOUNDS_CHECK = 11;
 
 	const int
@@ -460,6 +462,10 @@ namespace Parse {
 	static int want_jobs;
 	static bool in_child_process;
 
+	int optimize_level;
+
+	bool want_one_file;
+	bool want_force_link;
 	bool want_verbose;
 	bool want_very_verbose;
 	bool want_coalesce;
@@ -474,10 +480,10 @@ namespace Parse {
 	bool want_shared_standard_library;
 	bool want_link_libraries;
 	bool want_statistics;
+	bool want_native;
 
 	int default_warn_flags;
 
-	int max_inline_count;
 
         int spill_label;
 
@@ -502,12 +508,13 @@ namespace Parse {
         String lcache_dir;
         static String LIBRARY_DIR = "/usr/lang/lib/";
         static String label_prefix = ".L";
-        static bool one_file = false;
 
 	// ThreadPool pool;
 	ProcessPool pool;
 
 	int inline_count;
+
+	int compile_class_count;
 
 	Util.Walk walk_;
 
@@ -697,7 +704,9 @@ namespace Parse {
 	}
 
 	get LLVM.Module Module {
-	    if( CurrentClass != null ) {
+	    if( WantOneFile ) {
+		return module;
+	    } else if( CurrentClass != null ) {
 		// IO.Std.err.println( "returning module for: " + CurrentClass.HumanName );
 		return CurrentClass.LLVMModule;
 	    } else {
@@ -714,12 +723,22 @@ namespace Parse {
 	    switch( f ) {
 	    case RuntimeFunction.ALLOC_OBJECT:
 		name = `__alloc_object`;
+
 	    case RuntimeFunction.ALLOC_OBJECT_FINALIZE:
 		name = `__alloc_object_finalize`;
+
 	    case RuntimeFunction.ALLOC_ARRAY:
 		name = `allocagn`;
+
 	    case RuntimeFunction.ALLOC_REF_ARRAY:
 		name = `allocago`;
+
+	    case RuntimeFunction.THROW_NULL:
+		name = `_ZN6System20NullPointerException8throwNPEEv`;
+
+	    case RuntimeFunction.THROW_BOUNDS:
+	        name = `_ZN6System20ArrayBoundsException11throwBoundsEv`;	    
+		
 	    default:
 		throw new System.Exception( "unknown runtime function #" + cast int(f) );
 	    }
@@ -749,6 +768,11 @@ namespace Parse {
 			LLVM.Calls.LLVMInt32Type(),
 			LLVM.Calls.LLVMVTableType()
 		    };
+
+		case RuntimeFunction.THROW_NULL,
+		    RuntimeFunction.THROW_BOUNDS:
+		    ret = LLVM.Calls.LLVMVoidType();
+		    args = new LLVM.Type[0];
 		    
 		default:
 		    throw new System.Exception( "unknown runtime function #" + cast int(f) );
@@ -985,19 +1009,15 @@ namespace Parse {
 
 
 	void addLibrary( String name ) {
-	    if( !WantPIC ) {
-		if( !WantLinkLibraries ) {
-		    if( WantVerbose ) {
-			ParseTree.message( "ignoring library: " + name );
-		    }
-		} else {
-		    if( WantVerbose ) {
-			ParseTree.message( "adding library: " + name );
-		    }
-		    libraries.add( name );
+	    if( !WantLinkLibraries ) {
+		if( WantVerbose ) {
+		    ParseTree.message( "ignoring library: " + name );
 		}
 	    } else {
-		ParseTree.message( "ignoring library '" + name + "' in PIC mode" );
+		if( WantVerbose ) {
+		    ParseTree.message( "adding library: " + name );
+		}
+		libraries.add( name );
 	    }
 	}
 
@@ -1011,7 +1031,7 @@ namespace Parse {
 
 	void addObject( Container c ) {
 	    // IO.Std.err.println( "add object: " + c.HumanName );
-	    if( !need_compile.isInLibrary( c.DecoratedName ) ) {
+	    if( !WantOneFile && !need_compile.isInLibrary( c.DecoratedName ) ) {
 		// IO.Std.err.println( "need link: " + c.HumanName + " lcache_dir is: " + CacheDir );
 		addLinkFile( getObjectFileName( c.DecoratedName, ".bc" ) );
 	    }
@@ -1212,7 +1232,7 @@ namespace Parse {
 		return;
 	    }
 
-	    if( !WantPIC ) {
+	    if( WantLinkLibraries ) {
 		if( main_class_decorated != null ) {
 		    // IO.Std.err.println( "writing out entry point for main class " + main_class_decorated );
 
@@ -1323,6 +1343,14 @@ namespace Parse {
 	    IO.Std.out.println( "\tAAAAA\t" + o.ClassName + "\t" + o.MemoryUse + "\t" );
 	}
 
+	void countCompiledClass() {
+	    compile_class_count = compile_class_count + 1;
+	}
+
+	get int CompileClassCount {
+	    return compile_class_count;
+	}
+
 	void linkObjectFiles() {
 
 	    StringBuffer b = new StringBuffer();
@@ -1332,16 +1360,38 @@ namespace Parse {
 
 	    String exe;
 
+	    if( !WantForceLink && CompileClassCount == 0 ) {
+		var st = new IO.Stat();
+		if( st.stat( executable_name ) ) {
+		    if( WantVeryVerbose ) {
+			ParseTree.message( "no classes were compiled and output '" + executable_name + "' exists: not linking" );
+		    }
+		    IO.Std.err.flush();
+
+		    return;
+		}
+	    }
+
 	    IO.Std.err.flush();
 
-	    // IO.Std.err.println( "want pic is: " + WantPIC );
+	    if( WantOneFile ) {
+		LLVM.Calls.LLVMWriteBitcodeToFile(Module, "temp.bc".toCString() );
+	    }
 
-	    if( WantPIC ) {
-		exe = "llvm-ld";
-		v.add( "llvm-ld" );
+	    exe = "llvm-ld";
+	    v.add( "llvm-ld" );
+
+	    if( OptimizeLevel == 0 ) {
+		v.add( "-disable-opt" );
+		/*
+	    } else {
+		v.add( "-O" + OptimizeLevel );
+		*/
+	    }
+
+	    if( !WantLinkLibraries ) {
 		v.add( "-L/usr/lang/lib/" );
 
-		v.add( "-disable-opt" );
 		// v.add( LIBRARY_DIR + "lrt-llvm-" + RUNTIME_VERSION + ".bc" );
 
 		v.add( "-o" );
@@ -1349,19 +1399,26 @@ namespace Parse {
 		v.add( executable_name );
 
 	    } else {
-		exe = "llvm-ld";
-		v.add( "llvm-ld" );
 		v.add( "-L/usr/lang/lib/" );
 
-		v.add( "-disable-opt" );
 		v.add( LIBRARY_DIR + "lrt-llvm-" + RUNTIME_VERSION + ".bc" );
 
 		v.add( "-o" );
 		v.add( executable_name );
 	    }		
 
+
+	    if( WantNative ) {
+		v.add( "-native" );
+		v.add( LIBRARY_DIR + "dummy.o" );
+	    }
+
 	    foreach( String s; to_link_set.elements() ) {
 		v.add( s );
+	    }
+
+	    if( WantOneFile ) {
+		v.add( "temp.bc" );
 	    }
 
 	    foreach( String u; libraries.elements() ) {
@@ -1371,15 +1428,7 @@ namespace Parse {
 	    }
 	    // v.add( "-nostartfiles" );
 
-	    /*
-	    if( !WantPIC ) {
-		if( WantSharedStandardLibrary ) {
-		    v.add( LIBRARY_DIR + "exception-" + RUNTIME_VERSION + ".so" );
-		} else {
-		    v.add( LIBRARY_DIR + "exception-" + RUNTIME_VERSION + ".o" );
-		}
-	    }
-	    */
+
 
 	    v.add( "-lgc" );
 	    // v.add( "/usr/lang/lib/libgcX.a" );
@@ -1557,7 +1606,7 @@ namespace Parse {
 	}
 
         CompileStatus needCompile( String source_name, String class_name, int hash ) {
-            var result = need_compile.needCompile( source_name, class_name, hash );
+            var result = need_compile.needCompile( source_name, class_name, hash, WantOneFile );
 
 	    // IO.Std.err.println( "need compile " + source_name + ": " + class_name + ": " + result );
 	    return result;
@@ -2681,12 +2730,28 @@ namespace Parse {
             return state[sp].State;
         }
 
-	get int MaxInlineCount {
-	    return max_inline_count;
+	get bool WantOneFile {
+	    return want_one_file;
 	}
 
-	set int MaxInlineCount = m {
-	    max_inline_count = m;
+	set bool WantOneFile = o {
+	    want_one_file = o;
+	}
+
+	get bool WantForceLink {
+	    return want_force_link;
+	}
+
+	set bool WantForceLink = f {
+	    want_force_link = f;
+	}
+
+        get int OptimizeLevel {
+	    return optimize_level;
+	}
+
+	set int OptimizeLevel = o {
+	    optimize_level = o;
 	}
 
 	static get int WantJobs {
@@ -2719,6 +2784,14 @@ namespace Parse {
 
         set bool WantLinkLibraries = l {
 	    want_link_libraries = l;
+	}
+
+	get bool WantNative {
+	    return want_native;
+	}
+
+	set bool WantNative = n {
+	    want_native = n;
 	}
 
 	get bool WantSafe {
@@ -2757,7 +2830,7 @@ namespace Parse {
 
 	set bool WantPrint = p {
 	    want_print = p;
-	}
+	}	    
 
 	get bool WantBoundsCheck {
 	    return WarnFlag[WANT_BOUNDS_CHECK];
@@ -2859,6 +2932,7 @@ namespace Parse {
 	    WarnFlag[WANT_PROFILE] = p;
 	}
 
+	/*
         get bool WantPIC {
 	    return WarnFlag[WANT_PIC];
         }
@@ -2866,6 +2940,7 @@ namespace Parse {
 	set bool WantPIC = p {
 	    WarnFlag[WANT_PIC] = p;
 	}
+	*/
 
         get bool WantPack {
 	    return WarnFlag[WANT_PACK];
@@ -2875,12 +2950,12 @@ namespace Parse {
 	    WarnFlag[WANT_PACK] = p;
 	}
 
-	get bool WantRedZone {
-	    return WarnFlag[WANT_RED_ZONE];
+	get bool WantNullCheck {
+	    return WarnFlag[WANT_NULL_CHECK];
 	}
 
-	set bool WantRedZone = z {
-	    WarnFlag[WANT_RED_ZONE] = z;
+	set bool WantNullCheck = z {
+	    WarnFlag[WANT_NULL_CHECK] = z;
 	}
         get bool WantVirtual {
 	    return WarnFlag[WANT_VIRTUAL];
