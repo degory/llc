@@ -37,7 +37,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1195;
+	const int BUILD = 1198;
 
 	CompileState state;
 
@@ -84,6 +84,7 @@ namespace Parse {
 	    state.WantWarnResolve = false;
 	    state.WantPack = true;
 	    state.WantBoundsCheck = true;
+	    state.WantNullCheck = true;
 	    state.WantLinkLibraries = true;
 	    state.WantNative = false;
 
@@ -196,7 +197,7 @@ namespace Parse {
 
 		    case 'O':
 			if( name.Length == 2 ) {
-			    name = name + '1';
+			    name = name + 1;
 			}
 
 			for( j = 2; j < name.Length; j = j + 1 ) {
@@ -214,10 +215,35 @@ namespace Parse {
 				state.OptimizeLevel = 3;
 				
 			    default:
-				IO.Std.err.println( "unexpected code generation switch: '" + name[j] );
+				IO.Std.err.println( "unexpected code generation switch: '" + name[j] + "'" );
 				return 1;
 			    }
 			}
+
+		    case 'C':
+			if( name.Length == 2 ) {
+			    name = name + 1;
+			}		      
+
+			for( j = 2; j < name.Length; j = j + 1 ) {
+			    switch( name[j] ) {
+			    case 'A':
+				state.WantBoundsCheck = true;
+
+			    case 'a':
+				state.WantBoundsCheck = false;
+
+			    case 'N':
+				state.WantNullCheck = true;
+
+			    case 'n':
+				state.WantNullCheck = false;
+
+			    default:
+				IO.Std.err.println( "unexpected runtime check switch: '" + name[j] + "'" );
+			    }
+			}
+
 
 			/*
 		    case 'c':
@@ -226,7 +252,7 @@ namespace Parse {
 
 		    case 'W':
 			if( name.Length == 2 ) {
-			    name = name + '1';
+			    name = name + 1;
 			}
 
 			for( j = 2; j < name.Length; j = j + 1 ) {
@@ -254,11 +280,14 @@ namespace Parse {
 
 			    case 'r':
 				state.WantWarnResolve = false;
+
+			    default:
+				IO.Std.err.println( "unexpected warning option: '" + name[1] + "'" );
 			    }
 			}
 
 		    default:
-			IO.Std.err.println( "unexpected switch: '" + name[1] );
+			IO.Std.err.println( "unexpected option: '" + name[1] + "'" );
 			return 1;
                     }
 

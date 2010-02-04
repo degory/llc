@@ -2208,17 +2208,21 @@ namespace Parse {
 			error( "cannot access instance variable " + symbol.HumanName + " from static context" );
 			return ErrorValue(symbol.Type.getLLVMType(state));
                      } else {
-                        v = makeInstance( state, line_number, into, makeLoadThis( state, line_number, into ), container, symbol );
+			v = makeLoadThis( state, line_number, into );
+
+			addNullCheck(state, into, v);
+
+                        v = makeInstance( state, line_number, into, v, container, symbol );
                         
                         if( reference ) {
                             // IO.Std.err.println( "loading instance reference: " + symbol.HumanName );
 			    // could throw null pointer exception if this is null:
-			    v = makeLoadIndirect( state, line_number, into, true, v );
+			    v = makeLoadIndirect( state, line_number, into, false, v );
                         }
                         
                         if( !address ) {
 			    // could throw null pointer exception if this is null or if reference and reference is null:
-			    v = makeLoadIndirect( state, line_number, into, true, v );
+			    v = makeLoadIndirect( state, line_number, into, reference, v );
                         }
                         
                         return v;
@@ -2364,17 +2368,19 @@ namespace Parse {
                     
                 case Symbol.INSTANCE_VARIABLE:
 		    // IO.Std.err.println( "compile load: instance variable" );
+		    addNullCheck(state, into, from);
+
 		    v = makeInstance( state, line_number, into, from, container, symbol );
                         
 		    if( reference ) {
 			IO.Std.err.println( "loading instance reference: " + symbol.HumanName );
 			// could throw null pointer exception if this is null:
-			v = makeLoadIndirect( state, line_number, into, true, v );
+			v = makeLoadIndirect( state, line_number, into, false, v );
 		    }
                     
 		    if( !address ) {
 			// could throw null pointer exception if this is null or if reference and reference is null:
-			v = makeLoadIndirect( state, line_number, into, true, v );
+			v = makeLoadIndirect( state, line_number, into, reference, v );
 		    }
                         
 		    return v;
