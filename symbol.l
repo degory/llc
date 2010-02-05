@@ -229,6 +229,7 @@ namespace Parse {
 		    Owner.hasStatic(v);
 		    // IO.Std.err.println( "owner: " + Owner.HumanName );
 		    // IO.Std.err.println( "current: " + state.CurrentClass.HumanName );
+		    LLVM.Calls.LLVMSetLinkage(v, LLVM.LLVMLinkage.LLVMDLLExportLinkage);
 		    LLVM.Calls.LLVMSetInitializer(v, Type.getLLVMNull(state));
 		}
 	    }

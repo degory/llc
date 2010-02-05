@@ -2210,7 +2210,7 @@ namespace Parse {
                      } else {
 			v = makeLoadThis( state, line_number, into );
 
-			addNullCheck(state, into, v);
+			addNullCheck(state, into, v, line_number);
 
                         v = makeInstance( state, line_number, into, v, container, symbol );
                         
@@ -2368,7 +2368,7 @@ namespace Parse {
                     
                 case Symbol.INSTANCE_VARIABLE:
 		    // IO.Std.err.println( "compile load: instance variable" );
-		    addNullCheck(state, into, from);
+		    addNullCheck(state, into, from, line_number);
 
 		    v = makeInstance( state, line_number, into, from, container, symbol );
                         

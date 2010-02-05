@@ -66,24 +66,24 @@ namespace System {
 	    return result;
 	}
 
-	/// locate a class in this shared object and return a Class object representing it
+	/// locate a class in any shared object and return a Class object representing it
 	/// \param class_name the fully qualified class name to load
 	/// \return a Class object representing the requested class
 	/// \throw LibraryException if the class cannot be found
 	/// \attention template classes and specializations cannot be loaded by this method
-	Class findClass( String class_name ) {
+	static Class findClassAll( String class_name ) {
 	    if( class_name == null ) {
 		throw new LibraryException( "no class name supplied" );
 	    }
 
-	    return findClassFromVTableName( decorateVTable(class_name) );
+	    return findClassFromVTableNameAll( decorateVTable(class_name) );
 	}
 
-	/// locate a class in this shared object from its vtable function name and return a Class object representing it
+	/// locate a class in any shared object from its vtable function name and return a Class object representing it
 	/// \param vtable_name the decorated get vtable function name for the class name to load
 	/// \return a Class object representing the requested class, if present in the shared object or null otherwise
 	/// \throw LibraryException if the vtable cannot be found
-	Class findClassFromVTableName( String vtable_function ) {
+	static Class findClassFromVTableNameAll( String vtable_function ) {
 	    int ptr ptr v = cast int ptr ptr( native.__call_function( vtable_function.toCString() ) );
 
 	    if( v != null ) {
@@ -94,6 +94,15 @@ namespace System {
 		// couldn't find the vtable in any loaded library:
 		throw new LibraryException( "class " + vtable_function + " not found" );
 	    }
+	}
+
+	/// locate a class in this shared object and return a Class object representing it
+	/// \param class_name the fully qualified class name to load
+	/// \return a Class object representing the requested class
+	/// \throw LibraryException if the class cannot be found
+	/// \attention template classes and specializations cannot be loaded by this method
+	Class findClass( String class_name ) {
+	    return findClassAll( class_name );
 	}
     }
 }

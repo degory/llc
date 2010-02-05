@@ -1327,7 +1327,7 @@ namespace Parse {
 			      );
 	   
 	    into.Call( run1_function, { ParseTree.makeLLVMCast( v, ParseTree.object_type.getLLVMType(this), into ) } );
-	    into.RetVoid();
+	    into.RetVoid(); // LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(),0L,0 ) );
 	    into.Close();
 
 	    LLVM.Calls.LLVMWriteBitcodeToFile(m, getObjectFileName("entry", ".bc").toCString() );
@@ -1389,6 +1389,11 @@ namespace Parse {
 		*/
 	    }
 
+	    v.add( "-export-dynamic" );
+	    v.add( "-Xlinker" );
+	    v.add( "--export-dynamic" );
+
+
 	    if( !WantLinkLibraries ) {
 		v.add( "-L/usr/lang/lib/" );
 
@@ -1445,9 +1450,6 @@ namespace Parse {
 		}
 	    }
 
-
-
-	    // v.add( "-Xlinker" );
 	    // v.add( "-shared" );
 
 	    String[] args = new String[v.Length];

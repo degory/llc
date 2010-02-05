@@ -240,13 +240,14 @@ char **__get_envp() {
   return __envp;
 }
 
-extern void __entry_point(void);
+extern int __entry_point(void);
 
 int main(int argc, char **argv, char **envp) {
   __argv = argv;
   __envp = envp;
   __l_personality(-1,0,0,0);
   __entry_point();
+  return 0;
 }
 
 

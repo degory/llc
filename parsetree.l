@@ -670,16 +670,27 @@ namespace Parse {
 						   );
 	}
 
-	static void addNullCheck( CompileState state, IRBlock into, LLVM.Value t ) {
+	static void addNullCheck( CompileState state, IRBlock into, LLVM.Value t, int line ) {
 	    var throw_function = state.getRuntimeFunction( RuntimeFunction.THROW_NULL );
 	    var l = into.Block();
+
+	    var tt = LLVM.Calls.LLVMTypeOf(t);
+
+	    if( LLVM.Calls.LLVMGetTypeKind(tt) != LLVM.TypeKind.LLVMPointerTypeKind ) {
+		IO.Std.err.println( "line is: " + line ); IO.Std.err.flush();
+		IO.Std.err.println( "class is: " + state.CurrentClass.HumanName );
+		message( "omitting null check for non-pointer type" );
+		IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpValue(t);
+		return;
+	    }
 
 	    into.Branch(
 			into.ICmp(
 				  LLVM.LLVMIntPredicate.LLVMIntNE,
 				  t,
 				  LLVM.Calls.LLVMConstPointerNull(
-								  LLVM.Calls.LLVMTypeOf(t)
+								  tt
 								  )
 				  ),
 			l
@@ -696,8 +707,8 @@ namespace Parse {
 	}
 
 	protected static LLVM.Value makeLoadIndirect( CompileState state, int line_number, IRBlock into, bool could_be_null, LLVM.Value t ) {
-	    if( could_be_null ) {		
-		addNullCheck( state, into, t );
+	    if( could_be_null && state.WantNullCheck ) {		
+		addNullCheck( state, into, t, line_number );
 	    }
 
 	    return into.Load( t );
@@ -707,8 +718,8 @@ namespace Parse {
 	// store a value allowing for a jump from the run-time on null pointer to any active exception
 	// handler:
 	protected static void addStoreIndirect( CompileState state, int line_number, IRBlock into, bool could_be_null, LLVM.Value d, LLVM.Value s ) {
-	    if( could_be_null ) {
-		addNullCheck( state, into, d );
+	    if( could_be_null && state.WantNullCheck ) {
+		addNullCheck( state, into, d, line_number );
 	    }
 
 	    var dt = LLVM.Calls.LLVMGetElementType(LLVM.Calls.LLVMTypeOf(d));
