@@ -1415,7 +1415,9 @@ namespace Parse {
 
 	    if( WantNative ) {
 		v.add( "-native" );
-		v.add( LIBRARY_DIR + "dummy.o" );
+		if( WantLinkLibraries ) {
+		    v.add( LIBRARY_DIR + "dummy.o" );
+		}
 	    }
 
 	    foreach( String s; to_link_set.elements() ) {

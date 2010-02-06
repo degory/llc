@@ -21,6 +21,10 @@ namespace System is
         /// Internal interface for garbage collector. Ensures that any exceptions thrown by dispose() are caught
 	// DO NOT MOVE: runtime depends on the _dispose() method occupying the first slot in the vtable:
 	void _dispose() is
+	    if this == null then
+	        // FIXME: is this a GC issue?
+	        return;
+	    fi
 
 	    try 
 	        dispose();

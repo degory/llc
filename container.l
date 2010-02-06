@@ -1548,15 +1548,16 @@ namespace Parse {
 		       );
 
 	    // size
+
+	    LLVM.Value cs = LLVM.Calls.LLVMConstPointerCast(
+							 LLVM.Calls.LLVMConstTypeSizeIndirectPointer(
+											      Type.getLLVMType(state)
+											      ),
+							 LLVM.Calls.LLVMVTableFunctionType()
+							 );
+
 	    buffer.add(
-		       LLVM.Calls.LLVMConstIntToPtr(
-						   LLVM.Calls.LLVMConstInt(
-									   LLVM.Calls.LLVMInt32Type(),
-									   cast long(Size),
-									   0
-									   ),
-						   LLVM.Calls.LLVMVTableFunctionType()
-						   )
+		       cs		       
 		       );
 	    
 	    // super class vtable 

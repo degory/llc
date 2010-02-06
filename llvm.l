@@ -989,6 +989,19 @@ namespace LLVM {
 	    return LLVMConstPtrToInt(sp, LLVMInt32Type());
         }
 
+
+	static Value LLVMConstTypeSizeIndirectPointer(Type type) {
+	    // %Size = getelementptr %T* null, int 1
+	    // %SizeI = cast %T* %Size to uint
+	    
+	    Value null_ = LLVMConstPointerNull(type);
+	    Value[] indexes = {
+		LLVMConstInt(LLVMInt32Type(), 1L, 0)
+	    };
+
+	    return LLVMConstGEP(null_, indexes.address, 1);
+        }
+
 	static Value LLVMConstTypeSize(Type type) {
 	    // %Size = getelementptr %T* null, int 1
 	    // %SizeI = cast %T* %Size to uint

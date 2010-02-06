@@ -2,7 +2,7 @@ all: lc llvmc.so
 
 
 lc: x llvmc.o /usr/lang/lib/dummy.o
-	lc -p test -o lc -N -s llvm -lllvmc.o -lLLVMAnalysis -lLLVMArchive -lLLVMBitReader -lLLVMBitWriter -lLLVMCore -lLLVMExecutionEngine -lLLVMipa -lLLVMMC -lLLVMSupport -lLLVMSystem -lLLVMTarget -lLLVMTransformUtils main.l
+	lc -w -p test -o lc -N -s llvm -lllvmc.o -lLLVMAnalysis -lLLVMArchive -lLLVMBitReader -lLLVMBitWriter -lLLVMCore -lLLVMExecutionEngine -lLLVMipa -lLLVMMC -lLLVMSupport -lLLVMSystem -lLLVMTarget -lLLVMTransformUtils main.l
 
 #lc: lco.o llvmc.o dummy.o
 #	g++ -o lc lco.o llvmc.o dummy.o -lLLVMAnalysis -lLLVMArchive -lLLVMBitReader -lLLVMBitWriter -lLLVMCore -lLLVMExecutionEngine -lLLVMipa -lLLVMMC -lLLVMSupport -lLLVMSystem -lLLVMTarget -lLLVMTransformUtils

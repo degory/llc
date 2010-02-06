@@ -946,9 +946,10 @@ namespace Parse {
 			foreach( Symbol si; ci.Members.Iterator ) {
 			    if( si.IsMethod ) {
 				int la = state.Hash[si.DecoratedName];
-				
-				if( si.Address != la ) {
-				    error( "class source definition does not match compiled library class for method " + si.HumanName );
+				if( la == 0 ) {
+				    warn( "no library hash found for method " + si.HumanName );
+				} else if( si.Address != la ) {
+				    error( "class source definition does not match compiled library class for method " + si.HumanName + " (" + si.Address + " != " + la + ")" );
 				    // IO.Std.err.println( "BAD: " + si.HumanName + ": sa: " + si.Address + " la: " + la );
 				    //} else {
 				    // IO.Std.err.println( " ok: " + si.HumanName + ": sa: " + si.Address + " la: " + la );
