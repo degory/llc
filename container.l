@@ -791,7 +791,7 @@ namespace Parse {
 			    } else {
 				IO.Std.err.println( "ignoring " + current.Name + " with non const LLVM.Value when calculating hash for " + HumanName );
 			    } 
-			} else {
+			} else if( !current.IsStatic ) {
 			    IO.Std.err.println( "ignoring " + current.Name + " with no valid address when calculating hash for " + HumanName );
 			}
 		    }
@@ -1406,20 +1406,22 @@ namespace Parse {
                     if( parent != null ) {
                         ancestor = parent.findMethod( cast<Container>(current) );
                     }
-                
+	                    
                     if( ancestor == null ) {
-                        // not defined in parent-class - gets its own vtable offset
+                        // not defined in parent-class - gets its own vtable offset, unless it's static
                     
                         if( current.IsAddressValid ) {
                             throw new Exception( "oops: " + current.Name + " already has an address" );
                         }
                     
-                        current.Address = address.vtable_offset;
-
 			// IO.Std.err.println( "BBBB: method " + current.HumanName + " @ " + address.vtable_offset );
 
-			// method doesn't override anything - it needs its own vtable slot:
-                        address.vtable_offset = address.vtable_offset + 1;
+			if( !current.IsStatic ) {
+			    current.Address = address.vtable_offset;
+
+			    // method doesn't override anything and is not static - it needs its own vtable slot:
+			    address.vtable_offset = address.vtable_offset + 1;
+			}
                     } else {
                         ancestor.IsFinal = false;
 
@@ -1441,9 +1443,17 @@ namespace Parse {
                             current.Address = ancestor.Address;
                         }
 
+			if( current.IsStatic ) {
+			    if( !ancestor.IsStatic ) {
+				ParseTree.message( "warning: static method cannot override " + ancestor.HumanName + " with " + current.HumanName );
+			    }
+			} else if( ancestor.IsStatic ) {
+			    ParseTree.message( "warning: cannot override static method " + ancestor.HumanName + " with " + current.HumanName );
+			}
+
 			// IO.Std.err.println( "BBBB: override " + current.HumanName + " @ " + current.Address );
                     }
-                } else if( k == Symbol.STATIC_VARIABLE ) {
+	    } else if( k == Symbol.STATIC_VARIABLE ) {
                     if( current.IsAddressValid ) {
                         throw new Exception( "weird: static variable " + current.HumanName + " already has an address" );
                     }
@@ -1787,6 +1797,9 @@ namespace Parse {
                         throw new Exception( "strange: member missing: " + current.Name );
                         // Machine.emitDefPointer( state.Output, 0 );
                     } else {
+			if( current.IsStatic ) {
+			    continue;
+			}
                         Container owner = candidate.Owner;
                     
                         if( owner == null ) {

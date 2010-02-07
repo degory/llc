@@ -773,15 +773,18 @@ namespace Parse {
 					   ft
 					   );
 
-
+	    state.clearThrowBlocks();
 	    var into = new IRBlock( state, f );
 
 	    into.Ret( makeLoadVTable( state, c ) );
+
+	    into.AtEnd();
 
 	    into.Close();
 	}
 
 	void compileBody( CompileState state, Container c ) {
+	    state.clearThrowBlocks();
 
 	    var g = LLVM.Calls.LLVMAddGlobal(
 					     state.Module,
@@ -812,7 +815,7 @@ namespace Parse {
 					   ft
 					   );
 
-
+	    state.clearThrowBlocks();
 	    var into = new IRBlock( state, f );
 	    var pi8 = LLVM.Calls.LLVMPointerType( LLVM.Calls.LLVMInt8Type(), 0 );
 
@@ -884,6 +887,8 @@ namespace Parse {
 	    into.Label( l );
 
 	    into.RetVoid();
+
+	    into.AtEnd();
 
 	    into.Close();
 
@@ -1660,6 +1665,7 @@ namespace Parse {
 	    LLVM.Calls.LLVMSetFunctionCallConv(fg, LLVM.LLVMCallConv.LLVMCCallConv);
 
 	    var into = new IRBlock( state, fg );	   
+	    state.clearThrowBlocks();
 
             if( m == null ) {
                 throw new Exception( "couldn't find previous definition for " + human + " (" + decorated + ")" );
@@ -1733,9 +1739,13 @@ namespace Parse {
 		} else {
 		    into.Ret(m.Type.getLLVMNull(state));
 		}
+		into.AtEnd();
+		
 		into.Close();		
 		success = true;
 	    } catch( System.NotImplementedException nie ) {
+		into.AtEnd();
+
 		into.Close();
 		LLVM.Calls.LLVMRemoveFunction(fg);
 		// LLVM.Calls.LLVMDeleteFunction(fg);

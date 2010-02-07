@@ -463,6 +463,8 @@ extern void _ZN6System20NullPointerException4initEPc( void *e, char *m );
 extern char *_ZN6System6Object9toCStringEv( void *e );
 #endif
 
+extern  _ZN6System15MemoryException7throwMEEv();
+
 // extern __throw_memoryexception();
 
 #define STACK_SIZE (1024*1024*2)
@@ -1459,6 +1461,8 @@ Exception *__make_nullpointerexception() {
 
 int segv_count = 0;
 
+extern void _ZN6System20NullPointerException8throwNPEEv();
+
 void __segv_handler(int sig, siginfo_t *si, SigContext *uc) {
   if( __in_segv ) {
     fprintf( stderr, "segv in segv handler\n" );
@@ -1495,6 +1499,7 @@ void __segv_handler(int sig, siginfo_t *si, SigContext *uc) {
   // fprintf( stderr, "Content-type: text/plain\r\n\r\n" );
   // fprintf( stderr, "SIGSEGV referencing address: 0x%p\n", (void *)si->si_addr );
 
+  /*
   Exception *e;
 
   long address = (WORD)si->si_addr;
@@ -1505,6 +1510,7 @@ void __segv_handler(int sig, siginfo_t *si, SigContext *uc) {
   }
 
   D( "e:   %p\n", e );
+  */
 
   D( "rax: %lx\n", uc->regs.rax );
   D( "rbx: %lx\n", uc->regs.rbx );
@@ -1530,6 +1536,7 @@ void __segv_handler(int sig, siginfo_t *si, SigContext *uc) {
   // void *p = malloc( sizeof(Registers) );
   // memcpy( p, &uc->regs, sizeof(Registers) );
 
+  /*
 #if B32
   uc->regs.rdx = (WORD)rip;            // faulting address
   uc->regs.rcx = (WORD)e;                       // exception to throw;
@@ -1539,13 +1546,9 @@ void __segv_handler(int sig, siginfo_t *si, SigContext *uc) {
   uc->regs.rdi = (WORD)rip;            // faulting address
   uc->regs.rsi = (WORD)e;                       // exception to throw;
 #endif
-  uc->regs.rip = (WORD)__throw_memoryexception; // restart address
-  /*
-  __throw_memoryexception( e, &uc->regs );
-  //  __throw_with_regs( THROW_EXCEPTION, e, &uc->regs );
-
-  exit(1);
   */
+  uc->regs.rip = (WORD)_ZN6System15MemoryException7throwMEEv; // restart address
+  exit(1);
 }
 
 

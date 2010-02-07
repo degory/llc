@@ -411,6 +411,9 @@ namespace Parse {
 
 	LLVM.Module module;
 
+	LLVM.BasicBlock null_throw;
+	LLVM.BasicBlock bounds_throw;
+
 	Generic.Vector<LLVM.Value>local_variables;
 
         SymbolList master_class_list;
@@ -715,6 +718,22 @@ namespace Parse {
 	    }
 	}
 
+	get LLVM.BasicBlock ThrowNullBlock {
+	    return null_throw;
+	}
+
+	set LLVM.BasicBlock ThrowNullBlock = b {
+	    null_throw = b;
+	}
+	
+	get LLVM.BasicBlock ThrowBoundsBlock {
+	    return bounds_throw;
+	}
+
+	set LLVM.BasicBlock ThrowBoundsBlock = b {
+	    bounds_throw = b;
+	}
+
 	LLVM.Value getRuntimeFunction( RuntimeFunction f ) {
 	    char ptr name;
 	    LLVM.Module m = Module;
@@ -840,6 +859,14 @@ namespace Parse {
 	get ExceptionDescriptor TopException {
 	    // IO.Std.err.println( "get top exception: exception_level = " + exception_level );
 	    return exception[exception_level];
+	}
+
+	get ExceptionDescriptor TopExceptionOrNull {
+	    if( InExceptionHandler ) {
+		return TopException;
+	    } else {
+		return null;
+	    }
 	}
 
 	get bool InExceptionHandler {
@@ -1047,7 +1074,14 @@ namespace Parse {
 
 		foreach( Symbol t; c.Members.Iterator ) {
 		    if( t.IsMethod ) {
-			library_hash_file.print( t.DecoratedName + ' ' + t.Address + ' ' );
+			String u;
+			if( t.IsStatic ) {
+			    u = t.DecoratedName + " 0 ";
+			} else {
+			    u = t.DecoratedName + ' ' + t.Address + ' ';
+			}
+
+			library_hash_file.print( u );
 		    }
 		}
 	    }
@@ -1265,15 +1299,12 @@ namespace Parse {
 	    var m = LLVM.Calls.LLVMModuleCreateWithName( `entry` );
 	    module = m;
 
-	    var args_init = {
-		main_class.Type.getLLVMType(this)
-	    };
-
-	    /*
-	    var main_init_function =
+	    var args_init = new LLVM.Type[0];
+	   
+	    var install_segv_handler =
 		LLVM.Calls.LLVMAddFunction(
 					   m,
-					   main_class_init.toCString(),
+					   `__install_segv_handler`,
 					   LLVM.Calls.LLVMFunctionType(
 								       LLVM.Calls.LLVMVoidType(),
 								       args_init.address,
@@ -1282,7 +1313,6 @@ namespace Parse {
 								       )
 					   );
 
-	    */
 
 	    var args_run1 = { ParseTree.object_type.getLLVMType(this) };
 
@@ -1302,6 +1332,7 @@ namespace Parse {
 
 	    var args_entry = new LLVM.Type[0];
 
+	    clearThrowBlocks();
 	    var entry_point_function = LLVM.Calls.LLVMAddFunction(
 					       m,
 					       `__entry_point`,
@@ -1315,6 +1346,7 @@ namespace Parse {
 
             var into = new IRBlock( this, entry_point_function );
 
+	    into.Call( install_segv_handler, new LLVM.Value[0] );
 
 	    var op = RuntimeFunction.ALLOC_OBJECT;
 	    var vtable = ParseTree.makeLoadVTable( this, main_class );
@@ -1378,15 +1410,15 @@ namespace Parse {
 		LLVM.Calls.LLVMWriteBitcodeToFile(Module, "temp.bc".toCString() );
 	    }
 
-	    exe = "llvm-ld";
+	    exe = "llvm-ldh";
 	    v.add( "llvm-ld" );
 
 	    if( OptimizeLevel == 0 ) {
+		IO.Std.err.println( "linking with -disable-opt" );
 		v.add( "-disable-opt" );
-		/*
 	    } else {
-		v.add( "-O" + OptimizeLevel );
-		*/
+		IO.Std.err.println( "default optimization level" );
+		// v.add( "-O" + OptimizeLevel );
 	    }
 
 	    v.add( "-export-dynamic" );
@@ -2427,11 +2459,16 @@ namespace Parse {
 	    // IO.Std.err.println( "return label initially: " + return_label );
             
             symbol_table.enterScope( method_class.Scope );
-            
+
             pushState( STATE_INSIDE_METHOD, CurrentClass, method_class );
 
 	    seen_exception_handler = false;
         }
+
+	void clearThrowBlocks() {
+	    ThrowNullBlock = null;
+	    ThrowBoundsBlock = null;
+	}
 
 	bool seenExceptionHandler() {
 	    return seen_exception_handler;

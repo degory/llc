@@ -2210,8 +2210,6 @@ namespace Parse {
                      } else {
 			v = makeLoadThis( state, line_number, into );
 
-			addNullCheck(state, into, v, line_number);
-
                         v = makeInstance( state, line_number, into, v, container, symbol );
                         
                         if( reference ) {
@@ -2283,7 +2281,7 @@ namespace Parse {
                         } else {
                             o = Op.STATIC_CALL_DISCARD;
                         }
-
+			// this should not be null here so no null check:
 
 			arg_values = ExpressionList.compilePush(
 								arguments,
@@ -2306,6 +2304,9 @@ namespace Parse {
                         }
 
 			t = makeLoadThis(state, 0, into);
+
+			// this should not be null here so no null check
+
 			arg_values = ExpressionList.compilePush( arguments, state, t, symbol.Owner.Type, argument_types, into, true, false );
 
 		        a = symbol.Address;
@@ -2430,6 +2431,9 @@ namespace Parse {
                             o = Op.STATIC_CALL_DISCARD;
                         }
 
+			// from could be null:
+			addNullCheck(state, into, from, line_number);
+
 			arg_values = ExpressionList.compilePush( arguments, state, from, symbol.Owner.Type, argument_types, into, true, false );
 			// IO.Std.err.println( "CCCC: static dynamic call, arg types: " + argument_types );
 
@@ -2440,6 +2444,9 @@ namespace Parse {
                         } else {
                             o = Op.STATIC_CALL_DISCARD;
                         }
+
+			// from could be null:
+			addNullCheck(state, into, from, line_number);
 
 			arg_values = ExpressionList.compilePush( arguments, state, from, symbol.Owner.Type, argument_types, into, true, false );
 			// IO.Std.err.println( "CCCC: final dynamic call, arg types: " + argument_types );

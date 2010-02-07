@@ -154,6 +154,10 @@ namespace System is
 	get word Address is
 	    return address;
 	end
+
+        static void throwME() is
+	    throw new MemoryException("invalid pointer dereference");
+        end
     end
 
     /// Exception thrown when runtime detects a null pointer dereference

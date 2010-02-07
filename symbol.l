@@ -357,7 +357,7 @@ namespace Parse {
 
         get int Address {
             if( !is_address_valid ) {
-		IO.Std.err.println( "address not valid: " + HumanName ); IO.Std.err.flush();
+		IO.Std.err.println( "address not valid: " + HumanName + " from: " + new System.Backtrace() ); IO.Std.err.flush();
             }
             return address;
         }

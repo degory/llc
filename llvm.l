@@ -118,7 +118,7 @@ namespace LLVM {
     struct TypeHandle { }
 
     struct Value { System.String toString() { return "LLVM Value"; } }
-    struct BasicBlock { }
+    struct BasicBlock { System.String toString() { return "LLVM.BasicBlock"; } }
     struct Builder { }
 
     struct LLVMOpaqueModuleProvider {}
@@ -1056,8 +1056,9 @@ namespace LLVM {
 namespace Gen {
     use System.String;
     use System.Object;
+    use Generic.Vector;
     use LLVM;
-    use Parse.CompileState;
+    use Parse.CompileState;    
 
     class IRBlock extends Object {
 	CompileState state;
@@ -1066,6 +1067,8 @@ namespace Gen {
 	BasicBlock entry_block;
 	BasicBlock current_block;
 	Value entry_jump;
+
+	Vector<BasicBlock> at_end;
 
 	void init( CompileState s, Value f ) {
 	    state = s;
@@ -1096,6 +1099,9 @@ namespace Gen {
 	}
 
 	void Close() {
+	    if( at_end != null ) {
+		throw new System.Exception( "at-end blocks not yet linked into CFG" );
+	    }
 	    // Fixup();
 	    LLVM.Calls.LLVMDisposeBuilder(builder);
 	    builder = null;
@@ -1146,7 +1152,36 @@ namespace Gen {
 	    return LLVM.Calls.LLVMCreateBasicBlock(``);
 	}
 
-	BasicBlock Block(System.String name) {
+	BasicBlock BlockAtEnd() {
+	    var result = Block();
+	    addBlockAtEnd(result);
+	    return result;
+	}
+
+	BasicBlock BlockAtEnd(String name) {
+	    var result = Block(name);
+	    addBlockAtEnd(result);
+	    return result;
+	}
+
+	void addBlockAtEnd(BasicBlock b) {
+	    if( at_end == null ) {
+		at_end = new Vector<BasicBlock>();
+	    }
+
+	    at_end.add(b);
+	}
+
+	get BasicBlock CurrentBlock {
+	    return current_block;
+	}
+
+	set BasicBlock CurrentBlock = b {
+	    current_block = b;
+	    PositionEnd(current_block);
+	}
+
+	BasicBlock Block(String name) {
 
 	    // LLVM.Calls.LLVMDeleteBasicBlock(bb);
 
@@ -1154,8 +1189,22 @@ namespace Gen {
 	    return LLVM.Calls.LLVMCreateBasicBlock(name.toCString());
 	}
 
-	get BasicBlock CurrentBlock {
-	    return current_block;
+	void AtEnd() {
+	    if( at_end != null ) {
+		BasicBlock last = null;
+		foreach( var b; at_end.Iterator ) {
+		    Label( b );
+		    last = b;
+		}
+
+		if( last != null && !Calls.LLVMHasTerminator(last) ) {
+		    var c = CurrentBlock;
+		    CurrentBlock = last;
+		    Unreachable();
+		    CurrentBlock = last;
+		}
+		at_end = null;
+	    }
 	}
 
 	// jump to the given block if the current block has no terminator instruction. Make the given block
@@ -1350,14 +1399,14 @@ namespace Gen {
 	    return Calls.LLVMBuildNot(builder, LHS, ``);
 	}
 
-	Value AllocaEntry(Type Ty, System.String name) {
+	Value AllocaEntry(Type Ty, String name) {
 	    Calls.LLVMPositionBuilderBefore(builder, entry_jump);
 	    var result = Calls.LLVMBuildAlloca(builder, Ty, name.toCString());
 	    Calls.LLVMPositionBuilderAtEnd(builder, current_block);
 	    return result;
 	}
 
-	Value AllocaHere(Type Ty, System.String name) {
+	Value AllocaHere(Type Ty, String name) {
 	    return Calls.LLVMBuildAlloca(builder, Ty, name.toCString());
 	}
 

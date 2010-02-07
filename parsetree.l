@@ -206,6 +206,9 @@ namespace Parse {
 	public LLVM.BasicBlock landing_pad;
 	public LLVM.BasicBlock handler;
 
+	public LLVM.BasicBlock null_throw;
+	public LLVM.BasicBlock bounds_throw;
+	
 	public LLVM.Value exception_type;
 	public LLVM.Value exception_unwind;
 	public LLVM.Value exception_object;
@@ -670,9 +673,79 @@ namespace Parse {
 						   );
 	}
 
+	static LLVM.BasicBlock getThrowNullBlock( CompileState state, IRBlock into, bool ref existing_block ) {
+	    LLVM.BasicBlock l;
+	    var ed = state.TopExceptionOrNull;
+	    existing_block = false;
+
+	    if( ed != null ) {
+		if( ed.null_throw != null ) {
+		    l = ed.null_throw;
+		}
+	    } else {
+		l = state.ThrowNullBlock;
+	    }
+
+	    if( l == null ) {
+		l = into.BlockAtEnd(".null");
+		if( ed != null ) {		    
+		    ed.null_throw = l;
+		} else {
+		    state.ThrowNullBlock = l;
+		}
+	    } else {
+		existing_block = true;
+	    }
+
+	    return l;
+	}
+
+
+	// FIXME: merge with getThrowNullBlock
+	static LLVM.BasicBlock getThrowBoundsBlock( CompileState state, IRBlock into, bool ref existing_block ) {
+	    LLVM.BasicBlock l;
+	    var ed = state.TopExceptionOrNull;
+	    existing_block = false;
+
+	    if( ed != null ) {
+		if( ed.bounds_throw != null ) {
+		    l = ed.bounds_throw;
+		}
+	    } else {
+		l = state.ThrowBoundsBlock;
+	    }
+
+	    if( l == null ) {
+		l = into.BlockAtEnd(".bounds");
+		if( ed != null ) {		    
+		    ed.bounds_throw = l;
+		} else {
+		    state.ThrowBoundsBlock = l;
+		}
+	    } else {
+		existing_block = true;
+	    }
+
+	    return l;
+	}
+
 	static void addNullCheck( CompileState state, IRBlock into, LLVM.Value t, int line ) {
+	    if( !state.WantNullCheck ) {
+		return;
+	    }
+
+	    /*
+	    if( state.CurrentMethod != null ) {
+		IO.Std.err.println( "null check in method: " + state.CurrentMethod.HumanName );
+	    }
+	    */
+
 	    var throw_function = state.getRuntimeFunction( RuntimeFunction.THROW_NULL );
-	    var l = into.Block();
+
+	    var existing_block = false;
+	    var l = getThrowNullBlock( state, into, existing_block );
+
+	    var m = into.Block();
 
 	    var tt = LLVM.Calls.LLVMTypeOf(t);
 
@@ -685,29 +758,39 @@ namespace Parse {
 		return;
 	    }
 
-	    into.Branch(
+	    into.BranchLabel(
 			into.ICmp(
-				  LLVM.LLVMIntPredicate.LLVMIntNE,
+				  LLVM.LLVMIntPredicate.LLVMIntEQ,
 				  t,
 				  LLVM.Calls.LLVMConstPointerNull(
 								  tt
 								  )
 				  ),
-			l
+			l, m
 			);
 
-	    callOrInvoke(
-			 state,
-			 into,
-			 throw_function,
-			 new LLVM.Value[0]
-			 );
+	    LLVM.BasicBlock c = null;
+	    if( !existing_block ) {
+		// IO.Std.err.println( "output a new throw null block" );
+		c = into.CurrentBlock;
+
+		into.CurrentBlock = l;
+		
+		callOrInvoke(
+			     state,
+			     into,
+			     throw_function,
+			     new LLVM.Value[0]
+			     );
+
+		into.Unreachable();
 	    
-	    into.Label( l );
+		into.CurrentBlock = c;
+	    }
 	}
 
 	protected static LLVM.Value makeLoadIndirect( CompileState state, int line_number, IRBlock into, bool could_be_null, LLVM.Value t ) {
-	    if( could_be_null && state.WantNullCheck ) {		
+	    if( could_be_null ) {		
 		addNullCheck( state, into, t, line_number );
 	    }
 
@@ -718,7 +801,7 @@ namespace Parse {
 	// store a value allowing for a jump from the run-time on null pointer to any active exception
 	// handler:
 	protected static void addStoreIndirect( CompileState state, int line_number, IRBlock into, bool could_be_null, LLVM.Value d, LLVM.Value s ) {
-	    if( could_be_null && state.WantNullCheck ) {
+	    if( could_be_null ) {
 		addNullCheck( state, into, d, line_number );
 	    }
 
@@ -811,7 +894,7 @@ namespace Parse {
 	    }
 
 	    if( kv == LLVM.TypeKind.LLVMVoidTypeKind ) {
-		IO.Std.err.println( "right type is void" ); IO.Std.err.flush();	       
+		IO.Std.err.println( "right type is void" ); IO.Std.err.flush();
 		throw new System.Exception( "right type is void" );
 	    }
 
@@ -1113,12 +1196,12 @@ namespace Parse {
 	}	    
 
 	LLVM.Value ErrorValue() {
-	    IO.Std.err.println( "untyped error value from: " + new System.Backtrace() );
+	    // IO.Std.err.println( "untyped error value from: " + new System.Backtrace() );
 	    return ErrorValue(LLVM.Calls.LLVMVoidType());
 	}
 
 	LLVM.Value ErrorValue(LLVM.Type t) {
-	    IO.Std.err.println( "error value from: " + new System.Backtrace() );
+	    // IO.Std.err.println( "error value from: " + new System.Backtrace() );
 	    return LLVM.Calls.LLVMGetUndef(t);
 	}	    
 
@@ -1310,6 +1393,11 @@ namespace Parse {
 	    } else {
 		return "";
 	    }
+	}
+
+	static void staticError( String msg ) {
+	    message( "error: " + msg );
+	    markError();
 	}
 
         void error( String msg ) {
@@ -2064,7 +2152,7 @@ namespace Parse {
 		LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(r) );
 		*/
 
-		addStoreIndirect( state, line_number, into, true, l, r );
+		addStoreIndirect( state, line_number, into, false, l, r );
 	    }
 	    
 
@@ -2229,6 +2317,9 @@ namespace Parse {
 	    
 	    if( state.WantBoundsCheck ) {
 		var throw_function = state.getRuntimeFunction( RuntimeFunction.THROW_BOUNDS );
+		var existing_block = false;
+
+		var l = getThrowBoundsBlock( state, into, existing_block );
 
 		// warn( "bounds check: " + this );
 
@@ -2238,10 +2329,11 @@ namespace Parse {
 		// IO.Std.err.print( "right: " ); IO.Std.err.flush();
 		// LLVM.Calls.LLVMDumpValue( cr ); native.__flush_stdout();
 
-		var l = into.Block();
-		into.Branch(
+		// var l = into.BlockAtEnd(".bounds");
+		var m = into.Block();
+		into.BranchLabel(
 			    into.ICmp(
-				      LLVM.LLVMIntPredicate.LLVMIntULT,
+				      LLVM.LLVMIntPredicate.LLVMIntUGE,
 				      makeLLVMCast(cr, LLVM.Calls.LLVMInt32Type(),into),
 				      makeGetArraySize(
 						       state,
@@ -2250,19 +2342,25 @@ namespace Parse {
 						       cl
 						       )
 				      ),
-			    l
+			    l, m
 			    );
 
 		// IO.Std.err.println( "emitted ICmp instruction" );
 
-		callOrInvoke(
-			     state,
-			     into,
-			     throw_function,
-			     new LLVM.Value[0]
-			     );
+		if( !existing_block ) {
+		    var c = into.CurrentBlock;
+		    into.CurrentBlock = l;
 
-		into.Label( l );
+		    callOrInvoke(
+				 state,
+				 into,
+				 throw_function,
+				 new LLVM.Value[0]
+				 );
+
+		    into.CurrentBlock = c;
+		}
+
 	    }
 
 	    return makeGetArrayDataPointer( state, line_number, into, cl, cr );            
