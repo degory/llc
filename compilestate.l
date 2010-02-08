@@ -1299,6 +1299,7 @@ namespace Parse {
 	    var m = LLVM.Calls.LLVMModuleCreateWithName( `entry` );
 	    module = m;
 
+	    /*
 	    var args_init = new LLVM.Type[0];
 	   
 	    var install_segv_handler =
@@ -1313,7 +1314,7 @@ namespace Parse {
 								       )
 					   );
 
-
+	    */
 	    var args_run1 = { ParseTree.object_type.getLLVMType(this) };
 
 	    // System.Startup.run1(Object):
@@ -1346,7 +1347,7 @@ namespace Parse {
 
             var into = new IRBlock( this, entry_point_function );
 
-	    into.Call( install_segv_handler, new LLVM.Value[0] );
+	    // into.Call( install_segv_handler, new LLVM.Value[0] );
 
 	    var op = RuntimeFunction.ALLOC_OBJECT;
 	    var vtable = ParseTree.makeLoadVTable( this, main_class );

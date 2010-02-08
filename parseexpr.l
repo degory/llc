@@ -1742,8 +1742,9 @@ namespace Parse {
 
 
 	static LLVM.Value makeGetArraySize( CompileState state, int line_number, IRBlock into, LLVM.Value a ) {
+	    addNullCheck( state, into, a, line_number );
 	    return 
-		makeLoadIndirect( state, line_number, into, true,
+		makeLoadIndirect( state, line_number, into, false,
 				  into.InBoundsGEP(
 						   a,
 						   {
@@ -1898,7 +1899,8 @@ namespace Parse {
 		addDummyExceptionHandlerJump( state, line_number, into );
 		v = into.PointerCast( from, LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMVTableType(),0) );
 
-		v = makeLoadIndirect( state, line_number, into, true, v );
+		// do not need null check here - caller should have already issued one if required:
+		v = makeLoadIndirect( state, line_number, into, false, v );
 
 		v = into.InBoundsGEP(
 				     v,
@@ -2273,8 +2275,29 @@ namespace Parse {
                     }
                     
                     if( super_class != null ) {
-                        throw new Exception( "oops: calling method in super with no from address" );
-			return ErrorValue();
+                        // call dynamic method statically
+                        if( no_discard ) {
+                            o = Op.STATIC_CALL;
+                        } else {
+                            o = Op.STATIC_CALL_DISCARD;
+                        }
+
+			// this cannot be null:
+			t = makeLoadThis(state, 0, into);
+
+			arg_values = ExpressionList.compilePush(
+								arguments,
+								state,
+								t,
+								symbol.Owner.Type,
+								argument_types,
+								into,
+								true,
+								false
+								);
+			// IO.Std.err.println( "CCCC: static dynamic call, arg types: " + argument_types );
+
+			return compileCall( state, into, t, o, symbol, symbol.DecoratedName, 0, arg_values );
                     } else if( cast<Container>(symbol).IsFinal ) {
                         if( no_discard ) {
                             o = Op.STATIC_CALL;
@@ -2295,6 +2318,7 @@ namespace Parse {
 
 			// IO.Std.err.println( "CCCC: static dynamic call, arg types: " + argument_types );
 
+			// this cannot be null here:
 			return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, arg_values );
                     }  else {
                         if( no_discard ) {
@@ -2303,6 +2327,7 @@ namespace Parse {
                             o = Op.DYNAMIC_CALL_DISCARD;
                         }
 
+			// this cannot be null here:
 			t = makeLoadThis(state, 0, into);
 
 			// this should not be null here so no null check
@@ -2339,6 +2364,7 @@ namespace Parse {
 		    } else {
 			o = Op.PROC_CALL_DISCARD;
 		    }
+		    addNullCheck( state, into, from, line_number );
 		    arg_values = ExpressionList.compilePush( arguments, state, null, null, argument_types, into, false, false );
 
 		    return compileCall( state, into, from, o, null, null, 0, arg_values );
@@ -2369,13 +2395,15 @@ namespace Parse {
                     
                 case Symbol.INSTANCE_VARIABLE:
 		    // IO.Std.err.println( "compile load: instance variable" );
+
+		    // from != this, so it could be null. check before makeInstance moves any null pointer away from zero:
 		    addNullCheck(state, into, from, line_number);
 
 		    v = makeInstance( state, line_number, into, from, container, symbol );
                         
 		    if( reference ) {
 			IO.Std.err.println( "loading instance reference: " + symbol.HumanName );
-			// could throw null pointer exception if this is null:
+			// cannot be null - have already checked if from is null:
 			v = makeLoadIndirect( state, line_number, into, false, v );
 		    }
                     
@@ -2445,7 +2473,8 @@ namespace Parse {
                             o = Op.STATIC_CALL_DISCARD;
                         }
 
-			// from could be null:
+			// although we're not going to call though it, still need to check from against null here
+			// because called function expects this to be guarentee'd non-null:
 			addNullCheck(state, into, from, line_number);
 
 			arg_values = ExpressionList.compilePush( arguments, state, from, symbol.Owner.Type, argument_types, into, true, false );

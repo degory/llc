@@ -2152,11 +2152,10 @@ namespace Parse {
 		LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(r) );
 		*/
 
+		// FIXME: compileLoad() makes sure compiled address is not null for identifier left values but
+		// not sure about other cases:
 		addStoreIndirect( state, line_number, into, false, l, r );
 	    }
-	    
-
-	    // into.add( new ITree( line_number, Op.COPY, tl.getRegSize(), makeLoadIndirect( line_number, into, Op.INDIRECT, tl.getRegSize(), l ), r ) );
         }
 
 
@@ -2358,9 +2357,13 @@ namespace Parse {
 				 new LLVM.Value[0]
 				 );
 
+		    into.Unreachable();
+
 		    into.CurrentBlock = c;
 		}
 
+	    } else {
+		addNullCheck( state, into, cl, line_number );
 	    }
 
 	    return makeGetArrayDataPointer( state, line_number, into, cl, cr );            
@@ -2370,8 +2373,8 @@ namespace Parse {
 	    getType(state);
 	    if( method_call == null ) {
 		// IO.Std.err.println( "no method call: " + this + ", type: " + type );
-		// cannot throw null pointer exception if previously bounds checked as would already have done so:
-		return makeLoadIndirect( state, line_number, into, !state.WantBoundsCheck, compileAddress(state, into) );
+		// cannot throw null, compileAddress ensures non-null:
+		return makeLoadIndirect( state, line_number, into, false, compileAddress(state, into) );
 	    } else {
 		// IO.Std.err.println( "have method call: " + this + ", type: " + type );
 		if( want_set_value ) {

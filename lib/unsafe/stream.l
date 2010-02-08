@@ -599,6 +599,10 @@ namespace IO {
 		flush();
 	    }
 	}
+
+	String toString() {
+	    return "Writer on " + stream;
+	}
     }
 
 

@@ -817,7 +817,12 @@ namespace Parse {
 
 	    } else if( left_value != null && !left_value.isClass( state ) ) {
 		// IO.Std.err.println( "call on non-class left value: " + left_value );
-                t = left_value.compileValue( state, into );
+		if( !super_call ) {
+		    t = left_value.compileValue( state, into );
+		} else {
+		    // avoid a redundant null check - let compileLoad load 'this' value, so it knows it's guaranteed non-null
+		    t = null;
+		}
 
 		// FIXME: this is a bad place for this but MethodCall doesn't make it easy
 		// to do this in the caller:
