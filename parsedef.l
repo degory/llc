@@ -952,7 +952,9 @@ namespace Parse {
 			    if( si.IsMethod ) {
 				int la = state.Hash[si.DecoratedName];
 				if( la == 0 ) {
-				    warn( "no library hash found for method " + si.HumanName );
+				    if( !si.IsStatic ) {
+					warn( "no library hash found for method " + si.HumanName );
+				    }
 				} else if( si.Address != la ) {
 				    error( "class source definition does not match compiled library class for method " + si.HumanName + " (" + si.Address + " != " + la + ")" );
 				    // IO.Std.err.println( "BAD: " + si.HumanName + ": sa: " + si.Address + " la: " + la );
@@ -1037,6 +1039,12 @@ namespace Parse {
                     }
                     
                     if( !errors_occurred ) {
+			char ptr msg;
+
+			if( LLVM.Calls.LLVMVerifyModule( state.Module, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction, msg.address ) != 0 ) {
+			    error( "failed to module verify " + c.HumanName + ": " + new String(msg) );
+			}
+
 		        // IO.Std.err.println( "assembling: " + c.getHumanName() );
                         // state.assembleFile( c.FileName );
 
@@ -1721,11 +1729,6 @@ namespace Parse {
 	    state.endParseMethodBody(m);
 	    // into.WantLineNumbers = state.WantLineNumbers;                
 	    
-	    /*
-	      if( state.WantProfile ) {
-	      compileProfileEntry(state,into,m);
-	      }
-	    */
 	   
 	    compileArguments(state, into, !m.IsStatic);
 
@@ -1776,11 +1779,6 @@ namespace Parse {
 	    // into.add( new ITree( line_number, Op.LABEL, 0, state.ReturnLabel ) );
 	    // into.add( new ITree( line_number, Op.LEAVE, 0 ) );
 	    
-	    /*
-	      if( state.WantProfile ) {
-	      compileProfileExit(state,into,m,to_pop);
-	      }
-	    */
 	    
 	    // into.add( new ITree( line_number, Op.RET, 0, to_pop ) );
             
@@ -1819,29 +1817,17 @@ namespace Parse {
 	    // message( human );
 
 	    if( success ) {
-		// LLVM.Calls.LLVMDumpValue( fg );
 		LLVM.Calls.LLVMCleanUpFunction(fg);
-
-		if( LLVM.Calls.LLVMVerifyFunction( fg, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction ) != 0 ) {
-		    error( "failed to function verify: " + human );
-		    IO.Std.err.println( "VVVV: AA failed to function verify: " + human ); IO.Std.err.flush();
-
-		    LLVM.Calls.LLVMDumpValue( fg );
-		}
-
-		native.__flush_stdout();
-
-		char ptr msg;
-		// IO.Std.err.println( "VVVV: will verify module: " + m.Owner.HumanName ); IO.Std.err.flush();
-
-		if( LLVM.Calls.LLVMVerifyModule( state.Module, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction, msg.address ) != 0 ) {
-		    error( "failed to module verify: " + human );
-		    IO.Std.err.println( "VVVV: failed to module verify: " + human + " " + state.CurrentClass.HumanName + " " + cast int(state.Module)); IO.Std.err.flush();
-		    if( msg != null ) {
-			IO.Std.err.println( "message: " + new String(msg) ); IO.Std.err.flush();
+		if (!didErrorsOccur() ) {
+		    // LLVM.Calls.LLVMDumpValue( fg );
+		    
+		    if( LLVM.Calls.LLVMVerifyFunction( fg, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction ) != 0 ) {
+			error( "failed to function verify: " + human );
+			IO.Std.err.println( "VVVV: AA failed to function verify: " + human ); IO.Std.err.flush();
+			
+			LLVM.Calls.LLVMDumpValue( fg );
 		    }
-
-		    LLVM.Calls.LLVMDumpValue( fg );
+		   
 		}
 	    }
 	    /*

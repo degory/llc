@@ -37,7 +37,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1202;
+	const int BUILD = 1203;
 
 	CompileState state;
 
@@ -83,6 +83,7 @@ namespace Parse {
 	    state.WantRegVars = false;
 	    state.WantWarnResolve = false;
 	    state.WantPack = true;
+	    state.WantCastCheck = true;
 	    state.WantBoundsCheck = true;
 	    state.WantNullCheck = true;
 	    state.WantLinkLibraries = true;
@@ -99,12 +100,6 @@ namespace Parse {
 		    case 'h', 'H', '?':
 			usage( args[0] );
 		        return 1;
-
-		    case 'A':
-			state.WantBoundsCheck = true;
-
-		    case 'a':
-			state.WantBoundsCheck = false;
 
 		    case 'f':
 			state.WantForceLink = true;
@@ -238,6 +233,12 @@ namespace Parse {
 
 			    case 'n':
 				state.WantNullCheck = false;
+
+			    case 'C':
+				state.WantCastCheck = true;
+
+			    case 'c':
+				state.WantCastCheck = false;
 
 			    default:
 				IO.Std.err.println( "unexpected runtime check switch: '" + name[j] + "'" );

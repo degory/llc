@@ -600,7 +600,7 @@ namespace IO {
 	    }
 	}
 
-	String toString() {
+	System.String toString() {
 	    return "Writer on " + stream;
 	}
     }

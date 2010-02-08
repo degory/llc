@@ -199,6 +199,124 @@ namespace Parse {
 	    right.checkTemplates( state );
 	}
 
+	void addCastCheck( CompileState state, IRBlock into, LLVM.Value v, LLVM.Value ctable ) {
+	    if( !state.WantCastCheck ) {
+		return;
+	    }
+
+	    var ppi8 =
+		LLVM.Calls.LLVMPointerType(
+					   LLVM.Calls.LLVMPointerType(
+								      LLVM.Calls.LLVMInt8Type(),
+								      0
+								      ),
+					   0
+					   );
+	    var e = into.Block();
+	    var m = into.Block();
+	    var t = into.Block();
+	    var x = into.Block();
+	    var throw_function = state.getRuntimeFunction( RuntimeFunction.THROW_CAST );
+
+	    /*
+	      e:
+	      if v0 = null then goto x
+	      m:
+	      v1 = phi e->v, t->v1
+	      v = *v 
+	      if v == ctable goto x
+	      t:
+	      if v != null got o m
+	      throw cast exception
+	      unreachable
+	      x:
+	      // done
+
+	    */
+
+	    v = makeLLVMCast(
+			     v,
+			     ppi8,
+			     into
+			     );
+
+	    into.Label(e);
+
+	    // null can be cast to any object type:
+	    into.BranchLabel(
+			     into.ICmp(
+				       LLVM.LLVMIntPredicate.LLVMIntEQ,
+				       v,
+				       LLVM.Calls.LLVMConstNull(
+								ppi8
+								)
+				       ),
+			     x,
+			     m
+			     );
+
+	    // loop from object's class over all super classes:
+	    var v0 = into.Phi( ppi8 );
+	    
+	    // load vtable from object (if first pass) or parent from vtable (subsequent passes)
+	    var v1 = into.Load(v0);
+
+	    v1 = makeLLVMCast(
+			     v1,
+			     ppi8,
+			     into
+			     );
+
+	    /*
+	    IO.Std.err.println( "v, v1: "); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpValue( v );
+	    LLVM.Calls.LLVMDumpValue( v1 );
+	    */
+
+	    into.AddIncoming(
+			     v0,
+			     {v, v1},
+			     {e, t}
+			     );
+
+	    // if current vtable matches expected vtable then cast is acceptable, jump to exit label:
+	    into.BranchLabel(
+			     into.ICmp(
+				       LLVM.LLVMIntPredicate.LLVMIntEQ,
+				       v1,
+				       makeLLVMCast(
+						    ctable,
+						    ppi8,
+						    into
+						    )
+				       
+				       ),
+			     x,
+			     t
+			);			
+
+
+	    // if current vtable is null then none of the object's class or any ancestor class matched the
+	    // supplied vtable, in this case fall through to the cast exception throw, otherwise jump
+	    // back to loop start to try next ancestor:
+	    into.Branch(
+			into.ICmp(
+				  LLVM.LLVMIntPredicate.LLVMIntNE,
+				  v1,
+				  LLVM.Calls.LLVMConstNull(
+							   ppi8
+							   )
+				  ),
+			m
+			);			
+
+	    // unacceptable cast, throw a CastException:
+	    callOrInvoke( state, into, throw_function, new LLVM.Value[0] );
+	    into.Unreachable();
+
+	    into.Label( x );
+	}
+
 	static bool warned = false;
         LLVM.Value compileValue( CompileState state, IRBlock into ) {
             Type r = right.getType( state );
@@ -209,7 +327,13 @@ namespace Parse {
 		    warned = true;
 		}
 
-		return makeLLVMCast( right.compileValue(state, into), getType(state).getLLVMType(state), into );
+		var t = getType(state);
+		
+		LLVM.Value v = makeLLVMCast( right.compileValue(state, into), t.getLLVMType(state), into );
+
+		addCastCheck(state, into, v, makeLoadVTable(state, t.Clazz));
+
+		return v;
             } else if( r.RegSize == getType(state).RegSize ) {
 		return makeLLVMCast( right.compileValue(state, into), getType(state).getLLVMType(state), into );
             } else if( r.RegSize > getType(state).RegSize ) {

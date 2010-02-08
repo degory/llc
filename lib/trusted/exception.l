@@ -229,6 +229,10 @@ namespace System is
 	void init( char ptr s ) is
 	    super.init( s );
 	end
+
+        static void throwCast() is
+	    throw new CastException("invalid cast");
+	end
     end
 
     /// Exception thrown when an operation is not implemented

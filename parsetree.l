@@ -1468,8 +1468,8 @@ namespace Parse {
 		state.WantWarnUnsafe = false;
 	    } else if( n =~ "NoMarkUnsafe" ) {
 		state.WantMarkUnsafe = false;
-	    } else if( n =~ "NoProfile" ) {
-		state.WantProfile = false;
+	    } else if( n =~ "NoCastCheck" ) {
+		state.WantCastCheck = false;
 	    } else if( n =~ "NoRegVars" ) {
 		IO.Std.err.println( "disabling reg vars" );
 		state.WantRegVars = false;

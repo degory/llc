@@ -185,7 +185,8 @@ namespace Parse {
         ALLOC_ARRAY,
 	ALLOC_REF_ARRAY,
         THROW_NULL,
-	THROW_BOUNDS
+        THROW_BOUNDS,
+	THROW_CAST
     }
 
 
@@ -391,7 +392,7 @@ namespace Parse {
     	    MARK_UNSAFE = 3,
 	    IS_TRUSTED = 4,
             WANT_DEBUG = 5,
-	    WANT_PROFILE = 6,
+	    WANT_CAST_CHECK = 6,
 	    WANT_PIC = 7,
 	    WANT_VIRTUAL = 8,
 	    WANT_PACK = 9,
@@ -757,6 +758,9 @@ namespace Parse {
 
 	    case RuntimeFunction.THROW_BOUNDS:
 	        name = `_ZN6System20ArrayBoundsException11throwBoundsEv`;	    
+
+	    case RuntimeFunction.THROW_CAST:
+	        name = `_ZN6System13CastException9throwCastEv`;	    
 		
 	    default:
 		throw new System.Exception( "unknown runtime function #" + cast int(f) );
@@ -789,7 +793,8 @@ namespace Parse {
 		    };
 
 		case RuntimeFunction.THROW_NULL,
-		    RuntimeFunction.THROW_BOUNDS:
+		    RuntimeFunction.THROW_BOUNDS,
+		    RuntimeFunction.THROW_CAST:
 		    ret = LLVM.Calls.LLVMVoidType();
 		    args = new LLVM.Type[0];
 		    
@@ -1425,7 +1430,6 @@ namespace Parse {
 	    v.add( "-export-dynamic" );
 	    v.add( "-Xlinker" );
 	    v.add( "--export-dynamic" );
-
 
 	    if( !WantLinkLibraries ) {
 		v.add( "-L/usr/lang/lib/" );
@@ -2966,12 +2970,12 @@ namespace Parse {
 	    WarnFlag[WANT_DEBUG] = v;
 	}
 
-        get bool WantProfile {
-	    return WarnFlag[WANT_PROFILE];
+        get bool WantCastCheck {
+	    return WarnFlag[WANT_CAST_CHECK];
 	}
 
-	set bool WantProfile = p {
-	    WarnFlag[WANT_PROFILE] = p;
+	set bool WantCastCheck = p {
+	    WarnFlag[WANT_CAST_CHECK] = p;
 	}
 
 	/*
