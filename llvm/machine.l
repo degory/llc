@@ -12,10 +12,6 @@ namespace Gen {
 
 	static String file_name = "unknown";
 
-	static get bool Is64Bit {
-	    return true;
-	}
-
         void init() {
             super.init();
         }

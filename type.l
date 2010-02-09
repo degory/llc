@@ -134,6 +134,8 @@ namespace Parse {
 	    return isVoid(type_kind);
 	}
 
+	static bool warned_bits;
+
 	LLVM.Type getLLVMType(CompileState state) {
             switch ( type_kind ) {
             case Type.NONE, Type.VOID:
@@ -155,8 +157,20 @@ namespace Parse {
 		return LLVM.Calls.LLVMInt64Type();
 
 	    case Type.WORD:
-		return LLVM.Calls.LLVMInt64Type();
+		if( state.Want64BitTarget ) {
+		    if( !warned_bits ) {
+			IO.Std.err.println( "target is 64 bit" );
+			warned_bits = true;
+		    }
+		    return LLVM.Calls.LLVMInt64Type();
+		} else {		    
+		    if( !warned_bits ) {
+			IO.Std.err.println( "target is 32 bit" );
+			warned_bits = true;
+		    }
 
+		    return LLVM.Calls.LLVMInt32Type();
+		}
 		/*
 		if( Gen.Machine.WORD == 8 ) {
 		    decorate.append( 'l' );
@@ -467,6 +481,7 @@ namespace Parse {
 
 
         get int Size {
+
             switch( TypeKind ) {
             case Type.VOID:
 		IO.Std.err.println( "returning size 0 for type: " + this + " of kind " + cast<int>(TypeKind) + " from: " + new System.Backtrace() );
@@ -482,11 +497,8 @@ namespace Parse {
 		return 8;
 
 	    case Type.NONE,Type.NULL,Type.WORD,Type.VECTOR,Type.REFERENCE,Type.POINTER,Type.CLASS,Type.PROC:
-		if( Machine.Is64Bit ) {
-		    return 8;
-		} else {
-		    return 4;
-		}
+		IO.Std.err.println( "type size for type of unknown size called from: " + new System.Backtrace() );
+		return 8;		
 
             default:
                 throw new Exception( "oops: unknown type-kind " + cast<int>(getTypeKind()) + " in Type.getSize() on: " + this );

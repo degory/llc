@@ -186,7 +186,8 @@ namespace Parse {
 	ALLOC_REF_ARRAY,
         THROW_NULL,
         THROW_BOUNDS,
-	THROW_CAST
+        THROW_CAST,
+	GET_L_EXCEPTION
     }
 
 
@@ -485,6 +486,9 @@ namespace Parse {
 	bool want_link_libraries;
 	bool want_statistics;
 	bool want_native;
+	bool want_64bit_target;
+
+	String target_isa;
 
 	int default_warn_flags;
 
@@ -562,11 +566,7 @@ namespace Parse {
 	    // be sure Machine.NAME is initialized:
 	    lcache_dir = null;
 
-	    /*
-	    LLVM.Calls.LLVMLinkInJIT();
-	    LLVM.Calls.LLVMInitializeX86TargetInfo();
-	    LLVM.Calls.LLVMInitializeX86Target();
-	    */
+	    target_isa = "x86";
 
 	    module = LLVM.Calls.LLVMModuleCreateWithName(`test`);
 	    local_variables = new Generic.Vector<LLVM.Value>();
@@ -629,6 +629,18 @@ namespace Parse {
 	    return CurrentMethod.getFunctionGlobal(this);
 	}
 
+	get String TargetISAName {
+	    return target_isa;
+	}
+
+	get String TargetID {
+	    if( Want64BitTarget ) {
+		return "linux-" + TargetISAName + "-64";
+	    } else {
+		return "linux-" + TargetISAName + "-32";
+	    }
+	}
+
 	void walk( Object o ) {
 	    walk_.walk(o);
 	}
@@ -667,14 +679,15 @@ namespace Parse {
 	}
 
 	void initSearchPaths( bool safe ) {
+	    String llvm_lib;
+	    addSearchPath( LIBRARY_DIR + TargetID + "/" );
+
+	    addSearchPath( LIBRARY_DIR + "trusted/" );
+
 	    if( safe ) {
-		addSearchPath( LIBRARY_DIR + Machine.NAME + "/" );
-		addSearchPath( LIBRARY_DIR + "trusted/" );
 		addSearchPath( LIBRARY_DIR + "safe/" );
 	    } else {
 		addSearchPath( "./" );
-		addSearchPath( LIBRARY_DIR + Machine.NAME + "/" );
-		addSearchPath( LIBRARY_DIR + "trusted/" );
 		addSearchPath( LIBRARY_DIR + "unsafe/" );
 	    }
 	}
@@ -761,6 +774,9 @@ namespace Parse {
 
 	    case RuntimeFunction.THROW_CAST:
 	        name = `_ZN6System13CastException9throwCastEv`;	    
+
+	    case RuntimeFunction.GET_L_EXCEPTION:
+		name = `__get_l_exception`;
 		
 	    default:
 		throw new System.Exception( "unknown runtime function #" + cast int(f) );
@@ -797,6 +813,12 @@ namespace Parse {
 		    RuntimeFunction.THROW_CAST:
 		    ret = LLVM.Calls.LLVMVoidType();
 		    args = new LLVM.Type[0];
+
+		case RuntimeFunction.GET_L_EXCEPTION:
+		    ret = LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0);
+		    args = {
+			LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0)
+		    };
 		    
 		default:
 		    throw new System.Exception( "unknown runtime function #" + cast int(f) );
@@ -935,7 +957,7 @@ namespace Parse {
 		if( project_name != null ) {
 		    lcache_dir = "/tmp/lcache-" + project_name + "/";
 		} else {
-		    lcache_dir = "/tmp/lcache-" + Machine.NAME + "/";
+		    lcache_dir = "/tmp/lcache/";
 		}
 	    }
 
@@ -1058,6 +1080,11 @@ namespace Parse {
 	    if( to_link_set.contains(name) ) {
       		return;
 	    }
+
+	    if( name.endsWith("lang.bc" ) ) {
+		IO.Std.err.println( "arg, from: " + new System.Backtrace() );
+	    }
+
             to_link_set.add( name );
         }
 
@@ -1432,6 +1459,7 @@ namespace Parse {
 	    v.add( "--export-dynamic" );
 
 	    if( !WantLinkLibraries ) {
+		v.add( "-L/usr/lang/lib/" + TargetID + "/" );
 		v.add( "-L/usr/lang/lib/" );
 
 		// v.add( LIBRARY_DIR + "lrt-llvm-" + RUNTIME_VERSION + ".bc" );
@@ -1441,9 +1469,10 @@ namespace Parse {
 		v.add( executable_name );
 
 	    } else {
+		v.add( "-L/usr/lang/lib/" + TargetID + "/" );
 		v.add( "-L/usr/lang/lib/" );
 
-		v.add( LIBRARY_DIR + "lrt-llvm-" + RUNTIME_VERSION + ".bc" );
+		v.add( LIBRARY_DIR + TargetID + "/lrt-llvm-" + RUNTIME_VERSION + ".bc" );
 
 		v.add( "-o" );
 		v.add( executable_name );
@@ -1453,7 +1482,7 @@ namespace Parse {
 	    if( WantNative ) {
 		v.add( "-native" );
 		if( WantLinkLibraries ) {
-		    v.add( LIBRARY_DIR + "dummy.o" );
+		    v.add( LIBRARY_DIR + TargetID + "/dummy.o" );
 		}
 	    }
 
@@ -2775,6 +2804,15 @@ namespace Parse {
         get int State {
             return state[sp].State;
         }
+
+
+	get bool Want64BitTarget {
+	    return want_64bit_target;
+	}
+
+	set bool Want64BitTarget = b { 
+	    want_64bit_target = b;
+	}
 
 	get bool WantOneFile {
 	    return want_one_file;

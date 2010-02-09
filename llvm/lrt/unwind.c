@@ -93,7 +93,7 @@ typedef signed char int8_t;
 #define DW_EH_PE_omit 0xFF
 
 
-#define L_EXCEPTION_CLASS 0x1EE71EE7DE95DE95UL
+#define L_EXCEPTION_CLASS 0x1EE71EE7DE95DE95ULL
 
 struct OurExceptionType;
 
@@ -142,21 +142,12 @@ void __add_root( char *g ) {
 }
 
 void cleanup( _Unwind_Reason_Code reason, struct _Unwind_Exception *e ) {
-  // do nothing
+  free(e);
 }
 
-struct _Unwind_Exception e = {
-  L_EXCEPTION_CLASS,
-  cleanup,
-  0L,
-  0L
-};
 
 struct _Unwind_Exception_L {
-  uint64 exception_class;
-  _Unwind_Exception_Cleanup_Fn exception_cleanup;
-  uint64 private_1;
-  uint64 private_2;
+  struct _Unwind_Exception e;
   void *l_exception;
 };
 
@@ -190,42 +181,28 @@ typedef struct _Exception {
 
 
 struct _Unwind_Exception *makeException( void *l_exception ) {
-  struct _Unwind_Exception_L *result = (struct _Unwind_Exception_L *)GC_malloc(sizeof(struct _Unwind_Exception_L));
+  struct _Unwind_Exception_L *result = (struct _Unwind_Exception_L *)malloc(sizeof(struct _Unwind_Exception_L));
 
-  result->exception_class = L_EXCEPTION_CLASS;
-  result->exception_cleanup = cleanup;
-  result->l_exception = (uint64)l_exception;
+  result->e.exception_class = L_EXCEPTION_CLASS;
+  result->e.exception_cleanup = cleanup;
+  result->l_exception = l_exception;
 
-  D( fprintf( stderr, "exception class is: %ul\n", result->exception_class ) );
+  D( fprintf( stderr, "exception class is: %ul\n", result->e.exception_class ) );
 
   D( fprintf( stderr, "AAA: l exception: %p\n", l_exception ) );
   D( fprintf( stderr, "AAA:  result:     %p\n", result ) );
-  D( fprintf( stderr, "AAA: &private1:   %p\n", &result->private_1 ) );
-  D( fprintf( stderr, "AAA:  private1:   %p\n", result->private_1 ) );
-
-  int l = sizeof(*result);
-
-  int i;
-  for( i = 0; i < l; i++ ) {
-    if( (i & 7) == 0 ) {
-      D( fprintf( stderr, "AAA %p %02X:", ((unsigned char *)result) + i, i ) );
-    }
-    D( fprintf( stderr, " %02X", ((unsigned char *)result)[i] ) );
-    if( (i & 7) == 7 ) {
-      D( fprintf( stderr, "\n" ) );
-    }
-  }
 
   D( fprintf( stderr, "\n" ) );
+  D( fflush(stderr) );
   return (struct _Unwind_Exception *)result;
 }
 
-void testThrow() {
-  D( fprintf( stderr, "about to throw...\n" ) );
+void *__get_l_exception( struct _Unwind_Exception_L *e ) {
+  fprintf( stderr, "__get_l_exception: %p\n", e );
+  fprintf( stderr, "exception object: %p\n", e->l_exception );
+  fflush( stderr );
 
-  _Unwind_RaiseException( &e );
-
-  D( fprintf( stderr, "should not be reachable\n" ) );
+  return e->l_exception;
 }
 
 
@@ -480,7 +457,7 @@ uintptr_t readEncodedPointer_borken(uint8** data, uint8 encoding) {
 
 int handleActionValue(
 		      int64 *resultAction,
-		      struct OurExceptionType **classInfo,
+		      void *classInfo,
 		      uintptr_t actionEntry,
 		      uint64 exceptionClass,
 		      struct _Unwind_Exception *exceptionObject
@@ -495,11 +472,10 @@ int handleActionValue(
     
     int type = 1;
     
-    /*
-    fprintf(stderr,
-	    "handleActionValue(...): exceptionObject = <%p>\n",
-	    exceptionObject );
-    */
+    D(fprintf(stderr,
+	    "handleActionValue(...): exceptionObject = %p, class info: %p\n",
+	      exceptionObject, classInfo ) );
+
     uint8 *actionPos = (uint8*) actionEntry,
       *tempActionPos;
     
@@ -516,31 +492,29 @@ int handleActionValue(
       tempActionPos = actionPos;
       actionOffset = readSLEB128(&tempActionPos);
       
-      /*
-      fprintf(stderr,
-	      "handleActionValue(...):typeOffset: <%lld>, "
-	      "actionOffset: <%lld>.\n",
-	      typeOffset,
-	      actionOffset);
-      */   
+      D(
+	fprintf(stderr,
+		"handleActionValue(...):typeOffset: <%lld>, "
+		"actionOffset: <%lld>.\n",
+		typeOffset,
+		actionOffset)
+	);
       // Note: A typeOffset == 0 implies that a cleanup llvm.eh.selector
       //       argument has been matched.
       //
       if ((typeOffset > 0)/* &&
 			     (type == (classInfo[-typeOffset])->type)*/) {
-	/*
-	fprintf(stderr,
+	D( fprintf(stderr,
 		"handleActionValue(...):actionValue <%d> found.\n",
-		i);
-	*/	
+		   i) );
+
 	*resultAction = i + 1;
 	ret = 1;
 	break;
       } else {
-	/*
-	fprintf(stderr,
-		"handleActionValue(...):actionValue not found.\n");
-	*/
+	D(fprintf(stderr,
+		  "handleActionValue(...):actionValue not found.\n"));
+
 	if (actionOffset) {
 	  actionPos += actionOffset;
 	} else {
@@ -642,61 +616,79 @@ _Unwind_Reason_Code handleLsda(
 
   uint8*  callSitePtr = callSiteTableStart;
 
-  int foreignException = 0;
+  int is_L_exception = exceptionClass == L_EXCEPTION_CLASS;
+  int have_landing_pad = 0;
 
   D( fprintf( stderr, "before loop\n" ) );
   while (callSitePtr < callSiteTableEnd) {
     uintptr_t start = readEncodedPointer(&callSitePtr,
 					 callSiteEncoding);
 
-    D( fprintf( stderr, "start %p\n", start ) );
+    // D( fprintf( stderr, "start %p\n", start ) );
     uintptr_t length = readEncodedPointer(&callSitePtr,
 					  callSiteEncoding);
 
-    D( fprintf( stderr, "length %ld\n", length ) );
+    // D( fprintf( stderr, "length %ld\n", length ) );
     uintptr_t landingPad = readEncodedPointer(&callSitePtr,
 					      callSiteEncoding);
 
-    D( fprintf( stderr, "landing pad %p\n", landingPad ) );
+    // D( fprintf( stderr, "landing pad %p\n", landingPad ) );
     // Note: Action value
     //
     uintptr_t actionEntry = readULEB128(&callSitePtr);
-    D( fprintf( stderr, "action entry %ld\n", actionEntry ) );
-    
-    if (exceptionClass != L_EXCEPTION_CLASS) {
-      D( fprintf( stderr, "foreign exception %llx\n", exceptionClass ) );
+    // D( fprintf( stderr, "action entry %ld\n", actionEntry ) );
+
+    /*    
+
+	  don't care - still offer it to catches but marked as foreign:
+    if( !is_L_exception ) {
+      D( fprintf( stderr, "XXXXX: foreign exception %llx\n", exceptionClass ) );
+      if( actionEntry != 0 ) {
+	D( fprintf( stderr, "ignoring existing action entry %llx\n", actionEntry ) );
+      }
       // We have been notified of a foreign exception being thrown,
       // and we therefore need to execute cleanup landing pads
       //
       actionEntry = 0;
-      foreignException = 1;
     } else {
       D( fprintf( stderr, "L exception %llx\n", exceptionClass ) );
     }
+    */
 
     if (landingPad == 0) {
+      /*
       D( fprintf(stderr,
 		 "handleLsda(...): No landing pad found.\n") );
-
+      */
       continue; /* no landing pad for this entry */
     }
 
+    have_landing_pad = 1;
+
     if (actionEntry) {
       actionEntry += ((uintptr_t) actionTableStart) - 1;
-    } else {
+    } /* else {
       D( fprintf(stderr,
 		 "handleLsda(...):No action table found.\n" ) );
-
     }
+      */
 
-    int exceptionMatched = 0;
 
     if ((start <= pcOffset) && (pcOffset < (start + length))) {
-      D( fprintf(stderr,
-		 "handleLsda(...): Landing pad found.\n") );
-
+      if (actions & _UA_SEARCH_PHASE) {
+	D( fprintf(stderr,
+		   "LLLL handleLsda(...): Landing pad found, should return handler found\n") );
+      } else {
+	D( fprintf(stderr,
+		   "LLLL handleLsda(...): Landing pad found, should branch to it\n") );
+      }
       uint64 actionValue = 0;
 
+      if( !actionEntry ) {
+	fprintf(stderr, "no action entry for code region: probably an error\n" );
+      }
+
+      /*
       if (actionEntry) {
 	D( fprintf( stderr, "call handle action value\n" ) );
 	exceptionMatched = handleActionValue(
@@ -707,52 +699,54 @@ _Unwind_Reason_Code handleLsda(
 					     exceptionObject
 					     );
 	D( fprintf( stderr, "exception matched = %d\n", exceptionMatched ) );
+      } else {
+	D( fprintf( stderr, "LLLL: unexpected, no action entry despite landing pad\n" ) );
       }
+      */
 
       if (!(actions & _UA_SEARCH_PHASE)) {
-	D( fprintf(stderr,
-		"handleLsda(...): installed landing pad "
-		   "context.\n") );
+	if( !have_landing_pad ) {
+	  fprintf(stderr, "LLLL: not in search phase and have no landing pad: expect trouble\n" );
+	}
+
+	D( fprintf(stderr, "LLLL: prepare to branch to landing pad...\n" ) );
 
 	/* Found landing pad for the PC.
 	 * Set Instruction Pointer to so we re-enter function
 	 * at landing pad. The landing pad is created by the
 	 * compiler to take two parameters in registers.
 	 */
+	D( fprintf( stderr, "set exception object in register 0\n" ) );
+	
 	_Unwind_SetGR(context,
 		      __builtin_eh_return_data_regno(0),
 		      (uintptr_t)exceptionObject);
-
+	
 	// Note: this virtual register directly corresponds
 	//       to the return of the llvm.eh.selector intrinsic
 	//
-	if (!actionEntry || !exceptionMatched) {
-	  // We indicate cleanup only
-	  //
-	  _Unwind_SetGR(context,
-			__builtin_eh_return_data_regno(1),
-			0);
-	} else {
-	  // Matched type info index of llvm.eh.selector intrinsic
-	  // passed here.
-	  //
-	  _Unwind_SetGR(context,
-			__builtin_eh_return_data_regno(1),
-			actionValue);
-	}
-
+	
+	_Unwind_SetGR(context,
+		      __builtin_eh_return_data_regno(1),
+		      is_L_exception ? 2 : 4);
+	
 	// To execute landing pad set here
 	//
 	D( fprintf( stderr, "return to IP %p\n", (funcStart + landingPad) ) );
 	_Unwind_SetIP(context, funcStart + landingPad);
-
+	
 	ret = _URC_INSTALL_CONTEXT;
-
+	
 	break;
       } else {
-	if (exceptionMatched) {
-	  D( fprintf(stderr,
-		     "handleLsda(...): setting handler found.\n") );
+	if( have_landing_pad ) {
+	  if( is_L_exception ) {
+	    D( fprintf(stderr,
+		       "have landing pad for L exception\n") );
+	  } else {
+	    D( fprintf(stderr,
+		       "have landing pad for foreign exception\n") );
+	  }
 	  ret = _URC_HANDLER_FOUND;
 	} else {
 	  //
@@ -762,16 +756,17 @@ _Unwind_Reason_Code handleLsda(
 	  //       phase.
 	  //
 	  D( fprintf(stderr,
-		     "handleLsda(...): cleanup handler found.\n") );
-
+		     "XXXX: cleanup handler found: almost certainly wrong.\n") );
+	  
 	  // FIXME: cheat:
 	  // ret = _URC_HANDLER_FOUND;
 	}
-
+	
 	break;
       }
     }
   }
+  
   D( fprintf( stderr, "returning %x\n", ret ) );
   return ret;
 }
@@ -820,5 +815,10 @@ _Unwind_Reason_Code handleLsda(
   return ret;
 }
 
-  
+void __throw_exception_broken( void *l_exception ) {
+  _Unwind_RaiseException( makeException(l_exception) );
+  fprintf( stderr, "oops: unwind raise exception should not return\n" );
+  fflush(stderr);
+  abort();
+}  
 

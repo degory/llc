@@ -334,10 +334,6 @@ namespace Parse {
 		addCastCheck(state, into, v, makeLoadVTable(state, t.Clazz));
 
 		return v;
-            } else if( r.RegSize == getType(state).RegSize ) {
-		return makeLLVMCast( right.compileValue(state, into), getType(state).getLLVMType(state), into );
-            } else if( r.RegSize > getType(state).RegSize ) {
-		return makeLLVMCast( right.compileValue(state, into), getType(state).getLLVMType(state), into );
 	    } else {
 		return makeLLVMCast( right.compileValue(state, into), getType(state).getLLVMType(state), into );
             }
@@ -1793,7 +1789,7 @@ namespace Parse {
 		type_misses = type_misses + 1;
                 calcType( state );
                 if( type == null ) {
-                    throw new Exception( "shouldn't happen: calcType() didn't assign this parse node a type" );
+                    throw new System.NotImplementedException( "no type calculated" );
                     type = undefined_type;
                 }
 	    }

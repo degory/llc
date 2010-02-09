@@ -20,8 +20,8 @@ namespace Parse {
 
     class Main {
 	void init() {
-	    native.GC_init();
-	    // native.GC_disable();
+	    // native.GC_init();
+	    native.GC_disable();
 
 	    var args = System.Arguments.ProgramArguments;
 
@@ -72,13 +72,14 @@ namespace Parse {
 
 	    int max_heap = 0;
 
-	    String name;
+	    String name, t;
 	    var input_files = new Vector<String>();
 
 	    Gen.Machine.initOpNames();
             
 
 	    state.OptimizeLevel = 1;
+	    state.Want64BitTarget = true;
 	    state.WantSharedStandardLibrary = true;
 	    state.WantRegVars = false;
 	    state.WantWarnResolve = false;
@@ -153,7 +154,7 @@ namespace Parse {
                         if( name.getLength() > 2 ) {
                             state.addSearchPath( name.substring(2) );
                         } else {
-                            i = i + 1;
+			    i = i + 1;
                             state.addSearchPath( args[i] );
                         }
 
@@ -182,20 +183,33 @@ namespace Parse {
 		    case 'n':
 			state.WantNative = false;
 
-		    case 'M':
-			if( name.Length >= 2 ) { 
-			    max_heap = name.substring(2).toInt();
-			} else {
+		    case 'm':
+			j = 2;
+			if( name.Length == 2 ) {
 			    i = i + 1;
-			    max_heap = args[i].toInt();
+			    j = 0;
+			    name = args[i];
+			} else {
+			    name = name.substring(2);
 			}
+			if( name =~ "64" ) {
+			    state.Want64BitTarget = true;
+			} else if( name =~ "32" ) {
+			    state.Want64BitTarget = false;
+			} else {
+			    IO.Std.err.println( "unexpected model switch '" + name + "'" );
+			    return 1;
+			}			
 
 		    case 'O':
+			j = 2;
 			if( name.Length == 2 ) {
-			    name = name + 1;
+			    i = i + 1;
+			    j = 0;
+			    name = args[i];
 			}
 
-			for( j = 2; j < name.Length; j = j + 1 ) {
+			for( ; j < name.Length; j = j + 1 ) {
 			    switch( name[j] ) {
 			    case '0', 'd':
 				state.OptimizeLevel = 0;
@@ -216,11 +230,14 @@ namespace Parse {
 			}
 
 		    case 'C':
+			j = 2;
 			if( name.Length == 2 ) {
-			    name = name + 1;
+			    i = i + 1;
+			    j = 0;
+			    name = args[i];
 			}		      
 
-			for( j = 2; j < name.Length; j = j + 1 ) {
+			for( ; j < name.Length; j = j + 1 ) {
 			    switch( name[j] ) {
 			    case 'A':
 				state.WantBoundsCheck = true;
@@ -242,6 +259,7 @@ namespace Parse {
 
 			    default:
 				IO.Std.err.println( "unexpected runtime check switch: '" + name[j] + "'" );
+				return 1;
 			    }
 			}
 
@@ -252,11 +270,14 @@ namespace Parse {
 			*/
 
 		    case 'W':
+			j = 2;
 			if( name.Length == 2 ) {
-			    name = name + 1;
+			    i = i + 1;
+			    j = 0;
+			    name = args[i];
 			}
 
-			for( j = 2; j < name.Length; j = j + 1 ) {
+			for( ; j < name.Length; j = j + 1 ) {
 			    switch( name[j] ) {
 			    case 'S':
 				state.WantWarnUnsafe = true;
@@ -284,6 +305,7 @@ namespace Parse {
 
 			    default:
 				IO.Std.err.println( "unexpected warning option: '" + name[1] + "'" );
+				return 1;
 			    }
 			}
 

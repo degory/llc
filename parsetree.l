@@ -492,8 +492,8 @@ namespace Parse {
 		       exception_value
 		       );
 
-
 	    // ignore selector value and store 2 ('uncaught exception') in exception type:
+	    // FIXME: will need to alter this and personality to detect and pass foreign exceptions:
 	    into.Store(
 		       // ex_type,
 		       LLVM.Calls.LLVMConstInt(
@@ -519,7 +519,7 @@ namespace Parse {
 		*/
 
 		into.Store(
-			   makeLExceptionValue(state, into, exception_value),
+			   makeLExceptionValue(state, into, into.Load(exception_value)),
 			   l_exception_value
 			   );
 
@@ -536,6 +536,18 @@ namespace Parse {
 				       IRBlock into,
 				       LLVM.Value exception_value
 				       ) {
+
+	    var f = state.getRuntimeFunction(RuntimeFunction.GET_L_EXCEPTION);
+
+	    IO.Std.err.print( "have __get_l_exception: " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpValue( f );
+
+	    IO.Std.err.print( "have argument: " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpValue( exception_value );
+
+	    return into.Call( f, { exception_value } );
+
+	    /*
 	    // get pointer to fifth machine word in exception structure:
 	    LLVM.Value ep = into.InBoundsGEP(
 					     makeLLVMCast(
@@ -546,16 +558,8 @@ namespace Parse {
 					     // get address of l_exception element
 					     { LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(),4L,0) }
 					     );
-
-	    // load the L exception object, cast to i8* and return
-	    /* return makeLLVMCast(
-				into.Load(ep),
-				LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0),
-				into
-				);
-
+            return into.Load(ep);
 	    */
-	    return into.Load(ep);
 
 	}
 
@@ -1769,9 +1773,6 @@ namespace Parse {
 		    error( "cannot return value of type " + expr_type.dump() + " from method of type " + method_type.dump() );
                 }
 		
-		int et_size = expr_type.RegSize;
-		int mt_size = method_type.RegSize;
-
 		t = expression.compileValue( state, into );
 
 		t = makeLLVMCast( t, state.CurrentMethod.Type.getLLVMType(state), into );

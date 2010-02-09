@@ -55,8 +55,10 @@ namespace System is
 	end
 
         void initBacktrace() is
-	    _backtrace_info = cast word ptr ptr(native.malloc(MAX_BACKTRACE_DEPTH * System.Environment.WORD_BYTES));
-	    _backtrace_depth = cast int(native.backtrace(_backtrace_info, MAX_BACKTRACE_DEPTH));
+	    if System.Environment.WORD_BYTES == 8 then
+	        _backtrace_info = cast word ptr ptr(native.malloc(MAX_BACKTRACE_DEPTH * System.Environment.WORD_BYTES));
+ 	        _backtrace_depth = cast int(native.backtrace(_backtrace_info, MAX_BACKTRACE_DEPTH));
+            fi
 	end 
 
 	String toString() is

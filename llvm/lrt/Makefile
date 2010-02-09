@@ -1,19 +1,21 @@
 VERSION=0.2
 CFLAGS=-DB64 -g -O1 -DLLVM
 
-all: /usr/lang/lib/lrt-llvm-$(VERSION).bc # /usr/lang/lib/lrd-llvm-$(VERSION).bc
+INSTALL=/usr/lang/lib/linux-x86-64
 
-/usr/lang/lib/lrt-llvm-$(VERSION).bc: 	exception.o unwind.o throw.o
-	llvm-ld -disable-opt -o /usr/lang/lib/lrt-llvm-$(VERSION) exception.o unwind.o throw.o
+all: $(INSTALL)/lrt-llvm-$(VERSION).bc # /usr/lang/lib/lrd-llvm-$(VERSION).bc
+
+$(INSTALL)/lrt-llvm-$(VERSION).bc: 	exception.o unwind.o throw.o
+	llvm-ld -disable-opt -o $(INSTALL)/lrt-llvm-$(VERSION) exception.o unwind.o throw.o
 
 exception.o: exception.c
-	/usr/local/llvm/bin/gcc $(CFLAGS) -emit-llvm -c exception.c
+	/usr/local/bin/gcc $(CFLAGS) -emit-llvm -c exception.c
 
 unwind.o: unwind.c
-	/usr/local/llvm/bin/gcc $(CFLAGS) -emit-llvm -c unwind.c
+	/usr/local/bin/gcc $(CFLAGS) -emit-llvm -c unwind.c
 
 throw.o: throw.cpp
-	/usr/local/llvm/bin/g++ $(CFLAGS) -emit-llvm -c throw.cpp
+	/usr/local/bin/g++ $(CFLAGS) -emit-llvm -c throw.cpp
 
 #install: lrt-amd64.o ldn-amd64.o exception.so exception.o
 #	cp lrt-amd64.o /usr/lang/lib/lrt-amd64-$(VERSION).o

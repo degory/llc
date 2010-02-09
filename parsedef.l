@@ -1752,7 +1752,10 @@ namespace Parse {
 		into.Close();
 		LLVM.Calls.LLVMRemoveFunction(fg);
 		// LLVM.Calls.LLVMDeleteFunction(fg);
-		IO.Std.err.println( "" + m.HumanName + ": " + nie );
+		IO.Std.err.println( "" + m.HumanName + ": not implemented" );
+		if( state.WantVeryVerbose ) {
+		    IO.Std.err.println( "cause: " + nie );
+		}
 		success = false;
 	    }
 
