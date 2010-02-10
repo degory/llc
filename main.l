@@ -37,7 +37,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1203;
+	const int BUILD = 1206;
 
 	CompileState state;
 
@@ -122,10 +122,7 @@ namespace Parse {
                         }			
 
 		    case 'D':
-			state.WantLineNumbers = true;
-
-		    case 'd':
-			state.WantLineNumbers = false;
+			state.WantPrintDeps = true;
 
 		    case 'p':
 			if( name.Length > 2 ) {

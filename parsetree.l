@@ -539,12 +539,13 @@ namespace Parse {
 
 	    var f = state.getRuntimeFunction(RuntimeFunction.GET_L_EXCEPTION);
 
+	    /*
 	    IO.Std.err.print( "have __get_l_exception: " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpValue( f );
 
 	    IO.Std.err.print( "have argument: " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpValue( exception_value );
-
+	    */
 	    return into.Call( f, { exception_value } );
 
 	    /*

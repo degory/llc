@@ -1,18 +1,6 @@
-//===- lli.cpp - LLVM Interpreter / Dynamic compiler ----------------------===//
-//
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
-//
-//===----------------------------------------------------------------------===//
-//
-// This utility provides a simple wrapper around the LLVM Execution Engines,
-// which allow the direct execution of LLVM programs through a Just-In-Time
-// compiler, or through an interpreter if no JIT is available for this platform.
-//
-//===----------------------------------------------------------------------===//
+// copyright (C) 2009-2010 degs <junk@giantblob.com> all rights reserved
 
+// based on LLVM's lli.cpp
 
 #include <iostream>
 
@@ -24,7 +12,6 @@
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/CodeGen/LinkAllCodegenComponents.h"
 #include "llvm/ExecutionEngine/GenericValue.h"
-// #include "llvm/ExecutionEngine/Interpreter.h"
 #include "llvm/ExecutionEngine/JIT.h"
 #include "llvm/ExecutionEngine/JITEventListener.h"
 #include "llvm/Support/CommandLine.h"
@@ -53,12 +40,20 @@ extern "C" {
     return EE;
   }
 
+  static std::vector<Module *> modules;
+
   typedef void *func(void);
 
   void *__call_function(char *function_name) {
     std::cerr << "looking for function '" << function_name << "'\n";
+    Function *f;
 
-    Function *f = main_module->getFunction(function_name);
+    for( std::vector<Module*>::const_iterator i = modules.begin(); i != modules.end() ; ++i ) {
+      f = (*i)->getFunction(function_name);
+      if( f ) {
+	break;
+      }
+    }
 
     if( !f ) {
       std::cerr << "oops: could not locate function '" << function_name << "' in module\n";
@@ -110,12 +105,14 @@ extern "C" {
     if( main_module != 0 ) {
       std::cerr << "main module exists, will use linker...\n";
 
+      /*
       Linker linker("lli", "output.bc", getGlobalContext(), 1);
 
       if( linker.LinkModules( main_module, module, &error_message ) ) {
 	std::cerr << "LinkModules failed: " << error_message << "\n";
 	return;
       }
+      */
     } else {
       std::cerr << "no main module, will create execution engine...\n";
 
@@ -151,6 +148,8 @@ extern "C" {
       }
     }
 
+    modules.push_back(module);
+
     //for (Module::iterator I = main_module->begin(), E = main_module->end(); I != E; ++I) {
     for (Module::iterator I = module->begin(), E = module->end(); I != E; ++I) {
       Function *f = &*I;
@@ -165,9 +164,11 @@ extern "C" {
 
     std::cerr << "initialized module: " << bitcode_name << "\n";
 
+    /*
     if( module != main_module ) {
       delete module;
     }
+    */
 
     // delete mp;
 

@@ -439,6 +439,7 @@ namespace Parse {
 
         Vector<String> search_path;
         Vector<String> visited_files;
+	Vector<String> dependent_files;
 
 	int active_processes;
 
@@ -488,6 +489,8 @@ namespace Parse {
 	bool want_native;
 	bool want_64bit_target;
 
+	bool want_print_deps;
+
 	String target_isa;
 
 	int default_warn_flags;
@@ -514,7 +517,7 @@ namespace Parse {
 	ExceptionDescriptor[] exception;
 
         String lcache_dir;
-        static String LIBRARY_DIR = "/usr/lang/lib/";
+        static String LIBRARY_DIR = "/usr/lib/lang/";
         static String label_prefix = ".L";
 
 	// ThreadPool pool;
@@ -596,6 +599,7 @@ namespace Parse {
 
             visited_files = new Vector<String>();
             search_path = new Vector<String>();
+	    dependent_files = new Vector<String>();
 
 	    generic_templates = new Vector<Template>();
 	    generic_instances = new Vector<Container>();
@@ -1147,6 +1151,28 @@ namespace Parse {
 	    library_hash_file = IO.File.openAppend( file_name );
 	}
 
+	void printDeps() {
+	    var file_name = ExecutableName;
+	    var i = file_name.lastIndexOf('.');
+	    if( i >= 0 ) {
+		file_name = file_name.substring(0,i);
+	    }
+
+	    file_name = file_name + ".d";
+
+	    var df = IO.File.openCreate( file_name );
+
+	    df.print( ExecutableName + "_DEPS:=" );
+	    
+	    foreach( String s; dependent_files.elements() ) {
+		df.print( s );
+		df.print( " " );
+	    }
+	    
+	    df.close();
+	}
+
+
         void compilePending() {
             int i, j;
             Package p;
@@ -1166,6 +1192,11 @@ namespace Parse {
                 p = cast<Package>(to_compile_list[i]);
                 p.parseImports(this);
             }
+
+	    if( want_print_deps ) {
+		printDeps();
+		return;
+	    }
 
 	    // create symbol table entries for namespaces down to contained enums and classes and
 	    // stopping before declaring any symbols within classes:
@@ -1687,6 +1718,8 @@ namespace Parse {
 	}
 
         void parseFile( String file_name, IO.Reader f ) {
+	    dependent_files.add( file_name );
+
 	    if( WantVeryVerbose ) {
 		ParseTree.message( "parse file: " + file_name );
 	    }
@@ -2805,6 +2838,13 @@ namespace Parse {
             return state[sp].State;
         }
 
+	get bool WantPrintDeps {
+	    return want_print_deps;
+	}
+
+	set bool WantPrintDeps = d {
+	    want_print_deps = d;
+	}
 
 	get bool Want64BitTarget {
 	    return want_64bit_target;
