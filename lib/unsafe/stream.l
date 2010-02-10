@@ -1,6 +1,7 @@
 import string;
 import thread;
 import lock;
+import stat;
 
 pragma NoWarnUnsafe, NoMarkUnsafe;
 
@@ -981,6 +982,15 @@ namespace IO {
 	/// Get want write mode.
 	get bool Write {
 	    return write;
+	}
+
+	get bool Exists {
+	    return exists(path);
+	}
+
+	bool exists(System.String path) {
+	    var s = new IO.Stat();
+	    return s.stat(path);
 	}
 
 	/// Get the underlying UNIX open()/creat() mode bits that will be specified for FileStreams opened from this file

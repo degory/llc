@@ -29,3 +29,11 @@ lco.bc: lc.bc
 
 lc.bc:	x
 	lc -Os -p test main.l -l llvm -o lc
+
+jit.o: lli.cpp
+	g++ `llvm-config --cxxflags` -c lli.cpp -o jit.o
+	cp jit.o /usr/lang/lib/unsafe
+
+lang.bc: lib.l
+	lc -w -u lib.l -o lang
+	cp lang.bc lang.lh /usr/lang/lib/linux-x86-64/

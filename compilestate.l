@@ -681,13 +681,13 @@ namespace Parse {
 	void initSearchPaths( bool safe ) {
 	    String llvm_lib;
 	    addSearchPath( LIBRARY_DIR + TargetID + "/" );
-
 	    addSearchPath( LIBRARY_DIR + "trusted/" );
 
 	    if( safe ) {
 		addSearchPath( LIBRARY_DIR + "safe/" );
 	    } else {
 		addSearchPath( "./" );
+		addSearchPath( LIBRARY_DIR + TargetID + "unsafe/" );
 		addSearchPath( LIBRARY_DIR + "unsafe/" );
 	    }
 	}
