@@ -486,9 +486,10 @@ namespace Parse {
 	bool want_shared_standard_library;
 	bool want_link_libraries;
 	bool want_statistics;
-	bool want_native;
+	bool want_native_executable;
+	bool want_native_object_files;
 	bool want_64bit_target;
-
+	bool want_pic;
 	bool want_print_deps;
 
 	String target_isa;
@@ -1103,7 +1104,7 @@ namespace Parse {
 	    // IO.Std.err.println( "add object: " + c.HumanName );
 	    if( !WantOneFile && !need_compile.isInLibrary( c.DecoratedName ) ) {
 		// IO.Std.err.println( "need link: " + c.HumanName + " lcache_dir is: " + CacheDir );
-		addLinkFile( getObjectFileName( c.DecoratedName, ".bc" ) );
+		addLinkFile( getObjectFileName( c.DecoratedName ) );
 	    }
 	}
 
@@ -1437,13 +1438,14 @@ namespace Parse {
 	    into.RetVoid(); // LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(),0L,0 ) );
 	    into.Close();
 
-	    LLVM.Calls.LLVMWriteBitcodeToFile(m, getObjectFileName("entry", ".bc").toCString() );
+	    writeOrAssembleBitcode( m, "entry" );
+
 	    LLVM.Calls.LLVMDisposeModule(m);
 
 	    module = om;
 
 
-	    addLinkFile( getObjectFileName("entry", ".bc") );
+	    addLinkFile( getObjectFileName("entry") );
 	}
 
 	static void dumpMemory( Object o ) {
@@ -1485,18 +1487,55 @@ namespace Parse {
 		LLVM.Calls.LLVMWriteBitcodeToFile(Module, "temp.bc".toCString() );
 	    }
 
-	    exe = "llvm-ldh";
-	    v.add( "llvm-ld" );
+	    if( WantNativeObjectFiles ) {
+		IO.Std.err.println( "link native object files" );
+		if( !WantNativeExecutable ) {
+		    throw new System.Exception( "cannot link bitcode executable from native object files" );
+		}
+		exe = "gcc";
+		v.add( "gcc" );
 
-	    if( OptimizeLevel == 0 ) {
-		IO.Std.err.println( "linking with -disable-opt" );
-		v.add( "-disable-opt" );
+		if( WantLinkLibraries ) {
+		    v.add( LIBRARY_DIR + TargetID + "/dummy.o" );
+		}
+
+		if( WantPIC ) {
+		    v.add( "-shared" );
+		}
+
+		if( WantOneFile ) {
+		    throw new System.Exception( "cannot link single file bitcode output from native object files" );
+		}
 	    } else {
-		IO.Std.err.println( "default optimization level" );
-		// v.add( "-O" + OptimizeLevel );
+		IO.Std.err.println( "link bitcode object files" );
+		exe = "llvm-ldh";
+		v.add( "llvm-ld" );
+
+		if( OptimizeLevel == 0 ) {
+		    IO.Std.err.println( "linking with -disable-opt" );
+		    v.add( "-disable-opt" );
+		} else {
+		    IO.Std.err.println( "default optimization level" );
+		    // v.add( "-O" + OptimizeLevel );
+		}
+		v.add( "-export-dynamic" );
+
+		if( WantNativeExecutable ) {
+		    v.add( "-native" );
+		    if( WantPIC ) {
+			v.add( "-shared" );
+		    }
+
+		    if( WantLinkLibraries ) {
+			v.add( LIBRARY_DIR + TargetID + "/dummy.o" );
+		    }
+		}
+
+		if( WantOneFile ) {
+		    v.add( "temp.bc" );
+		}
 	    }
 
-	    v.add( "-export-dynamic" );
 	    v.add( "-Xlinker" );
 	    v.add( "--export-dynamic" );
 
@@ -1514,26 +1553,19 @@ namespace Parse {
 		v.add( "-L/usr/lang/lib/" + TargetID + "/" );
 		v.add( "-L/usr/lang/lib/" );
 
-		v.add( LIBRARY_DIR + TargetID + "/lrt-llvm-" + RUNTIME_VERSION + ".bc" );
+		if( WantNativeObjectFiles ) {
+		    v.add( LIBRARY_DIR + TargetID + "/lrt-llvm-" + RUNTIME_VERSION + ".o" );
+		} else {
+		    v.add( LIBRARY_DIR + TargetID + "/lrt-llvm-" + RUNTIME_VERSION + ".bc" );
+		}
 
 		v.add( "-o" );
 		v.add( executable_name );
 	    }		
 
 
-	    if( WantNative ) {
-		v.add( "-native" );
-		if( WantLinkLibraries ) {
-		    v.add( LIBRARY_DIR + TargetID + "/dummy.o" );
-		}
-	    }
-
 	    foreach( String s; to_link_set.elements() ) {
 		v.add( s );
-	    }
-
-	    if( WantOneFile ) {
-		v.add( "temp.bc" );
 	    }
 
 	    foreach( String u; libraries.elements() ) {
@@ -1542,8 +1574,6 @@ namespace Parse {
 		}
 	    }
 	    // v.add( "-nostartfiles" );
-
-
 
 	    v.add( "-lgc" );
 	    // v.add( "/usr/lang/lib/libgcX.a" );
@@ -1702,7 +1732,11 @@ namespace Parse {
 
 	    // IO.Std.err.println( "will link L library: " + name );
 	    // libraries.add( dir + name + ".so" );
-	    addLibrary( dir + name + ".bc" );
+	    if( WantNativeExecutable ) {
+		addLibrary( dir + name + ".so" );
+	    } else {
+		addLibrary( dir + name + ".bc" );
+	    }
 	}
 
 	set String ExecutableName = s {
@@ -1737,7 +1771,76 @@ namespace Parse {
             Parser p = new Parser(file_name, f, this);
         }
 
+	void assembleFile( System.String name ) {
+	    System.String assembler_file = getObjectFileName( name, ".s" );
+	    System.String object_file = getObjectFileName( name, ".o" );
+	    
+	    if( WantVeryVerbose ) {
+		ParseTree.message( "assemble file: " + name );
+	    }
+	    
+	    Util.Process assembler = new Util.Process();
+	    int result = assembler.run(
+				       "/usr/bin/as",
+				       {
+					   "/usr/bin/as",
+					   cast<System.String>(assembler_file),
+					   "-o", object_file
+				       },
+				       null
+				       );
 
+	    if( result != 0 ) {
+		throw new System.Exception( "assembly of file " + assembler_file + " failed with exit status " + result );
+	    }
+	}
+
+	void compileBitcode( System.String name ) {
+	    System.String bitcode_file = getObjectFileName( name, ".bc" );
+	    System.String assembler_file = getObjectFileName( name, ".s" );
+	    
+	    if( WantVeryVerbose ) {
+		ParseTree.message( "compile bitcode to assembly: " + name );
+	    }
+
+	    String relocate;
+
+	    if( WantPIC ) {
+		relocate = "-relocation-model=pic";
+	    } else {
+		relocate = "-relocation-model=default";
+	    }
+	    
+	    Util.Process llc = new Util.Process();
+	    int result = llc.run(
+				 "/usr/local/bin/llc",
+				 {
+				     "llc",
+				     "-f",
+				     bitcode_file,
+				     "-o",
+				     cast<System.String>(assembler_file)
+				 },
+				 null
+				 );
+	    if( result != 0 ) {
+		throw new System.Exception( "bitcode compilation of file " + bitcode_file + " failed with exit status " + result );
+	    }
+	}
+
+
+	void writeOrAssembleBitcode(Container c) {
+	    writeOrAssembleBitcode(c.LLVMModule, c.DecoratedName);
+	}
+
+	void writeOrAssembleBitcode(LLVM.Module module, String file_name) {
+	    var bc_file_name = getObjectFileName(file_name, ".bc");
+	    LLVM.Calls.LLVMWriteBitcodeToFile(module, bc_file_name.toCString() );
+	    if( WantNativeObjectFiles ) {
+		compileBitcode( file_name );
+		assembleFile( file_name );
+	    }
+	}
 	/*
         void addAssemblerFile( String s ) {
             to_assemble_list.add( s );
@@ -1882,6 +1985,14 @@ namespace Parse {
         void removeOutput( String name ) {
 
         }
+
+	String getObjectFileName( String name ) {
+	    if( WantNativeObjectFiles ) {
+		return getObjectFileName( name, ".o" );
+	    } else {
+		return getObjectFileName( name, ".bc" );
+	    }
+	}
 
 	String getObjectFileName( String name, String extension ) {
             StringBuffer file = new StringBuffer();
@@ -2921,12 +3032,28 @@ namespace Parse {
 	    want_link_libraries = l;
 	}
 
-	get bool WantNative {
-	    return want_native;
+	get bool WantNativeExecutable {
+	    return want_native_executable;
 	}
 
-	set bool WantNative = n {
-	    want_native = n;
+	set bool WantNativeExecutable = n {
+	    want_native_executable = n;
+	}
+
+        get bool WantNativeObjectFiles {
+	    return want_native_object_files;
+        }
+
+        set bool WantNativeObjectFiles = n {
+	    want_native_object_files = n;
+	}
+
+        get bool WantPIC {
+	    return want_pic;
+	}
+
+	set bool WantPIC = p {
+	    want_pic = p;
 	}
 
 	get bool WantSafe {

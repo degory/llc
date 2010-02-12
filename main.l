@@ -88,7 +88,8 @@ namespace Parse {
 	    state.WantBoundsCheck = true;
 	    state.WantNullCheck = true;
 	    state.WantLinkLibraries = true;
-	    state.WantNative = false;
+	    state.WantNativeExecutable = false;
+	    state.WantNativeObjectFiles = false;
 
 	    bool set_executable_name = false;
 	    bool want_stats = false;
@@ -174,12 +175,6 @@ namespace Parse {
 		    case 'w':
 			state.WantSharedStandardLibrary = false;
 
-		    case 'N':
-			state.WantNative = true;
-
-		    case 'n':
-			state.WantNative = false;
-
 		    case 'm':
 			j = 2;
 			if( name.Length == 2 ) {
@@ -197,6 +192,45 @@ namespace Parse {
 			    IO.Std.err.println( "unexpected model switch '" + name + "'" );
 			    return 1;
 			}			
+
+		    case 'C':
+			j = 2;
+			if( name.Length == 2 ) {
+			    i = i + 1;
+			    j = 0;
+			    name = args[i];
+			}
+
+			IO.Std.err.println( "OOOO: option is: '" + name + "', j is: " + j + ", length is: " + name.Length  );
+
+			for( ; j < name.Length; j = j + 1 ) {
+			    IO.Std.err.println( "OOOO: switch is: '" + name[j] + "'" );
+			    switch( name[j] ) {
+			    case 'N':
+				state.WantNativeExecutable = true;
+				
+			    case 'n':
+				state.WantNativeExecutable = false;
+								
+			    case 'B':
+				state.WantNativeObjectFiles = true;
+				
+			    case 'b':
+				state.WantNativeObjectFiles = false;
+
+			    case 'P':
+				state.WantPIC = true;
+
+			    case 'p':
+				state.WantPIC = false;
+
+			    default:
+				IO.Std.err.println( "unexpected output format option '" + name[j] + "'" );
+				return 1;
+			    }
+			}
+
+			IO.Std.err.println( "OOOO: after '" + name + "', want native executable: " + state.WantNativeExecutable + ", want native object files: " + state.WantNativeObjectFiles );
 
 		    case 'O':
 			j = 2;
@@ -325,6 +359,12 @@ namespace Parse {
 		    input_files.add( args[i] );
                 }
             }
+
+	    if( state.WantNativeObjectFiles ) {
+		IO.Std.err.println( "OOOO: want native object files" );
+	    } else {
+		IO.Std.err.println( "OOOO: want bitcode object files" );
+	    }
 
 	    if( max_heap > 0 ) {
 		System.GC.MaxHeapSize = max_heap * 1024 * 1024;

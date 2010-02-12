@@ -1053,7 +1053,8 @@ namespace Parse {
 
 			LLVM.Calls.LLVMDumpModule(c.LLVMModule);
 			*/
-			LLVM.Calls.LLVMWriteBitcodeToFile(c.LLVMModule, (state.CacheDir + c.DecoratedName + ".bc").toCString() );
+
+			state.writeOrAssembleBitcode(c);
 
 			state.dumpActiveClasses( c.FileName );
                     } else {

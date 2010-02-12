@@ -1,3 +1,7 @@
+ifeq ($(LC),)
+	LC:=lc
+endif
+
 ifeq ($(BITS),32)
 	MODEL:=-m32
 	TARGET:=linux-x86-32
@@ -6,12 +10,26 @@ else
 	TARGET:=linux-x86-64
 endif
 
+ifeq ($(LFLAGS),)
+	LFLAGS:=-p test
+endif
+
+ifeq ($(LFLAGSBC),)
+	LFLAGSBC:=$(LFLAGS)
+endif
+
+ifeq ($(LFLAGSNATIVE),)
+	LFLAGSNATIVE:=$(LFLAGS) -CN
+endif
+
+
+
 LLVM_CC:=/usr/local/bin/gcc
 LLVM_CXX:=/usr/local/bin/g++
 
 LRT_VERSION:=0.2
 
-INSTALL_OBJS:=lc jit.o dummy.o llvmc.so fcgi.o lang.bc lang.lh lrt-llvm-$(LRT_VERSION).bc
+INSTALL_OBJS:=$(LC) jit.o dummy.o llvmc.so fcgi.o lang.bc lang.lh lrt-llvm-$(LRT_VERSION).bc
 
 LRT_CFLAGS:=-DB64 -g -O1 -DLLVM
 
@@ -47,10 +65,10 @@ clean:
 	rm lc lc.bc lc.lh jit.o dummy.o llvmc.o llvmc.so lang lang.bc lang.lh lrt-exception.o lrt-unwind.o lrt-throw.o /tmp/lcache-test/* || true
 
 lc.d:
-	lc $(MODEL) -D -w -p test -o lc -N -s llvm -lllvmc.o -lLLVMAnalysis -lLLVMArchive -lLLVMBitReader -lLLVMBitWriter -lLLVMCore -lLLVMExecutionEngine -lLLVMipa -lLLVMMC -lLLVMSupport -lLLVMSystem -lLLVMTarget -lLLVMTransformUtils main.l
+	$(LC) $(MODEL) $(LFLAGS) -D -w -p test -o lc -N -s llvm -lllvmc.o -lLLVMAnalysis -lLLVMArchive -lLLVMBitReader -lLLVMBitWriter -lLLVMCore -lLLVMExecutionEngine -lLLVMipa -lLLVMMC -lLLVMSupport -lLLVMSystem -lLLVMTarget -lLLVMTransformUtils main.l
 
 lang.d:
-	lc $(MODEL) -D -w -u lib.l -o lang
+	$(LC) $(MODEL) $(LFLAGS) -D -w -u lib.l -o lang
 
 include lc.d
 
@@ -59,12 +77,12 @@ include lang.d
 lang: lang.bc lang.lh
 
 lang.bc: $(lang_DEPS)
-	lc -f $(MODEL) -w -u lib.l -o lang
+	$(LC) -f $(MODEL) $(LFLAGSBC) -w -u lib.l -o lang
 
 lang.lh: lang.bc
 
 lc: $(lc_DEPS) llvmc.o llvmc.so dummy.o
-	lc -f $(MODEL) -w -p test -o lc -N -s llvm -lllvmc.o -lLLVMAnalysis -lLLVMArchive -lLLVMBitReader -lLLVMBitWriter -lLLVMCore -lLLVMExecutionEngine -lLLVMipa -lLLVMMC -lLLVMSupport -lLLVMSystem -lLLVMTarget -lLLVMTransformUtils main.l
+	$(LC) -f $(MODEL) $(LFLAGSNATIVE) -w -p test -o lc -s llvm -lllvmc.o -lLLVMAnalysis -lLLVMArchive -lLLVMBitReader -lLLVMBitWriter -lLLVMCore -lLLVMExecutionEngine -lLLVMipa -lLLVMMC -lLLVMSupport -lLLVMSystem -lLLVMTarget -lLLVMTransformUtils main.l
 
 llvmc.o: llvmc.cpp
 	g++ $(MODEL) `llvm-config --cxxflags` -c llvmc.cpp
@@ -76,7 +94,7 @@ dummy.o: dummy.c
 	gcc $(MODEL) -c dummy.c
 
 lc.bc:	$(lc_DEPS) 
-	lc -f $(MODEL) -w -p test -o lc -s llvm main.l -o lc
+	$(LC) -f $(MODEL) $(LFLAGSBC) -w -p test -o lc -s llvm main.l -o lc
 
 fcgi.o: fcgi.c
 	gcc $(MODEL) -c fcgi.c 

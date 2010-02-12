@@ -109,7 +109,7 @@ namespace Parse {
 	    // IO.Std.err.println( "CCCCCC: need to compile '" + source_name + "' for class " + class_name + ", hash " + String.hex(hash) + "?" );
 
             var s = new IO.Stat(), t = new IO.Stat();
-            var output_name = state.CacheDir + class_name + ".bc";
+            var output_name = state.getObjectFileName(class_name);
 
             int compiled_hash;
 
