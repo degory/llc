@@ -1,4 +1,4 @@
-// copyright (C) 2009 degs <junk@giantblob.com> all rights reserved
+// copyright (C) 2004-2009 degs <junk@giantblob.com> all rights reserved
 
 import args;
 import stream;
@@ -37,7 +37,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1206;
+	const int BUILD = 1207;
 
 	CompileState state;
 

@@ -684,14 +684,21 @@ namespace Parse {
 
 	void initSearchPaths( bool safe ) {
 	    String llvm_lib;
+
+	    if( !safe ) {
+		addSearchPath( "./" );
+	    }
+
 	    addSearchPath( LIBRARY_DIR + TargetID + "/" );
+	    addSearchPath( LIBRARY_DIR + TargetID + "/trusted/" );
 	    addSearchPath( LIBRARY_DIR + "trusted/" );
 
 	    if( safe ) {
 		addSearchPath( LIBRARY_DIR + "safe/" );
 	    } else {
-		addSearchPath( "./" );
-		addSearchPath( LIBRARY_DIR + TargetID + "unsafe/" );
+
+		addSearchPath( LIBRARY_DIR + TargetID + "/trusted/" );
+		addSearchPath( LIBRARY_DIR + TargetID + "/unsafe/" );
 		addSearchPath( LIBRARY_DIR + "unsafe/" );
 	    }
 	}
@@ -1165,6 +1172,10 @@ namespace Parse {
 	    df.print( ExecutableName + "_DEPS:=" );
 	    
 	    foreach( String s; dependent_files.elements() ) {
+		// hack: make library files appear in ./lib in .d files:
+		if( s.startsWith(LIBRARY_DIR) ) {
+		    s = s.substring(LIBRARY_DIR.Length);
+		}
 		df.print( s );
 		df.print( " " );
 	    }

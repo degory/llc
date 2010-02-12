@@ -711,6 +711,20 @@ namespace System is
 	get Iterator<char> Iterator is
 	    return new StringIterator(this);
 	end
+
+        StringBuffer replace(char c, char d) is
+	    var result = new StringBuffer(Length);
+
+            foreach var i; Iterator do
+	        if i == c then
+		    result.append(d);
+		else
+		    result.append(i);
+		fi
+	    od
+
+	    return result;
+        end
     end
 
     class StringIterator implements Iterator<char> is

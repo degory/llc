@@ -21,7 +21,7 @@ import "LLVMJIT";
 import "LLVMLinker";
 import "LLVMInstCombine";
 import "LLVMInterpreter";
-import "/usr/lib/lang/linux-x86-64/unsafe/jit.o";
+import "/usr/lib/lang/linux-x86-32/unsafe/jit.o";
 
 namespace System {
     class JIT {

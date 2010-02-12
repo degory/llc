@@ -654,6 +654,7 @@ namespace Parse {
 		*/
 		g = LLVM.Calls.LLVMAddGlobal( state.Module, LLVM.Calls.LLVMTypeOf(v), ("__string_" + string_number).toCString() );
 		LLVM.Calls.LLVMSetLinkage(g, LLVM.LLVMLinkage.LLVMPrivateLinkage );
+		LLVM.Calls.LLVMSetGlobalConstant(g, 1);
 
 		string_number = string_number + 1;
 		LLVM.Calls.LLVMSetInitializer( g, v );

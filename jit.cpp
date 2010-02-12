@@ -28,21 +28,26 @@ using namespace llvm;
 
 static Module *main_module = 0;
 static EngineBuilder *builder;
-static ExecutionEngine *EE = 0;
+static ExecutionEngine *execution_engine = 0;
 
 static void do_shutdown() {
-  delete EE;
+  delete execution_engine;
   llvm_shutdown();
 }
 
 extern "C" { 
-  ExecutionEngine *__get_EE() {
-    return EE;
+  ExecutionEngine *__get_execution_engine() {
+    return execution_engine;
   }
 
   static std::vector<Module *> modules;
 
   typedef void *func(void);
+
+  static bool __enable_opt = false;
+  void __JIT_enable_opt() {
+    __enable_opt = true;
+  }
 
   void *__call_function(char *function_name) {
     std::cerr << "looking for function '" << function_name << "'\n";
@@ -62,7 +67,7 @@ extern "C" {
 
     func *fp;
 
-    fp = (func *)EE->getPointerToFunction(f);
+    fp = (func *)execution_engine->getPointerToFunction(f);
 
     if( !fp ) {
       std::cerr << "oops: could not compile function '" << function_name << "'\n";
@@ -128,21 +133,28 @@ extern "C" {
       builder->setErrorStr(&error_message);
       builder->setEngineKind(EngineKind::JIT);
 
-      CodeGenOpt::Level opt_level = CodeGenOpt::Default;
+      CodeGenOpt::Level opt_level;
+
+      if( __enable_opt ) {
+	opt_level = CodeGenOpt::Default;
+      } else {
+	opt_level = CodeGenOpt::None;
+      }
+
       builder->setOptLevel(opt_level);
 
-      EE = builder->create();
-      std::cerr << "created builder\n";
+      execution_engine = builder->create();
+      std::cerr << "created execution engine\n";
 
       delete(builder);
 
-      if (!EE) {
+      if (!execution_engine) {
 	std::cerr << "execution engine is null\n";
 
 	if (!error_message.empty()) {
-	  errs() << "error creating EE: " << error_message << "\n";
+	  errs() << "error creating execution_engine: " << error_message << "\n";
 	} else {
-	  errs() << "unknown error creating EE!\n";
+	  errs() << "unknown error creating execution_engine!\n";
 	}
 	exit(1);
       }
@@ -154,21 +166,18 @@ extern "C" {
     for (Module::iterator I = module->begin(), E = module->end(); I != E; ++I) {
       Function *f = &*I;
       if(!f->isDeclaration()) {
-        EE->getPointerToFunction(f);
+        execution_engine->getPointerToFunction(f);
+	f->deleteBody();
       }
     }
 
     std::cerr << "JIT'd all functions in: " << bitcode_name << "\n";
 
-    EE->runStaticConstructorsDestructors( /*module,*/ false);
+    execution_engine->runStaticConstructorsDestructors( /*module,*/ false);
 
     std::cerr << "initialized module: " << bitcode_name << "\n";
 
-    /*
-    if( module != main_module ) {
-      delete module;
-    }
-    */
+    // delete module;
 
     // delete mp;
 
