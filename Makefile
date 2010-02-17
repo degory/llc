@@ -24,8 +24,13 @@ endif
 
 
 
-LLVM_CC:=/usr/local/bin/gcc
-LLVM_CXX:=/usr/local/bin/g++
+ifeq ($(LLVM_CC),)
+	LLVM_CC:=/usr/local/bin/gcc
+endif
+
+ifeq ($(LLVM_CXX),)
+	LLVM_CXX:=/usr/local/bin/g++
+endif
 
 LRT_VERSION:=0.2
 
@@ -38,6 +43,7 @@ CP_FLAGS:=-u -v -p --preserve=timestamps
 all: $(INSTALL_OBJS)
 
 install: $(INSTALL_OBJS)
+	mkdir -p safe
 	echo "Installing in $(PREFIX)/"
 	cp safe/lc-previous-1 safe/lc-previous-2 || true
 	cp safe/lc-previous safe/lc-previous-1 || true
@@ -66,7 +72,7 @@ clean:
 	rm lc lc.bc lc.lh jit.o dummy.o llvmc.o llvmc.so lang lang.bc lang.lh lrt-exception.o lrt-unwind.o lrt-throw.o /tmp/lcache-test/* || true
 
 lc.d:
-	$(LC) $(MODEL) $(LFLAGS) -D -w -p test -o lc -N -s llvm -lllvmc.o -lLLVMAnalysis -lLLVMArchive -lLLVMBitReader -lLLVMBitWriter -lLLVMCore -lLLVMExecutionEngine -lLLVMipa -lLLVMMC -lLLVMSupport -lLLVMSystem -lLLVMTarget -lLLVMTransformUtils main.l
+	$(LC) $(MODEL) $(LFLAGS) -D -w -p test -o lc -s llvm -lllvmc.o -lLLVMAnalysis -lLLVMArchive -lLLVMBitReader -lLLVMBitWriter -lLLVMCore -lLLVMExecutionEngine -lLLVMipa -lLLVMMC -lLLVMSupport -lLLVMSystem -lLLVMTarget -lLLVMTransformUtils main.l
 
 lang.d:
 	$(LC) $(MODEL) $(LFLAGS) -D -w -u lib.l -o lang
@@ -132,3 +138,12 @@ bootstrap:
 	rm /tmp/lcache-test/*
 	$(MAKE) LC=./lc3 lc
 	diff lc2 lc3
+
+syntaxl.l: syntax-l.jay skeleton-l
+	jay/jay syntax-l.jay <skeleton-l >syntaxl.l
+
+syntaxk.l: syntax-k.jay skeleton-k
+	jay/jay syntax-k.jay <skeleton-k >syntaxk.l
+
+
+
