@@ -23,9 +23,13 @@ ifeq ($(LFLAGSNATIVE),)
 endif
 
 
+ifeq ($(LLVM_CC),)
+	LLVM_CC:=/usr/local/bin/gcc
+endif
 
-LLVM_CC:=/usr/local/bin/gcc
-LLVM_CXX:=/usr/local/bin/g++
+ifeq ($(LLVM_CXX),)
+	LLVM_CXX:=/usr/local/bin/g++
+endif
 
 LRT_VERSION:=0.2
 

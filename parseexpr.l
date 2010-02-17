@@ -2006,17 +2006,35 @@ namespace Parse {
 		arg_types[i] = LLVM.Calls.LLVMTypeOf(args[i]);
 	    }
 
-	    v = into.PointerCast( v, LLVM.Calls.LLVMPointerType(
-								LLVM.Calls.LLVMFunctionType(
-											    rt,
-											    arg_types.address,
-											    arg_types.length,
-											    0 ),
-								0
-								)								    
+	    /*
+	    IO.Std.err.print( "v is: " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpValue(v);
+	    LLVM.Calls.LLVMDumpType(LLVM.Calls.LLVMTypeOf(v));
+	    */
+	    var ft = LLVM.Calls.LLVMFunctionType(
+						 rt,
+						 arg_types.address,
+						 arg_types.length,
+						 0 );
+	    /*
+	    IO.Std.err.print( "function type: " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpType(ft);
+	    */
+	    var pft = LLVM.Calls.LLVMPointerType(
+						 ft,
+						 0		
+						 );
+
+	    /*								    
+	    IO.Std.err.print( "pointer type: " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpType(pft);
+	    */
+	    v = into.PointerCast( v,
+				  pft
 				  );
 
-	    
+
+	    // IO.Std.err.println( "call or invoke" ); IO.Std.err.flush();	    
 	    return callOrInvoke( state, into, v, args );
 	}
 
