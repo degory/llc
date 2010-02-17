@@ -4,11 +4,11 @@ namespace System {
     /// \param P a proc reference type
     class Proc<P> {
 	/// address of static method (if this is a static proc reference) or thunk (if this is a bound proc reference)
-	word f0;
+	char ptr f0;
 	/// address of object this proc is bound to, if any
-	word d;
+	char ptr d;
 	/// dynamic method to call if this is a bound proc reference
-	word f1;
+	char ptr f1;
 
 	//void init(P p) {	    
 	//}

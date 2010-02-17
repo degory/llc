@@ -200,7 +200,7 @@ namespace Parse {
 						   true,
 						   false );
 		
-		compileCall( state, into, null, Op.STATIC_CALL_DISCARD, method, method.DecoratedName, 0, args );
+		compileCall( state, into, null, Op.STATIC_CALL_DISCARD, method, method.DecoratedName, 0, null, args );
 		// addDummyExceptionHandlerJump( state, line_number, into );
 		    //} else {
 		    // IO.Std.err.println( "not calling empty constructor " + method.HumanName + " (" + method.DecoratedName + ")" );
@@ -810,8 +810,8 @@ namespace Parse {
 		flags = flags | LOAD_FLAG_PROC_CALL;
                 t = left_value.compileValue( state, into );
 
-		// IO.Std.err.println( "compile proc call on type: " + proc_type );
-                t = compileLoad( state, into, null, null, arguments, proc_type.Clazz.ArgTypes, t, flags, null );
+		// IO.Std.err.println( "compile proc call on type: " + proc_type.SubType );
+                t = compileLoad( state, into, null, null, arguments, proc_type.Clazz.Type, proc_type.Clazz.ArgTypes, t, flags, null );
 
 		// IO.Std.err.println( "block now:\n" + into );
 
@@ -861,7 +861,7 @@ namespace Parse {
 
 		// IO.Std.err.println( "DDDD: arg types: " + method.ArgTypes );
 
-                t = compileLoad( state, into, method, null, arguments, method.ArgTypes, t, flags, super_class );
+                t = compileLoad( state, into, method, null, arguments, null, method.ArgTypes, t, flags, super_class );
 
 		if( compare_operation ) {
 		    /*
@@ -878,7 +878,7 @@ namespace Parse {
 		}
 		// IO.Std.err.println( "DDDD: arg types: " + method.ArgTypes );
 
-                t = compileLoad( state, into, method, null, arguments, method.ArgTypes, null, flags, null );
+                t = compileLoad( state, into, method, null, arguments, null, method.ArgTypes, null, flags, null );
             } else {
 		// Std.err.println( "call C..." );
                 if( state.CurrentMethod.IsStatic ) {
@@ -886,7 +886,7 @@ namespace Parse {
 		}
 		// IO.Std.err.println( "DDDD: arg types: " + method.ArgTypes );
 
-                t = compileLoad( state, into, method, null, arguments, method.ArgTypes, t, flags, null );
+                t = compileLoad( state, into, method, null, arguments, null, method.ArgTypes, t, flags, null );
             }
             
 	    /*
@@ -1074,5 +1074,93 @@ namespace Parse {
 	    */
 	    checkAccess( symbol, state );	    
 	}
+
+	LLVM.Value compileValue( CompileState state, IRBlock into ) {
+	    var ty = getType( state );
+
+	    if( method == null || method == undefined_method ) {
+		return ErrorValue(ty.getLLVMType(state));
+	    }
+
+	    var load_this = false;
+	    Identifier name;
+	    var left_value = left;
+
+	    name = cast Identifier(left_value);
+	    left_value = name.LeftValue;
+
+	    // IO.Std.err.println( "call method " + method.Owner.HumanName + " " + method.Name );
+	    
+	    if( left_value != null && !left_value.isThis( state ) && !left_value.isSuper( state ) ) {
+		// IO.Std.err.println( "IIIIII: load this" );
+		load_this = true;
+	    }
+	    
+	    int size = 0;
+	    /*
+	      if( method.getKind() == Symbol.INSTANCE_METHOD ) {
+	      size = 4;                       // FIXME: not always
+	      }
+	    */
+	    
+	    bool instance = true;
+	    
+	    LLVM.Value t = null;
+	    
+	    if( left_value != null && !left_value.isClass( state ) ) {
+		// Std.err.println( "call A..." );
+		t = left_value.compileValue( state, into );
+		
+		Container scope = left_value.getType(state).Clazz;
+		Container super_class = null;
+		if( left_value.getType(state).TypeKind == Type.SUPER ) {
+		    warn( "proc reference to method in super class: may be broken, method is: " + method.HumanName );
+		    super_class = scope;
+		}
+		
+		if( method.IsStatic ) {
+		    error( "cannot make bound reference to static method here" );
+		    return ErrorValue();
+                }
+
+                /*
+                IO.Std.err.println( "method call calling load: " + method );
+                IO.Std.err.println( "IIIIII: kind is " + method.Kind + " versus " + Symbol.STATIC_METHOD );
+                */
+
+                t = compileLoadProcRef( state, into, t, method, type /*, method.ArgTypes, t, instance, super_class */ );
+            } else if( left_value != null ) {
+
+                // Std.err.println( "call B..." );
+                if( left_value.isClass( state ) ) {
+                    instance = false;
+                    if( !method.IsStatic ) {
+                        error( "cannot make bound reference to instance method here" );
+                        return ErrorValue();
+                    }
+                } else {
+                    if( method.IsStatic ) {
+                        error( "cannot make bound reference to static method here" );
+                        return ErrorValue();
+                    }
+		    t = left_value.compileValue( state, into );
+                }
+
+                t = compileLoadProcRef( state, into, null, method, type /*, method.ArgTypes, null, instance, null */);
+            } else {
+                if( state.CurrentMethod == null || state.CurrentMethod.IsStatic ) {
+                    error( "cannot make bound reference to instance method here" );
+		    return ErrorValue();
+                }
+                // Std.err.println( "call C..." );
+                if( method.IsStatic ) {
+                    instance = false;
+                }
+
+                t = compileLoadProcRef( state, into, null, method, type /*, method.ArgTypes, t, instance, null */);
+            }
+
+            return t;
+        }
     }
 }

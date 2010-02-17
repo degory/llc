@@ -594,7 +594,7 @@ namespace Parse {
 		    IO.Std.err.println( "GGGG: current class is: " + state.CurrentClass.HumanName );
 		    IO.Std.err.println( "GGGG: current method is: " + state.CurrentMethod.HumanName );
 		    */
-                    result = compileLoad( state, into, symbol, state.CurrentClass, null, null, null, ref_flag, null );
+                    result = compileLoad( state, into, symbol, state.CurrentClass, null, null, null, null, ref_flag, null );
                     
                     return result;
                 } else {
@@ -611,13 +611,13 @@ namespace Parse {
 
 		    IO.Std.err.println( "FIXME: relying on container being correct here, left_value.getType(state).Clazz might be better?" );
 		    */
-                    result = compileLoad( state, into, symbol, container, null, null, t, ref_flag, null );
+                    result = compileLoad( state, into, symbol, container, null, null, null, t, ref_flag, null );
                     
                     return result;
                 }
             } else {
 		// IO.Std.err.println( "FIXME: static or local - container not needed here" );
-                return compileLoad( state, into, symbol, container, null, null, null, LOAD_FLAG_STATIC, null );
+                return compileLoad( state, into, symbol, container, null, null, null, null, LOAD_FLAG_STATIC, null );
             }
 	}
 
@@ -656,15 +656,15 @@ namespace Parse {
 		return ErrorValue( LLVM.Calls.LLVMPointerType(getType(state).getLLVMType(state),0) );
             } else if( (k & Symbol.FLAG_STATIC) == 0 ) {
                 if( left_value == null ) {
-                    return compileLoad( state, into, symbol, state.CurrentClass, null, null, null, ref_flag, null );
+                    return compileLoad( state, into, symbol, state.CurrentClass, null, null, null, null, ref_flag, null );
                 } else {
 		    // IO.Std.err.println( "FIXME: relying on container being correct here, left_value.getType(state).Clazz might be better?" );
                     LLVM.Value t = left_value.compileValue( state, into );
-                    return compileLoad( state, into, symbol, container, null, null, t, ref_flag, null );
+                    return compileLoad( state, into, symbol, container, null, null, null, t, ref_flag, null );
                 }
             } else {
 		// IO.Std.err.println( "FIXME: static or local - container not needed here" );
-                return compileLoad( state, into, symbol, container, null, null, null, LOAD_FLAG_ADDRESS | LOAD_FLAG_STATIC, null );
+                return compileLoad( state, into, symbol, container, null, null, null, null, LOAD_FLAG_ADDRESS | LOAD_FLAG_STATIC, null );
             }
         }
 

@@ -270,28 +270,32 @@ namespace Parse {
 
 	    v = LLVM.Calls.LLVMGetNamedFunction(state.Module, name);
 	    if( v == null ) {
-		int l = 0;
-		if( arg_types != null ) {
-		    l = arg_types.Length;
-		}
-
-		var at = new Generic.Vector<LLVM.Type>(l+1);
-		if( !IsStatic ) {
-		    at.add(Owner.Type.getLLVMType(state));
-		}
-
-		for( int i = 0; i < l; i = i + 1 ) {
-		    at.add(arg_types[i].getLLVMType(state));
-		}
-
-		var ata = at.Array;
-
-		var ft = LLVM.Calls.LLVMFunctionType(Type.getLLVMType(state), ata.address, ata.length, 0);
+		var ft = getLLVMFunctionType(state);
 
 		v = LLVM.Calls.LLVMAddFunction(state.Module, name, ft);
 	    }
 	    
 	    return v;
+	}
+
+	LLVM.Type getLLVMFunctionType(CompileState state) {
+	    int l = 0;
+	    if( arg_types != null ) {
+		l = arg_types.Length;
+	    }
+
+	    var at = new Generic.Vector<LLVM.Type>(l+1);
+	    if( !IsStatic ) {
+		at.add(Owner.Type.getLLVMType(state));
+	    }
+	    
+	    for( int i = 0; i < l; i = i + 1 ) {
+		at.add(arg_types[i].getLLVMType(state));
+	    }
+
+	    var ata = at.Array;
+	    
+	    return LLVM.Calls.LLVMFunctionType(Type.getLLVMType(state), ata.address, ata.length, 0);
 	}
 
 	LLVM.Value getCTableGlobal(CompileState state) {
@@ -306,7 +310,8 @@ namespace Parse {
 
 	    v = LLVM.Calls.LLVMGetNamedGlobal(state.Module, name);
 	    if( v == null ) {
-		v = LLVM.Calls.LLVMAddGlobal(state.Module, LLVM.Calls.LLVMArrayType(LLVM.Calls.LLVMVTableFunctionType(), VTableSize + IFaceOffset + 3), name);
+		v = LLVM.Calls.LLVMAddGlobal(state.Module, LLVM.Calls.LLVMArrayType(LLVM.Calls.LLVMVTableFunctionType(), VTableSize + IFaceOffset + 3), name);		
+		// LLVM.Calls.LLVMSetLinkage(v, LLVM.LLVMLinkage.LLVMDLLImportLinkage);
 	    }
 
 	    LLVMValue = v;
@@ -1609,6 +1614,7 @@ namespace Parse {
 	    IO.Std.err.print( "ctable global type is:       " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf( ct ) );
 	    */
+	    // LLVM.Calls.LLVMSetLinkage(ct, LLVM.LLVMLinkage.LLVMDLLExportLinkage);
 	    LLVM.Calls.LLVMSetInitializer(
 					  ct,
 					  // ParseTree.makeLLVMConstCast( a, LLVM.Calls.LLVMGetElementType(LLVM.Calls.LLVMTypeOf(ct)) )

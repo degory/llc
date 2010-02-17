@@ -230,7 +230,7 @@ namespace Parse {
 			    }
 			}
 
-			IO.Std.err.println( "OOOO: after '" + name + "', want native executable: " + state.WantNativeExecutable + ", want native object files: " + state.WantNativeObjectFiles );
+			IO.Std.err.println( "OOOO: after '" + name + "', want native executable: " + state.WantNativeExecutable + ", want native object files: " + state.WantNativeObjectFiles + ", want PIC: " + state.WantPIC );
 
 		    case 'O':
 			j = 2;

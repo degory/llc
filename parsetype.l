@@ -419,7 +419,6 @@ namespace Parse {
 	TypeExpr type_expr;
 	TypeExprList arguments;
 
-
 	void init( int line_number, TypeExpr type_expr, TypeExprList arguments ) {
 	    super.init( line_number );
 	    this.type_expr = type_expr;
@@ -432,7 +431,6 @@ namespace Parse {
 
 	    // IO.Std.err.println( "new proc type expr: " + this );
 	}
-
 
 	Type parseType( CompileState state ) {
 	    Type r, t;

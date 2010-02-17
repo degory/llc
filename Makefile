@@ -11,7 +11,7 @@ else
 endif
 
 ifeq ($(LFLAGS),)
-	LFLAGS:=-p test
+	LFLAGS:=-p test -w
 endif
 
 ifeq ($(LFLAGSBC),)
@@ -29,7 +29,7 @@ LLVM_CXX:=/usr/local/bin/g++
 
 LRT_VERSION:=0.2
 
-INSTALL_OBJS:=$(LC) jit.o dummy.o llvmc.so fcgi.o lang.bc lang.lh lrt-llvm-$(LRT_VERSION).bc
+INSTALL_OBJS:=$(LC) jit.o dummy.o llvmc.so fcgi.o lang.bc lang.so lang.lh lrt-llvm-$(LRT_VERSION).bc
 
 LRT_CFLAGS:=-DB64 -g -O1 -DLLVM
 
@@ -52,6 +52,7 @@ install: $(INSTALL_OBJS)
 	cp $(CP_FLAGS) jit.o fcgi.o llvmc.so $(PREFIX)/usr/lib/lang/$(TARGET)/unsafe/
 	cp $(CP_FLAGS) dummy.o lang.bc lang.lh $(PREFIX)/usr/lib/lang/$(TARGET)/trusted/
 	cp $(CP_FLAGS) lrt-llvm-$(LRT_VERSION).bc $(PREFIX)/usr/lib/lang/$(TARGET)/
+	cp $(CP_FLAGS) lang.so $(PREFIX)/usr/lib/lang/$(TARGET)/
 	cp -u -v -p lc $(PREFIX)/usr/bin
 
 lc.zip: $(INSTALL_OBJS)	
@@ -79,10 +80,14 @@ lang: lang.bc lang.lh
 lang.bc: $(lang_DEPS)
 	$(LC) -f $(MODEL) $(LFLAGSBC) -w -u lib.l -o lang
 
+lang.so: $(lang_DEPS)
+	$(LC) -V -f $(MODEL) $(LFLAGSNATIVE) -CP -w -u lib.l -o lang
+	mv lang lang.so
+
 lang.lh: lang.bc
 
 lc: $(lc_DEPS) llvmc.o llvmc.so dummy.o
-	$(LC) -f $(MODEL) $(LFLAGSNATIVE) -w -p test -o lc -s llvm -lllvmc.o -lLLVMAnalysis -lLLVMArchive -lLLVMBitReader -lLLVMBitWriter -lLLVMCore -lLLVMExecutionEngine -lLLVMipa -lLLVMMC -lLLVMSupport -lLLVMSystem -lLLVMTarget -lLLVMTransformUtils main.l
+	$(LC) -f $(MODEL) $(LFLAGSNATIVE) -p test -o lc -s llvm -lllvmc.o -lLLVMAnalysis -lLLVMArchive -lLLVMBitReader -lLLVMBitWriter -lLLVMCore -lLLVMExecutionEngine -lLLVMipa -lLLVMMC -lLLVMSupport -lLLVMSystem -lLLVMTarget -lLLVMTransformUtils main.l
 
 llvmc.o: llvmc.cpp
 	g++ $(MODEL) `llvm-config --cxxflags` -c llvmc.cpp
