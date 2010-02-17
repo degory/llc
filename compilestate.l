@@ -1175,7 +1175,7 @@ namespace Parse {
 	    foreach( String s; dependent_files.elements() ) {
 		// hack: make library files appear in ./lib in .d files:
 		if( s.startsWith(LIBRARY_DIR) ) {
-		    s = s.substring(LIBRARY_DIR.Length);
+		    s = "./lib/" + s.substring(LIBRARY_DIR.Length);
 		}
 		df.print( s );
 		df.print( " " );

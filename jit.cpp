@@ -7,7 +7,7 @@
 #include "llvm/Linker.h"
 #include "llvm/LLVMContext.h"
 #include "llvm/Module.h"
-#include "llvm/ModuleProvider.h"
+// #include "llvm/ModuleProvider.h"
 #include "llvm/Type.h"
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/CodeGen/LinkAllCodegenComponents.h"
@@ -126,35 +126,22 @@ extern "C" {
       return;
     }
 
-    ModuleProvider *mp = getBitcodeModuleProvider(buffer, getGlobalContext(), &error_message);
-    if( !mp ) {
-      std::cerr << "getBitcodeModuleProvider() failed: " << error_message << "\n";
-      delete buffer;
-    }
-
     std::cerr << "actual load bitcode\n";
-
-    Module *module = mp->materializeModule(&error_message);
+    Module *module = getLazyBitcodeModule(buffer, getGlobalContext(), &error_message);
 
     std::cerr << "after actual load bitcode: " << error_message << "\n";
 
     if( !module ) {
-      std::cerr << "ModuleProvider::materializeModule() failed: " << error_message << "\n";
+      std::cerr << "get lazy bitcode module failed: " << error_message << "\n";
       return;
     }
 
-    if( main_module != 0 ) {
-      std::cerr << "main module exists, will use linker...\n";
 
-      /*
-      Linker linker("lli", "output.bc", getGlobalContext(), 1);
+    if( !module->MaterializeAllPermanently(&error_message) ) {
+      std::cerr << "materialize module failed: " << error_message << "\n";
+    }
 
-      if( linker.LinkModules( main_module, module, &error_message ) ) {
-	std::cerr << "LinkModules failed: " << error_message << "\n";
-	return;
-      }
-      */
-    } else {
+    if( main_module == 0 ) {
       std::cerr << "no main module, will create execution engine...\n";
 
       InitializeNativeTarget();
@@ -162,7 +149,7 @@ extern "C" {
 
       main_module = module;
 
-      builder = new EngineBuilder(mp);
+      builder = new EngineBuilder(module);
 
       std::cerr << "constructed builder\n";
 
