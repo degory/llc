@@ -118,3 +118,17 @@ lrt-unwind.o: lrt-unwind.c
 
 lrt-throw.o: lrt-throw.cpp
 	$(LLVM_CXX) $(MODEL) $(LRT_CFLAGS) -emit-llvm -c lrt-throw.cpp
+
+bootstrap:
+	rm lc /tmp/lcache-test/* || true
+	$(MAKE) lc
+	mv lc lc1
+	rm /tmp/lcache-test/*
+	$(MAKE) LC=./lc1 lc
+	mv lc lc2
+	rm /tmp/lcache-test/*
+	$(MAKE) LC=./lc2 lc
+	mv lc lc3
+	rm /tmp/lcache-test/*
+	$(MAKE) LC=./lc3 lc
+	diff lc2 lc3

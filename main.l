@@ -37,7 +37,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1207;
+	const int BUILD = 1210;
 
 	CompileState state;
 

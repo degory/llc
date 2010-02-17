@@ -2092,7 +2092,7 @@ namespace Parse {
 
 		v = makeLoadVTableSlot( state, into, from, offset );
 
-		return makeCrowbarCall( state, into, from, symbol.Type.getLLVMType(state), args );
+		return makeCrowbarCall( state, into, v, symbol.Type.getLLVMType(state), args );
 
 	    case Op.PROC_CALL, Op.PROC_CALL_DISCARD:
 		// from had better be pointer to Proc object:
