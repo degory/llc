@@ -2148,11 +2148,11 @@ namespace Parse {
 	    var name = "__thunk_";
 
 	    if( is_slot ) {
-		name = name + "slot_";
+		name = name + "virtual_";
 	    } else if( is_static ) {
 		name = name + "static_";
 	    } else {
-		name = name + "dynamic_";
+		name = name + "bound_";
 	    }
 
 	    name = name + method.DecoratedName;

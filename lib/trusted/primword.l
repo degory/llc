@@ -71,14 +71,17 @@ namespace System {
 	}
 
 	static int opCompare( word w, word x ) {
-	    w = w - x;
-	    if( w < 0W ) { 
-		return -1;
-	    } else if( w > 0W ) {
+	    if( w > x ) { 
 		return 1;
+	    } else if( w < x ) {
+		return -1;
 	    } else {
 		return 0;
 	    }
+	}
+
+	int opCompare( Word x ) {
+	    return opCompare( _value, x._value );
 	}
 
 	bool opEquals( Word w ) {

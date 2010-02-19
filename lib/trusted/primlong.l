@@ -60,6 +60,20 @@ namespace System {
 	    return _value == w.Value;
 	}
 
+	int opCompare( long b, long c ) {
+	    if( b > c ) {
+		return 1;
+	    } else if( b < c ) {
+		return -1;
+	    } else {
+		return 0;
+	    }
+	}
+
+	int opCompare( Long w ) {
+	    return opCompare( _value, w._value );
+	}
+
 	String toString() {
 	    return toString(_value);
 	}

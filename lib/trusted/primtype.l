@@ -68,7 +68,7 @@ namespace System is
 	end
 
 	static int opCompare( int i, int j ) is
-	    return j - i;
+	    return i - j;
 	end
 
 	int opCompare( Int j ) is
@@ -236,7 +236,7 @@ namespace System is
 	end
 
         static int opCompare( char b, char c ) is
-	    return cast int(c - b);
+	    return cast int(b - c);
 	end
 
 	String toString() is

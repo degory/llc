@@ -19,6 +19,7 @@ namespace Parse {
 
 	void clear( CompileState state ) {
 	    super.clear( state );
+	    type_expr.clear(state);
 	}
 
 	void checkTemplates( CompileState state ) {

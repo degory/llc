@@ -438,7 +438,7 @@ namespace System is
 		char ct = [t._buffer+i];
 
 		if c != ct then
-		    int d = cast int(ct) - cast int(c);
+		    int d = cast int(c) - cast int(ct);
 		    // IO.Std.err.println( "'" + c + "'-'" + ct + "' mismatch result is: " + cast int(c - ct) );
 		    return d;
 		fi

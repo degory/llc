@@ -139,10 +139,10 @@ bootstrap:
 	diff lc2 lc3
 
 syntaxl.l: syntax-l.jay skeleton-l
-	jay/jay syntax-l.jay <skeleton-l >syntaxl.l
+	jay/jay -v syntax-l.jay <skeleton-l >syntaxl.l
 
 syntaxk.l: syntax-k.jay skeleton-k
-	jay/jay syntax-k.jay <skeleton-k >syntaxk.l
+	jay/jay -v syntax-k.jay <skeleton-k >syntaxk.l
 
 
 
