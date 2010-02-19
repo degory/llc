@@ -2135,10 +2135,11 @@ namespace Parse {
 	LLVM.Value makeProcRefThunk(
 				    CompileState state,
 				    Container method,
-				    Type proc_type
+				    Type proc_type,
+				    bool is_slot
 				    ) {
 
-	    IO.Std.err.println( "make proc ref thunk..." ); IO.Std.err.flush();
+	    // IO.Std.err.println( "make proc ref thunk..." ); IO.Std.err.flush();
 
 	    bool is_static = method.IsStatic;
 	    bool is_final = method.IsFinal;
@@ -2146,7 +2147,9 @@ namespace Parse {
 	    LLVM.Module m = state.Module;
 	    var name = "__thunk_";
 
-	    if( is_static ) {
+	    if( is_slot ) {
+		name = name + "slot_";
+	    } else if( is_static ) {
 		name = name + "static_";
 	    } else {
 		name = name + "dynamic_";
@@ -2156,8 +2159,10 @@ namespace Parse {
 	    var f_thunk = LLVM.Calls.LLVMGetNamedFunction( m, name.toCString() );
 
 	    if( f_thunk != null ) {
-		IO.Std.err.println( "use existing thunk" ); IO.Std.err.flush();
+		/* IO.Std.err.println( "use existing thunk" ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue( f_thunk );
+		*/
+
 		// FIXME: assuming that method is representative of methods that will be called via this
 		// proc object (i.e. right number of params, param types compatible without casting) and so
 		// one thunk will do for all. Should do this from proc_type instead somehow to ensure get
@@ -2171,20 +2176,21 @@ namespace Parse {
 	    // function signature of target function we want to call is same as supplied method:
 	    var ft_target = method.getLLVMFunctionType(state);
 
-	    IO.Std.err.println( "target function type is: " ); IO.Std.err.flush();
+	    /* IO.Std.err.println( "target function type is: " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpType( ft_target );
+	    */
 
 	    int num_arg = LLVM.Calls.LLVMCountParamTypes(ft_target);
-	    if( is_static ) {
-		IO.Std.err.println( "static target function: allocate space for additional parameter in thunk" );
-		// allocate one more arg to accomodate proc object parameter to thunk:
+	    if( is_static || is_slot ) {
+		// IO.Std.err.println( "static target function: allocate space for additional parameter in thunk" );
+		// allocate one more arg to accomodate proc object parameter to thunk, which target is not expecting:
 		num_arg = num_arg + 1;
 	    }
 
 	    var at = new LLVM.Type[num_arg]; 
 	    var atp = at.address;
 
-	    if( is_static ) {
+	    if( is_static || is_slot ) {
 		// shift static functions arguments one to right to accomodate proc this param to thunk:
 		atp = atp + 1;
 	    }
@@ -2198,7 +2204,7 @@ namespace Parse {
 	    // thunk takes a reference to a Proc<> object as 'this' (param 0), other params as target function:
 	    at[0] = proc_type.getLLVMType(state);
 
-	    IO.Std.err.println( "thunk argument types are: " + at );
+	    // IO.Std.err.println( "thunk argument types are: " + at );
 
 	    var ft_thunk = LLVM.Calls.LLVMFunctionType(
 	 				           return_type,
@@ -2207,8 +2213,9 @@ namespace Parse {
 						   0
 						   );
 
-	    IO.Std.err.println( "thunk function type is: " ); IO.Std.err.flush();
+	    /* IO.Std.err.println( "thunk function type is: " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpType( ft_thunk );
+	    */
 
 	    // add new function to current module that will be the new thunk:
 	    f_thunk = LLVM.Calls.LLVMAddFunction( m, name.toCString(), ft_thunk );
@@ -2219,16 +2226,16 @@ namespace Parse {
 	    // get thunk's 'this' value, which is in param #0:
 	    var p = LLVM.Calls.LLVMGetParam(f_thunk,0);
 
-	    IO.Std.err.println( "thunk param 0 is: " ); IO.Std.err.flush();
+	    /* IO.Std.err.println( "thunk param 0 is: " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpValue( p );
 	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(p) );
-	    
+	    */
 
 	    // this depends on layout of Generic.Proc<P>:
 
 	    LLVM.Value o;
-	    if( !is_static ) {
-		IO.Std.err.println( "compile load bound object value..." ); IO.Std.err.flush();
+	    if( !is_static && !is_slot ) {
+		// IO.Std.err.println( "compile load bound object value..." ); IO.Std.err.flush();
 		// load address of bound object from proc object ready to use as 'this' in call to target function:
 		o = into.InBoundsGEP(
 					 p,
@@ -2247,11 +2254,16 @@ namespace Parse {
 				 );
 	    }		
 
-	    IO.Std.err.println( "compile load target function" ); IO.Std.err.flush();
+	    // IO.Std.err.println( "compile load target function" ); IO.Std.err.flush();
 	    // load target function:
 
 	    LLVM.Value g;
-	    if( is_final ) {
+	    if( is_slot ) {
+		g = makeLoadVTableSlot( state,
+					into,
+					LLVM.Calls.LLVMGetParam( f_thunk, 1 ),
+					method.Address ); 
+	    } else if( is_final ) {
 		g = method.getFunctionGlobal(state);
 	    } else {
 		g = into.InBoundsGEP(
@@ -2262,28 +2274,33 @@ namespace Parse {
 				     }
 				     );
 
-		IO.Std.err.println( "target function field address is (should be i8**): " ); IO.Std.err.flush();
+		/* IO.Std.err.println( "target function field address is (should be i8**): " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue( g );
 		LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(g) );
+		*/
 		
-		IO.Std.err.println( "load function from pointer (should be i8*): " ); IO.Std.err.flush();
+		// IO.Std.err.println( "load function from pointer (should be i8*): " ); IO.Std.err.flush();
 		g = into.Load(g); // this.f1 == target function as char ptr
+
+		/*
 		LLVM.Calls.LLVMDumpValue( g );
 		LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(g) );
-		
-		IO.Std.err.println( "will cast to function pointer..." ); IO.Std.err.flush();
+		*/
+
+		// IO.Std.err.println( "will cast to function pointer..." ); IO.Std.err.flush();
 		g = into.PointerCast(g, LLVM.Calls.LLVMPointerType(ft_target,0)); // this.f1 as function ptr
+		/*
 		IO.Std.err.println( "have function pointer: "); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue( g );
 		LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(g) );
+		*/
 	    }
 
 	    var av = new LLVM.Value[LLVM.Calls.LLVMCountParamTypes(ft_target)];
 
 	    /*
 
-	    static:
-
+	    static or slot:
 	    thunk( proc, p0, p1, p2, p3, ... )
 	    target( p0, p1, p2, p3, ... )
 
@@ -2301,53 +2318,126 @@ namespace Parse {
 
 	    int j = 0;
 
-	    if( !is_static ) {
-		IO.Std.err.println( "param #0 is bound object" );
+	    if( !is_static && !is_slot ) {
+		// IO.Std.err.println( "param #0 is bound object" );
 		av[j] = o;
 		j = j + 1;
 	    }
 
 	    for( int i = 1; i < at.length; i = i + 1 ) {
-		IO.Std.err.println( "param thunk(" + i + ") -> target(" + j + ")..." );
+		// IO.Std.err.println( "param thunk(" + i + ") -> target(" + j + ")..." );
 		av[j] = LLVM.Calls.LLVMGetParam( f_thunk, i );
-		LLVM.Calls.LLVMDumpValue( av[j] );
+		// LLVM.Calls.LLVMDumpValue( av[j] );
 		j = j + 1;
 	    }
 
-	    IO.Std.err.println( "call arguments: " + av ); IO.Std.err.flush();
+	    // IO.Std.err.println( "call arguments: " + av ); IO.Std.err.flush();
 
+	    /*
 	    foreach( LLVM.Value t; av.elements() ) {
 		IO.Std.err.print( "have argument: " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue( t );
 		IO.Std.err.print( "argument type: " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(t) );
 	    }
+	    */
 
 	    var r = into.Call( g, av ); 
 
 	    if( LLVM.Calls.LLVMGetTypeKind(return_type) != LLVM.TypeKind.LLVMVoidTypeKind ) {
+		/*
 		IO.Std.err.println( "returning non void value: " ); IO.Std.err.flush();
 		IO.Std.err.print( "have return: " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue( r );
 		IO.Std.err.print( "return type: " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(r) );
+		*/
 		into.Ret(r);
 	    } else {
+		/*
 		IO.Std.err.println( "returning void value: " ); IO.Std.err.flush();
 		IO.Std.err.print( "have return: " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue( r );
 		IO.Std.err.print( "return type: " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(r) );
+		*/
 		into.RetVoid();
 	    }
 
 	    into.Close();
 
+	    /*
 	    IO.Std.err.println( "made thunk: " ); IO.Std.err.flush();
 
 	    LLVM.Calls.LLVMDumpValue( f_thunk );
+	    */
 
 	    return f_thunk;
+	}
+
+
+	LLVM.Value compileLoadSlotRef(
+				      CompileState state,
+				      IRBlock into,
+				      Container method,
+				      Type proc_type
+				      ) {
+	    LLVM.Type pi8 = LLVM.Calls.LLVMPointerType(
+						       LLVM.Calls.LLVMInt8Type(),
+						       0
+						       );
+
+	    // locate existing thunk or create one if not found:
+	    var p = makeProcRefThunk(
+				     state, 
+				     method,
+				     proc_type,
+				     true
+				     );
+
+
+	    var elem = {
+		makeLoadVTable(state, proc_type.getBoxType(state).Clazz),
+		LLVM.Calls.LLVMConstPointerCast(
+						p,
+						pi8
+						),
+		LLVM.Calls.LLVMConstPointerNull(
+						pi8
+						),
+		LLVM.Calls.LLVMConstPointerNull(
+						pi8
+						)
+	    };
+
+	    var c =
+		LLVM.Calls.LLVMConstStruct(
+					   elem.address,
+					   elem.length,
+					   0					   
+					   );
+
+	    var g = 
+		LLVM.Calls.LLVMAddGlobal(
+					 state.Module,
+					 LLVM.Calls.LLVMTypeOf(c),
+					 ("__proc_" + proc_number).toCString()
+					 );
+	    proc_number = proc_number + 1;
+
+	    LLVM.Calls.LLVMSetInitializer(
+					  g,
+					  c
+					  );
+
+	    LLVM.Calls.LLVMSetLinkage(g, LLVM.LLVMLinkage.LLVMPrivateLinkage );
+
+	    return
+		makeLLVMCast(
+			     g,
+			     proc_type.getLLVMType(state),
+			     into
+			     );
 	}
 
 
@@ -2382,7 +2472,8 @@ namespace Parse {
 	    var p = makeProcRefThunk(
 				     state, 
 				     method,
-				     proc_type
+				     proc_type,
+				     false
 				     );
 
 
@@ -2439,12 +2530,12 @@ namespace Parse {
 				      Type proc_type
 				      ) {
 
-	    IO.Std.err.println( "load proc ref: " + proc_type + " from method: " + method.HumanName );
+	    // IO.Std.err.println( "load proc ref: " + proc_type + " from method: " + method.HumanName );
 
 	    bool is_final = method.IsFinal;
 
 	    if( from == null ) {
-		IO.Std.err.println( "instance method and no bound this supplied: bind this now" );
+		// IO.Std.err.println( "instance method and no bound this supplied: bind this now" );
 		from = makeLoadThis(state, line_number, into);
 	    }
 
@@ -2453,23 +2544,23 @@ namespace Parse {
 	    proc_number = proc_number + 1;
 	    
 	    var f = state.getRuntimeFunction( RuntimeFunction.ALLOC_OBJECT );
-	    IO.Std.err.print( "alloc object function is: " ); IO.Std.err.flush();
+	    // IO.Std.err.print( "alloc object function is: " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpValue( f );
 
 	    var vtable = makeLoadVTable(state, c);
 	    var args = { LLVM.Calls.LLVMConstTypeSizeIndirect(proc_type.getLLVMType(state)), vtable };
 	    var o = callOrInvoke( state, into, f, args );
 
-	    IO.Std.err.print( "call to alloc object is: " ); IO.Std.err.flush();
+	    // IO.Std.err.print( "call to alloc object is: " ); IO.Std.err.flush();
 	    // LLVM.Calls.LLVMDumpValue( o );
 	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(o) );
 	    
-	    IO.Std.err.print( "proc type is: " ); IO.Std.err.flush();
+	    // IO.Std.err.print( "proc type is: " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpType( proc_type.getLLVMType(state) );
 
 	    o = into.PointerCast( o, proc_type.getLLVMType(state) );
 
-	    IO.Std.err.print( "allocated proc ref object: " ); IO.Std.err.flush();
+	    // IO.Std.err.print( "allocated proc ref object: " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpValue( o );
 
 	    LLVM.Type pi8 = LLVM.Calls.LLVMPointerType(
@@ -2486,17 +2577,18 @@ namespace Parse {
 				     }
 				     );
 
-	    IO.Std.err.print( "address of f0: "); IO.Std.err.flush();
+	    // IO.Std.err.print( "address of f0: "); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpValue( q );
 	    
 	    // locate existing thunk or create one if not found:
 	    var p = makeProcRefThunk(
 				     state, 
 				     method,
-				     proc_type
+				     proc_type,
+				     false
 				     );
 
-	    IO.Std.err.print( "address of thunk: "); IO.Std.err.flush();
+	    // IO.Std.err.print( "address of thunk: "); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpValue( p );
 
 	    // store the thunk in f0 field:
@@ -3027,7 +3119,10 @@ namespace Parse {
                 case Symbol.STATIC_METHOD:
 		    // IO.Std.err.println( "compile: static call" );
 
-                    if( flags & LOAD_FLAG_STATIC != 0 || super_class != null ) {
+                    if( flags & LOAD_FLAG_STATIC == 0 && super_class == null ) {
+			warn( "call to static method " + symbol.HumanName + " does not evaluate left value" );
+		    }
+
                         if( no_discard ) {
                             o = Op.STATIC_CALL;
                         } else {
@@ -3038,10 +3133,12 @@ namespace Parse {
 			IO.Std.err.println( "CCCC: static call, arg types: " + argument_types );
 
 			return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, null, arg_values );
+			/*
                     }
                     
 		    error( "calling static method " + symbol.HumanName + " dynamically" );
 		    return ErrorValue();
+			*/
 
                   
                 case Symbol.INSTANCE_METHOD:

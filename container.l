@@ -1442,19 +1442,17 @@ namespace Parse {
                     
                         current.Override = cast<Container>(ancestor);
                     
-                        if( !ancestor.IsAddressValid ) {
-                            throw new Exception( "oops: " + current.Name + " inherits its address but the method it overrides has no address" );
-                        } else {
-                            current.Address = ancestor.Address;
-                        }
-
 			if( current.IsStatic ) {
 			    if( !ancestor.IsStatic ) {
 				ParseTree.message( "warning: static method cannot override " + ancestor.HumanName + " with " + current.HumanName );
 			    }
 			} else if( ancestor.IsStatic ) {
 			    ParseTree.message( "warning: cannot override static method " + ancestor.HumanName + " with " + current.HumanName );
-			}
+			} else if( !ancestor.IsAddressValid ) {
+                            throw new Exception( "oops: " + current.Name + " inherits its address but the method it overrides has no address" );
+                        } else {
+                            current.Address = ancestor.Address;
+                        }
 
 			// IO.Std.err.println( "BBBB: override " + current.HumanName + " @ " + current.Address );
                     }

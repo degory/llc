@@ -4,6 +4,7 @@ namespace Parse {
     use System.String;
     use System.StringBuffer;
     use System.Exception;
+    use Generic.Vector;
 
     use Gen.Machine;
     use Gen.IRBlock;
@@ -73,7 +74,7 @@ namespace Parse {
             } else if( type.TypeKind == Type.CLASS ) {
                 Container class_symbol = type.Clazz;
 
-                Generic.Vector<Type> arg_types = null;
+                Vector<Type> arg_types = null;
                 if( arguments != null ) {
                     arg_types = arguments.getTypes( state );
                 }
@@ -165,7 +166,7 @@ namespace Parse {
 		    // finalizer with the garbage collector:
 
 		    Quality q = new Quality();
-		    Container m = class_symbol.findBestMethod( "dispose", new Generic.Vector<Type>(), q );
+		    Container m = class_symbol.findBestMethod( "dispose", new Vector<Type>(), q );
 
 		    if( m != null && m.Owner != object_type.Clazz ) {
 			// dispose method found and it's not Object.dispose() - need to register finalizer
@@ -523,7 +524,7 @@ namespace Parse {
             String arg_string = null;
 	    Type t;
 
-            Generic.Vector<Type> arg_types = null;
+            Vector<Type> arg_types = null;
             if( arguments != null ) {
                 arg_types = arguments.getTypes( state );
                 // IO.Std.err.println( "method call arguments: " + arg_types );
@@ -660,7 +661,7 @@ namespace Parse {
 
     
 	void calcTypeProcReference( CompileState state ) {
-            Generic.Vector<Type> arg_types = null;
+            Vector<Type> arg_types = null;
             if( arguments != null ) {
                 arg_types = arguments.getTypes( state );
 		// IO.Std.err.println( "method call arguments: " + arg_types );
@@ -975,12 +976,15 @@ namespace Parse {
 
     class ProcRef extends Expression {
 	Expression left;
+	TypeExpr return_type;
 	TypeExprList arguments;
 	Container method;
+	bool virtual_call;
 
-	void init( int line_number, Expression left, TypeExprList arguments ) {
+	void init( int line_number, Expression left, TypeExpr return_type, TypeExprList arguments ) {
 	    super.init( line_number );
 	    this.left = left;
+	    this.return_type = return_type;
 	    this.arguments = arguments;
 	}
 
@@ -988,50 +992,157 @@ namespace Parse {
 	    super.clear(state);
 
 	    method = null;
+	    virtual_call = false;
 	    left.clear(state);
+	    return_type.clear(state);
 	    arguments.clear(state);
 	}
 
 	void checkTemplates( CompileState state ) {
 	    left.checkTemplates(state);
+	    return_type.checkTemplates(state);
 	    arguments.checkTemplates(state);
-
+	    calcType(state, true);
+	    if( type != null ) {
+		type.getBoxType(state);
+	    }
+	    type = null;
 	}
 
 	void calcType( CompileState state ) {
+	    calcType(state,false);
+	}
+
+	void calcType( CompileState state, bool quiet ) {
+            var arg_types = arguments.getTypes( state ); // regular arguments
+	    String arg_string;
+
+	    type = state.findProcType( return_type.parseType(state), arg_types );
+
+	    if( quiet ) {
+		return;
+	    }
+
 	    if( !left.isMethod(state) ) {
-		error( ".proc() must qualify a method name" );
+		error( "proc must qualify a method name" );
 		type = undefined_type;
 		return;
 	    }
 
-            var arg_types = arguments.getTypes( state );
-	    String arg_string;
+	    Type t;
 
 	    var name = cast Identifier(left);
 	    var left_value = name.LeftValue;
+	    Vector<Type> arg_types_s;
 
 	    Symbol symbol;
 
-            var quality = new Quality();
-            if( left_value != null ) {
-                type = left_value.getType( state );
+            var q0 = new Quality();
+	    var q1 = new Quality();
+	    Container s0, s1;
+	    Container c;
 
-                if( type.TypeKind == Type.ERROR ) {
+	    Type arg0_type = null;
+
+	    // find first argument type and left-1 shifted arguments in order to search for a 
+	    // virtual method that could match this proc type. For example Test Test.add(Test) would
+	    // match Test proc add(Test,Test) this way. 
+	    if( arg_types.Length > 0 ) {
+		// IO.Std.err.println( "preparing virtual method lookup arguments..." );
+
+		arg_types_s = new Vector<Type>();
+		foreach( Type u; arg_types.elements() ) {
+		    if( arg0_type == null ) {
+			// remove first argument from list. will use to attempt to locate virtual method
+			arg0_type = u;
+			// IO.Std.err.println( "arg 0 is: " + arg0_type );
+		    } else {
+			// include subsequent arguments in list
+			arg_types_s.add(u);
+			// IO.Std.err.println( "arg n is: " + u );
+		    }
+		}
+	    }
+
+            if( left_value != null ) {
+                t = left_value.getType( state );
+		// IO.Std.err.println( "left value type is: " + t );
+			
+                if( t.TypeKind == Type.ERROR ) {
                     symbol = undefined_method;
 		    return;
-		} else if( type.TypeKind != Type.CLASS ) {
-		    error( "cannot search for method " + name + " in " + type );
+		} else if( t.TypeKind != Type.CLASS ) {
+		    error( "cannot search for method " + name + " in " + t );
 		    type = undefined_type;
 		    return;
                 }
 
-		symbol = type.findBestMethod( name.Name, arg_types, quality );
-            } else {
+		s0 = t.findBestMethod( name.Name, arg_types, q0 );
+
+		if( !t.isObject() && t.CanTreatAsObject ) {
+		    // IO.Std.err.println( "arg0 is not object type: will not search for virtual methods" );
+		    t = null;
+		}
+		
+	    } else {
+		// IO.Std.err.println( "no left value, look up in current class..." );
+		t = state.CurrentClass.Type;
+
+		// IO.Std.err.println( "left value type is: " + t );
+
                 // IO.Std.err.println( "searching current class " + state.CurrentClass + " for best match: " + name.Name + "(" + arg_types + ")" );
 
-                symbol = state.findBestMethod( name.Name, arg_types, quality );
+                s0 = state.findBestMethod( name.Name, arg_types, q0 );
             }
+
+	    if( t != null && arg0_type != null ) {
+		// IO.Std.err.println( "XXXX: t is: " + t + ", arg0 is: " + arg0_type );
+
+		if( arg0_type.isAssignableFrom(t) ) {
+		    c = t.Clazz;
+		    if( c == null ) {
+			IO.Std.err.println( "type has no container, try box type: " );
+		    
+			c = t.getBoxType(state).Clazz;
+		    }
+
+		    if( c != null ) {
+			// IO.Std.err.println( "will consider virtual methods in " + c.HumanName + " with args: " + arg_types_s );
+			s1 = c.findBestMethod( name.Name, arg_types_s, q1 );
+			
+			if( s1 != null && s1.IsStatic ) {
+			    // IO.Std.err.println( "no good, is static" );
+			    s1 = null;
+			}
+		    } else {
+			IO.Std.err.println( "weird: assignable but no class in: " + t );
+		    }
+		    // } else {
+		    // IO.Std.err.println( "not assignable, will not search for virtual method" );
+		}
+	    }
+
+	    var quality = q0;
+	    if( s0 != null && s1 != null ) {
+		if( q0 =~ q1 ) {
+		    warn( "preferring " + s0.HumanName + " over " + s1.HumanName );
+		    symbol = s0;
+		} else if( q0 > q1 ) {
+		    symbol = s0;
+		} else {
+		    symbol = s1;
+		    quality = q1;
+		}		    		    
+	    } else if( s0 != null ) {
+		symbol = s0;
+	    } else {
+		symbol = s1;
+		quality = q1;
+	    }
+
+	    virtual_call = symbol == s1;
+
+	    // IO.Std.err.println( "virtual call: " + virtual_call );
 
             if( symbol == null ) {
                 type = undefined_type;
@@ -1055,8 +1166,6 @@ namespace Parse {
 	    if( method == null ) {
 		throw new Exception( "oops: method symbol " + symbol.HumanName + " is not a container" );
 	    }
-
-	    type = state.findProcType( method.Type, method.ArgTypes );
 
 	    if( quality.quality < Type.QUALITY_GOOD ) {
 		arg_string = dumpArguments( arg_types );
@@ -1082,33 +1191,27 @@ namespace Parse {
 		return ErrorValue(ty.getLLVMType(state));
 	    }
 
-	    var load_this = false;
+	    // var load_this = false;
 	    Identifier name;
 	    var left_value = left;
 
 	    name = cast Identifier(left_value);
 	    left_value = name.LeftValue;
 
-	    // IO.Std.err.println( "call method " + method.Owner.HumanName + " " + method.Name );
-	    
+	    /*
 	    if( left_value != null && !left_value.isThis( state ) && !left_value.isSuper( state ) ) {
-		// IO.Std.err.println( "IIIIII: load this" );
+		IO.Std.err.println( "IIIIII: load this" );
 		load_this = true;
 	    }
-	    
-	    int size = 0;
-	    /*
-	      if( method.getKind() == Symbol.INSTANCE_METHOD ) {
-	      size = 4;                       // FIXME: not always
-	      }
 	    */
 	    
-	    bool instance = true;
 	    
 	    LLVM.Value t = null;
-	    
-	    if( left_value != null && !left_value.isClass( state ) ) {
-		// Std.err.println( "call A..." );
+
+	    if( virtual_call ) {
+		t = compileLoadSlotRef( state, into, method, type );
+	    } else if( left_value != null && !left_value.isClass( state ) ) {
+		// IO.Std.err.println( "call A..." );
 		t = left_value.compileValue( state, into );
 		
 		Container scope = left_value.getType(state).Clazz;
@@ -1123,17 +1226,16 @@ namespace Parse {
 		    return ErrorValue();
                 }
 
-                /*
+		/*
                 IO.Std.err.println( "method call calling load: " + method );
                 IO.Std.err.println( "IIIIII: kind is " + method.Kind + " versus " + Symbol.STATIC_METHOD );
-                */
+		*/
 
                 t = compileLoadProcRef( state, into, t, method, type /*, method.ArgTypes, t, instance, super_class */ );
             } else if( left_value != null ) {
 
-                // Std.err.println( "call B..." );
+                // IO.Std.err.println( "call B..." );
                 if( left_value.isClass( state ) ) {
-                    instance = false;
                     if( !method.IsStatic ) {
                         error( "cannot make bound reference to instance method here" );
                         return ErrorValue();
@@ -1152,10 +1254,7 @@ namespace Parse {
                     error( "cannot make bound reference to instance method here" );
 		    return ErrorValue();
                 }
-                // Std.err.println( "call C..." );
-                if( method.IsStatic ) {
-                    instance = false;
-                }
+                // IO.Std.err.println( "call C..." );
 
                 t = compileLoadProcRef( state, into, null, method, type /*, method.ArgTypes, t, instance, null */);
             }

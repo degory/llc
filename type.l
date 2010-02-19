@@ -397,7 +397,6 @@ namespace Parse {
 		human.append( " ptr" );
 
             case Type.CLASS,Type.STRUCT,Type.ENUM,Type.PROC:
-		// IO.Std.err.println( "dumping class, get qualified name..." );
 		human.append( c.HumanName );
 
             case Type.STRING:
@@ -560,10 +559,12 @@ namespace Parse {
 	}
 
         int matchScore2( Type u, bool assign ) {
+	    // IO.Std.err.println( "match score 2: " + this + " versus " + u );
             if( u.type_kind == Type.ERROR ) {
 		// IO.Std.err.println( "null match" );
                 return MATCH_NULL;
             } else if( u.type_kind == Type.NONE ) {
+		// IO.Std.err.println( "none match" );
                 Type t;
                 if( type_kind == Type.VECTOR || type_kind == Type.POINTER ) {
 		    return MATCH_NULL;
@@ -602,7 +603,7 @@ namespace Parse {
                 int result = SubType.matchScore( u.SubType, assign );
                 return result;
             } else {
-		IO.Std.err.println( "weird comparison: " + dump() + " versus " + u.dump() );
+		// IO.Std.err.println( "weird comparison: " + dump() + " versus " + u.dump() );
                 return null;
             }
         }
@@ -619,10 +620,11 @@ namespace Parse {
 
 
         bool isAssignableFrom( Type u ) {
+	    // IO.Std.err.println( "is " + this + " assignable-from " + u );
 	    if( type_kind == Type.NONE ) {
 		return false;
 	    }
-	    // IO.Std.err.println( "is " + this + " assignable-from " + u );
+
             return matchScore( u, true ) > 0;
         }
 

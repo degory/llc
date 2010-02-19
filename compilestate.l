@@ -2793,6 +2793,7 @@ namespace Parse {
 		    continue;
 		}
 
+		// IO.Std.err.println( "return existing proc type " + d + " for " + want_return + " proc(" + want_arguments + ")" );
 		return d;
 	    }
 
