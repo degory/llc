@@ -1496,7 +1496,7 @@ namespace Parse {
 		v.add( "gcc" );
 
 		if( WantLinkLibraries ) {
-		    v.add( LIBRARY_DIR + TargetID + "/dummy.o" );
+		    v.add( LIBRARY_DIR + TargetID + "/trusted/dummy.o" );
 		}
 
 		if( WantPIC ) {
@@ -1530,7 +1530,7 @@ namespace Parse {
 		    }
 
 		    if( WantLinkLibraries ) {
-			v.add( LIBRARY_DIR + TargetID + "/dummy.o" );
+			v.add( LIBRARY_DIR + TargetID + "/trusted/dummy.o" );
 		    }
 		}
 

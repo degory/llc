@@ -1679,6 +1679,10 @@ namespace Parse {
 	    return left.isClass(state);
         }
 
+        bool isType( CompileState state ) {
+	    return left.isType(state);
+        }
+
 	void calcType( CompileState state ) {
 	    type = left.getType(state);
 	}
@@ -1759,6 +1763,10 @@ namespace Parse {
         bool isClass( CompileState state ) {
             return false;
         }
+
+	bool isType( CompileState state ) {
+	    return false;
+	}
 
 	bool isIdentifier( CompileState state ) {
 	    return false;

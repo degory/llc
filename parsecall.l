@@ -672,6 +672,7 @@ namespace Parse {
 
 	    proc_type = left_value.getType( state );
 	    
+	    // IO.Std.err.FlushOnPrintln = true;
 	    // IO.Std.err.println( "left value type is: " + proc_type );
 
 	    if( proc_type.TypeKind != Type.PROC ) {
@@ -753,7 +754,7 @@ namespace Parse {
 	    /*
 	    IO.Std.err.println( "call method, current class: " + state.CurrentClass );
 	    if( type != null ) {		
-		IO.Std.err.println( "QQQQQQ: method call type not null on entry: " + type );
+	    `IO.Std.err.println( "QQQQQQ: method call type not null on entry: " + type );
 	    }
 	    if( method != null ) {
 		IO.Std.err.println( "QQQQQQ: method call method not null on entry: " + method );
@@ -816,8 +817,15 @@ namespace Parse {
 
 		// IO.Std.err.println( "block now:\n" + into );
 
-	    } else if( left_value != null && !left_value.isClass( state ) ) {
+	    } else if( left_value != null && !left_value.isClass(state) /* && !left_value.isType(state) */ ) {
 		// IO.Std.err.println( "call on non-class left value: " + left_value );
+		/*
+
+		if( left_value.isType(state) ) {
+		    IO.Std.err.println( "will fail: left value is type: " + left_value );
+		}
+		*/
+
 		if( !super_call ) {
 		    t = left_value.compileValue( state, into );
 		} else {
@@ -874,8 +882,14 @@ namespace Parse {
 		}
             } else if( left_value != null ) {
 		// Std.err.println( "call B..." );
+
+		// FIXME: probably should be method.IsStatic here:
                 if( left_value.isClass( state ) ) {
                     flags = flags | LOAD_FLAG_STATIC;
+		}
+
+		if( left_value.isClass(state) != method.IsStatic ) {
+		    IO.Std.err.println( "isClass probably wrong here: " + method.HumanName );
 		}
 		// IO.Std.err.println( "DDDD: arg types: " + method.ArgTypes );
 
@@ -1072,18 +1086,22 @@ namespace Parse {
                     symbol = undefined_method;
 		    return;
 		} else if( t.TypeKind != Type.CLASS ) {
-		    error( "cannot search for method " + name + " in " + t );
-		    type = undefined_type;
-		    return;
+		    var r = t.getBoxType(state);
+		    if( r == null ) {
+			error( "cannot search for method " + name + " in " + t );
+			type = undefined_type;
+			return;
+		    } else {
+			t = r;
+		    }
                 }
 
-		s0 = t.findBestMethod( name.Name, arg_types, q0 );
+		if( t != null ) {
+		    // IO.Std.err.println( "search for method " + name + " in " + t );
+		    s0 = t.findBestMethod( name.Name, arg_types, q0 );
 
-		if( !t.isObject() && t.CanTreatAsObject ) {
-		    // IO.Std.err.println( "arg0 is not object type: will not search for virtual methods" );
-		    t = null;
-		}
-		
+		    // IO.Std.err.println( "result symbol: " + s0 );
+		}		    
 	    } else {
 		// IO.Std.err.println( "no left value, look up in current class..." );
 		t = state.CurrentClass.Type;
@@ -1096,7 +1114,7 @@ namespace Parse {
             }
 
 	    if( t != null && arg0_type != null ) {
-		// IO.Std.err.println( "XXXX: t is: " + t + ", arg0 is: " + arg0_type );
+		// IO.Std.err.println( "XXXX: t is: " + t + ", arg0 is: " + arg0_type + "..." );
 
 		if( arg0_type.isAssignableFrom(t) ) {
 		    c = t.Clazz;
@@ -1124,6 +1142,7 @@ namespace Parse {
 
 	    var quality = q0;
 	    if( s0 != null && s1 != null ) {
+		// IO.Std.err.println( "compare " + s0.HumanName + " and " + s1.HumanName + "..." );
 		if( q0 =~ q1 ) {
 		    warn( "preferring " + s0.HumanName + " over " + s1.HumanName );
 		    symbol = s0;
@@ -1161,6 +1180,8 @@ namespace Parse {
 		error( name.Name + " is not a method" );
 		return;
             }
+
+	    // IO.Std.err.println( "proc bound to " + symbol.HumanName );
 
 	    method = cast<Container>( symbol );
 	    if( method == null ) {
@@ -1209,57 +1230,56 @@ namespace Parse {
 	    LLVM.Value t = null;
 
 	    if( virtual_call ) {
+		// IO.Std.err.println( "virtual call..." );
 		t = compileLoadSlotRef( state, into, method, type );
-	    } else if( left_value != null && !left_value.isClass( state ) ) {
-		// IO.Std.err.println( "call A..." );
-		t = left_value.compileValue( state, into );
-		
-		Container scope = left_value.getType(state).Clazz;
-		Container super_class = null;
-		if( left_value.getType(state).TypeKind == Type.SUPER ) {
-		    warn( "proc reference to method in super class: may be broken, method is: " + method.HumanName );
-		    super_class = scope;
-		}
-		
-		if( method.IsStatic ) {
-		    error( "cannot make bound reference to static method here" );
-		    return ErrorValue();
-                }
+	    } else if( !method.IsStatic ) { // !left_value.isClass( state ) && !left_value.isType(state) ) {
+		// IO.Std.err.println( "call A: " + left_value + " (" + left_value.Class.Name + ")" );
 
+		if( left_value != null ) {
+		    Container scope = left_value.getType(state).Clazz;
+		    Container super_class = null;
+		    if( left_value.getType(state).TypeKind == Type.SUPER ) {
+			warn( "proc reference to method in super class: may be broken, method is: " + method.HumanName );
+			super_class = scope;
+		    }
+
+		    if( left_value.isClass(state) || left_value.isType(state) ) {
+			error( "left value is not an object" );
+			return ErrorValue();
+		    }
+
+		    t = left_value.compileValue( state, into );
+		} else {
+		    if( state.CurrentMethod == null || state.CurrentMethod.IsStatic ) {
+			error( "cannot bind proc reference bound to 'this' here" );
+			return ErrorValue();
+		    }
+		}
+
+		
 		/*
                 IO.Std.err.println( "method call calling load: " + method );
                 IO.Std.err.println( "IIIIII: kind is " + method.Kind + " versus " + Symbol.STATIC_METHOD );
 		*/
 
                 t = compileLoadProcRef( state, into, t, method, type /*, method.ArgTypes, t, instance, super_class */ );
-            } else if( left_value != null ) {
+            } else {
 
                 // IO.Std.err.println( "call B..." );
-                if( left_value.isClass( state ) ) {
-                    if( !method.IsStatic ) {
-                        error( "cannot make bound reference to instance method here" );
-                        return ErrorValue();
-                    }
-                } else {
-                    if( method.IsStatic ) {
-                        error( "cannot make bound reference to static method here" );
-                        return ErrorValue();
-                    }
-		    t = left_value.compileValue( state, into );
+                if( left_value != null && !left_value.isClass( state ) && !left_value.isType(state) ) {
+		    // IO.Std.err.println( "left value is not class..." );
+                    // if( method.IsStatic ) {
+		    warn( "cannot bind " + left_value + " to static method " + method.HumanName );
+			//    return ErrorValue();
+			// }
+			// t = left_value.compileValue( state, into );
                 }
 
                 t = compileLoadProcRef( state, into, null, method, type /*, method.ArgTypes, null, instance, null */);
-            } else {
-                if( state.CurrentMethod == null || state.CurrentMethod.IsStatic ) {
-                    error( "cannot make bound reference to instance method here" );
-		    return ErrorValue();
-                }
-                // IO.Std.err.println( "call C..." );
-
-                t = compileLoadProcRef( state, into, null, method, type /*, method.ArgTypes, t, instance, null */);
             }
-
-            return t;
-        }
+	
+	    return t;
+	}
+	
     }
 }

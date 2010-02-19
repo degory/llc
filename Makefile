@@ -49,16 +49,18 @@ install: $(INSTALL_OBJS)
 	cp /usr/bin/lc safe/lc-previous
 
 	mkdir -p $(PREFIX)/usr/bin/
+	cp -u -v -p lc $(PREFIX)/usr/bin
+
 	mkdir -p $(PREFIX)/usr/lib/lang/$(TARGET)/trusted/
 	mkdir -p $(PREFIX)/usr/lib/lang/$(TARGET)/unsafe/
 	mkdir -p $(PREFIX)/usr/lib/lang/$(TARGET)/safe/
 
 	cp -r $(CP_FLAGS) lib/* $(PREFIX)/usr/lib/lang	
 	cp $(CP_FLAGS) jit.o fcgi.o llvmc.so $(PREFIX)/usr/lib/lang/$(TARGET)/unsafe/
-	cp $(CP_FLAGS) dummy.o lang.bc lang.lh $(PREFIX)/usr/lib/lang/$(TARGET)/trusted/
+	cp $(CP_FLAGS) dummy.o lang.so lang.bc lang.lh $(PREFIX)/usr/lib/lang/$(TARGET)/trusted/
 	cp $(CP_FLAGS) lrt-llvm-$(LRT_VERSION).bc $(PREFIX)/usr/lib/lang/$(TARGET)/
-	cp $(CP_FLAGS) lang.so $(PREFIX)/usr/lib/lang/$(TARGET)/
-	cp -u -v -p lc $(PREFIX)/usr/bin
+#	cp $(CP_FLAGS) lang.so $(PREFIX)/usr/lib/lang/$(TARGET)/trusted/
+
 
 lc.zip: $(INSTALL_OBJS)	
 	rm -r /tmp/canned || true

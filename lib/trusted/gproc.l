@@ -17,7 +17,7 @@ namespace System {
 	/// the correct signature
 	/// \attention this method is completely unsafe
 	void init(word f) {
-	    f0 = f;
+	    f0 = cast char ptr(f);
 	}
 
 	///void init() {

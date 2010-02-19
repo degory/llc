@@ -263,6 +263,25 @@ namespace Parse {
                 return false;
             }
         }
+
+	bool isType( CompileState state ) {
+	    getType( state );
+
+	    // IO.Std.err.println( "is type: " + this ); // + " from: " + new System.Backtrace() );
+	    if( symbol != null && symbol.Kind == Symbol.TYPE ) {
+		// IO.Std.err.println( "is type" );
+		return true;
+	    } else {
+		/*
+		if( symbol != null ) {
+		    IO.Std.err.println( "not type: " + symbol.HumanName + ", " +  cast int(symbol.Kind) );
+		} else {
+		    IO.Std.err.println( "not type: no symbol" );
+		}
+		*/
+		return false;
+	    }
+	}
         
         void qualifies( Expression left_value ) {
             if( this.left_value != null ) {
