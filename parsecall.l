@@ -1141,25 +1141,27 @@ namespace Parse {
 
 	    var quality = q0;
 	    if( s0 != null && s1 != null ) {
-		IO.Std.err.println( "compare " + s0.HumanName + " (" + q0 + ") and " + s1.HumanName + " (" + q1 + ")..." );
+		// IO.Std.err.println( "compare " + s0.HumanName + " (" + q0 + ") and " + s1.HumanName + " (" + q1 + ")..." );
 		if( q0 =~ q1 ) {
 		    warn( "preferring " + s0.HumanName + " over " + s1.HumanName + " (" + q0 + "==" + q1 + ")"  );
 		    symbol = s0;
 		} else if( q0 > q1 ) {
-		    IO.Std.err.println( "choose: " + s0.HumanName + " (" + q0 + ">" + q1 + ")" );
+		    // IO.Std.err.println( "choose: " + s0.HumanName + " (" + q0 + ">" + q1 + ")" );
 		    symbol = s0;
 		} else {
-		    IO.Std.err.println( "choose: " + s1.HumanName + " (" + q0 + "<=" + q1 + ")" );
+		    // IO.Std.err.println( "choose: " + s1.HumanName + " (" + q0 + "<=" + q1 + ")" );
 		    symbol = s1;
 		    quality = q1;
 		}		    		    
 	    } else if( s0 != null ) {
-		IO.Std.err.println( "only choice: " + s0.HumanName );
+		// IO.Std.err.println( "only choice: " + s0.HumanName );
 		symbol = s0;
 	    } else {
+		/*
 		if( s1 != null ) {
 		    IO.Std.err.println( "only choice: " + s1.HumanName );
 		}
+		*/
 		symbol = s1;
 		quality = q1;
 	    }

@@ -149,6 +149,7 @@ namespace Parse {
 	TypeExpr left;
 	Expression right;
 	bool requires_runtime_check;
+	bool fixed_result;
 
         void init( int line_number, TypeExpr left, Expression right ) {
             super.init( line_number );
@@ -167,6 +168,7 @@ namespace Parse {
             if( t.isAssignableFrom( from ) ) {
 		IO.Std.err.println( "redundant isa: " + from + " -> " + t + ", no run time check required" );		
 		requires_runtime_check = false;
+		fixed_result = true;
 	    } else {
 		if( t.TypeKind != Type.CLASS ) {
 		    var u = t.getBoxType(state);
@@ -197,7 +199,8 @@ namespace Parse {
 
 		if( cannot_check ) {
 		    requires_runtime_check = false;
-		    error( "cannot test if type is " + t + " at runtime" );
+		    fixed_result = false;
+		    warn( "cannot test if type is " + t + " at runtime, isa will always return false" );
                 }
             }
 
@@ -217,37 +220,42 @@ namespace Parse {
 	}
 
         LLVM.Value compileValue( CompileState state, IRBlock into ) {
-	    IO.Std.err.println( "compile IsA: " + type );
+	    // IO.Std.err.println( "compile IsA: " + type );
             Type r = right.getType( state );
             
-	    IO.Std.err.println( "type r: " + r );
+	    // IO.Std.err.println( "type r: " + r );
 
             if( requires_runtime_check ) {
-		IO.Std.err.println( "requires check" );
+		// IO.Std.err.println( "requires check" );
 		var t = left.parseType(state);
-		IO.Std.err.println( "type t: " + t );
+		// IO.Std.err.println( "type t: " + t );
 	       
 		LLVM.Value v = makeLLVMCast( right.compileValue(state, into), t.getLLVMType(state), into );
-		IO.Std.err.println( "value v" );
+		// IO.Std.err.println( "value v" );
 		LLVM.Calls.LLVMDumpValue( v );
 
 		if( t.isObject() ) {
-		    IO.Std.err.println( "is object..." );
+		    // IO.Std.err.println( "is object..." );
 		    return makeObjectCastCheck(state, into, v, t.Clazz, false ); // makeLoadVTable(state, t.Clazz));
 		} else if( t.isInterface() ) {
-		    IO.Std.err.println( "is interface..." );
+		    // IO.Std.err.println( "is interface..." );
 		    return makeInterfaceCastCheck(state, into, v, t.Clazz, false ); // .getImplementsFunction(state) );
 		} else {
-		    IO.Std.err.println( "is something odd: " + t );
+		    // IO.Std.err.println( "is something odd: " + t );
 		    error( "cannot test type of " + left + " at runtime" );
 		    return ErrorValue();
 		}
 	    } else {
-		IO.Std.err.println( "no check" );
+		// IO.Std.err.println( "no check" );
+		long b = 0L;
+		if( fixed_result ) {
+		    b = 1L;
+		}
+
 		return
 		    LLVM.Calls.LLVMConstInt(
 					    LLVM.Calls.LLVMInt1Type(),
-					    1L,
+					    b,
 					    0
 					    );
             }
@@ -1001,11 +1009,11 @@ namespace Parse {
 			if( quality_normal >= quality_reverse ) {
 			    method_call = call_normal;
 			    type = type_normal;
-			    IO.Std.err.println( "call normal: " + method_call );
+			    // IO.Std.err.println( "call normal: " + method_call );
 			} else {
 			    method_call = call_reverse;
 			    type = type_reverse;
-			    IO.Std.err.println( "call reverse: " + method_call );
+			    // IO.Std.err.println( "call reverse: " + method_call );
 			}
 		    }
 

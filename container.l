@@ -1875,8 +1875,10 @@ namespace Parse {
 
 			// FIXME: shouldn't emit ctable for structs at all
 			if( !for_class.IsStruct && current.Address == IMPLEMENTS_OFFSET ) {
+			    /*
 			    IO.Std.err.FlushOnPrintln = true;
 			    IO.Std.err.println( "overriding: " + current.HumanName + " with __implements_ " + for_class.HumanName );
+			    */
 			    var f = for_class.getImplementsFunction(state);
 			    f = LLVM.Calls.LLVMConstPointerCast(
 								f,

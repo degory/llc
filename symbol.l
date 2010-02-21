@@ -28,7 +28,7 @@ namespace Parse {
 	}
 
 	int opCompare( Quality b ) {
-	    IO.Std.err.println( "compare " + this + " versus " + b + " from " + new System.Backtrace() );
+	    // IO.Std.err.println( "compare " + this + " versus " + b + " from " + new System.Backtrace() );
 	    if( quality == b.quality ) {
 		return score - b.score;
 	    } else {

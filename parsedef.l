@@ -940,13 +940,11 @@ namespace Parse {
 	    var il = c.AllImplementedInterfaces;
 
 	    IO.Std.err.FlushOnPrintln = true;
-	    IO.Std.err.println( "compile implements..." ); 
 
 	    state.clearThrowBlocks();
 	    var into = new IRBlock( state, fi );
 
 	    if( il == null || il.Length == 0 ) {
-		IO.Std.err.println( "no implemented interfaces" );
 		into.Ret(
 			 LLVM.Calls.LLVMConstInt(
 						 LLVM.Calls.LLVMInt1Type(),
@@ -956,26 +954,17 @@ namespace Parse {
 			 );
 		into.Close();
 
-		IO.Std.err.println( "implements: " );
-		LLVM.Calls.LLVMDumpValue( fi );
 		return;
 	    } 
 		
-	    IO.Std.err.println( "" + il.Length + " implemented interfaces: " + il );
-
 	    var match = into.Block();
 
 	    var p = LLVM.Calls.LLVMGetParam(fi,0);
-	    IO.Std.err.println( "cast" );
-	    LLVM.Calls.LLVMDumpValue( p );
 
 	    foreach( Container i; il.elements() ) {
 		// IO.Std.err.println( "add implements: " + i.HumanName );
 		var ig = i.getInterfaceGlobal(state);
 		// IO.Std.err.println( "compare:" );
-
-		// LLVM.Calls.LLVMDumpValue( ig );
-		// LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(ig) );
 
 		into.Branch(
 			    into.ICmp(
@@ -986,8 +975,6 @@ namespace Parse {
 			    match
 			    );
 	    }
-
-	    IO.Std.err.println( "done..." );
 
 	    into.Ret(
 		     LLVM.Calls.LLVMConstInt(
@@ -1008,9 +995,6 @@ namespace Parse {
 
 
 	    into.Close();
-
-	    IO.Std.err.println( "implements: " );
-	    LLVM.Calls.LLVMDumpValue( fi );
 	}
 
 
@@ -1078,9 +1062,7 @@ namespace Parse {
 			compileBody( state, c );
 		    }
 
-		    IO.Std.err.println( "will compile implements: " + c.HumanName );
 		    compileImplements( state, c );
-		    IO.Std.err.println( "after compile implements: " + c.HumanName );
 
 		    // block.WantLineNumbers = state.WantLineNumbers;
 		    state.InlineOK = false;

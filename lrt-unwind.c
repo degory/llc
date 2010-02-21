@@ -198,10 +198,11 @@ struct _Unwind_Exception *makeException( void *l_exception ) {
 }
 
 void *__get_l_exception( struct _Unwind_Exception_L *e ) {
+  /*
   fprintf( stderr, "__get_l_exception: %p\n", e );
   fprintf( stderr, "exception object: %p\n", e->l_exception );
   fflush( stderr );
-
+  */
   return e->l_exception;
 }
 

@@ -127,7 +127,7 @@ lrt-throw.o: lrt-throw.cpp
 	$(LLVM_CXX) $(MODEL) $(LRT_CFLAGS) -emit-llvm -c lrt-throw.cpp
 
 bootstrap:
-	rm lc /tmp/lcache-test/* || true
+	rm lc /tmp/lcache-test/* lcb || true
 	$(MAKE) lc
 	mv lc lc1
 	rm /tmp/lcache-test/*
@@ -139,6 +139,7 @@ bootstrap:
 	rm /tmp/lcache-test/*
 	$(MAKE) LC=./lc3 lc
 	diff lc2 lc3
+	mv lc3 lcb
 
 syntaxl.l: syntax-l.jay skeleton-l
 	jay/jay -v syntax-l.jay <skeleton-l >syntaxl.l
