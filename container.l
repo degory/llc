@@ -1873,7 +1873,6 @@ namespace Parse {
 			    continue;
 			}
 
-			/* temporarily disable for bootstrap:
 			// FIXME: shouldn't emit ctable for structs at all
 			if( !for_class.IsStruct && current.Address == IMPLEMENTS_OFFSET ) {
 			    IO.Std.err.FlushOnPrintln = true;
@@ -1886,7 +1885,6 @@ namespace Parse {
 			    buffer.add( f );
 			    continue;
 			}
-			*/
 
                         Container owner = candidate.Owner;
                     

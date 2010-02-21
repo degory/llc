@@ -144,6 +144,117 @@ namespace Parse {
 	}
     }
 
+
+    class IsA extends Expression {
+	TypeExpr left;
+	Expression right;
+	bool requires_runtime_check;
+
+        void init( int line_number, TypeExpr left, Expression right ) {
+            super.init( line_number );
+            this.left = left;
+            this.right = right;
+        }
+
+        void calcType( CompileState state ) {
+	    IO.Std.err.FlushOnPrintln = true;
+	    type = new Type(Type.BOOL);
+
+            Type t = left.parseType( state );
+            Type from = right.getType(state);
+	    bool cannot_check = false;
+	    
+            if( t.isAssignableFrom( from ) ) {
+		IO.Std.err.println( "redundant isa: " + from + " -> " + t + ", no run time check required" );		
+		requires_runtime_check = false;
+	    } else {
+		if( t.TypeKind != Type.CLASS ) {
+		    var u = t.getBoxType(state);
+		    if( u != null ) {
+			t = u;
+		    }
+		}
+
+                int k = t.TypeKind;
+
+		if( k == Type.CLASS ) {
+		    if( t.isObject() || t.isInterface() ) {
+			requires_runtime_check = true;
+			if( !from.isObject() && !from.isInterface() ) {
+			    if( state.WantMarkUnsafe ) {
+				state.markCodeUnsafe( CompileState.UNSAFE_CAST );
+			    }
+			    if( state.WantWarnUnsafe ) {
+				warn( "testing if type is " + t + " is unsafe (because " + from + " is not a trusted reference)" );
+			    }
+			}
+		    } else {
+			cannot_check = true;
+		    }
+		} else if( k == Type.POINTER ) {
+		    cannot_check = true;
+		}
+
+		if( cannot_check ) {
+		    requires_runtime_check = false;
+		    error( "cannot test if type is " + t + " at runtime" );
+                }
+            }
+
+	    IO.Std.err.println( "calc type IsA: " + type );
+        }
+
+	void clear( CompileState state ) {
+	    super.clear( state );
+	    left.clear( state );
+	    right.clear( state );
+	    requires_runtime_check = false;
+	}
+
+	void checkTemplates( CompileState state ) {
+	    left.checkTemplates( state );
+	    right.checkTemplates( state );
+	}
+
+        LLVM.Value compileValue( CompileState state, IRBlock into ) {
+	    IO.Std.err.println( "compile IsA: " + type );
+            Type r = right.getType( state );
+            
+	    IO.Std.err.println( "type r: " + r );
+
+            if( requires_runtime_check ) {
+		IO.Std.err.println( "requires check" );
+		var t = left.parseType(state);
+		IO.Std.err.println( "type t: " + t );
+	       
+		LLVM.Value v = makeLLVMCast( right.compileValue(state, into), t.getLLVMType(state), into );
+		IO.Std.err.println( "value v" );
+		LLVM.Calls.LLVMDumpValue( v );
+
+		if( t.isObject() ) {
+		    IO.Std.err.println( "is object..." );
+		    return makeObjectCastCheck(state, into, v, t.Clazz, false ); // makeLoadVTable(state, t.Clazz));
+		} else if( t.isInterface() ) {
+		    IO.Std.err.println( "is interface..." );
+		    return makeInterfaceCastCheck(state, into, v, t.Clazz, false ); // .getImplementsFunction(state) );
+		} else {
+		    IO.Std.err.println( "is something odd: " + t );
+		    error( "cannot test type of " + left + " at runtime" );
+		    return ErrorValue();
+		}
+	    } else {
+		IO.Std.err.println( "no check" );
+		return
+		    LLVM.Calls.LLVMConstInt(
+					    LLVM.Calls.LLVMInt1Type(),
+					    1L,
+					    0
+					    );
+            }
+        }
+
+    }
+
     /// Cast
     class Cast extends Expression {
         TypeExpr left;
@@ -207,202 +318,11 @@ namespace Parse {
 	    right.checkTemplates( state );
 	}
 
-	const int IMPLEMENTS_OFFSET = 3; // one more than FINALIZE_OFFSET in exception.c, places _implements after _dispose
 
-	LLVM.Value makeInterfaceCastCheck( CompileState state, IRBlock into, LLVM.Value v, Container c, bool want_throw ) {
-	    if( !state.WantCastCheck ) {
-		return LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0);
-	    }
-
-	    var iface = c.getInterfaceGlobal(state);
-
-	    var f = makeLLVMCast(
-				 makeLoadVTableSlot( state, into, v, IMPLEMENTS_OFFSET ),
-				 Container.getImplementsFunctionType(),
-				 into
-				 );
-
-	    var ok = callOrInvoke( state, into, f, { v } );
-
-	    if( !want_throw ) {
-		return ok;
-	    }
-	    var throw_function = state.getRuntimeFunction( RuntimeFunction.THROW_CAST );
-
-	    LLVM.BasicBlock x = into.Block();
-
-	    into.Branch( ok, x );
-	    callOrInvoke( state, into, throw_function, new LLVM.Value[0] );
-	    into.Unreachable();
-
-	    into.Label(x);	   
-
-	    return null;
-	}
-
-	LLVM.Value makeObjectCastCheck( CompileState state, IRBlock into, LLVM.Value v, Container c, bool want_throw ) {
-	    if( !state.WantCastCheck ) {
-		return LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0);
-	    }
-
-	    var ppi8 =
-		LLVM.Calls.LLVMPointerType(
-					   LLVM.Calls.LLVMPointerType(
-								      LLVM.Calls.LLVMInt8Type(),
-								      0
-								      ),
-					   0
-					   );
-
-	    var vtable = makeLoadVTable( state, c );
-
-	    var e = into.Block();
-	    var m = into.Block();
-	    var t = into.Block();
-	    var b = into.Block();
-	    var x = into.Block();
-
-	    var throw_function = state.getRuntimeFunction( RuntimeFunction.THROW_CAST );
-
-	    /*
-	      e:
-	      if v0 = null then goto x
-	      m:
-	      v1 = phi e->v, t->v1
-	      v = *v 
-	      if v == ctable goto x
-	      t:
-	      if v != null got o m
-	      throw cast exception
-	      unreachable
-	      x:
-	      // done
-
-	    */
-
-	    v = makeLLVMCast(
-			     v,
-			     ppi8,
-			     into
-			     );
-
-	    into.Label(e);
-
-	    // null can be cast to any object type:
-	    into.BranchLabel(
-			     into.ICmp(
-				       LLVM.LLVMIntPredicate.LLVMIntEQ,
-				       v,
-				       LLVM.Calls.LLVMConstNull(
-								ppi8
-								)
-				       ),
-			     x,   // from e -> x
-			     m
-			     );
-
-	    // loop from object's class over all super classes:
-	    var v0 = into.Phi( ppi8 );
-	    
-	    // load vtable from object (if first pass) or parent from vtable (subsequent passes)
-	    var v1 = into.Load(v0);
-
-	    v1 = makeLLVMCast(
-			     v1,
-			     ppi8,
-			     into
-			     );
-
-	    /*
-	    IO.Std.err.println( "v, v1: "); IO.Std.err.flush();
-	    LLVM.Calls.LLVMDumpValue( v );
-	    LLVM.Calls.LLVMDumpValue( v1 );
-	    */
-
-	    into.AddIncoming(
-			     v0,
-			     {v, v1},
-			     {e, t}
-			     );
-
-	    // if current vtable matches expected vtable then cast is acceptable, jump to exit label:
-	    into.BranchLabel(
-			     into.ICmp(
-				       LLVM.LLVMIntPredicate.LLVMIntEQ,
-				       v1,
-				       makeLLVMCast(
-						    vtable,
-						    ppi8,
-						    into
-						    )
-				       
-				       ),
-			     x, // from m -> x
-			     t
-			);			
-
-
-	    // if current vtable is null then none of the object's class or any ancestor class matched the
-	    // supplied vtable, in this case fall through to the cast exception throw, otherwise jump
-	    // back to loop start to try next ancestor:
-	    if( want_throw ) {
-		into.Branch(
-			    into.ICmp(
-				      LLVM.LLVMIntPredicate.LLVMIntNE,
-				      v1,
-				      LLVM.Calls.LLVMConstNull(
-							       ppi8
-							       )
-				      ),
-			    m
-			    );
-
-		// unacceptable cast, throw a CastException:
-		callOrInvoke( state, into, throw_function, new LLVM.Value[0] );
-		into.Unreachable();
-	    } else {
-		into.BranchLabel(
-			    into.ICmp(
-				      LLVM.LLVMIntPredicate.LLVMIntNE,
-				      v1,
-				      LLVM.Calls.LLVMConstNull(
-							       ppi8
-							       )
-				      ),
-			    m,
-			    x // from t -> x
-			    );
-	    }
-
-	    into.Label( x );
-	    if( !want_throw ) {
-		var result = into.Phi( LLVM.Calls.LLVMInt1Type() );
-		into.AddIncoming(
-				 result,
-				 {
-				     LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0),
-  				     LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0),
-				     LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),0L,0),
-				 },
-				 {e, m, t}
-				 );
-
-		return result;
-	    } else {
-		return null;
-	    }
-	}
-
-	static bool warned = false;
         LLVM.Value compileValue( CompileState state, IRBlock into ) {
             Type r = right.getType( state );
             
             if( requires_runtime_check ) {
-		if( !warned ) {
-		    IO.Std.err.println( "FIXME: cast runtime check" );
-		    warned = true;
-		}
-
 		var t = getType(state);
 		
 		LLVM.Value v = makeLLVMCast( right.compileValue(state, into), t.getLLVMType(state), into );
@@ -3315,6 +3235,213 @@ namespace Parse {
 	get int Operation {
 	    return Op.ERROR;
 	}
+
+	const int IMPLEMENTS_OFFSET = 3; // one more than FINALIZE_OFFSET in exception.c, places _implements after _dispose
+
+	LLVM.Value makeInterfaceCastCheck( CompileState state, IRBlock into, LLVM.Value v, Container c, bool want_throw ) {
+	    if( !state.WantCastCheck ) {
+		return LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0);
+	    }
+
+	    var iface = c.getInterfaceGlobal(state);
+
+	    var f = makeLoadVTableSlot( state, into, v, IMPLEMENTS_OFFSET );
+
+	    IO.Std.err.println( "vtable slot: " );
+	    LLVM.Calls.LLVMDumpValue( f );
+	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(f) );
+
+
+	    var ft = Container.getImplementsFunctionType();
+	    IO.Std.err.println( "cast to function type: " );
+	    LLVM.Calls.LLVMDumpType( ft );
+	     
+	    f = makeLLVMCast(
+			     f,
+			     LLVM.Calls.LLVMPointerType(ft,0),
+			     into
+			     );
+
+	    LLVM.Calls.LLVMDumpValue( f );
+	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(f) );
+
+	    LLVM.Calls.LLVMDumpValue( v );
+	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(v) );
+
+	    // note that though we've just done virtual despatch, this is not a proper virtual method
+	    // call as no 'this' value is passed:
+	    var ok = callOrInvoke( state, into, f, { c.getInterfaceGlobal(state) } );
+
+	    if( !want_throw ) {
+		return ok;
+	    }
+	    var throw_function = state.getRuntimeFunction( RuntimeFunction.THROW_CAST );
+
+	    LLVM.BasicBlock x = into.Block();
+
+	    into.Branch( ok, x );
+	    callOrInvoke( state, into, throw_function, new LLVM.Value[0] );
+	    into.Unreachable();
+
+	    into.Label(x);	   
+
+	    return null;
+	}
+
+	LLVM.Value makeObjectCastCheck( CompileState state, IRBlock into, LLVM.Value v, Container c, bool want_throw ) {
+	    if( !state.WantCastCheck ) {
+		return LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0);
+	    }
+
+	    var ppi8 =
+		LLVM.Calls.LLVMPointerType(
+					   LLVM.Calls.LLVMPointerType(
+								      LLVM.Calls.LLVMInt8Type(),
+								      0
+								      ),
+					   0
+					   );
+
+	    var vtable = makeLoadVTable( state, c );
+
+	    var e = into.Block();
+	    var m = into.Block();
+	    var t = into.Block();
+	    var b = into.Block();
+	    var x = into.Block();
+
+	    var throw_function = state.getRuntimeFunction( RuntimeFunction.THROW_CAST );
+
+	    /*
+	      e:
+	      if v0 = null then goto x
+	      m:
+	      v1 = phi e->v, t->v1
+	      v = *v 
+	      if v == ctable goto x
+	      t:
+	      if v != null got o m
+	      throw cast exception
+	      unreachable
+	      x:
+	      // done
+
+	    */
+
+	    v = makeLLVMCast(
+			     v,
+			     ppi8,
+			     into
+			     );
+
+	    into.Label(e);
+
+	    // null can be cast to any object type:
+	    into.BranchLabel(
+			     into.ICmp(
+				       LLVM.LLVMIntPredicate.LLVMIntEQ,
+				       v,
+				       LLVM.Calls.LLVMConstNull(
+								ppi8
+								)
+				       ),
+			     x,   // from e -> x
+			     m
+			     );
+
+	    // loop from object's class over all super classes:
+	    var v0 = into.Phi( ppi8 );
+	    
+	    // load vtable from object (if first pass) or parent from vtable (subsequent passes)
+	    var v1 = into.Load(v0);
+
+	    v1 = makeLLVMCast(
+			     v1,
+			     ppi8,
+			     into
+			     );
+
+	    /*
+	    IO.Std.err.println( "v, v1: "); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpValue( v );
+	    LLVM.Calls.LLVMDumpValue( v1 );
+	    */
+
+	    into.AddIncoming(
+			     v0,
+			     {v, v1},
+			     {e, t}
+			     );
+
+	    // if current vtable matches expected vtable then cast is acceptable, jump to exit label:
+	    into.BranchLabel(
+			     into.ICmp(
+				       LLVM.LLVMIntPredicate.LLVMIntEQ,
+				       v1,
+				       makeLLVMCast(
+						    vtable,
+						    ppi8,
+						    into
+						    )
+				       
+				       ),
+			     x, // from m -> x
+			     t
+			);			
+
+
+	    // if current vtable is null then none of the object's class or any ancestor class matched the
+	    // supplied vtable, in this case fall through to the cast exception throw, otherwise jump
+	    // back to loop start to try next ancestor:
+	    if( want_throw ) {
+		into.Branch(
+			    into.ICmp(
+				      LLVM.LLVMIntPredicate.LLVMIntNE,
+				      v1,
+				      LLVM.Calls.LLVMConstNull(
+							       ppi8
+							       )
+				      ),
+			    m
+			    );
+
+		// unacceptable cast, throw a CastException:
+		callOrInvoke( state, into, throw_function, new LLVM.Value[0] );
+		into.Unreachable();
+		into.Label( x );
+	    } else {
+		into.BranchLabel(
+			    into.ICmp(
+				      LLVM.LLVMIntPredicate.LLVMIntNE,
+				      v1,
+				      LLVM.Calls.LLVMConstNull(
+							       ppi8
+							       )
+				      ),
+			    m,
+			    x // from t -> x
+			    );
+	    }
+
+	    if( !want_throw ) {
+		var result = into.Phi( LLVM.Calls.LLVMInt1Type() );
+		into.AddIncoming(
+				 result,
+				 {
+				     LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0),
+  				     LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0),
+				     LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),0L,0),
+				 },
+				 {e, m, t}
+				 );
+		IO.Std.err.println( "result: " );
+		LLVM.Calls.LLVMDumpValue(result);
+		return result;
+	    } else {
+		return null;
+	    }
+	}
+
     }
 
 
