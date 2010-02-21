@@ -997,6 +997,61 @@ namespace Parse {
 	    into.Close();
 	}
 
+	void compileClassGlobal(CompileState state, Container c) {
+	    IO.Std.err.FlushOnPrintln = true;
+
+	    var ppi32 = LLVM.Calls.LLVMPointerType(
+						  LLVM.Calls.LLVMPointerType(
+									     LLVM.Calls.LLVMInt32Type(),
+									     0
+									     ),
+						  0
+						  );
+	    var g = c.getClassGlobal(state);
+
+	    var i =
+ 	        LLVM.Calls.LLVMConstStruct(
+	            {
+		    	makeLoadVTable( state, ParseTree.class_type.Clazz )
+  		    }.address,
+		    1,
+		    0
+                );
+
+
+	    var s =
+	    	LLVM.Calls.LLVMConstStruct(
+                    {
+			i,
+		        LLVM.Calls.LLVMConstPointerCast(	
+			    makeLoadVTable( state, c ),
+			    ppi32
+			)
+ 		    }.address,
+		    2,
+		    0
+		);
+
+	    /*
+	    IO.Std.err.println( "global: " );
+	    LLVM.Calls.LLVMDumpValue( g );
+	    IO.Std.err.println( "type: " );
+	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(g) );
+	    IO.Std.err.println( "struct: " );
+	    LLVM.Calls.LLVMDumpValue( s );
+	    */
+
+	    LLVM.Calls.LLVMSetInitializer(
+					  g,
+					  s
+					  );
+
+	    /*
+	    IO.Std.err.println( "result: " );
+	    LLVM.Calls.LLVMDumpValue( g );
+	    */
+	}
+
 
         void compile2( CompileState state, Container c ) {
 	    if( IsInterface ) {
@@ -1063,6 +1118,8 @@ namespace Parse {
 		    }
 
 		    compileImplements( state, c );
+
+		    compileClassGlobal( state, c );
 
 		    // block.WantLineNumbers = state.WantLineNumbers;
 		    state.InlineOK = false;

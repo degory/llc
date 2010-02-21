@@ -298,7 +298,7 @@ namespace Parse {
 
 
 	LLVM.Value getInterfaceGlobal(CompileState state) {
-	    var s = DecoratedName.toCString();
+	    var s = ("__interface_" + DecoratedName).toCString();
 	    var g = LLVM.Calls.LLVMGetNamedGlobal(state.Module, s );
 	    if( g == null ) {
 		var pi8 = 
@@ -322,6 +322,22 @@ namespace Parse {
 	    }
 
 	    return g;
+	}
+
+	LLVM.Value getClassGlobal(CompileState state) {
+	    char ptr name = ("__class_" + DecoratedName).toCString();
+
+	    var v = LLVM.Calls.LLVMGetNamedGlobal(state.Module, name);
+	    var t = LLVM.Calls.LLVMGetElementType(ParseTree.class_type.getLLVMType(state));
+	    if( v == null ) {
+		v = LLVM.Calls.LLVMAddGlobal(
+					     state.Module, 
+					     t,
+					     name
+					     );
+	    }
+	    
+	    return v;
 	}
 
 	LLVM.Value getFunctionGlobal(CompileState state) {
@@ -368,11 +384,6 @@ namespace Parse {
 
 	LLVM.Value getCTableGlobal(CompileState state) {
 	    LLVM.Value v;
-	    /*
-	    LLVM.Value v = LLVMValue;
-	    if( v != null ) {
-		return v;
-		}*/
 
 	    char ptr name = ("__ctable_" + DecoratedName).toCString();
 
@@ -381,8 +392,6 @@ namespace Parse {
 		v = LLVM.Calls.LLVMAddGlobal(state.Module, LLVM.Calls.LLVMArrayType(LLVM.Calls.LLVMVTableFunctionType(), VTableSize + IFaceOffset + 3), name);		
 		// LLVM.Calls.LLVMSetLinkage(v, LLVM.LLVMLinkage.LLVMDLLImportLinkage);
 	    }
-
-	    LLVMValue = v;
 	    
 	    return v;
 	}
@@ -1617,8 +1626,13 @@ namespace Parse {
 
 	    emitInterfaceTables( state, from, buffer );
 
-	    // FIXME: type table
-	    buffer.add( LLVM.Calls.LLVMConstPointerNull( LLVM.Calls.LLVMVTableFunctionType() ) );
+	    // Class object:
+	    buffer.add(
+		       LLVM.Calls.LLVMConstPointerCast(
+						       getClassGlobal(state),
+						       LLVM.Calls.LLVMVTableFunctionType()
+						       )
+		       );
 
 	    // name
 	    buffer.add(

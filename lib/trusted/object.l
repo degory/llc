@@ -220,10 +220,17 @@ namespace System is
 		return [cast int ptr ptr ptr(this)];
 	    fi
 	end
-	
+
+	    /*	
 	/// return a Class representing this Object's class
 	get Class Class is
 	    return new Class(this);
+	end
+	    */
+
+	get Class Class is 
+	    int ptr ptr _vtable = _get_vtable();
+	    return cast Class([_vtable-4]);
 	end
 
 	/// return true if Object o is an instance of the same class as or a sub-class of this Object's class

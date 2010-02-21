@@ -450,10 +450,19 @@ namespace Parse {
 
         void calcType( CompileState  state ) {
             type = left.parseType( state );
+	    if( type.TypeKind != Type.CLASS ) {
+		var r = type.getBoxType(state);
+		if( r != null ) {
+		    type = r;
+		}
+	    }
+
             if( type.TypeKind != Type.CLASS ) {
                 error( "cannot apply class<> to " + type + " which is not a class" );
+		type = undefined_type;
             } else {
 		c = type.Clazz;
+		type = class_type;
 	    }
         }
 
@@ -477,6 +486,10 @@ namespace Parse {
 	    p.print( "class<" );
 	    left.print( state, p );
 	    p.print( ">" );
+	}
+
+	LLVM.Value compileValue( CompileState state, IRBlock into ) {
+	    return c.getClassGlobal(state);
 	}
     }
 
@@ -3255,26 +3268,31 @@ namespace Parse {
 
 	    var f = makeLoadVTableSlot( state, into, v, IMPLEMENTS_OFFSET );
 
+	    /*
 	    IO.Std.err.println( "vtable slot: " );
 	    LLVM.Calls.LLVMDumpValue( f );
 	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(f) );
-
+	    */
 
 	    var ft = Container.getImplementsFunctionType();
+	    /*
 	    IO.Std.err.println( "cast to function type: " );
 	    LLVM.Calls.LLVMDumpType( ft );
-	     
+	    */
+
 	    f = makeLLVMCast(
 			     f,
 			     LLVM.Calls.LLVMPointerType(ft,0),
 			     into
 			     );
 
+	    /*
 	    LLVM.Calls.LLVMDumpValue( f );
 	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(f) );
 
 	    LLVM.Calls.LLVMDumpValue( v );
 	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(v) );
+	    */
 
 	    // note that though we've just done virtual despatch, this is not a proper virtual method
 	    // call as no 'this' value is passed:

@@ -37,7 +37,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1218;
+	const int BUILD = 1219;
 
 	CompileState state;
 
@@ -201,10 +201,10 @@ namespace Parse {
 			    name = args[i];
 			}
 
-			IO.Std.err.println( "OOOO: option is: '" + name + "', j is: " + j + ", length is: " + name.Length  );
+			// IO.Std.err.println( "OOOO: option is: '" + name + "', j is: " + j + ", length is: " + name.Length  );
 
 			for( ; j < name.Length; j = j + 1 ) {
-			    IO.Std.err.println( "OOOO: switch is: '" + name[j] + "'" );
+			    // IO.Std.err.println( "OOOO: switch is: '" + name[j] + "'" );
 			    switch( name[j] ) {
 			    case 'N':
 				state.WantNativeExecutable = true;
@@ -230,7 +230,7 @@ namespace Parse {
 			    }
 			}
 
-			IO.Std.err.println( "OOOO: after '" + name + "', want native executable: " + state.WantNativeExecutable + ", want native object files: " + state.WantNativeObjectFiles + ", want PIC: " + state.WantPIC );
+			// IO.Std.err.println( "OOOO: after '" + name + "', want native executable: " + state.WantNativeExecutable + ", want native object files: " + state.WantNativeObjectFiles + ", want PIC: " + state.WantPIC );
 
 		    case 'O':
 			j = 2;
@@ -360,11 +360,13 @@ namespace Parse {
                 }
             }
 
+	    /*
 	    if( state.WantNativeObjectFiles ) {
 		IO.Std.err.println( "OOOO: want native object files" );
 	    } else {
 		IO.Std.err.println( "OOOO: want bitcode object files" );
 	    }
+	    */
 
 	    if( max_heap > 0 ) {
 		System.GC.MaxHeapSize = max_heap * 1024 * 1024;
