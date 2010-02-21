@@ -167,8 +167,16 @@ namespace Parse {
             } else {
                 int k = type.TypeKind;
 		if( k == Type.CLASS ) {
-		    if( type.isObject() ) {
+		    if( type.isObject() || type.isInterface() ) {
 			requires_runtime_check = true;
+			if( !from.isObject() && !from.isInterface() ) {
+			    if( state.WantMarkUnsafe ) {
+				state.markCodeUnsafe( CompileState.UNSAFE_CAST );
+			    }
+			    if( state.WantWarnUnsafe ) {
+				warn( "cast from " + from.dump() + " to " + type.dump() + " is unsafe" );
+			    }
+			}
 		    } else {
 			should_warn = true;
 		    }
@@ -199,9 +207,42 @@ namespace Parse {
 	    right.checkTemplates( state );
 	}
 
-	void addCastCheck( CompileState state, IRBlock into, LLVM.Value v, LLVM.Value ctable ) {
+	const int IMPLEMENTS_OFFSET = 3; // one more than FINALIZE_OFFSET in exception.c, places _implements after _dispose
+
+	LLVM.Value makeInterfaceCastCheck( CompileState state, IRBlock into, LLVM.Value v, Container c, bool want_throw ) {
 	    if( !state.WantCastCheck ) {
-		return;
+		return LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0);
+	    }
+
+	    var iface = c.getInterfaceGlobal(state);
+
+	    var f = makeLLVMCast(
+				 makeLoadVTableSlot( state, into, v, IMPLEMENTS_OFFSET ),
+				 Container.getImplementsFunctionType(),
+				 into
+				 );
+
+	    var ok = callOrInvoke( state, into, f, { v } );
+
+	    if( !want_throw ) {
+		return ok;
+	    }
+	    var throw_function = state.getRuntimeFunction( RuntimeFunction.THROW_CAST );
+
+	    LLVM.BasicBlock x = into.Block();
+
+	    into.Branch( ok, x );
+	    callOrInvoke( state, into, throw_function, new LLVM.Value[0] );
+	    into.Unreachable();
+
+	    into.Label(x);	   
+
+	    return null;
+	}
+
+	LLVM.Value makeObjectCastCheck( CompileState state, IRBlock into, LLVM.Value v, Container c, bool want_throw ) {
+	    if( !state.WantCastCheck ) {
+		return LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0);
 	    }
 
 	    var ppi8 =
@@ -212,10 +253,15 @@ namespace Parse {
 								      ),
 					   0
 					   );
+
+	    var vtable = makeLoadVTable( state, c );
+
 	    var e = into.Block();
 	    var m = into.Block();
 	    var t = into.Block();
+	    var b = into.Block();
 	    var x = into.Block();
+
 	    var throw_function = state.getRuntimeFunction( RuntimeFunction.THROW_CAST );
 
 	    /*
@@ -251,7 +297,7 @@ namespace Parse {
 								ppi8
 								)
 				       ),
-			     x,
+			     x,   // from e -> x
 			     m
 			     );
 
@@ -285,13 +331,13 @@ namespace Parse {
 				       LLVM.LLVMIntPredicate.LLVMIntEQ,
 				       v1,
 				       makeLLVMCast(
-						    ctable,
+						    vtable,
 						    ppi8,
 						    into
 						    )
 				       
 				       ),
-			     x,
+			     x, // from m -> x
 			     t
 			);			
 
@@ -299,22 +345,52 @@ namespace Parse {
 	    // if current vtable is null then none of the object's class or any ancestor class matched the
 	    // supplied vtable, in this case fall through to the cast exception throw, otherwise jump
 	    // back to loop start to try next ancestor:
-	    into.Branch(
-			into.ICmp(
-				  LLVM.LLVMIntPredicate.LLVMIntNE,
-				  v1,
-				  LLVM.Calls.LLVMConstNull(
-							   ppi8
-							   )
-				  ),
-			m
-			);			
+	    if( want_throw ) {
+		into.Branch(
+			    into.ICmp(
+				      LLVM.LLVMIntPredicate.LLVMIntNE,
+				      v1,
+				      LLVM.Calls.LLVMConstNull(
+							       ppi8
+							       )
+				      ),
+			    m
+			    );
 
-	    // unacceptable cast, throw a CastException:
-	    callOrInvoke( state, into, throw_function, new LLVM.Value[0] );
-	    into.Unreachable();
+		// unacceptable cast, throw a CastException:
+		callOrInvoke( state, into, throw_function, new LLVM.Value[0] );
+		into.Unreachable();
+	    } else {
+		into.BranchLabel(
+			    into.ICmp(
+				      LLVM.LLVMIntPredicate.LLVMIntNE,
+				      v1,
+				      LLVM.Calls.LLVMConstNull(
+							       ppi8
+							       )
+				      ),
+			    m,
+			    x // from t -> x
+			    );
+	    }
 
 	    into.Label( x );
+	    if( !want_throw ) {
+		var result = into.Phi( LLVM.Calls.LLVMInt1Type() );
+		into.AddIncoming(
+				 result,
+				 {
+				     LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0),
+  				     LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0),
+				     LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),0L,0),
+				 },
+				 {e, m, t}
+				 );
+
+		return result;
+	    } else {
+		return null;
+	    }
 	}
 
 	static bool warned = false;
@@ -331,7 +407,11 @@ namespace Parse {
 		
 		LLVM.Value v = makeLLVMCast( right.compileValue(state, into), t.getLLVMType(state), into );
 
-		addCastCheck(state, into, v, makeLoadVTable(state, t.Clazz));
+		if( t.isObject() ) {
+		    makeObjectCastCheck(state, into, v, t.Clazz, true ); // makeLoadVTable(state, t.Clazz));
+		} else if( t.isInterface() ) {
+		    makeInterfaceCastCheck(state, into, v, t.Clazz, true ); // .getImplementsFunction(state) );
+		}
 
 		return v;
 	    } else {

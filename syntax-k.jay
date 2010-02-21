@@ -1140,6 +1140,7 @@ untyped_declaration:
 
 within_block_statement:
 	local_declaration
+|	pragma
 |	statement
 ;
 

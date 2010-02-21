@@ -20,7 +20,10 @@ namespace System is
 
         /// Internal interface for garbage collector. Ensures that any exceptions thrown by dispose() are caught
 	// DO NOT MOVE: runtime depends on the _dispose() method occupying the first slot in the vtable:
+        
 	void _dispose() is
+	    @Virtual;
+ 
 	    if this == null then
 	        // FIXME: is this a GC issue?
 	        return;
@@ -31,6 +34,13 @@ namespace System is
 	    catch System.Exception se 
 		Startup.uncaughtException( se );
 	    yrt
+	end
+
+	// DO NOT MOVE: runtime depends on the _implements() method occupying the second slot in the vtable
+	bool _implements(char ptr v) is
+	    @Virtual;
+
+	    throw new System.Exception("internal error: Object._implements() called");
 	end
 
         /// Override dispose() to deallocate any resources held by this object. Can be called explicitly as well as by garbage collector when Object is

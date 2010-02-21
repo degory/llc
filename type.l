@@ -117,6 +117,13 @@ namespace Parse {
 	    return c.IsObject;
 	}
 
+	bool isInterface() {
+	    if( type_kind != Type.CLASS ) {
+		return false;
+	    }
+	    return c.IsInterface;
+	}
+
 	bool isReference() {
 	    if( type_kind == CLASS || type_kind == STRUCT || type_kind == PROC || type_kind == VECTOR || type_kind == POINTER || type_kind == REFERENCE ) {
 		return true;

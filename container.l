@@ -30,6 +30,7 @@ namespace Parse {
 
     class Container extends Symbol {
 	const int INTERFACE_OFFSET = 4;
+	const int IMPLEMENTS_OFFSET = 3; // vtable slot number for special 'implements interface?' function
 
         Container parent;
 	Container template;
@@ -256,14 +257,7 @@ namespace Parse {
 	    last_static = v;
 	}
 
-	LLVM.Value getImplementsFunction(CompileState state) {
-	    var name = ("__implements_" + DecoratedName).toCString();
-	    var fi = LLVM.Calls.LLVMGetNamedFunction(state.Module, name);
-
-	    if( fi != null ) {
-		return fi;
-	    }
-
+	static LLVM.Type getImplementsFunctionType() {
 	    var ppi8 = LLVM.Calls.LLVMPointerType(
 						  LLVM.Calls.LLVMPointerType(
 									     LLVM.Calls.LLVMInt8Type(),
@@ -272,32 +266,59 @@ namespace Parse {
 						  0
 						  );
 
+
+	    return LLVM.Calls.LLVMFunctionType(
+					       LLVM.Calls.LLVMInt1Type(),
+					       {
+						   ppi8
+					       }.address,
+					       1,
+					       0
+					       );
+	}
+
+	LLVM.Value getImplementsFunction(CompileState state) {
+	    var name = ("__implements_" + DecoratedName).toCString();
+	    var fi = LLVM.Calls.LLVMGetNamedFunction(state.Module, name);
+
+	    if( fi != null ) {
+		return fi;
+	    }
+
+
 	    fi =
 		LLVM.Calls.LLVMAddFunction(
 					   state.Module,
 					   name,
-					   LLVM.Calls.LLVMFunctionType(
-								       LLVM.Calls.LLVMInt1Type(),
-	                                                               {
-									   ppi8
-								       }.address,
-								       1,
-								       0
-								       )
+					   getImplementsFunctionType()
 					   );
 
 	    return fi;
 	}
 
+
 	LLVM.Value getInterfaceGlobal(CompileState state) {
 	    var s = DecoratedName.toCString();
 	    var g = LLVM.Calls.LLVMGetNamedGlobal(state.Module, s );
 	    if( g == null ) {
+		var pi8 = 
+		    LLVM.Calls.LLVMPointerType(
+					       LLVM.Calls.LLVMInt8Type(),
+					       0);
+
 		g = LLVM.Calls.LLVMAddGlobal(state.Module,
-					 LLVM.Calls.LLVMPointerType(
-								    LLVM.Calls.LLVMInt8Type(),
-								    0),
-					 s );
+					     pi8,
+					     s );
+
+		LLVM.Calls.LLVMSetInitializer(
+					      g,
+					      LLVM.Calls.LLVMConstPointerNull(pi8)
+					      );
+		LLVM.Calls.LLVMSetLinkage(
+					  g,
+					  LLVM.LLVMLinkage.LLVMLinkOnceAnyLinkage
+					  );
+		
 	    }
 
 	    return g;
@@ -1834,7 +1855,7 @@ namespace Parse {
                 parent.emitClassTables( state, for_class, buffer );
             }
 
-	    int ca = 0, sa = 0;
+	    int slot = 0;
 
 	    // IO.Std.err.println( "BBBB: first non override method @ " + buffer.Length );
 
@@ -1851,6 +1872,22 @@ namespace Parse {
 			if( current.IsStatic ) {
 			    continue;
 			}
+
+			/* temporarily disable for bootstrap:
+			// FIXME: shouldn't emit ctable for structs at all
+			if( !for_class.IsStruct && current.Address == IMPLEMENTS_OFFSET ) {
+			    IO.Std.err.FlushOnPrintln = true;
+			    IO.Std.err.println( "overriding: " + current.HumanName + " with __implements_ " + for_class.HumanName );
+			    var f = for_class.getImplementsFunction(state);
+			    f = LLVM.Calls.LLVMConstPointerCast(
+								f,
+								LLVM.Calls.LLVMVTableFunctionType()
+								);
+			    buffer.add( f );
+			    continue;
+			}
+			*/
+
                         Container owner = candidate.Owner;
                     
                         if( owner == null ) {
@@ -1863,16 +1900,6 @@ namespace Parse {
                             }
                         
                             if( o == null || o == this ) {
-				/*
-                                if( owner != for_class ) {
-                                    Machine.emitExtern( state.Output,
-                                                        candidate.DecoratedName );
-                                } else {
-                                    Machine.emitGlobalFunction( state.Output,
-                                                        candidate.DecoratedName );
-                                }
-				// state.Output.println( "# ca: " + ca + ", sa: " + candidate.Address );
-				*/
 				// IO.Std.err.println( "BBBB: buffer[" + buffer.Length + " (" + (buffer.Length-(3+IFaceOffset)) + ")] = " + candidate.HumanName + " @ " + candidate.Address );
 
 				buffer.add(
@@ -1882,7 +1909,7 @@ namespace Parse {
 									   )
 					   );
 
-
+				slot = slot + 1;
                                 // Machine.emitDefPointer( state.Output, candidate.DecoratedName );
                             }
                         }
@@ -1893,7 +1920,6 @@ namespace Parse {
 			   current.Kind != Symbol.TYPE && current.Kind != Symbol.ACCESSOR ) {
                     throw new Exception( "oops: member " + current.Name + " is weird kind: " + current.Kind );
                 }
-		ca = ca + 1; // FIXME: not referenced
             }
         }
 

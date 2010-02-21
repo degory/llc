@@ -925,6 +925,7 @@ namespace Parse {
 
 	}
 
+
 	void compileImplements( CompileState state, Container c ) {
 	    var ppi8 = LLVM.Calls.LLVMPointerType(
 						  LLVM.Calls.LLVMPointerType(
@@ -939,8 +940,7 @@ namespace Parse {
 	    var il = c.AllImplementedInterfaces;
 
 	    IO.Std.err.FlushOnPrintln = true;
-	    IO.Std.err.println( "compile implements: " ); 
-	    LLVM.Calls.LLVMDumpValue(fi);
+	    IO.Std.err.println( "compile implements..." ); 
 
 	    state.clearThrowBlocks();
 	    var into = new IRBlock( state, fi );
@@ -955,6 +955,9 @@ namespace Parse {
 						 )
 			 );
 		into.Close();
+
+		IO.Std.err.println( "implements: " );
+		LLVM.Calls.LLVMDumpValue( fi );
 		return;
 	    } 
 		
@@ -967,12 +970,12 @@ namespace Parse {
 	    LLVM.Calls.LLVMDumpValue( p );
 
 	    foreach( Container i; il.elements() ) {
-		IO.Std.err.println( "add implements: " + i.HumanName );
+		// IO.Std.err.println( "add implements: " + i.HumanName );
 		var ig = i.getInterfaceGlobal(state);
-		IO.Std.err.println( "compare:" );
+		// IO.Std.err.println( "compare:" );
 
-		LLVM.Calls.LLVMDumpValue( ig );
-		LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(ig) );
+		// LLVM.Calls.LLVMDumpValue( ig );
+		// LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(ig) );
 
 		into.Branch(
 			    into.ICmp(
@@ -1005,7 +1008,11 @@ namespace Parse {
 
 
 	    into.Close();
+
+	    IO.Std.err.println( "implements: " );
+	    LLVM.Calls.LLVMDumpValue( fi );
 	}
+
 
         void compile2( CompileState state, Container c ) {
 	    if( IsInterface ) {

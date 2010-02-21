@@ -378,11 +378,10 @@ namespace Generic is
 
 	String toString() is
 	    StringBuffer result;
-	    if _length > 0 then
-		result = new StringBuffer( "[Vector: " );
-	    else
-		return "[Vector]";
-	    fi
+	    result = new StringBuffer( "" );
+	    if _length == 0 then
+	        return result;
+ 	    fi
 
 	    for int i = 0; i < _length; i = i + 1 do
 		T o = [_values+i];
@@ -396,8 +395,6 @@ namespace Generic is
 		    result.append( ',' );
 		fi
 	    od
-
-	    result.append(']');
 
 	    return result;
 	end
