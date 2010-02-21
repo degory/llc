@@ -18,7 +18,7 @@ namespace Test128 {
 		v.add( new MapPair<String,String>(c.Name,"something") );
 	    }
 
-	    Generic.Sort<MapPair<String,String>,Vector<MapPair<String,String>>>.sort( v );
+	    Generic.Sort<MapPair<String,String>>.sort( v );
 
 	    IO.Std.err.println( "classes: " + v );
 	}

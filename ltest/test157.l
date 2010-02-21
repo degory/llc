@@ -5,7 +5,7 @@ namespace Test157 {
 	void init() {
 	    int proc(int,int) compare;
 
-	    compare = proc(int,int)(impl);
+	    compare = int proc(int,int)(impl);
 
 	    test(compare);
 	}

@@ -256,6 +256,53 @@ namespace Parse {
 	    last_static = v;
 	}
 
+	LLVM.Value getImplementsFunction(CompileState state) {
+	    var name = ("__implements_" + DecoratedName).toCString();
+	    var fi = LLVM.Calls.LLVMGetNamedFunction(state.Module, name);
+
+	    if( fi != null ) {
+		return fi;
+	    }
+
+	    var ppi8 = LLVM.Calls.LLVMPointerType(
+						  LLVM.Calls.LLVMPointerType(
+									     LLVM.Calls.LLVMInt8Type(),
+									     0
+									     ),
+						  0
+						  );
+
+	    fi =
+		LLVM.Calls.LLVMAddFunction(
+					   state.Module,
+					   name,
+					   LLVM.Calls.LLVMFunctionType(
+								       LLVM.Calls.LLVMInt1Type(),
+	                                                               {
+									   ppi8
+								       }.address,
+								       1,
+								       0
+								       )
+					   );
+
+	    return fi;
+	}
+
+	LLVM.Value getInterfaceGlobal(CompileState state) {
+	    var s = DecoratedName.toCString();
+	    var g = LLVM.Calls.LLVMGetNamedGlobal(state.Module, s );
+	    if( g == null ) {
+		g = LLVM.Calls.LLVMAddGlobal(state.Module,
+					 LLVM.Calls.LLVMPointerType(
+								    LLVM.Calls.LLVMInt8Type(),
+								    0),
+					 s );
+	    }
+
+	    return g;
+	}
+
 	LLVM.Value getFunctionGlobal(CompileState state) {
 	    LLVM.Value v;
 	    /*
@@ -1221,7 +1268,7 @@ namespace Parse {
 	    }
 
 	    // sort interfaces list so that compile order does not affect addresses assigned by selector coloring:
-	    Generic.SortList<Container>.sort(interfaces);
+	    Generic.Sort<Container>.sort(interfaces);
 
 	    j = 0;
 	    foreach( var is; interfaces.elements() ) {

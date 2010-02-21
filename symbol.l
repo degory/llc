@@ -13,7 +13,7 @@ namespace Parse {
 
     use Gen.IRBlock;
 
-    class Quality extends Object {
+    class Quality {
 	public int score;
 	public int quality;
 
@@ -28,11 +28,16 @@ namespace Parse {
 	}
 
 	int opCompare( Quality b ) {
+	    IO.Std.err.println( "compare " + this + " versus " + b + " from " + new System.Backtrace() );
 	    if( quality == b.quality ) {
-		return b.score - score;
+		return score - b.score;
 	    } else {
-		return b.quality - quality;
+		return quality - b.quality;
 	    }
+	}
+
+	String toString() { 
+	    return "quality: " + quality + ", score: " + score;
 	}
     }
 

@@ -672,7 +672,6 @@ namespace Parse {
 
 	    proc_type = left_value.getType( state );
 	    
-	    // IO.Std.err.FlushOnPrintln = true;
 	    // IO.Std.err.println( "left value type is: " + proc_type );
 
 	    if( proc_type.TypeKind != Type.PROC ) {
@@ -1037,11 +1036,13 @@ namespace Parse {
 		return;
 	    }
 
-	    if( !left.isMethod(state) ) {
+	    if( left == null || !left.isMethod(state) ) {
 		error( "proc must qualify a method name" );
 		type = undefined_type;
 		return;
 	    }
+
+	    IO.Std.err.println( "calc type: " + this );
 
 	    Type t;
 
@@ -1062,25 +1063,25 @@ namespace Parse {
 	    // virtual method that could match this proc type. For example Test Test.add(Test) would
 	    // match Test proc add(Test,Test) this way. 
 	    if( arg_types.Length > 0 ) {
-		// IO.Std.err.println( "preparing virtual method lookup arguments..." );
+		IO.Std.err.println( "preparing virtual method lookup arguments..." );
 
 		arg_types_s = new Vector<Type>();
 		foreach( Type u; arg_types.elements() ) {
 		    if( arg0_type == null ) {
 			// remove first argument from list. will use to attempt to locate virtual method
 			arg0_type = u;
-			// IO.Std.err.println( "arg 0 is: " + arg0_type );
+			IO.Std.err.println( "arg 0 is: " + arg0_type );
 		    } else {
 			// include subsequent arguments in list
 			arg_types_s.add(u);
-			// IO.Std.err.println( "arg n is: " + u );
+			IO.Std.err.println( "arg n is: " + u );
 		    }
 		}
 	    }
 
             if( left_value != null ) {
                 t = left_value.getType( state );
-		// IO.Std.err.println( "left value type is: " + t );
+		IO.Std.err.println( "left value type is: " + t );
 			
                 if( t.TypeKind == Type.ERROR ) {
                     symbol = undefined_method;
@@ -1097,24 +1098,24 @@ namespace Parse {
                 }
 
 		if( t != null ) {
-		    // IO.Std.err.println( "search for method " + name + " in " + t );
+		    IO.Std.err.println( "search for method " + name + " in " + t );
 		    s0 = t.findBestMethod( name.Name, arg_types, q0 );
 
-		    // IO.Std.err.println( "result symbol: " + s0 );
+		    IO.Std.err.println( "result symbol: " + s0 );
 		}		    
 	    } else {
-		// IO.Std.err.println( "no left value, look up in current class..." );
+		IO.Std.err.println( "no left value, look up in current class..." );
 		t = state.CurrentClass.Type;
 
-		// IO.Std.err.println( "left value type is: " + t );
+		IO.Std.err.println( "left value type is: " + t );
 
-                // IO.Std.err.println( "searching current class " + state.CurrentClass + " for best match: " + name.Name + "(" + arg_types + ")" );
+                IO.Std.err.println( "searching current class " + state.CurrentClass + " for best match: " + name.Name + "(" + arg_types + ")" );
 
                 s0 = state.findBestMethod( name.Name, arg_types, q0 );
             }
 
 	    if( t != null && arg0_type != null ) {
-		// IO.Std.err.println( "XXXX: t is: " + t + ", arg0 is: " + arg0_type + "..." );
+		IO.Std.err.println( "XXXX: t is: " + t + ", arg0 is: " + arg0_type + "..." );
 
 		if( arg0_type.isAssignableFrom(t) ) {
 		    c = t.Clazz;
@@ -1125,7 +1126,7 @@ namespace Parse {
 		    }
 
 		    if( c != null ) {
-			// IO.Std.err.println( "will consider virtual methods in " + c.HumanName + " with args: " + arg_types_s );
+			IO.Std.err.println( "will consider virtual methods in " + c.HumanName + " with args: " + arg_types_s );
 			s1 = c.findBestMethod( name.Name, arg_types_s, q1 );
 			
 			if( s1 != null && s1.IsStatic ) {
@@ -1135,26 +1136,30 @@ namespace Parse {
 		    } else {
 			IO.Std.err.println( "weird: assignable but no class in: " + t );
 		    }
-		    // } else {
-		    // IO.Std.err.println( "not assignable, will not search for virtual method" );
 		}
 	    }
 
 	    var quality = q0;
 	    if( s0 != null && s1 != null ) {
-		// IO.Std.err.println( "compare " + s0.HumanName + " and " + s1.HumanName + "..." );
+		IO.Std.err.println( "compare " + s0.HumanName + " (" + q0 + ") and " + s1.HumanName + " (" + q1 + ")..." );
 		if( q0 =~ q1 ) {
-		    warn( "preferring " + s0.HumanName + " over " + s1.HumanName );
+		    warn( "preferring " + s0.HumanName + " over " + s1.HumanName + " (" + q0 + "==" + q1 + ")"  );
 		    symbol = s0;
 		} else if( q0 > q1 ) {
+		    IO.Std.err.println( "choose: " + s0.HumanName + " (" + q0 + ">" + q1 + ")" );
 		    symbol = s0;
 		} else {
+		    IO.Std.err.println( "choose: " + s1.HumanName + " (" + q0 + "<=" + q1 + ")" );
 		    symbol = s1;
 		    quality = q1;
 		}		    		    
 	    } else if( s0 != null ) {
+		IO.Std.err.println( "only choice: " + s0.HumanName );
 		symbol = s0;
 	    } else {
+		if( s1 != null ) {
+		    IO.Std.err.println( "only choice: " + s1.HumanName );
+		}
 		symbol = s1;
 		quality = q1;
 	    }

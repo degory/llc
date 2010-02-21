@@ -20,6 +20,7 @@ namespace Test158 {
 	}
 
 	void visit( void proc(Tree) v ) {
+	    IO.Std.err.println( "visit: " + this + ", v: " + v );
 	    if( left != null ) {
 		left.visit(v);
 	    }
@@ -28,6 +29,7 @@ namespace Test158 {
 		right.visit(v);
 	    }
 
+	    IO.Std.err.println( "call: " + v );
 	    v(this);
 	}
 	
@@ -36,6 +38,7 @@ namespace Test158 {
 	}
 
 	static void print(Tree t) {
+	    IO.Std.err.println( "print: " + t ); IO.Std.err.flush();
 	    IO.Std.err.println( t );
 	}
     }
@@ -66,7 +69,7 @@ namespace Test158 {
 				  )
 			 );
 
-	    t.visit( proc(Tree)(Tree.print) );
+	    t.visit( void proc(Tree)(Tree.print) );
 	}
     
     }

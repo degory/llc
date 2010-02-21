@@ -79,6 +79,10 @@ namespace System is
 	    return toString(_value);
 	end
 
+        static int fromString(String s) is
+	    return s.parseInt();
+        end
+
 	static int random() is
 	    return cast int(native.rand());
 	end
@@ -181,6 +185,16 @@ namespace System is
 	String toString() is
 	    return toString(_value);
 	end
+
+        static bool fromString(String s) is
+	    if s == null || s.Length == 0 then
+	        return false;
+            elif s.Length == 1 then
+	        return s[0] - '0' != 0c;
+            else
+		return s !~ "false";
+	    fi
+        end
     end
 
     class Char extends Object is
@@ -246,5 +260,9 @@ namespace System is
         bool isSpace( char c ) is
 	    return String.isSpace(c);
         end
+
+        static char fromString( String s ) is
+	    return s[0];
+	end
     end
 end

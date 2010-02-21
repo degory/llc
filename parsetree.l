@@ -2313,8 +2313,10 @@ namespace Parse {
             cl = left_value.compileValue(state, into);
             cr = right_value.compileValue(state, into);
 
-	    if( LLVM.Calls.LLVMTypeOf(cr) != LLVM.Calls.LLVMInt32Type() ) {
+	    if( LLVM.Calls.LLVMGetTypeKind(LLVM.Calls.LLVMTypeOf(cr)) != LLVM.TypeKind.LLVMIntegerTypeKind ) {
 		warn( "unexpected LLVM type for array bound" );
+		LLVM.Calls.LLVMDumpValue(cr);
+		LLVM.Calls.LLVMDumpType(LLVM.Calls.LLVMTypeOf(cr));
 	    }
 	    
 	    if( state.WantBoundsCheck ) {

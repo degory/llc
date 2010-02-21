@@ -213,7 +213,7 @@ namespace System is
 	/// \param i the value to format in hex
 	static String hex(word i) is
 	    StringBuffer result = new StringBuffer();
-	    result.append( i, 16 );
+            result.append( cast long(i), 16 );
 	    return result;
 	end
 
@@ -532,6 +532,62 @@ namespace System is
 	    fi
 	end
 
+	long parseLong() is
+	    return parseLong(10);
+	end
+
+	/// Parse this string as an long of supplied base
+	/// \param base radix to use for conversion. Must be between 1 and 36
+	/// \throw Exception if this String cannot be parsed in supplied base
+	long parseLong( int base ) is
+            bool negative = false;
+            long b = cast long(base);
+	    int i;
+	    if _length >= 1 && [_buffer] == '-' then
+		negative = true;
+		i = 1;
+	    fi
+	    long result = 0l;
+
+	    char c;
+	    if base <= 10 then
+		for ; i < _length; i = i + 1 do
+		    int n = cast int([_buffer + i] - '0');
+		    if n >= 0 && n < base then
+			result = result * b + cast long(n);
+		    elif i == 0 then
+		        // IO.Std.err.println( "about to throw cannot parse: '" + this + " as base " + base );
+			throw new Exception( "cannot parse: '" + this + "' as base " + base + " integer" );
+		    else
+			break;
+		    fi
+		od
+	    else
+
+		for ; i < _length; i = i + 1 do
+		    c = [_buffer + i];
+		    if c >= '0' && c <= '9' then
+			result = result * b + cast long(c - '0');
+		    elif c >= 'A' && c < 'A' + cast char(base-10) then
+			result = result * b + 10L + cast long(c - 'A');
+		    elif c >= 'a' && c < 'a' + cast char(base-10) then
+			result = result * b + 10L + cast long(c - 'a');
+		    elif i == 0 then
+		        // IO.Std.err.println( "about to throw cannot parse: '" + this + " as base " + base );
+			throw new Exception( "cannot parse: '" + this + "' as base " + base + " integer" );
+	            else
+		        break;
+		    fi
+		od
+	    fi
+
+	    if negative then
+		return -result;
+	    else
+		return result;
+	    fi
+	end
+
 	/// Return the length in characters of supplied C-string
 	/// \param s C-string to get the length of. Must be terminated with cast char(0)
 	int _c_getLength( char ptr s ) is
@@ -627,6 +683,10 @@ namespace System is
 	StringBuffer opAdd( word w ) is
 	    return new StringBuffer( toCString() ).append( w );
 	end
+
+	StringBuffer opAdd( long l ) is
+	    return new StringBuffer( toCString() ).append( l );
+        end
 
 	/// Implements + operator. 
 	//StringBuffer opAdd( long l ) is
@@ -1010,9 +1070,9 @@ namespace System is
 	    return this;
 	end
 
-	StringBuffer append( word v, int ib ) is
-            word b = cast word(ib);
-	    word m, n;
+	StringBuffer append( long v, int ib ) is
+            long b = cast long(ib);
+	    long m, n;
 	    int i;
 	    char c;
 	    char ptr digit = `0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ`;
@@ -1025,11 +1085,11 @@ namespace System is
 
 	    i = 0;
 
-	    if v < 0w then
+	    if v < 0l then
 		opSet( _length, cast char(45) );
-		v = 0w-v;
+		v = 0l-v;
 		i = 1;
-	    elif v == 0w then
+	    elif v == 0l then
 		opSet( _length, cast char(48) );
 		return this;
 	    fi
@@ -1038,7 +1098,7 @@ namespace System is
 
 	    i = 0;
 	    m = v;
-	    while m > 0w do
+	    while m > 0l do
 		// native.printf( `before m is %d...\n`, m );
 		m = m / b;
 		// native.printf( `after m is %d...\n`, m );
@@ -1051,7 +1111,7 @@ namespace System is
 
 	
 	    i = i + _length;
-	    while v > 0w do
+	    while v > 0l do
 		i = i - 1;
 	    
 		c = [digit + v % b];
@@ -1078,9 +1138,12 @@ namespace System is
 	    return append( n, 10 );
 	end
 	
+	StringBuffer append( long n ) is
+	    return append( n, 10 );
+        end
 
 	StringBuffer append( word n ) is
-	    return append( n, 10 );
+	    return append( cast long(n), 10 );
 	end
 
 	StringBuffer append( String s ) is

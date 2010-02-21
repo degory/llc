@@ -1001,9 +1001,11 @@ namespace Parse {
 			if( quality_normal >= quality_reverse ) {
 			    method_call = call_normal;
 			    type = type_normal;
+			    IO.Std.err.println( "call normal: " + method_call );
 			} else {
 			    method_call = call_reverse;
 			    type = type_reverse;
+			    IO.Std.err.println( "call reverse: " + method_call );
 			}
 		    }
 

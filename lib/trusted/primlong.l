@@ -77,5 +77,9 @@ namespace System {
 	String toString() {
 	    return toString(_value);
 	}
+
+	static long fromString( String s ) {
+	    return s.parseLong();
+	}
     }
 }

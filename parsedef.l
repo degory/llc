@@ -925,6 +925,88 @@ namespace Parse {
 
 	}
 
+	void compileImplements( CompileState state, Container c ) {
+	    var ppi8 = LLVM.Calls.LLVMPointerType(
+						  LLVM.Calls.LLVMPointerType(
+									     LLVM.Calls.LLVMInt8Type(),
+									     0
+									     ),
+						  0
+						  );
+
+	    var fi = c.getImplementsFunction(state);
+
+	    var il = c.AllImplementedInterfaces;
+
+	    IO.Std.err.FlushOnPrintln = true;
+	    IO.Std.err.println( "compile implements: " ); 
+	    LLVM.Calls.LLVMDumpValue(fi);
+
+	    state.clearThrowBlocks();
+	    var into = new IRBlock( state, fi );
+
+	    if( il == null || il.Length == 0 ) {
+		IO.Std.err.println( "no implemented interfaces" );
+		into.Ret(
+			 LLVM.Calls.LLVMConstInt(
+						 LLVM.Calls.LLVMInt1Type(),
+						 0L,
+						 0
+						 )
+			 );
+		into.Close();
+		return;
+	    } 
+		
+	    IO.Std.err.println( "" + il.Length + " implemented interfaces: " + il );
+
+	    var match = into.Block();
+
+	    var p = LLVM.Calls.LLVMGetParam(fi,0);
+	    IO.Std.err.println( "cast" );
+	    LLVM.Calls.LLVMDumpValue( p );
+
+	    foreach( Container i; il.elements() ) {
+		IO.Std.err.println( "add implements: " + i.HumanName );
+		var ig = i.getInterfaceGlobal(state);
+		IO.Std.err.println( "compare:" );
+
+		LLVM.Calls.LLVMDumpValue( ig );
+		LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(ig) );
+
+		into.Branch(
+			    into.ICmp(
+				      LLVM.LLVMIntPredicate.LLVMIntEQ,
+				      p,
+				      ig
+				      ),
+			    match
+			    );
+	    }
+
+	    IO.Std.err.println( "done..." );
+
+	    into.Ret(
+		     LLVM.Calls.LLVMConstInt(
+					     LLVM.Calls.LLVMInt1Type(),
+					     0L,
+					     0
+					     )
+		     );
+
+	    into.Label(match);
+	    into.Ret(
+		     LLVM.Calls.LLVMConstInt(
+					     LLVM.Calls.LLVMInt1Type(),
+					     1L,
+					     0
+					     )
+		     );
+
+
+	    into.Close();
+	}
+
         void compile2( CompileState state, Container c ) {
 	    if( IsInterface ) {
 		return;
@@ -988,6 +1070,10 @@ namespace Parse {
 		    if( c.HasStatic ) {
 			compileBody( state, c );
 		    }
+
+		    IO.Std.err.println( "will compile implements: " + c.HumanName );
+		    compileImplements( state, c );
+		    IO.Std.err.println( "after compile implements: " + c.HumanName );
 
 		    // block.WantLineNumbers = state.WantLineNumbers;
 		    state.InlineOK = false;

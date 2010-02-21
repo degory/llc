@@ -174,6 +174,23 @@ namespace System is
 	    return cast word(this) == cast word(o);
 	end
 
+        bool opEquals( Object o ) is
+	    return cast word(this) == cast word(o);
+	end
+
+	int opCompare( Object o ) is
+	    word a = cast word(this);
+	    word b = cast word(o);
+
+	    if a > b then
+	        return 1;
+	    elif b > a then
+	        return -1;
+	    else
+	        return 0;
+	    fi	        
+	end
+
 	/// compare Object o to Object p and return true if they compare equal.
 	/// \param o Object to compare
 	/// \param p Object to compare

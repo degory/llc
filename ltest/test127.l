@@ -14,7 +14,7 @@ namespace Test127 {
 	    v.add( "bar" );
 	    v.add( "flub" );
 	    
-	    Generic.Sort<System.String,Generic.Vector<System.String>>.sort( v );
+	    Generic.Sort<System.String>.sort( v );
 	    
 	    int i = 0;
 	    foreach( System.String s; v.elements() ) {

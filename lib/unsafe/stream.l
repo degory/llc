@@ -48,6 +48,12 @@ namespace IO {
 	    super.init( message );
 	    this.os_error = os_error;
 	}
+
+        /// Construct an IOException for the given operating system error number and C-string message
+	void init( System.String message ) {
+	    super.init( message );
+	    this.os_error = 0;
+	}
     }
 
     /// A thread-safe Reader
@@ -545,6 +551,18 @@ namespace IO {
 	/// \throw IOException
 	void print( System.String s ) {
 	    write( s );
+	}
+
+	void print( char c ) {
+	    write( c.address, 1 );
+	}
+
+	void print( int i ) {
+	    write( i.toString() );
+	}
+
+	void print( long l ) {
+	    write( l.toString() );
 	}
 
 	/// Write the supplied Object as a String. The Object is converted to a String and then written followed by a newline.
