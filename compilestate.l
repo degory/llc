@@ -2752,6 +2752,10 @@ namespace Parse {
 	    //	    if( !find_only ) {
 	    Container e = makeConcrete( c, arguments );
 
+	    if( c == ParseTree.array_type.Clazz ) {
+		e.IsArray = true;
+	    }
+
 	    if( e == null ) {
 		return ParseTree.UndefinedType;
 	    }

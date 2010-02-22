@@ -70,6 +70,7 @@ namespace Parse {
 	bool is_generic;
 	bool is_interface;
 	bool is_native;
+	bool is_array;
 	bool already_parsed;
         bool needs_body;
         bool tables_valid;
@@ -206,6 +207,14 @@ namespace Parse {
 
 	set bool IsInterface = i {
 	    is_interface = i;
+	}
+
+        get bool IsArray {
+	    return is_array;
+	}
+
+	set bool IsArray = a { 
+	    is_array = a;
 	}
 
         get bool IsObject {
@@ -1222,6 +1231,43 @@ namespace Parse {
             }
         }
 
+	void addToTypeTable( CompileState state, Vector<LLVM.Value> fields, LLVM.Value address, Type t ) {
+	    var wt = new Type(Type.WORD).getLLVMType(state);
+	    var it = LLVM.Calls.LLVMInt16Type();
+
+	    var zero = LLVM.Calls.LLVMConstInt(
+					       it,
+					       0L,
+					       0
+					       );
+
+	    address = LLVM.Calls.LLVMConstPtrToInt(
+						   address,
+						   wt
+						   );
+
+	    address = LLVM.Calls.LLVMConstTruncOrBitCast(
+							 address,
+							 it
+							 );
+
+	    do {
+		var value = LLVM.Calls.LLVMConstInt(
+						    it,
+						    cast long(t.TypeKind),
+						    0
+						    );
+		fields.add(address);
+		fields.add(value);
+
+		if( t.TypeKind == Type.POINTER || t.TypeKind == Type.REFERENCE ) {			   
+		    t = t.SubType;
+		    address = zero;
+		    continue;
+		}
+	    } while(false);
+	}
+
         LLVM.Value getTypeTable( CompileState  state ) {
 	    var fields = new Vector<LLVM.Value>();
 
@@ -1249,48 +1295,43 @@ namespace Parse {
 					       0
 					       );
 
+	    LLVM.Value address;
+	    Type t;
             foreach( Symbol current; members.SymbolList.elements() ) {
                 if( current.Kind == Symbol.INSTANCE_VARIABLE ) {
-		    Type t = current.Type;
+		    t = current.Type;
 
-		    var address = Expression.makeInstance(
-							  state,
-							  0,
-							  null,
-							  null_this,
-							  this,
-							  current,
-							  true
-							  );
+		    address = Expression.makeInstance(
+						      state,
+						      0,
+						      null,
+						      null_this,
+						      this,
+						      current,
+						      true
+						      );
 
-		    
-		    address = LLVM.Calls.LLVMConstPtrToInt(
-							   address,
-							   wt
-							   );
-
-		    address = LLVM.Calls.LLVMConstTruncOrBitCast(
-								 address,
-								 it
-								 );
-
-		    do {
-			var value = LLVM.Calls.LLVMConstInt(
-							    it,
-							    cast long(t.TypeKind),
-							    0
-							    );
-			fields.add(address);
-			fields.add(value);
-
-			if( t.TypeKind == Type.POINTER || t.TypeKind == Type.REFERENCE ) {			   
-			    t = t.SubType;
-			    address = zero;
-			    continue;
-			}
-		    } while(false);
+		    addToTypeTable( state, fields, address, t );
                 }
             }
+
+	    if( IsArray ) {
+		t = Type.getActualArgumentType(state, "T");
+		var at = new Type(Type.VECTOR,t).getLLVMType(state);
+		
+		address = LLVM.Calls.LLVMConstPointerNull(
+						      new Type(Type.VECTOR,t).getLLVMType(state)
+						      );
+
+		address = Expression.makeGetConstArrayDataPointer(
+								  state,
+								  0,
+								  address,
+								  zero
+								  );
+							      
+		addToTypeTable( state, fields, address, t );
+	    }
 
 	    fields.add(
 		       LLVM.Calls.LLVMConstInt(

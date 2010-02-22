@@ -1918,6 +1918,19 @@ namespace Parse {
 					   );
 	}
 
+	static LLVM.Value makeGetConstArrayDataPointer( CompileState state, int line_number, LLVM.Value a, LLVM.Value i ) {
+	    return
+		LLVM.Calls.LLVMConstInBoundsGEP(
+				 a,
+				 {
+				     LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(),0L,0),
+				     LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(),2L,0),
+				     i					 
+  				     }.address,
+				 3
+				 );
+	}
+
 	static LLVM.Value makeGetArrayDataPointer( CompileState state, int line_number, IRBlock into, LLVM.Value a, LLVM.Value i ) {
 	    return
 		into.InBoundsGEP(
