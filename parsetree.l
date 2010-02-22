@@ -461,8 +461,8 @@ namespace Parse {
 	    
 	    if( is_finally ) {
 		// if this is a finally landing pad then we want to catch all exceptions, including foreign ones:
-		// type_info = LLVM.Calls.LLVMConstPointerNull(LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0));
-		type_info = LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(),0L,0);
+		type_info = LLVM.Calls.LLVMConstPointerNull(LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0));
+		// type_info = LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(),0L,0);
 	    } else {
 		// otherwise if it's a catches block we want to catch a L exceptions. The string constant is a dummy
 		// type info that the L personality function should recognize causing a non-zero return from

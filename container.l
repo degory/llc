@@ -225,9 +225,22 @@ namespace Parse {
 	    return false;
 	    */
 	}
+
+	get bool CallAsFinal {
+	    if( !is_final ) {
+		return false;
+	    }
+
+	    if( Owner.IsInterface ) {
+		IO.Std.err.println( "do not call interface method " + HumanName + " as final" );
+		return false;
+	    }
+	    
+	    return true;
+	}
 	            
         get bool IsFinal {
-            return is_final;
+	    return is_final;
         }
 
 	get bool IsStatic {
@@ -1209,31 +1222,112 @@ namespace Parse {
             }
         }
 
-        void emitTypeTables( CompileState  state ) {
+        LLVM.Value getTypeTable( CompileState  state ) {
+	    var fields = new Vector<LLVM.Value>();
+
 	    // FIXME: type tables
 	    /*
             if( parent != null ) {
                 parent.emitTypeTables( state );
             }
+	    */
+
+	    var null_this = 
+		LLVM.Calls.LLVMConstPointerNull(
+						LLVM.Calls.LLVMPointerType(
+									   LLVMType,
+									   0
+									   )
+						);
+						
+	    var wt = new Type(Type.WORD).getLLVMType(state);
+	    var it = LLVM.Calls.LLVMInt16Type();
+
+	    var zero = LLVM.Calls.LLVMConstInt(
+					       it,
+					       0L,
+					       0
+					       );
 
             foreach( Symbol current; members.SymbolList.elements() ) {
                 if( current.Kind == Symbol.INSTANCE_VARIABLE ) {
-                    Type t = current.Type;
+		    Type t = current.Type;
 
-                    char value;
-                    if( t.TypeKind == Type.CLASS ) {
-                        value = Object.TYPE_OBJECT;
-                    } else if( t.TypeKind == Type.VECTOR ) {
-                        value = Object.TYPE_ARRAY;
-                    } else if( t.TypeKind == Type.POINTER ) {
-                        value = Object.TYPE_POINTER;
-                    } else {
-			value = cast char(t.Size);
-		    }
-                    // Machine.emitDefByte( state.Output, cast int(value) );
+		    var address = Expression.makeInstance(
+							  state,
+							  0,
+							  null,
+							  null_this,
+							  this,
+							  current,
+							  true
+							  );
+
+		    
+		    address = LLVM.Calls.LLVMConstPtrToInt(
+							   address,
+							   wt
+							   );
+
+		    address = LLVM.Calls.LLVMConstTruncOrBitCast(
+								 address,
+								 it
+								 );
+
+		    do {
+			var value = LLVM.Calls.LLVMConstInt(
+							    it,
+							    cast long(t.TypeKind),
+							    0
+							    );
+			fields.add(address);
+			fields.add(value);
+
+			if( t.TypeKind == Type.POINTER || t.TypeKind == Type.REFERENCE ) {			   
+			    t = t.SubType;
+			    address = zero;
+			    continue;
+			}
+		    } while(false);
                 }
             }
-	    */
+
+	    fields.add(
+		       LLVM.Calls.LLVMConstInt(
+					       it,
+					       0L,
+					       0
+					       )
+		       );
+
+	    fields.add(
+		       LLVM.Calls.LLVMConstInt(
+					       it,
+					       0L,
+					       0
+					       )
+		       );
+
+	    var a = fields.Array;
+
+	    var i = LLVM.Calls.LLVMConstArray(
+					      it,
+					      a.address,
+					      a.length
+					      );
+
+	    var g = LLVM.Calls.LLVMAddGlobal(
+					     state.Module,
+					     LLVM.Calls.LLVMTypeOf(i),
+					     ("__type_" + DecoratedName).toCString()
+					     );
+
+	    LLVM.Calls.LLVMSetInitializer(
+					  g,
+					  i
+					  );
+
+	    return g;
         }
 
         void buildClassTables( CompileState state ) {
@@ -1667,8 +1761,13 @@ namespace Parse {
 		buffer.add( LLVM.Calls.LLVMConstPointerNull( LLVM.Calls.LLVMVTableFunctionType() ) );
 	    }
 
-	    // FIXME: reference bits:
-	    buffer.add( LLVM.Calls.LLVMConstPointerNull( LLVM.Calls.LLVMVTableFunctionType() ) );
+	    // type table:
+	    buffer.add(
+		       LLVM.Calls.LLVMConstPointerCast(
+						       getTypeTable(state),
+						       LLVM.Calls.LLVMVTableFunctionType()
+						       )
+		       );
 
 	    emitClassTables( state, this, buffer );
 
@@ -1757,7 +1856,7 @@ namespace Parse {
 		    slots.lengthen(slot+1);
 		    
 		    if( slots[slot] != null ) {
-			IO.Std.err.println( "weird: already implemented: " + slots[slot].HumanName + " versus " + i.HumanName );
+			IO.Std.err.println( "overriding already implemented: " + slots[slot].HumanName + " with " + i.HumanName );
 		    }
 		    
 		    // IO.Std.err.println( "BBBB: implement slot #" + slot + ": " + i.HumanName );

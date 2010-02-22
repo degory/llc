@@ -9,14 +9,26 @@ namespace System is
     /// Root of the standard L class heirarchy
 
     class Object is
-        public const char
-	    TYPE_UNKNOWN = 0c,
-	    TYPE_1BYTE = 1c,
-	    TYPE_4BYTE = 4c,
-	    TYPE_8BYTE = 8c,
-	    TYPE_OBJECT = 128c,
-	    TYPE_ARRAY = 129c,
-	    TYPE_POINTER = 130c;
+        public const int
+            TYPE_NONE = 0,
+            TYPE_VOID = 1,
+            TYPE_BOOL = 3,
+            TYPE_BYTE = 4,
+            TYPE_CHAR = 5,
+            TYPE_SHORT = 6,
+            TYPE_INTEGER = 7,
+            TYPE_WORD = 8,
+            TYPE_LONG = 9,
+            TYPE_FLOAT = 10,
+            TYPE_DOUBLE = 11,
+            TYPE_VECTOR = 12,
+            TYPE_REFERENCE = 13,
+            TYPE_POINTER = 14,
+            TYPE_CLASS = 15,
+            TYPE_ENUM = 16,
+            TYPE_STRUCT = 22,
+            TYPE_PROC = 23,
+            TYPE_ERROR = 25;
 
         /// Internal interface for garbage collector. Ensures that any exceptions thrown by dispose() are caught
 	// DO NOT MOVE: runtime depends on the _dispose() method occupying the first slot in the vtable:
@@ -102,10 +114,10 @@ namespace System is
 	end
 
 	/// Return a pointer to this Object's type table
-	protected char ptr _get_ttable() is
+	protected int ptr _get_ttable() is
 	    int ptr ptr vtable = _get_vtable();
 	
-	    return cast char ptr([vtable-3]);
+	    return cast int ptr([vtable+1]);
 	end
 
 	/// Return the size of this Object in bytes   
@@ -130,10 +142,10 @@ namespace System is
 	end
 
 	/// Return a pointer to this Object's type table
-	get char ptr TypeTable is
+	get int ptr TypeTable is
 	    int ptr ptr _vtable = _get_vtable();
 	    if _vtable != null then
-		return cast char ptr([_vtable - 3]);
+		return cast int ptr([_vtable+1]);
 	    else
 		return null;
 	    fi
@@ -230,7 +242,7 @@ namespace System is
 
 	get Class Class is 
 	    int ptr ptr _vtable = _get_vtable();
-	    return cast Class([_vtable-4]);
+	    return cast Class([_vtable-3]);
 	end
 
 	/// return true if Object o is an instance of the same class as or a sub-class of this Object's class

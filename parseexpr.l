@@ -1955,7 +1955,7 @@ namespace Parse {
             type = null;
         }
 
-        LLVM.Value makeInstance( CompileState state, int line_number, IRBlock into, LLVM.Value t, Container from, Symbol symbol ) {
+        static LLVM.Value makeInstance( CompileState state, int line_number, IRBlock into, LLVM.Value t, Container from, Symbol symbol, bool want_const ) {
 	    // IO.Std.err.println( "\n\nGGGG: make instance from " + from.HumanName + " . " + symbol.HumanName );
 
 	    int gep_depth = from.getGEPDepth(symbol) + 1;
@@ -1994,8 +1994,11 @@ namespace Parse {
 		IO.Std.err.println( "from: " + new System.Backtrace() );
 	    }
 	    */
-
-	    return into.InBoundsGEP( t, gep_indexes );
+	    if( want_const ) {
+		return LLVM.Calls.LLVMConstInBoundsGEP( t, gep_indexes.address, gep_indexes.length );
+	    } else {
+		return into.InBoundsGEP( t, gep_indexes );
+	    }
         }
 
 	// v should reference an object, result is reference to function in vtable slot @ offset
@@ -2173,7 +2176,7 @@ namespace Parse {
 	    // IO.Std.err.println( "make proc ref thunk..." ); IO.Std.err.flush();
 
 	    bool is_static = method.IsStatic;
-	    bool is_final = method.IsFinal;
+	    bool is_final = method.CallAsFinal;
 
 	    LLVM.Module m = state.Module;
 	    var name = "__thunk_";
@@ -2563,7 +2566,7 @@ namespace Parse {
 
 	    // IO.Std.err.println( "load proc ref: " + proc_type + " from method: " + method.HumanName );
 
-	    bool is_final = method.IsFinal;
+	    bool is_final = method.CallAsFinal;
 
 	    if( from == null ) {
 		// IO.Std.err.println( "instance method and no bound this supplied: bind this now" );
@@ -2941,7 +2944,7 @@ namespace Parse {
                      } else {
 			v = makeLoadThis( state, line_number, into );
 
-                        v = makeInstance( state, line_number, into, v, container, symbol );
+                        v = makeInstance( state, line_number, into, v, container, symbol, false );
                         
                         if( reference ) {
                             // IO.Std.err.println( "loading instance reference: " + symbol.HumanName );
@@ -3027,7 +3030,7 @@ namespace Parse {
 			// IO.Std.err.println( "CCCC: static dynamic call, arg types: " + argument_types );
 
 			return compileCall( state, into, t, o, symbol, symbol.DecoratedName, 0, null, arg_values );
-                    } else if( cast<Container>(symbol).IsFinal ) {
+                    } else if( cast<Container>(symbol).CallAsFinal ) {
                         if( no_discard ) {
                             o = Op.STATIC_CALL;
                         } else {
@@ -3128,7 +3131,7 @@ namespace Parse {
 		    // from != this, so it could be null. check before makeInstance moves any null pointer away from zero:
 		    addNullCheck(state, into, from, line_number);
 
-		    v = makeInstance( state, line_number, into, from, container, symbol );
+		    v = makeInstance( state, line_number, into, from, container, symbol, false );
                         
 		    if( reference ) {
 			IO.Std.err.println( "loading instance reference: " + symbol.HumanName );
@@ -3200,7 +3203,7 @@ namespace Parse {
 			// IO.Std.err.println( "CCCC: static dynamic call, arg types: " + argument_types );
 
 			return compileCall( state, into, from, o, symbol, symbol.DecoratedName, 0, null, arg_values );
-                    } else if( cast<Container>(symbol).IsFinal ) {
+                    } else if( cast<Container>(symbol).CallAsFinal ) {
                         if( no_discard ) {
                             o = Op.STATIC_CALL;
                         } else {

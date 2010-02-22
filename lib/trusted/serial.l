@@ -235,6 +235,10 @@ namespace IO {
 	    references = new Map<String,Object>();
 	}
 
+	public static bool register(Class c) {
+	    return register(c.Name, c);
+	}
+
 	public static bool register(String key, Class c) {
 	    if( classes == null ) {
 		classes = new Map<String,Class>();
@@ -259,9 +263,7 @@ namespace IO {
 	}
 
 	bool checkReference() {
-	    // IO.Std.err.println( "check reference..." );
 	    if( parser.CurrentToken == SerialToken.ASSIGN ) {
-		// IO.Std.err.println( "check assign..." );
 		current_reference = readAssign();
 		return true;
 	    } else if( parser.CurrentToken == SerialToken.REFERENCE ) {
@@ -310,8 +312,12 @@ namespace IO {
 			Serial p = null;
 			try {
 			    o = c.create();
-			    p = cast Serial(o);
-			    p.fromSerial(this);
+			    if( isa Serial(o) ) {
+				p = cast Serial(o);
+				p.fromSerial(this);
+			    } else {
+				readObjectDefault(o);
+			    }
 			} catch( System.Exception e ) {
 			    throw new IOException("problem instantiating: " + c + " (" + e + ")" );
 			}
@@ -446,6 +452,62 @@ namespace IO {
 	
 	public get bool AtEOF {
 	    return parser.AtEOF;
+	}
+
+	void readObjectDefault( Object o ) {
+	    int ptr pt = o.TypeTable;
+
+	    // IO.Std.err.println( "type table: " + cast long(pt) );
+
+	    open();
+
+	    do {
+		int ct = [pt];
+		pt = pt + 1;
+
+		// IO.Std.err.println( "type: " + ct );
+		if( ct == 0 ) {
+		    IO.Std.err.println( "done" );
+		    break;
+		}
+
+		int offset = ct & 0xFFFF;
+		int type = (ct >> 16) & 0xFFFF;
+		char ptr p = cast char ptr(o) + offset;
+
+		/*
+		IO.Std.err.println( "offset: " + offset );
+		IO.Std.err.println( "type: " + type );
+		IO.Std.err.println( "field address: " + cast long(p) );
+		*/
+
+		switch( type ) {
+		case TYPE_BOOL:
+		    // IO.Std.err.println( "read bool..." );
+		    [cast bool ptr(p)] = readBool();
+
+		case TYPE_CHAR:
+		    // IO.Std.err.println( "read char..." );
+		    [cast char ptr(p)] = readChar();
+
+		case TYPE_LONG:
+		    // IO.Std.err.println( "read long..." );
+		    [cast long ptr(p)] = readLong();
+
+		case TYPE_INTEGER:
+		    // IO.Std.err.println( "read int..." );
+		    [cast int ptr(p)] = readInt();
+
+		case TYPE_CLASS:
+		    // IO.Std.err.println( "read object..." );
+		    [cast Object ptr(p)] = read();
+
+		default:
+		    throw new IOException( "cannot read " + o.Class.Name + " field @ " + offset + " of type " + type );
+		}
+	    } while(true);
+
+	    close();
 	}
     }
 
@@ -727,7 +789,7 @@ namespace IO {
 
 		s.toSerial(this);
 	    } else {
-		throw new IOException( "not serializable: " + o );
+		addValueDefault(o);
 	    }
 	}
 
@@ -735,6 +797,65 @@ namespace IO {
 	}
 
 	public void required() {
+	}
+
+	void addValueDefault( Object o ) {
+	    // IO.Std.err.println( "serialize: " + o + ", class: " + o.Class );
+
+	    int ptr pt = o.TypeTable;
+
+	    // IO.Std.err.println( "type table: " + cast long(pt) );
+
+	    open( o.Class.Name );
+
+	    do {
+		int ct = [pt];
+		// IO.Std.err.println( "@" + cast long(pt) + " type: " + ct );
+
+		pt = pt + 1;
+
+		if( ct == 0 ) {
+		    // IO.Std.err.println( "done" );
+		    break;
+		}
+
+		int offset = ct & 0xFFFF;
+		int type = (ct >> 16) & 0xFFFF;
+		char ptr p = cast char ptr(o) + offset;
+
+		/*
+		IO.Std.err.println( "offset: " + offset );
+		IO.Std.err.println( "type: " + type );
+		IO.Std.err.println( "field address: " + cast long(p) );
+		*/
+
+		switch( type ) {
+		case TYPE_BOOL:
+		    // IO.Std.err.println( "write bool..." );
+		    add([cast bool ptr(p)]);
+
+		case TYPE_CHAR:
+		    // IO.Std.err.println( "write char..." );
+		    add([cast char ptr(p)]);
+
+		case TYPE_LONG:
+		    // IO.Std.err.println( "write long..." );
+		    add([cast long ptr(p)]);
+
+		case TYPE_INTEGER:
+		    // IO.Std.err.println( "write int..." );
+		    add([cast int ptr(p)]);
+
+		case TYPE_CLASS:
+		    // IO.Std.err.println( "write object..." );
+		    add([cast Object ptr(p)]);
+
+		default:
+		    throw new IOException( "cannot write " + o.Class.Name + " field @ " + offset + " of type " + type );
+		}
+	    } while(true);
+
+	    close();
 	}
     }
 }

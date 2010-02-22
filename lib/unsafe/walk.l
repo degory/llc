@@ -62,35 +62,24 @@ namespace Util {
 		walkValues( ov, o.ObjectValuesLength );
 	    }
 
-	    char ptr type = o.TypeTable;
+	    int ptr type = o.TypeTable;
 
 	    int s = o.ObjectSize;
 	    word inc;
 
 	    do {
-		char t = [type];
-		if( t == 0c ) {
+		int t = [type] & 0xFFFF;
+		int offset = ([type] >> 16) & 0xFFFF;
+
+		if( t == 0 ) {
 		    break;
 		}
 
 		// FIXME: assuming class is packed here:
 		switch( t ) {
-		case TYPE_1BYTE:
-		    p = p + 1;
-
-		case TYPE_4BYTE:
-		    p = align(p,4) + 4;
-
-		case TYPE_8BYTE:
-		    p = align(p,8) + 8;
-		    
-		case TYPE_OBJECT,TYPE_ARRAY:
-		    p = align(p,8);
-		    walk( cast Object([p]) );
+		case TYPE_CLASS,TYPE_VECTOR:		    
+		    walk( cast Object([p + offset]) );
 		    p = p + 8;
-
-		case TYPE_POINTER:
-		    p = align(p,8) + 8;
 
 		default:
 		    throw new System.Exception( "unexpected type " + cast int(t) );

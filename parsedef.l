@@ -1105,8 +1105,6 @@ namespace Parse {
 
 		    c.emitTables( state, this );
 
-                    c.emitTypeTables( state );
-
 		    if( c.StaticSize > 0 && !c.HasStatic ) {
 			throw new System.Exception( "oops: " + c.HumanName + " needs GC roots added" );
 		    }

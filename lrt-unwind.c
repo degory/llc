@@ -198,11 +198,10 @@ struct _Unwind_Exception *makeException( void *l_exception ) {
 }
 
 void *__get_l_exception( struct _Unwind_Exception_L *e ) {
-  /*
-  fprintf( stderr, "__get_l_exception: %p\n", e );
-  fprintf( stderr, "exception object: %p\n", e->l_exception );
-  fflush( stderr );
-  */
+  D( fprintf( stderr, "__get_l_exception: %p\n", e ) );
+  D( fprintf( stderr, "exception object: %p\n", e->l_exception ) );
+  D( fflush( stderr ) );
+
   return e->l_exception;
 }
 
@@ -780,6 +779,8 @@ _Unwind_Reason_Code handleLsda(
 				    struct _Unwind_Exception* exceptionObject,
 				    struct _Unwind_Context* context
 				    ) {
+
+   D( fprintf(stderr, "unwind exception: %p (%lld)\n", exceptionObject, (long long)exceptionObject); fflush(stderr); );
   _Unwind_Reason_Code ret = _URC_CONTINUE_UNWIND;
 
   if( version < 0 ) {

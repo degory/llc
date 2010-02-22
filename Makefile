@@ -33,7 +33,7 @@ endif
 
 LRT_VERSION:=0.2
 
-INSTALL_OBJS:=$(LC) jit.o dummy.o llvmc.so fcgi.o lang.bc lang.so lang.lh lrt-llvm-$(LRT_VERSION).bc
+INSTALL_OBJS:=$(LC) jit.o dummy.o llvmc.so fcgi.o lang.bc lang.so lang.lh lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o
 
 LRT_CFLAGS:=-DB64 -g -O1 -DLLVM
 
@@ -59,6 +59,7 @@ install: $(INSTALL_OBJS)
 	cp $(CP_FLAGS) jit.o fcgi.o llvmc.so $(PREFIX)/usr/lib/lang/$(TARGET)/unsafe/
 	cp $(CP_FLAGS) dummy.o lang.so lang.bc lang.lh $(PREFIX)/usr/lib/lang/$(TARGET)/trusted/
 	cp $(CP_FLAGS) lrt-llvm-$(LRT_VERSION).bc $(PREFIX)/usr/lib/lang/$(TARGET)/
+	cp $(CP_FLAGS) lrt-llvm-$(LRT_VERSION).o $(PREFIX)/usr/lib/lang/$(TARGET)/
 #	cp $(CP_FLAGS) lang.so $(PREFIX)/usr/lib/lang/$(TARGET)/trusted/
 
 
@@ -70,7 +71,7 @@ lc.zip: $(INSTALL_OBJS)
 	HERE=`pwd` ; cd /tmp/canned ; zip -r $$HERE/lc.zip usr
 
 clean:
-	rm lc lc.bc lc.lh jit.o dummy.o llvmc.o llvmc.so lang lang.bc lang.lh lrt-exception.o lrt-unwind.o lrt-throw.o /tmp/lcache-test/* || true
+	rm lc lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o lc.bc lc.lh jit.o dummy.o llvmc.o llvmc.so lang lang.bc lang.lh lrt-exception.o lrt-unwind.o lrt-throw.o /tmp/lcache-test/* || true
 
 lc.d:
 	$(LC) $(MODEL) $(LFLAGS) -D -w -p test -o lc -s llvm -lllvmc.o -lLLVMAnalysis -lLLVMArchive -lLLVMBitReader -lLLVMBitWriter -lLLVMCore -lLLVMExecutionEngine -lLLVMipa -lLLVMMC -lLLVMSupport -lLLVMSystem -lLLVMTarget -lLLVMTransformUtils main.l
@@ -116,6 +117,10 @@ jit.o: jit.cpp
 
 lrt-llvm-$(LRT_VERSION).bc: lrt-exception.o lrt-unwind.o lrt-throw.o
 	llvm-ld -disable-opt -o lrt-llvm-$(LRT_VERSION) lrt-exception.o lrt-unwind.o lrt-throw.o
+
+lrt-llvm-$(LRT_VERSION).o: lrt-llvm-$(LRT_VERSION).bc
+	llc -f lrt-llvm-$(LRT_VERSION).bc
+	gcc -c lrt-llvm-$(LRT_VERSION).s
 
 lrt-exception.o: lrt-exception.c
 	$(LLVM_CC) $(MODEL) $(LRT_CFLAGS) -emit-llvm -c lrt-exception.c
