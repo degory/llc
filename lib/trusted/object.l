@@ -296,5 +296,9 @@ namespace System is
 	get bool IsArray is
 	    return false;
         end
+
+        int _get_PointerLength(int n) is
+	    throw new System.NotImplementedException( "object with pointers must implement _get_PointerLength(int) to be serializable: " + Class.Name );
+	end
     end
 end

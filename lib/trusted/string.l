@@ -538,6 +538,10 @@ namespace System is
 	    return parseLong(10);
 	end
 
+        word parseWord() is
+	    return cast word(parseLong(10));
+        end
+
 	/// Parse this string as an long of supplied base
 	/// \param base radix to use for conversion. Must be between 1 and 36
 	/// \throw Exception if this String cannot be parsed in supplied base
@@ -789,9 +793,6 @@ namespace System is
         end
 
         void toSerial( IO.SerialWriter w ) is
-	    native.printf( `in to serial on %p\n`, this );
-	    native.__flush_stdout();
-
 	    IO.Std.err.println( "String.toSerial '" + this + "'" );
 	    w.add(this);
 	end
@@ -807,7 +808,6 @@ namespace System is
         int index;
 
 	void init( String s ) is
-	    IO.Std.err.println( "iterator<<<" + s + ">>>>iterator" );
 	    this.s = s;	    
 	end
 

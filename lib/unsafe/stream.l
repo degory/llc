@@ -565,6 +565,10 @@ namespace IO {
 	    write( l.toString() );
 	}
 
+	void print( word w ) {
+	    write( w.toString() );
+	}
+
 	/// Write the supplied Object as a String. The Object is converted to a String and then written followed by a newline.
 	/// If FlushOnPrintln is set then the buffer is flushed after the newline is written.
 	/// \param o the Object to write.

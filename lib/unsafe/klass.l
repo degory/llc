@@ -56,7 +56,7 @@ namespace System is
 	end
 
         /// Return a pointer to this Class's super class's VTable slot 0
-	int ptr ptr  _parent() is
+	int ptr ptr _parent() is
 	    return cast int ptr ptr([_vtable]);
 	end
 
@@ -75,9 +75,9 @@ namespace System is
 
 	/// Accessor: get word ptr TypeTable
 	/// Get a pointer to the type table for this class
-	get word ptr TypeTable is
+	get int ptr TypeTable is
 	    if _vtable != null then
-		return cast word ptr([_vtable - 3]);
+		return cast int ptr([_vtable+1]);
 	    else
 		return null;
 	    fi
@@ -203,6 +203,10 @@ namespace System is
 	    Object o = cast Object(p);
 	    o.init();
 	    return o;
+	end
+
+	get bool IsArray is
+	    return Name.startsWith( "Generic.Array<" );
 	end
     end
 

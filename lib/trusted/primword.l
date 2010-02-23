@@ -91,5 +91,10 @@ namespace System {
 	String toString() {
 	    return toString(_value);
 	}
+
+        static word fromString(String s) {
+            return s.parseWord();
+        }
+
     }
 }

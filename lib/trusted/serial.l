@@ -4,6 +4,7 @@ namespace IO {
     use System.Class;
     use System.String;
     use System.Int;
+    use System.Word;
     use System.Long;
     use System.Bool;
     use System.StringBuffer;
@@ -228,6 +229,7 @@ namespace IO {
 
 	int level;
 	Map<String,Object> references;
+
 	Object current_reference;
 
 	public void init(Reader is) {
@@ -308,6 +310,10 @@ namespace IO {
 		*/
 		    Class c = classes[parser.CurrentString];
 		    if( c != null ) {
+			if( c.IsArray ) {
+			    IO.Std.err.println( "is array: " + c.Name );
+			}
+
 			Object o;
 			Serial p = null;
 			try {
@@ -386,6 +392,19 @@ namespace IO {
 		return 0L;
 	    } else if( parser.CurrentToken == SerialToken.STRING ) {
 		long result = Long.fromString(parser.CurrentString);
+		parser.readToken();
+		return result;
+	    } else {
+		throw new IOException( "expected an integer, read: '" + parser.CurrentString + "'" );
+	    }
+	}
+
+	public word readWord() {
+	    if( checkReference() ) {
+		checkNull();
+		return 0W;
+	    } else if( parser.CurrentToken == SerialToken.STRING ) {
+		word result = Word.fromString(parser.CurrentString);
 		parser.readToken();
 		return result;
 	    } else {
@@ -495,7 +514,19 @@ namespace IO {
 		    length = length - 1;
 		    lp = lp + 1;
 		}
-		       
+
+	    case TYPE_WORD:
+		word w;
+		result = cast word ptr(native.GC_malloc(offset + w.sizeof * length));
+		[cast int ptr(result+1)] = length;
+		var wp = cast word ptr(cast char ptr(result)+offset);
+
+		while( length > 0 ) {
+		    [wp] = readWord();
+		    length = length - 1;
+		    wp = wp + 1;
+		}
+	       		       
 	    case TYPE_INTEGER:
 		int i;
 		result = cast word ptr(native.GC_malloc(offset + i.sizeof * length));
@@ -532,6 +563,206 @@ namespace IO {
 	    return cast Object(result);
 	}
 
+	Object readArray( Class klass ) {
+	    int type;
+	    int offset;
+	    int ptr pt = klass.TypeTable;
+
+	    if( !readType( pt, type, offset ) ) {
+		throw new System.Exception( "expected int length field reading array: " + klass.Name );
+	    }
+
+	    int length = readInt();
+
+	    if( !readType( pt, type, offset ) ) {
+		throw new System.Exception( "expected array element type reading array: " + klass.Name );
+	    }
+
+	    word ptr result;
+
+	    open();
+
+	    switch( type ) {
+	    case TYPE_BOOL:
+		bool b;		
+		result = cast word ptr(native.GC_malloc(offset + b.sizeof * length));
+		[cast int ptr(result+1)] = length;
+		var bp = cast bool ptr(cast char ptr(result)+offset);
+
+		while( length > 0 ) {
+		    [bp] = readBool();
+		    length = length - 1;
+		    bp = bp + 1;
+		}
+		
+	    case TYPE_CHAR:
+		char c;
+		result = cast word ptr(native.GC_malloc(offset + c.sizeof * length));
+		[cast int ptr(result+1)] = length;
+		var cp = cast char ptr(cast char ptr(result)+offset);
+
+		while( length > 0 ) {
+		    [cp] = readChar();
+		    length = length - 1;
+		    cp = cp + 1;
+		}
+		
+	    case TYPE_LONG:
+		long l;
+		result = cast word ptr(native.GC_malloc(offset + l.sizeof * length));
+		[cast int ptr(result+1)] = length;
+		var lp = cast long ptr(cast char ptr(result)+offset);
+
+		while( length > 0 ) {
+		    [lp] = readLong();
+		    length = length - 1;
+		    lp = lp + 1;
+		}
+
+	    case TYPE_WORD:
+		word w;
+		result = cast word ptr(native.GC_malloc(offset + w.sizeof * length));
+		[cast int ptr(result+1)] = length;
+		var wp = cast word ptr(cast char ptr(result)+offset);
+
+		while( length > 0 ) {
+		    [wp] = readWord();
+		    length = length - 1;
+		    wp = wp + 1;
+		}
+		       
+	    case TYPE_INTEGER:
+		int i;
+		result = cast word ptr(native.GC_malloc(offset + i.sizeof * length));
+		[cast int ptr(result+1)] = length;
+		var ip = cast int ptr(cast char ptr(result)+offset);
+
+		while( length > 0 ) {
+		    [ip] = readInt();
+		    length = length - 1;
+		    ip = ip + 1;
+		}
+
+	    case TYPE_CLASS,
+		TYPE_VECTOR:
+		Object o;
+		result = cast word ptr(native.GC_malloc(offset + o.sizeof * length));
+		[cast int ptr(result+1)] = length;
+		var op = cast Object ptr(cast char ptr(result)+offset);
+
+		while( length > 0 ) {
+		    IO.Std.err.println( "read into " + cast long(op) + ", " + length + " elements to go..." );
+		    [op] = read();
+		    length = length - 1;
+		    op = op + 1;
+		}
+
+	    default:
+		throw new IOException( "cannot read array element of type " + type );				
+	    }
+
+	    close();
+
+	    // copy vtable:
+	    [result] = [cast word ptr(klass.VTable)];
+
+	    return cast Object(result);
+	}
+
+
+	char ptr readPointer(int type, int length) {
+	    char ptr result;
+
+	    switch( type ) {
+	    case TYPE_BOOL:
+		bool b;		
+		var bp = cast bool ptr(native.GC_malloc(b.sizeof * length));
+		result = cast char ptr(bp);
+
+		while( length > 0 ) {
+		    [bp] = readBool();
+		    length = length - 1;
+		    bp = bp + 1;
+		}
+		
+	    case TYPE_CHAR:
+		char c;
+		var cp = cast char ptr(native.GC_malloc(c.sizeof * length));
+		result = cast char ptr(cp);
+
+		while( length > 0 ) {
+		    [cp] = readChar();
+		    length = length - 1;
+		    cp = cp + 1;
+		}
+		
+	    case TYPE_LONG:
+		long l;
+		var lp = cast long ptr(native.GC_malloc(l.sizeof * length));
+	        result = cast char ptr(lp);
+
+		while( length > 0 ) {
+		    [lp] = readLong();
+		    length = length - 1;
+		    lp = lp + 1;
+		}
+
+	    case TYPE_WORD:
+		word w;
+		var wp = cast word ptr(native.GC_malloc(w.sizeof * length));
+	        result = cast char ptr(wp);
+
+		while( length > 0 ) {
+		    [wp] = readWord();
+		    length = length - 1;
+		    wp = wp + 1;
+		}
+		       
+	    case TYPE_INTEGER:
+		int i;
+		var ip = cast int ptr(native.GC_malloc(i.sizeof * length));
+		result = cast char ptr(ip);
+
+		while( length > 0 ) {
+		    [ip] = readInt();
+		    length = length - 1;
+		    ip = ip + 1;
+		}
+
+	    case TYPE_CLASS,
+		TYPE_VECTOR:
+		Object o;
+		var op = cast Object ptr(native.GC_malloc(o.sizeof * length));
+		result = cast char ptr(op);
+
+		while( length > 0 ) {
+		    IO.Std.err.println( "read into " + cast long(op) + ", " + length + " elements to go..." );
+		    [op] = read();
+		    length = length - 1;
+		    op = op + 1;
+		}
+
+	    default:
+		throw new IOException( "cannot read array element of type " + type );				
+	    }
+
+	    return result;
+	}
+
+
+	static bool readType( int ptr ref tp, int ref type, int ref offset ) {
+	    int ct = [tp];
+	    if( ct == 0 ) {
+		return false;
+	    }
+
+	    tp = tp + 1;
+
+	    offset = ct & 0xFFFF;
+	    type = (ct >> 16) & 0xFFFF;
+
+	    return true;
+	}
 
 	Object readObjectDefault( Object o ) {
 	    int ptr pt = o.TypeTable;
@@ -541,21 +772,17 @@ namespace IO {
 
 	    bool is_array = o.IsArray;
 	    int l;
+	    int n = 0;
 
 	    open();
 
 	    do {
-		int ct = [pt];
-		pt = pt + 1;
+		int offset, type;
 
-		// IO.Std.err.println( "type: " + ct );
-		if( ct == 0 ) {
-		    IO.Std.err.println( "done" );
+		if( !readType( pt, type, offset ) ) {
 		    break;
 		}
 
-		int offset = ct & 0xFFFF;
-		int type = (ct >> 16) & 0xFFFF;
 		char ptr p = cast char ptr(o) + offset;
 
 		if( is_array && l > 0 ) {
@@ -585,10 +812,22 @@ namespace IO {
 		    // IO.Std.err.println( "read long..." );
 		    [cast long ptr(p)] = readLong();
 
+		case TYPE_WORD:
+		    [cast word ptr(p)] = readWord();
+
 		case TYPE_INTEGER:
 		    // IO.Std.err.println( "read int..." );
 		    l = readInt();
 		    [cast int ptr(p)] = l; // readInt();
+
+		case TYPE_POINTER:
+		    if( !readType( pt, type, offset ) ) {
+			throw new IO.IOException( "expected sub type in type table " + o.Class.Name + " writing pointer @ " + offset );
+		    }
+		    l = o._get_PointerLength(n);		    
+
+		    [cast word ptr(p)] = cast word(readPointer(type, l));
+		    n = n + 1;
 
 		case TYPE_CLASS,
 		    TYPE_VECTOR:
@@ -634,6 +873,13 @@ namespace IO {
 	}
 
 	public void append( int i ) {
+	    if( debug ) {
+		IO.Std.err.print( "" + i );
+	    }
+	    os.print(i);
+	}
+
+	public void append( word i ) {
 	    if( debug ) {
 		IO.Std.err.print( "" + i );
 	    }
@@ -821,6 +1067,12 @@ namespace IO {
 	    newline();
 	}
 
+	public void add(word w) {
+	    indent();
+	    append( w );
+	    newline();
+	}
+
 	public void add(int i) {
 	    indent();
 	    append( i );
@@ -910,9 +1162,12 @@ namespace IO {
 	public void required() {
 	}
 
-	void writeElements( char ptr p, int length, int type ) {
+	void writeElements( char ptr p, int type, int length ) {
+	    IO.Std.err.println( "writeElements(" + cast long(p) + "," + type + "," + length + ")..." );
+
 	    switch( type ) {
 	    case TYPE_BOOL:
+		IO.Std.err.println( "elements are bool..." );
 		var bp = cast bool ptr(p);
 		while( length > 0 ) {
 		    add([bp]);
@@ -921,6 +1176,7 @@ namespace IO {
 		}
 		
 	    case TYPE_CHAR:
+		IO.Std.err.println( "elements are char..." );
 		var cp = cast char ptr(p);
 		while( length > 0 ) {
 		    add([cp]);
@@ -929,14 +1185,25 @@ namespace IO {
 		}
 		
 	    case TYPE_LONG:
+		IO.Std.err.println( "elements are long..." );
 		var lp = cast long ptr(p);
 		while( length > 0 ) {
 		    add([lp]);
 		    length = length - 1;
 		    lp = lp + 1;
 		}
+
+	    case TYPE_WORD:
+		IO.Std.err.println( "elements are words..." );
+		var wp = cast word ptr(p);
+		while( length > 0 ) {
+		    add([wp]);
+		    length = length - 1;
+		    wp = wp + 1;
+		}
 		       
 	    case TYPE_INTEGER:
+		IO.Std.err.println( "elements are integers..." );
 		var ip = cast int ptr(p);
 		while( length > 0 ) {
 		    add([ip]);
@@ -946,17 +1213,21 @@ namespace IO {
 		
 	    case TYPE_CLASS,
 		TYPE_VECTOR:
-
+		IO.Std.err.println( "elements are objects..." );
 		var op = cast Object ptr(p);
 		while( length > 0 ) {
+		    IO.Std.err.println( "will add: " + [op] );
+
 		    add([op]);
 		    length = length - 1;
 		    op = op + 1;
 		}
 
 	    default:
-		throw new IOException( "cannot write array element of type " + type );				
+		throw new IOException( "cannot write array element of type " + type );	
 	    }
+
+	    IO.Std.err.println( "writeElements finished" );
 	}
 	   
 
@@ -973,28 +1244,27 @@ namespace IO {
 	    
 	    bool is_array = o.IsArray;
 	    int l = 0;
+	    int n = 0;
 
 	    IO.Std.err.println( "write object, is array: " + is_array );
 
 	    do {
-		int ct = [pt];
-		IO.Std.err.println( "@" + cast long(pt) + " type: " + ct );
+		int offset;
+		int type;
 
-		pt = pt + 1;
-
-		if( ct == 0 ) {
-		    IO.Std.err.println( "done" );
+		if( !SerialReader.readType( pt, type, offset ) ) {
+		    IO.Std.err.println( "finished: " + o.Class );
 		    break;
 		}
 
-		int offset = ct & 0xFFFF;
-		int type = (ct >> 16) & 0xFFFF;
+		IO.Std.err.println( "@" + cast long(pt) + " type: " + type );
+
 		char ptr p = cast char ptr(o) + offset;
 
 		if( is_array ) {
 		    if( l > 0 ) {
 			IO.Std.err.println( "should write " + l + " array elements starting at offset " + offset );
-			writeElements( p, l, type );
+			writeElements( p, type, l );
 			break;
 		    } else {
 			IO.Std.err.println( "array but no length yet: " + o );
@@ -1018,10 +1288,23 @@ namespace IO {
 		    IO.Std.err.println( "write long..." );
 		    add([cast long ptr(p)]);
 
+		case TYPE_WORD:
+		    add([cast word ptr(p)]);
+
 		case TYPE_INTEGER:
 		    IO.Std.err.println( "write int..." );
 		    l = [cast int ptr(p)];
 		    add( l );
+
+		case TYPE_POINTER:
+		    if( !SerialReader.readType( pt, type, offset ) ) {
+			throw new IO.IOException( "expected sub type in type table " + o.Class.Name + " writing pointer @ " + offset );
+		    }
+		    IO.Std.err.println( "pointer type, sub-type is: " + type );
+
+		    l = o._get_PointerLength(n);
+		    writeElements([cast char ptr ptr(p)], type, l );
+		    n = n + 1;
 
 		case TYPE_CLASS,
 		    TYPE_VECTOR:

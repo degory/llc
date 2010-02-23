@@ -156,7 +156,6 @@ namespace Generic is
 	get bool IsArray is
 	    return true;
         end
-
     end
 
     /// an Iterator<T> that returns each element of an array in increasing index order

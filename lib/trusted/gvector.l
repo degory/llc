@@ -75,9 +75,9 @@ namespace Generic is
     
     /// A resizeable array of parameterised type.  
     class Vector<T> implements List<T> is
-	T ptr _values;
 	int _length;
 	int _allocated_length;
+	T ptr _values;
 
 	const int INITIAL_LENGTH = 4;
 	const int MAX_DOUBLE_LENGTH = 512;
@@ -104,6 +104,10 @@ namespace Generic is
 
 	get int Length is
 	    return _length;
+	end
+
+        int _get_PointerLength(int n) is
+	    return _allocated_length;
 	end
 
 	/*
