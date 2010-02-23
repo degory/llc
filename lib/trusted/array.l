@@ -25,12 +25,6 @@ namespace Generic is
     class Array<T> implements List<T> is
 	int length;
 
-        /// Construct an Array<T> object
-        /// \attention not implemented - create arrays with new T[n]
-	void init() is
-	    throw new System.NotImplementedException();
-	end
-
 	/// indexer: get T[int index]
         /// \param index which array element to get
 	/// \return array element at index
@@ -158,6 +152,10 @@ namespace Generic is
 	    od
         end
 */
+
+	get bool IsArray is
+	    return true;
+        end
 
     end
 

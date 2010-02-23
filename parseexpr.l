@@ -2104,6 +2104,22 @@ namespace Parse {
 	    LLVM.BasicBlock handler;
 
 	    /*
+	    if( o < 0 ) {
+		if( symbol != null ) {
+		    IO.Std.err.println( "interface call: " + symbol.HumanName + " @ " + o );
+		} else {
+		    IO.Std.err.println( "interface call: unknown @ " + o );
+		}
+	    } else if( o > 0 ) {
+		if( symbol != null ) {
+		    IO.Std.err.println( "virtual call: " + symbol.HumanName + " @ " + o );
+		} else {
+		    IO.Std.err.println( "virtual call: unknown @ " + o );
+		}
+	    }
+	    */
+
+	    /*
 	    for( i = 0; i < args.length; i = i + 1 ) {
 		IO.Std.err.print( "arg " + i + ": " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue( args[i] );
@@ -3170,16 +3186,16 @@ namespace Parse {
 			warn( "call to static method " + symbol.HumanName + " does not evaluate left value" );
 		    }
 
-                        if( no_discard ) {
-                            o = Op.STATIC_CALL;
-                        } else {
-                            o = Op.STATIC_CALL_DISCARD;
-                        }
-
-			arg_values = ExpressionList.compilePush( arguments, state, null, null, argument_types, into, false, false );
-			IO.Std.err.println( "CCCC: static call, arg types: " + argument_types );
-
-			return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, null, arg_values );
+		    if( no_discard ) {
+			o = Op.STATIC_CALL;
+		    } else {
+			o = Op.STATIC_CALL_DISCARD;
+		    }
+		    
+		    arg_values = ExpressionList.compilePush( arguments, state, null, null, argument_types, into, false, false );
+		    IO.Std.err.println( "CCCC: static call, arg types: " + argument_types );
+		    
+		    return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, null, arg_values );
 			/*
                     }
                     
@@ -3190,6 +3206,8 @@ namespace Parse {
                   
                 case Symbol.INSTANCE_METHOD:
 		    // IO.Std.err.println( "compile: instance call" );
+
+
 
                     if( !address ) {
                         error( "using method " + symbol.HumanName + " but not calling it" );
@@ -3232,6 +3250,7 @@ namespace Parse {
 
 			return compileCall( state, into, from, o, symbol, symbol.DecoratedName, 0, null, arg_values );
                     } else {
+
 		        a = symbol.Address;
 			// IO.Std.err.println( "dynamic call to non-final method " + symbol.getDecoratedName() + " at offset " + a );
 

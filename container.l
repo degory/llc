@@ -1456,7 +1456,9 @@ namespace Parse {
 
 	    foreach( var si; symbol_list.elements() ) {
 		var ci = cast Container(si);
+
 		if( ci.implements_list == null ) {
+		    // implemented interfaces interference same as parent's
 		    continue;
 		}
 
@@ -1668,7 +1670,7 @@ namespace Parse {
 
 			// IO.Std.err.println( "BBBB: override " + current.HumanName + " @ " + current.Address );
                     }
-	    } else if( k == Symbol.STATIC_VARIABLE ) {
+		} else if( k == Symbol.STATIC_VARIABLE ) {
                     if( current.IsAddressValid ) {
                         throw new Exception( "weird: static variable " + current.HumanName + " already has an address" );
                     }
@@ -1848,11 +1850,14 @@ namespace Parse {
 
 	void emitInterfaceTables( CompileState state, ParseTree from, Generic.Vector<LLVM.Value> buffer ) {
 	    // IO.Std.err.println( "BBBB: emit interface tables " + HumanName + " expect to need " + iface_offset + " slots" );
+
+	    /* not safe: parent classes may implement interfaces:
 	    if( implements_list == null ) {
 		// IO.Std.err.println( "BBBB: no interfaces implemented" );
 		// Machine.emitWeak( state.Output, "__ctable__" + DecoratedName );
 		return;
 	    }
+	    */
 
 	    var slots = new Vector<Container>();
 	    var implemented = new Vector<Container>();
@@ -1905,7 +1910,7 @@ namespace Parse {
 		}
 	    }
 
-	    int total_ctable_size = iface_offset + 3 + VTableSize;
+	    int total_ctable_size = IFaceOffset + 3 + VTableSize;
 	    buffer.reserve(total_ctable_size);
 
 	    // When Linux loader dynamically loads a shared library it does not appear to place global symbols consecutively in memory even if they
@@ -1941,9 +1946,12 @@ namespace Parse {
 	}
 
 	int calcIFaceOffset() {
+	    /*
+	    not safe: parent classes may implement interfaces:
 	    if( implements_list == null || implements_list.Length == 0 ) {
 		return 0;
 	    }
+	    */
 
 	    var implemented = new Vector<Container>();
 	    populateAllImplementedInterfaces( implemented );

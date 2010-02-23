@@ -15,7 +15,7 @@ namespace IO {
 	void toSerial(SerialWriter b);
 
 	// when this method is called, object is expected to initialize itself by reading its representation from stream b
-	void fromSerial(SerialReader b);
+	Object fromSerial(SerialReader b);
     }
 
     enum SerialToken {
@@ -267,9 +267,9 @@ namespace IO {
 		current_reference = readAssign();
 		return true;
 	    } else if( parser.CurrentToken == SerialToken.REFERENCE ) {
-		// IO.Std.err.println( "seen a reference..." );
 		if( parser.CurrentString.Length > 0 ) {
-		    // IO.Std.err.println( "looking up " + parser.CurrentString );
+		    IO.Std.err.println( "look up: " + parser.CurrentString );
+		    IO.Std.err.println( "in: " + references );
 		    current_reference = references[parser.CurrentString];
 		} else {
 		    // IO.Std.err.println( "null reference" );
@@ -314,9 +314,11 @@ namespace IO {
 			    o = c.create();
 			    if( isa Serial(o) ) {
 				p = cast Serial(o);
-				p.fromSerial(this);
+				// IO.Std.err.println( "have: " + cast Object(p) );
+
+				o = p.fromSerial(this);
 			    } else {
-				readObjectDefault(o);
+				o = readObjectDefault(o);
 			    }
 			} catch( System.Exception e ) {
 			    throw new IOException("problem instantiating: " + c + " (" + e + ")" );
@@ -337,7 +339,7 @@ namespace IO {
 		}
 		    */
 	    } else if( parser.CurrentToken == SerialToken.STRING ) {
-		IO.Std.err.println( "read(): token Token.STRING..." );
+		// IO.Std.err.println( "read(): token Token.STRING..." );
 		// no open bracket - read single string
 		String result = parser.CurrentString;
 		// IO.Std.err.println( "read(): token Token.STRING -> " + result );
@@ -454,10 +456,91 @@ namespace IO {
 	    return parser.AtEOF;
 	}
 
-	void readObjectDefault( Object o ) {
+	Object readElements( Object t, int offset, int length, int type ) {
+	    word ptr result;
+
+	    switch( type ) {
+	    case TYPE_BOOL:
+		bool b;		
+		result = cast word ptr(native.GC_malloc(offset + b.sizeof * length));
+		[cast int ptr(result+1)] = length;
+		var bp = cast bool ptr(cast char ptr(result)+offset);
+
+		while( length > 0 ) {
+		    [bp] = readBool();
+		    length = length - 1;
+		    bp = bp + 1;
+		}
+		
+	    case TYPE_CHAR:
+		char c;
+		result = cast word ptr(native.GC_malloc(offset + c.sizeof * length));
+		[cast int ptr(result+1)] = length;
+		var cp = cast char ptr(cast char ptr(result)+offset);
+
+		while( length > 0 ) {
+		    [cp] = readChar();
+		    length = length - 1;
+		    cp = cp + 1;
+		}
+		
+	    case TYPE_LONG:
+		long l;
+		result = cast word ptr(native.GC_malloc(offset + l.sizeof * length));
+		[cast int ptr(result+1)] = length;
+		var lp = cast long ptr(cast char ptr(result)+offset);
+
+		while( length > 0 ) {
+		    [lp] = readLong();
+		    length = length - 1;
+		    lp = lp + 1;
+		}
+		       
+	    case TYPE_INTEGER:
+		int i;
+		result = cast word ptr(native.GC_malloc(offset + i.sizeof * length));
+		[cast int ptr(result+1)] = length;
+		var ip = cast int ptr(cast char ptr(result)+offset);
+
+		while( length > 0 ) {
+		    [ip] = readInt();
+		    length = length - 1;
+		    ip = ip + 1;
+		}
+		
+	    case TYPE_CLASS,
+		TYPE_VECTOR:
+		Object o;
+		result = cast word ptr(native.GC_malloc(offset + o.sizeof * length));
+		[cast int ptr(result+1)] = length;
+		var op = cast Object ptr(cast char ptr(result)+offset);
+
+		while( length > 0 ) {
+		    IO.Std.err.println( "read into " + cast long(op) + ", " + length + " elements to go..." );
+		    [op] = read();
+		    length = length - 1;
+		    op = op + 1;
+		}
+
+	    default:
+		throw new IOException( "cannot read array element of type " + type );				
+	    }
+
+	    // copy vtable:
+	    [result] = [cast word ptr(t)];
+
+	    return cast Object(result);
+	}
+
+
+	Object readObjectDefault( Object o ) {
 	    int ptr pt = o.TypeTable;
+	    var result = o;
 
 	    // IO.Std.err.println( "type table: " + cast long(pt) );
+
+	    bool is_array = o.IsArray;
+	    int l;
 
 	    open();
 
@@ -474,6 +557,14 @@ namespace IO {
 		int offset = ct & 0xFFFF;
 		int type = (ct >> 16) & 0xFFFF;
 		char ptr p = cast char ptr(o) + offset;
+
+		if( is_array && l > 0 ) {
+		    // if object is an array then first integer field is length and following field specifies offset of
+		    // element data and its type:
+		    IO.Std.err.println( "should read " + l + " array elements starting at offset " + offset );
+		    result = readElements( o, offset, l, type );
+		    break;
+		}
 
 		/*
 		IO.Std.err.println( "offset: " + offset );
@@ -496,9 +587,11 @@ namespace IO {
 
 		case TYPE_INTEGER:
 		    // IO.Std.err.println( "read int..." );
-		    [cast int ptr(p)] = readInt();
+		    l = readInt();
+		    [cast int ptr(p)] = l; // readInt();
 
-		case TYPE_CLASS:
+		case TYPE_CLASS,
+		    TYPE_VECTOR:
 		    // IO.Std.err.println( "read object..." );
 		    [cast Object ptr(p)] = read();
 
@@ -508,6 +601,8 @@ namespace IO {
 	    } while(true);
 
 	    close();
+
+	    return result;
 	}
     }
 
@@ -665,27 +760,34 @@ namespace IO {
 	}
 
 	public void addReference( Object r ) {
+	    IO.Std.err.println( "add reference: " + r );
 	    if( r == null ) {
 		append( "* " );
 	    } else {
+		IO.Std.err.println( "search references: " + r );
 		int p = references[r];
+		IO.Std.err.println( "result: " + p );
 		if( p != 0 ) {
+		    IO.Std.err.println( "add existing" );
 		    append( '*' );
 		    append( p );
 		    append( ' ' );
 		} else {
+		    IO.Std.err.println( "store at: " + handle );
 		    int h = handle;
 		    handle = handle + 1;
 		    references[r] = h;
 		    append( ':' );
 		    append( h );
 		    append( ' ' );
+		    IO.Std.err.println( "will add value: " + r );
 		    addValue( r );
 		}
 	    }
 	}
 
 	public void add(Object o) {
+	    IO.Std.err.println( "add(Object): " + o );
 	    if( isByReference() ) {
 		addReference(o);
 	    } else {
@@ -784,11 +886,20 @@ namespace IO {
 	}
 
 	void addValue( Object o ) {
+	    IO.Std.err.println( "add value: " + o + " (" + o.Class.Name + ")" );
 	    if( isa Serial(o) ) {
+		IO.Std.err.println( "is serial" );
 		var s = cast Serial(o);
 
+		IO.Std.err.println( "have: " + cast Object(s) );
+
+		IO.Std.err.println( "call to serial" );
 		s.toSerial(this);
-	    } else {
+	    } /* else if( o.IsArray ) {
+		addValueArray(o);
+		} */
+	    else  {
+		IO.Std.err.println( "use default serializer" );
 		addValueDefault(o);
 	    }
 	}
@@ -799,23 +910,80 @@ namespace IO {
 	public void required() {
 	}
 
-	void addValueDefault( Object o ) {
-	    // IO.Std.err.println( "serialize: " + o + ", class: " + o.Class );
+	void writeElements( char ptr p, int length, int type ) {
+	    switch( type ) {
+	    case TYPE_BOOL:
+		var bp = cast bool ptr(p);
+		while( length > 0 ) {
+		    add([bp]);
+		    length = length - 1;
+		    bp = bp + 1;
+		}
+		
+	    case TYPE_CHAR:
+		var cp = cast char ptr(p);
+		while( length > 0 ) {
+		    add([cp]);
+		    length = length - 1;
+		    cp = cp + 1;
+		}
+		
+	    case TYPE_LONG:
+		var lp = cast long ptr(p);
+		while( length > 0 ) {
+		    add([lp]);
+		    length = length - 1;
+		    lp = lp + 1;
+		}
+		       
+	    case TYPE_INTEGER:
+		var ip = cast int ptr(p);
+		while( length > 0 ) {
+		    add([ip]);
+		    length = length - 1;
+		    ip = ip + 1;
+		}
+		
+	    case TYPE_CLASS,
+		TYPE_VECTOR:
+
+		var op = cast Object ptr(p);
+		while( length > 0 ) {
+		    add([op]);
+		    length = length - 1;
+		    op = op + 1;
+		}
+
+	    default:
+		throw new IOException( "cannot write array element of type " + type );				
+	    }
+	}
+	   
+
+	void addValueDefault( Object o) {
+	    IO.Std.err.FlushOnPrintln = true;
+
+	    IO.Std.err.println( "serialize: " + o + ", class: " + o.Class );
 
 	    int ptr pt = o.TypeTable;
 
-	    // IO.Std.err.println( "type table: " + cast long(pt) );
+	    IO.Std.err.println( "type table: " + cast long(pt) );
 
 	    open( o.Class.Name );
+	    
+	    bool is_array = o.IsArray;
+	    int l = 0;
+
+	    IO.Std.err.println( "write object, is array: " + is_array );
 
 	    do {
 		int ct = [pt];
-		// IO.Std.err.println( "@" + cast long(pt) + " type: " + ct );
+		IO.Std.err.println( "@" + cast long(pt) + " type: " + ct );
 
 		pt = pt + 1;
 
 		if( ct == 0 ) {
-		    // IO.Std.err.println( "done" );
+		    IO.Std.err.println( "done" );
 		    break;
 		}
 
@@ -823,31 +991,41 @@ namespace IO {
 		int type = (ct >> 16) & 0xFFFF;
 		char ptr p = cast char ptr(o) + offset;
 
-		/*
+		if( is_array ) {
+		    if( l > 0 ) {
+			IO.Std.err.println( "should write " + l + " array elements starting at offset " + offset );
+			writeElements( p, l, type );
+			break;
+		    } else {
+			IO.Std.err.println( "array but no length yet: " + o );
+		    }
+		}
+
 		IO.Std.err.println( "offset: " + offset );
 		IO.Std.err.println( "type: " + type );
 		IO.Std.err.println( "field address: " + cast long(p) );
-		*/
 
 		switch( type ) {
 		case TYPE_BOOL:
-		    // IO.Std.err.println( "write bool..." );
+		    IO.Std.err.println( "write bool..." );
 		    add([cast bool ptr(p)]);
 
 		case TYPE_CHAR:
-		    // IO.Std.err.println( "write char..." );
+		    IO.Std.err.println( "write char..." );
 		    add([cast char ptr(p)]);
 
 		case TYPE_LONG:
-		    // IO.Std.err.println( "write long..." );
+		    IO.Std.err.println( "write long..." );
 		    add([cast long ptr(p)]);
 
 		case TYPE_INTEGER:
-		    // IO.Std.err.println( "write int..." );
-		    add([cast int ptr(p)]);
+		    IO.Std.err.println( "write int..." );
+		    l = [cast int ptr(p)];
+		    add( l );
 
-		case TYPE_CLASS:
-		    // IO.Std.err.println( "write object..." );
+		case TYPE_CLASS,
+		    TYPE_VECTOR:
+		    IO.Std.err.println( "write object: " + [cast Object ptr(p)] );
 		    add([cast Object ptr(p)]);
 
 		default:

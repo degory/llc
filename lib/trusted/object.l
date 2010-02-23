@@ -292,5 +292,9 @@ namespace System is
 	get int MemoryUse is
 	    return ObjectSize;
 	end
+
+	get bool IsArray is
+	    return false;
+        end
     end
 end

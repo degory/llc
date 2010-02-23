@@ -5,6 +5,8 @@ import integer;
 import gset;
 import giterator;
 
+import serial;
+
 namespace System is
     use Generic.Map;
     use Generic.Iterable;
@@ -13,7 +15,7 @@ namespace System is
     @NoWarnUnsafe, NoMarkUnsafe;
    
     /// A string of characters. String is immutable, its child StringBuffer is not.
-    class String /* implements Iterable<char> */ is
+    class String implements IO.Serial is
 	@NoWarnHide;
 
         protected  char ptr _buffer;
@@ -785,6 +787,19 @@ namespace System is
 
 	    return result;
         end
+
+        void toSerial( IO.SerialWriter w ) is
+	    native.printf( `in to serial on %p\n`, this );
+	    native.__flush_stdout();
+
+	    IO.Std.err.println( "String.toSerial '" + this + "'" );
+	    w.add(this);
+	end
+
+	Object fromSerial( IO.SerialReader r ) is
+	    init(r.readString());
+            return this;
+	end
     end
 
     class StringIterator implements Iterator<char> is
