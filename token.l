@@ -838,7 +838,7 @@ namespace Parse {
                     prevChar(c);
                     return Token.DIV;
                 }
-	    case '%': return Token.MOD;
+	    case '%': return Token.MOD;	    
 
             case '.': return Token.DOT;
             case ',': return Token.COMMA;
@@ -855,6 +855,21 @@ namespace Parse {
 
 	    case '@':
 		return Token.PRAGMA;
+
+	    case '#':
+		buffer = new StringBuffer();
+		do {
+		    c = nextChar();
+		    if( c < '0' || c > '9' ) { 
+			prevChar(c);
+			break;
+		    }
+		    buffer.append(c);
+		} while(true);
+
+		current_line = buffer.parseInt();
+
+		return readToken2(false);
             }
             
             // IO.Std.out.println( "unknown: '" + c + "'" );

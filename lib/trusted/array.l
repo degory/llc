@@ -94,7 +94,12 @@ namespace Generic is
         /// \attention: checks reference equality only for reference types
 	bool contains( T v ) is
 	    for int i = 0; i < length; i = i + 1 do
-	        if cast T[](this)[i] == v then
+		var t = cast T[](this)[i];
+		if v == T.none || t == T.none then
+		    if v == t then
+		        return true;
+		    fi
+ 		elif cast T[](this)[i] =~ v then
 		    return true;
 		fi
 	    od

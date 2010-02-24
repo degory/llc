@@ -351,6 +351,18 @@ namespace System is
 	    return -1;
 	end
 
+	/// Return the first index where the supplied char appears in this String, or -1 if it
+	/// does not appear
+	int indexOf( int i, char c ) is
+	    for ; i < _length; i = i + 1 do
+		if [_buffer+i] == c then
+		    return i;
+		fi
+	    od
+
+	    return -1;
+	end
+
         /// Return the last index where the supplied char appears in this String, or -1 if it
 	/// does not appear	
 	int lastIndexOf( char c ) is
@@ -382,6 +394,17 @@ namespace System is
 	/// Return the first index where matches(s,index) is true
 	int indexOf( System.String s ) is
 	    for int i = 0; i < _length; i = i + 1 do
+		if matches( s, i ) then
+		    return i;
+		fi
+	    od
+	    return -1;
+	end
+
+
+	/// Return the first index where matches(s,index) is true
+        int indexOf( int i, System.String s ) is
+	    for ; i < _length; i = i + 1 do
 		if matches( s, i ) then
 		    return i;
 		fi
@@ -750,7 +773,7 @@ namespace System is
 	    StringBuffer result = new StringBuffer(_length);
 	    for int i = 0; i < _length; i = i + 1 do
 		char c = [_buffer + i];
-		if c >= 'a' && c <= 'a' then
+		if c >= 'a' && c <= 'z' then
 		    result.append( c + ('A' - 'a') );
 		else
 		    result.append( c );
@@ -793,7 +816,7 @@ namespace System is
         end
 
         void toSerial( IO.SerialWriter w ) is
-	    IO.Std.err.println( "String.toSerial '" + this + "'" );
+	    // IO.Std.err.println( "String.toSerial '" + this + "'" );
 	    w.add(this);
 	end
 

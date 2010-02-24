@@ -203,8 +203,6 @@ namespace Parse {
 		    warn( "cannot test if type is " + t + " at runtime, isa will always return false" );
                 }
             }
-
-	    IO.Std.err.println( "calc type IsA: " + type );
         }
 
 	void clear( CompileState state ) {
@@ -717,6 +715,14 @@ namespace Parse {
 
 	    IO.Std.err.println( "returning nothing" );
 
+	}
+
+	int getIntValue( CompileState state ) {
+	    if( type.TypeKind != Type.INTEGER ) {
+		return 0;
+	    }
+
+	    return value.parseInt();
 	}
 
         String toString() {

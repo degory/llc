@@ -260,9 +260,6 @@ namespace Parse {
 
 	// protected static bool in_static_initializer;
 
-	public static int inline_method_count;
-        public static int inline_call_count;
-
         public static Type
             undefined_type,
             string_type,
@@ -1465,6 +1462,7 @@ namespace Parse {
 	    // IO.Std.err.println( "pass: " + cast int(state.Pass) + ", name: " + name );
 
 	    String n = name.Name;
+	    bool ok;
 
 	    if( n =~ "NoWarnHide" ) {
 		state.WantWarnHide = false;

@@ -35,7 +35,6 @@ namespace Parse {
 	    setFileName();
 	    state.setTrusted( is_trusted );
             
-            
             body.declareGlobalSymbols( state );
             state.endPackage();
         }
@@ -74,7 +73,7 @@ namespace Parse {
             state.beginPackage( file_name, null );
 	    setFileName();
 	    state.setTrusted( is_trusted );
-            
+
             body.declareSymbols( state );
             state.endPackage();
         }
@@ -94,7 +93,7 @@ namespace Parse {
             state.beginPackage( file_name, null );
 	    setFileName();
 	    state.setTrusted( is_trusted );
-	    
+
             body.compile( state );            
 
 	    print( state );
@@ -117,7 +116,7 @@ namespace Parse {
 
 		Printer p = new Printer( o );
 		pl(p);
-		
+
 		body.print( state, p );
 
 		o.close();

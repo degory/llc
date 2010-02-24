@@ -116,6 +116,7 @@ class Root {
 %token IMPLEMENTS    
 %token INTERFACE     
 %token PROC          
+%token ISA
 */
 
 %token FIRST           0

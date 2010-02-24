@@ -1010,7 +1010,7 @@ namespace IO {
 	    return exists(path);
 	}
 
-	bool exists(System.String path) {
+	static bool exists(System.String path) {
 	    var s = new IO.Stat();
 	    return s.stat(path);
 	}

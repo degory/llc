@@ -225,6 +225,7 @@ namespace IO {
 	public static bool debug = false;
 
 	static Map<String,Class> classes;
+	static Map<Class,String> names;
 	SerialParser parser;
 
 	int level;
@@ -244,12 +245,22 @@ namespace IO {
 	public static bool register(String key, Class c) {
 	    if( classes == null ) {
 		classes = new Map<String,Class>();
+		names = new Map<Class,String>();
 	    }
 	    classes[key] = c;
+	    names[c] = key;
 	    if( debug ) {
 		IO.Std.err.println( "registered " + key + " as " + c );
 	    }
 	    return true;
+	}
+
+	static String getTagForClass(Class c) {
+	    return names[c];
+	}
+
+	static Class getClassForTag(String n) { 
+	    return classes[n];
 	}
 
 	public get String CurrentString {
@@ -308,6 +319,11 @@ namespace IO {
 		/*
 		if( !parser.CurrentString.equals("*") ) {
 		*/
+		if( classes == null ) {
+		    // classes is null if no tags registered:
+		    throw new IOException("undefined tag: '" + parser.CurrentString + "'" );
+		}
+
 		    Class c = classes[parser.CurrentString];
 		    if( c != null ) {
 			if( c.IsArray ) {
@@ -1231,29 +1247,26 @@ namespace IO {
 	}
 	   
 
-	void addValueDefault( Object o) {
-	    IO.Std.err.FlushOnPrintln = true;
-
-	    IO.Std.err.println( "serialize: " + o + ", class: " + o.Class );
-
+	void addValueDefault( Object o ) {
 	    int ptr pt = o.TypeTable;
 
-	    IO.Std.err.println( "type table: " + cast long(pt) );
+	    String tag = SerialReader.getTagForClass(o.Class);
 
-	    open( o.Class.Name );
+	    if( tag == null ) {
+		throw new IO.IOException( "unregistered class " + o.Class.Name );
+	    }
+
+	    open(tag);
 	    
 	    bool is_array = o.IsArray;
 	    int l = 0;
 	    int n = 0;
 
-	    IO.Std.err.println( "write object, is array: " + is_array );
-
 	    do {
 		int offset;
 		int type;
 
-		if( !SerialReader.readType( pt, type, offset ) ) {
-		    IO.Std.err.println( "finished: " + o.Class );
+		if( !SerialReader.readType( pt, type, offset ) ) {		
 		    break;
 		}
 
@@ -1263,36 +1276,33 @@ namespace IO {
 
 		if( is_array ) {
 		    if( l > 0 ) {
-			IO.Std.err.println( "should write " + l + " array elements starting at offset " + offset );
 			writeElements( p, type, l );
 			break;
-		    } else {
-			IO.Std.err.println( "array but no length yet: " + o );
 		    }
 		}
-
+		/*
 		IO.Std.err.println( "offset: " + offset );
 		IO.Std.err.println( "type: " + type );
 		IO.Std.err.println( "field address: " + cast long(p) );
-
+		*/
 		switch( type ) {
 		case TYPE_BOOL:
-		    IO.Std.err.println( "write bool..." );
+		    // IO.Std.err.println( "write bool..." );
 		    add([cast bool ptr(p)]);
 
 		case TYPE_CHAR:
-		    IO.Std.err.println( "write char..." );
+		    // IO.Std.err.println( "write char..." );
 		    add([cast char ptr(p)]);
 
 		case TYPE_LONG:
-		    IO.Std.err.println( "write long..." );
+		    // IO.Std.err.println( "write long..." );
 		    add([cast long ptr(p)]);
 
 		case TYPE_WORD:
 		    add([cast word ptr(p)]);
 
 		case TYPE_INTEGER:
-		    IO.Std.err.println( "write int..." );
+		    // IO.Std.err.println( "write int..." );
 		    l = [cast int ptr(p)];
 		    add( l );
 
@@ -1300,7 +1310,7 @@ namespace IO {
 		    if( !SerialReader.readType( pt, type, offset ) ) {
 			throw new IO.IOException( "expected sub type in type table " + o.Class.Name + " writing pointer @ " + offset );
 		    }
-		    IO.Std.err.println( "pointer type, sub-type is: " + type );
+		    // IO.Std.err.println( "pointer type, sub-type is: " + type );
 
 		    l = o._get_PointerLength(n);
 		    writeElements([cast char ptr ptr(p)], type, l );
@@ -1308,7 +1318,7 @@ namespace IO {
 
 		case TYPE_CLASS,
 		    TYPE_VECTOR:
-		    IO.Std.err.println( "write object: " + [cast Object ptr(p)] );
+		    // IO.Std.err.println( "write object: " + [cast Object ptr(p)] );
 		    add([cast Object ptr(p)]);
 
 		default:
