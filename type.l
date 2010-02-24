@@ -636,6 +636,8 @@ namespace Parse {
         }
 
         bool equals( Type u ) {
+	    //IO.Std.err.println( "" + this + " equals " + u + "?" );
+
             if( u == null ) {
                 throw new Exception( "oops: cannot compare type to null type" );
             }
@@ -662,10 +664,11 @@ namespace Parse {
             if( type_kind <= Type.SIMPLE ) {
 		// IO.Std.err.println( "yes: simple type" );
                 return true;
-            } else if( type_kind == Type.CLASS || type_kind == Type.PROC ) {
+            } else if( type_kind == Type.CLASS || type_kind == Type.STRUCT || type_kind == Type.PROC || type_kind == Type.ENUM ) {
 		// IO.Std.err.println( "identical class: " + (c == u.c) );
                 return c == u.c;
             } else {
+		// IO.Std.err.println( "this tk: " + type_kind + ", that tk: " + u.type_kind );
 		// IO.Std.err.println( "identical sub-types?" );
                 if( sub_type == null ) {
                     throw new Exception( "oops: cannot compare null sub-types: " + this + " versus " + u );

@@ -274,7 +274,8 @@ namespace Parse {
             array_type,
 	    class_type,
 	    type_type,
-	    proc_type;
+	    proc_type,
+	    enum_type;
 
         protected static Symbol undefined_variable = new Symbol( null, "#undefined variable#",
                            Symbol.LOCAL_VARIABLE,
@@ -989,6 +990,23 @@ namespace Parse {
 	    case Type.WORD:
 		return word_type;
 
+	    case Type.ENUM:
+
+		args = new Vector<Type>();
+		args.add(type);
+		type = state.findGeneric( enum_type.Clazz, args, false );
+		IO.Std.err.FlushOnPrintln = true;
+		IO.Std.err.println( "enum type: " + enum_type );
+		IO.Std.err.println( "enum type class: " + enum_type.Clazz );
+
+
+		IO.Std.err.println( "type is: " + type );
+		IO.Std.err.println( "make box type: " + type.Clazz.HumanName );
+		type.Clazz.turnIntoStruct();
+
+		return type;
+
+
 	    case Type.VECTOR:
 		sub_type = type.SubType;
 		/*
@@ -1061,6 +1079,8 @@ namespace Parse {
 	    proc_type = defineStandardClassType( state, "Proc", "Proc" );
 	    // type_type = defineStandardClassType( state, "Type", "Object" );
 	    class_type = defineStandardClassType( state, "Class", "Object" );
+	    enum_type = defineStandardClassType( state, "Enum", "Object" );
+	    enum_type.Clazz.turnIntoStruct();
             state.exitNameSpace( system );
             
             state.enterNameSpace( util );

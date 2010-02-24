@@ -736,9 +736,10 @@ namespace Parse {
 		Type tt = arg_types[i];
 		Type to = ta[i];
 
-		// IO.Std.err.println( "compare instance type: " + tt );
-		// IO.Std.err.println( "to required type:      " + to );
-
+		/*
+		IO.Std.err.println( "compare instance type: " + tt );
+		IO.Std.err.println( "to required type:      " + to );
+		*/
 		if( !tt.equals(to) ) {
 		    // IO.Std.err.println( "types differ: not a matching instance" );
 		    return false;
@@ -778,6 +779,11 @@ namespace Parse {
             }
             return false;
         }
+
+	void turnIntoStruct() {
+	    parent = null;
+	    is_struct = true;
+	}
 
 	/*
         int alloc( int kind ) {

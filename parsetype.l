@@ -272,6 +272,12 @@ namespace Parse {
 
 	void checkTemplates( CompileState state ) {
 	    // IO.Std.err.println( "named type: " + name + " not a template" );
+	    /*
+	    var t = parseType(state);
+	    if( t.TypeKind == Type.ENUM ) {
+		t.getBoxType(state);
+	    }
+	    */
 	}
 
 	void clear( CompileState state ) {

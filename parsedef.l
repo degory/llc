@@ -247,7 +247,7 @@ namespace Parse {
         }
 
 	void declareGlobalSymbols( CompileState state ) {
-	    declare( state );
+	    declare( state );	    
 	}
 
 	void declareClassSymbols( CompileState state ) {
@@ -255,6 +255,12 @@ namespace Parse {
 		declare( state );
 	    }
 	}   
+
+	void checkTemplates( CompileState state ) {
+	    IO.Std.err.println( "check templates for enum: " + e + ", " + e.Type );
+	    var t = e.Type.getBoxType(state);
+	    IO.Std.err.println( "result is: " + t );
+	}
 
         void declareSymbols( CompileState state ) {
             // fprintf( stderr, "EnumDef parse: %s %X...\n", name.getName(), e );
