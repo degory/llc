@@ -825,36 +825,107 @@ namespace Parse {
 		}
 		*/
 
-		if( !super_call ) {
+		if( !super_call /* || compare_operation */ ) {
 		    t = left_value.compileValue( state, into );
 		} else {
 		    // avoid a redundant null check - let compileLoad load 'this' value, so it knows it's guaranteed non-null
 		    t = null;
 		}
 
+		LLVM.BasicBlock e, n, c, d;
+		LLVM.Value u;
+
 		// FIXME: this is a bad place for this but MethodCall doesn't make it easy
 		// to do this in the caller:
 		if( compare_operation ) {
+		    IO.Std.err.FlushOnPrintln = true;
+		    // IO.Std.err.println( "compare operation on objects: requires null check..." );
+		    n = into.Block();
+		    d = into.Block();
+		    e = into.Block();
+
 		    /*
-		    lt = TempFactory.nextLabel();
-
-		    tr = TempFactory.nextTemp();
-
-		    var a = arguments[0].compileValue(state,into);
-
-		    t = makeObjectEquals(t, a);
-		    // don't not the result here - caller must do it:
-
-		    into.add( new ITree( line_number, Op.OBJ_EQ, 0,
-					 new ITree( line_number, Op.PAIR, Machine.WORD,
-						    t, a ),
-					 new ITree( line_number, Op.TEMP, 1, tr ),
-					 lt
-					 )
-			      );
-		    // }
+		    IO.Std.err.println( "left value: " + left_value );
+		    IO.Std.err.println( "arguments: " + arguments );
+		    IO.Std.err.println( "arg[0]: " + arguments[0] );
 		    */
-		}
+		   
+		    var a = arguments[0].compileValue(state,into);
+		    arguments[0] = new LoadTemporary(line_number, arguments[0].getType(state), a, false);
+
+		    /*
+		    IO.Std.err.println( "compare left: " );
+		    LLVM.Calls.LLVMDumpValue( t );
+		    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(t) );
+		    IO.Std.err.println( "compare argument: " );
+		    LLVM.Calls.LLVMDumpValue( a );
+		    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(a) );
+		    */
+
+		    into.Label(e);
+		    
+		    u = 
+			into.ICmp(
+				  LLVM.LLVMIntPredicate.LLVMIntEQ,
+				  t,
+				  makeLLVMCast(
+					       a,
+					       LLVM.Calls.LLVMTypeOf(t),
+					       into
+					       )
+				  );
+
+		    /*
+		    IO.Std.err.println( "compare reference: " );
+		    LLVM.Calls.LLVMDumpValue( u );
+		    */
+		    
+                    into.BranchLabel(
+				     u,
+				     d,
+				     n
+				     );
+
+		    // Jump equal e->d
+
+		    // Label n:
+
+		    var ct =
+			into.ICmp(
+				  LLVM.LLVMIntPredicate.LLVMIntEQ,
+				  t,
+				  LLVM.Calls.LLVMConstPointerNull(
+								  LLVM.Calls.LLVMTypeOf(t)
+								  )
+				  );
+
+		    var ca = 
+			into.ICmp(
+				  LLVM.LLVMIntPredicate.LLVMIntEQ,
+				  a,
+				  LLVM.Calls.LLVMConstPointerNull(
+								  LLVM.Calls.LLVMTypeOf(a)
+								  )
+				  );
+
+		    var o = 
+			into.Or(
+				 ct,
+				 ca
+				 );
+
+		    /*
+		    IO.Std.err.println( "compare null left: " );
+		    LLVM.Calls.LLVMDumpValue( ct );
+		    IO.Std.err.println( "compare null arg: " );
+		    LLVM.Calls.LLVMDumpValue( ca );
+		    IO.Std.err.println( "or: " );
+		    LLVM.Calls.LLVMDumpValue( o );
+		    */
+		    into.Branch(o, d);
+		    // Jump at least one null and definitely not equal n->d
+
+		}		    		       
 
                 Container super_class = null;
                 if( super_call ) {
@@ -872,12 +943,28 @@ namespace Parse {
                 t = compileLoad( state, into, method, null, arguments, null, method.ArgTypes, t, flags, super_class );
 
 		if( compare_operation ) {
-		    /*
-		    into.add( makeStoreTemporary( tr, 1, t ) );
-		    into.add( new ITree( line_number, Op.LABEL, 0, lt ) );
+		    c = into.CurrentBlock;
 
-		    t = makeLoadTemporary( tr, 1 );
+		    // c->d, result in t
+		    into.Label( d );
+
+		    /*
+		    IO.Std.err.println( "call result: " );
+		    LLVM.Calls.LLVMDumpValue( t );
 		    */
+
+		    var r = into.Phi( LLVM.Calls.LLVMInt1Type() );
+		    into.AddIncoming( r,
+				      { t, LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0), LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),0L,0) },
+				      { c, e, n }
+				      );
+
+	            /*
+		    IO.Std.err.println( "phi: " );
+		    LLVM.Calls.LLVMDumpValue( r );
+		    */
+
+		    t = r;
 		}
             } else if( left_value != null ) {
 		// Std.err.println( "call B..." );
@@ -1042,7 +1129,7 @@ namespace Parse {
 		return;
 	    }
 
-	    IO.Std.err.println( "calc type: " + this );
+	    // IO.Std.err.println( "calc type: " + this );
 
 	    Type t;
 
@@ -1063,25 +1150,25 @@ namespace Parse {
 	    // virtual method that could match this proc type. For example Test Test.add(Test) would
 	    // match Test proc add(Test,Test) this way. 
 	    if( arg_types.Length > 0 ) {
-		IO.Std.err.println( "preparing virtual method lookup arguments..." );
+		// IO.Std.err.println( "preparing virtual method lookup arguments..." );
 
 		arg_types_s = new Vector<Type>();
 		foreach( Type u; arg_types.elements() ) {
 		    if( arg0_type == null ) {
 			// remove first argument from list. will use to attempt to locate virtual method
 			arg0_type = u;
-			IO.Std.err.println( "arg 0 is: " + arg0_type );
+			// IO.Std.err.println( "arg 0 is: " + arg0_type );
 		    } else {
 			// include subsequent arguments in list
 			arg_types_s.add(u);
-			IO.Std.err.println( "arg n is: " + u );
+			// IO.Std.err.println( "arg n is: " + u );
 		    }
 		}
 	    }
 
             if( left_value != null ) {
                 t = left_value.getType( state );
-		IO.Std.err.println( "left value type is: " + t );
+		// IO.Std.err.println( "left value type is: " + t );
 			
                 if( t.TypeKind == Type.ERROR ) {
                     symbol = undefined_method;
@@ -1098,35 +1185,36 @@ namespace Parse {
                 }
 
 		if( t != null ) {
-		    IO.Std.err.println( "search for method " + name + " in " + t );
+		    // IO.Std.err.println( "search for method " + name + " in " + t );
 		    s0 = t.findBestMethod( name.Name, arg_types, q0 );
 
-		    IO.Std.err.println( "result symbol: " + s0 );
+		    // IO.Std.err.println( "result symbol: " + s0 );
 		}		    
 	    } else {
-		IO.Std.err.println( "no left value, look up in current class..." );
+		// IO.Std.err.println( "no left value, look up in current class..." );
 		t = state.CurrentClass.Type;
 
+		/*
 		IO.Std.err.println( "left value type is: " + t );
-
                 IO.Std.err.println( "searching current class " + state.CurrentClass + " for best match: " + name.Name + "(" + arg_types + ")" );
+		*/
 
                 s0 = state.findBestMethod( name.Name, arg_types, q0 );
             }
 
 	    if( t != null && arg0_type != null ) {
-		IO.Std.err.println( "XXXX: t is: " + t + ", arg0 is: " + arg0_type + "..." );
+		// IO.Std.err.println( "XXXX: t is: " + t + ", arg0 is: " + arg0_type + "..." );
 
 		if( arg0_type.isAssignableFrom(t) ) {
 		    c = t.Clazz;
 		    if( c == null ) {
-			IO.Std.err.println( "type has no container, try box type: " );
+			// IO.Std.err.println( "type has no container, try box type: " );
 		    
 			c = t.getBoxType(state).Clazz;
 		    }
 
 		    if( c != null ) {
-			IO.Std.err.println( "will consider virtual methods in " + c.HumanName + " with args: " + arg_types_s );
+			// IO.Std.err.println( "will consider virtual methods in " + c.HumanName + " with args: " + arg_types_s );
 			s1 = c.findBestMethod( name.Name, arg_types_s, q1 );
 			
 			if( s1 != null && s1.IsStatic ) {

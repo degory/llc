@@ -257,9 +257,9 @@ namespace Parse {
 	}   
 
 	void checkTemplates( CompileState state ) {
-	    IO.Std.err.println( "check templates for enum: " + e + ", " + e.Type );
+	    // IO.Std.err.println( "check templates for enum: " + e + ", " + e.Type );
 	    var t = e.Type.getBoxType(state);
-	    IO.Std.err.println( "result is: " + t );
+	    // IO.Std.err.println( "result is: " + t );
 	}
 
         void declareSymbols( CompileState state ) {

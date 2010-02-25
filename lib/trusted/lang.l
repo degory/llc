@@ -1,5 +1,6 @@
 import environment;
 import object;
+import genum;
 import primtype;
 import array;
 import gproc;

@@ -230,7 +230,7 @@ namespace Parse {
 	       
 		LLVM.Value v = makeLLVMCast( right.compileValue(state, into), t.getLLVMType(state), into );
 		// IO.Std.err.println( "value v" );
-		LLVM.Calls.LLVMDumpValue( v );
+		// LLVM.Calls.LLVMDumpValue( v );
 
 		if( t.isObject() ) {
 		    // IO.Std.err.println( "is object..." );
@@ -2614,7 +2614,7 @@ namespace Parse {
 	    
 	    var f = state.getRuntimeFunction( RuntimeFunction.ALLOC_OBJECT );
 	    // IO.Std.err.print( "alloc object function is: " ); IO.Std.err.flush();
-	    LLVM.Calls.LLVMDumpValue( f );
+	    // LLVM.Calls.LLVMDumpValue( f );
 
 	    var vtable = makeLoadVTable(state, c);
 	    var args = { LLVM.Calls.LLVMConstTypeSizeIndirect(proc_type.getLLVMType(state)), vtable };
@@ -2622,15 +2622,15 @@ namespace Parse {
 
 	    // IO.Std.err.print( "call to alloc object is: " ); IO.Std.err.flush();
 	    // LLVM.Calls.LLVMDumpValue( o );
-	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(o) );
+	    // LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(o) );
 	    
 	    // IO.Std.err.print( "proc type is: " ); IO.Std.err.flush();
-	    LLVM.Calls.LLVMDumpType( proc_type.getLLVMType(state) );
+	    // LLVM.Calls.LLVMDumpType( proc_type.getLLVMType(state) );
 
 	    o = into.PointerCast( o, proc_type.getLLVMType(state) );
 
 	    // IO.Std.err.print( "allocated proc ref object: " ); IO.Std.err.flush();
-	    LLVM.Calls.LLVMDumpValue( o );
+	    // LLVM.Calls.LLVMDumpValue( o );
 
 	    LLVM.Type pi8 = LLVM.Calls.LLVMPointerType(
 						       LLVM.Calls.LLVMInt8Type(),
@@ -2942,8 +2942,8 @@ namespace Parse {
                 switch ( symbol.Kind ) {
 		    		   
                 case Symbol.CLASS:
-		    IO.Std.err.println( "compile load: class" );
-		    error( "cannot use class " + symbol.HumanName + " here (static use of instance variable?)" );
+		    // IO.Std.err.println( "compile load: class" );
+		    error( "cannot use class " + symbol.HumanName + " here" );
 		    return ErrorValue();
                     
                     
@@ -3501,8 +3501,10 @@ namespace Parse {
 				 },
 				 {e, m, t}
 				 );
+		/*
 		IO.Std.err.println( "result: " );
 		LLVM.Calls.LLVMDumpValue(result);
+		*/
 		return result;
 	    } else {
 		return null;

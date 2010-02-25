@@ -995,14 +995,14 @@ namespace Parse {
 		args = new Vector<Type>();
 		args.add(type);
 		type = state.findGeneric( enum_type.Clazz, args, false );
+		/*
 		IO.Std.err.FlushOnPrintln = true;
 		IO.Std.err.println( "enum type: " + enum_type );
 		IO.Std.err.println( "enum type class: " + enum_type.Clazz );
-
-
 		IO.Std.err.println( "type is: " + type );
 		IO.Std.err.println( "make box type: " + type.Clazz.HumanName );
-		type.Clazz.turnIntoStruct();
+		// type.Clazz.turnIntoStruct();
+		*/
 
 		return type;
 
@@ -1080,7 +1080,7 @@ namespace Parse {
 	    // type_type = defineStandardClassType( state, "Type", "Object" );
 	    class_type = defineStandardClassType( state, "Class", "Object" );
 	    enum_type = defineStandardClassType( state, "Enum", "Object" );
-	    enum_type.Clazz.turnIntoStruct();
+	    // enum_type.Clazz.turnIntoStruct();
             state.exitNameSpace( system );
             
             state.enterNameSpace( util );
