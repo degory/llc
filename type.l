@@ -96,11 +96,31 @@ namespace Parse {
                 throw new Exception( "wierd: type is Type.CLASS but class is null" );
             }
             return type_kind;
+        }
+
+        static bool isScalar(int t) {
+            return t == Type.LONG || t == Type.WORD || t == Type.INTEGER || t == Type.CHAR;
         }	
 
         bool isScalar() {
-            return type_kind == Type.LONG || type_kind == Type.WORD || type_kind == Type.INTEGER || type_kind == Type.CHAR;
+	    return isScalar(type_kind);
         }
+
+	bool isEnum() {
+	    return type_kind == Type.ENUM;
+	}
+
+	bool isPointer() {
+	    return type_kind == Type.POINTER;
+	}
+	
+	bool isNull() {
+	    return type_kind == Type.NONE;
+	}
+
+	bool isBool() {
+	    return type_kind == Type.BOOL;
+	}
 
 	static bool isInteger(int type_kind) {
             return type_kind == Type.LONG || type_kind == Type.WORD || type_kind == Type.INTEGER;

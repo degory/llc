@@ -291,7 +291,9 @@ namespace Parse {
             state.Loops.pushLoop( LoopName, e, c );
 
 	    Type u = expression.getType(state); 
-	    if( u.TypeKind != Type.BOOL ) {
+	    if( u == undefined_type ) {
+		return;
+	    } else if( u.TypeKind != Type.BOOL ) {
 	        error( "while condition is not bool: " + u );
 	    } else {
 		expression.compileBoolean( state, into, e, false );
@@ -623,7 +625,9 @@ namespace Parse {
             
             if( condition != null ) {
 		Type t = condition.getType( state );
-		if( t.TypeKind != Type.BOOL ) {	    
+		if( t == undefined_type ) {
+		    return;
+		} else if( t.TypeKind != Type.BOOL ) {	    
 		    error( "for loop condition is not bool: " + t );
 		} else {   
 		    condition.compileBoolean( state, into, exit, false ); // jump to exit on condition failed

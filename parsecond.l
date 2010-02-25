@@ -55,6 +55,9 @@ namespace Parse {
             state.Loops.pushLoop( LoopName, e, null );
             
             Type type = expression.getType(state);
+	    if( type == undefined_type ) {
+		return;
+	    }
             
             LLVM.Value temp = expression.compileValue(state,into);
 
@@ -143,11 +146,16 @@ namespace Parse {
         void compile( CompileState state, IRBlock into, LLVM.Value temp, Type type, LLVM.BasicBlock exit ) {
             Vector<Expression> list = expression_list.List;
             LLVM.BasicBlock next = into.Block();
+	    Type t;
 
             if( list.Length == 1 ) {
                 Expression expression = list[0];
-                if( !type.isAssignableFrom(expression.getType(state)) ) {
-                    error( "AA: case expression " + expression.dump(state) + " of type " + expression.getType(state).dump() + " not compatible with switch expression of type " + type.dump() );
+		t = expression.getType(state);
+		if( t == undefined_type ) {
+		    return;
+		}
+                if( !type.isAssignableFrom(t) ) {
+                    error( "case expression " + expression.dump(state) + " of type " + expression.getType(state).dump() + " not compatible with switch expression of type " + type.dump() );
                 } else {
 
 		    into.Branch(
@@ -166,8 +174,12 @@ namespace Parse {
 		LLVM.BasicBlock match = into.Block();
                 
                 foreach( Expression e; list.elements() ) {
-                    if( !type.isAssignableFrom(e.getType(state)) ) {
-                        error( "BB: case expression " + e.dump(state) + " of type " + e.getType(state).dump() + " not compatible with switch expression of type " + type.dump() );                  
+		    t = e.getType(state);
+		    if( t == undefined_type ) {
+			return;
+		    }
+                    if( !type.isAssignableFrom(t) ) {
+                        error( "case expression " + e.dump(state) + " of type " + e.getType(state).dump() + " not compatible with switch expression of type " + type.dump() );                  
                     } else {
 			into.Branch(
 				    into.ICmp(
@@ -267,7 +279,9 @@ namespace Parse {
             LLVM.BasicBlock f = into.Block();
 
 	    Type t = expression.getType(state); 
-	    if( t.TypeKind != Type.BOOL ) {
+	    if( t == undefined_type ) {
+		return;
+	    } else if( t.TypeKind != Type.BOOL ) {
 	        error( "if condition is not bool: " + t );
 	    } else {
 		expression.compileBoolean( state, into, f, false );

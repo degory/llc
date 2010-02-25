@@ -201,6 +201,12 @@ namespace Parse {
 	}
     }
 
+    class AbortCompilingThisMethodException extends Exception {
+	void init( String message ) {
+	    super.init( message );
+	}
+    }
+
     class ExceptionDescriptor extends Object {
 	public EDType type;
 	public LLVM.BasicBlock landing_pad;
@@ -276,6 +282,8 @@ namespace Parse {
 	    type_type,
 	    proc_type,
 	    enum_type;
+
+	protected static LLVM.Value error_value;
 
         protected static Symbol undefined_variable = new Symbol( null, "#undefined variable#",
                            Symbol.LOCAL_VARIABLE,
@@ -876,6 +884,7 @@ namespace Parse {
 	}
 
         public static LLVM.Value makeLLVMCast( LLVM.Value v, LLVM.Type t, IRBlock into ) {
+	    
 	    LLVM.Type tv = LLVM.Calls.LLVMTypeOf(v);
 
 	    if( tv == t ) {
@@ -1210,17 +1219,28 @@ namespace Parse {
 	    throw new System.NotImplementedException( "oops: can't compile address: " + Class.Name );
         }
 
-	LLVM.Value QuietErrorValue() {
-	    return QuietErrorValue(LLVM.Calls.LLVMVoidType());
+	static LLVM.Value QuietErrorValue() {
+	    return QuietErrorValue(LLVM.Calls.LLVMInt32Type());
 	}
 
-	LLVM.Value QuietErrorValue(LLVM.Type t) {
+	static LLVM.Value QuietErrorValue(LLVM.Type t) {
 	    return LLVM.Calls.LLVMGetUndef(t);
 	}	    
 
-	LLVM.Value ErrorValue() {
+	static LLVM.Value ErrorValue() {
 	    // IO.Std.err.println( "untyped error value from: " + new System.Backtrace() );
-	    return ErrorValue(LLVM.Calls.LLVMVoidType());
+	    if( error_value == null ) {
+		error_value = QuietErrorValue(LLVM.Calls.LLVMInt32Type());
+	    }
+	    return error_value;
+	}
+
+	static bool isError( LLVM.Value v ) {
+	    return v == error_value && v != null;
+	}
+
+	static bool isUndefined( Symbol s ) {
+	    return s == undefined_variable || s == undefined_method;
 	}
 
 	LLVM.Value ErrorValue(LLVM.Type t) {

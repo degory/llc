@@ -1894,9 +1894,10 @@ namespace Parse {
 		    IO.Std.err.println( "cause: " + nie );
 		}
 		success = false;
+	    } catch( AbortCompilingThisMethodException ae ) {
+		error( "" + m.HumanName + ": unrecoverable compiler error" );
+		success = false;
 	    }
-
-
 
 	    // IO.Std.err.println( "method def: compile B last is return: " + last_return );
 	    

@@ -103,6 +103,10 @@ namespace Parse {
             Container class_symbol = null;
             Type t = getType(state);
 
+	    if( t == undefined_type ) {
+		return ErrorValue();
+	    }
+
 	    RuntimeFunction op;
 
 	    LLVM.Value v;
@@ -337,6 +341,10 @@ namespace Parse {
 
         LLVM.Value compileValue( CompileState state, IRBlock into ) {
 	    // IO.Std.err.println( "call native function for value: " + name.getName() );
+
+	    if( type == undefined_type ) {
+		return ErrorValue();
+	    }
             
 	    if( state.WantMarkUnsafe ) {
 		state.markCodeUnsafe( CompileState.UNSAFE_NATIVE );
@@ -571,6 +579,12 @@ namespace Parse {
 			left_value = new WrapTypeAsExpression(line_number,t);
 
                         method_call = new MethodCall( line_number, left_value, new Identifier(line_number,name.Name), wrap_arguments );
+			/*
+			IO.Std.err.println( "boxed method call: " + method_call );
+			IO.Std.err.println( "left value: " + left_value );
+			IO.Std.err.println( "identifier: " + name.Name );
+			IO.Std.err.println( "wrap args: " + wrap_arguments );
+			*/
 
                         method_call.calcType( state, true );
                         type = method_call.Type;
@@ -761,6 +775,10 @@ namespace Parse {
 	    */
 
             getType( state );
+
+	    if( type == undefined_type ) {
+		return ErrorValue();
+	    }
 
 	    if( method_call != null ) {
 		return method_call.compileValue( state, into, need_value );
@@ -1303,8 +1321,8 @@ namespace Parse {
 	LLVM.Value compileValue( CompileState state, IRBlock into ) {
 	    var ty = getType( state );
 
-	    if( method == null || method == undefined_method ) {
-		return ErrorValue(ty.getLLVMType(state));
+	    if( type == undefined_type || method == null || method == undefined_method ) {
+		return ErrorValue();
 	    }
 
 	    // var load_this = false;

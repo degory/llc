@@ -1,5 +1,8 @@
 
+
 namespace System {
+    pragma NoWarnUnsafe, NoMarkUnsafe, NoWarnHide, NoWarnResolve;
+
     /// proc reference values can be converted to appropriate specializations of this type
     /// \param P a proc reference type
     class Proc<P> {

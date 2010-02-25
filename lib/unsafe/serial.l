@@ -11,6 +11,8 @@ namespace IO {
     use Generic.Map;
     use Generic.List;
 
+    pragma NoWarnUnsafe, NoMarkUnsafe, NoWarnHide, NoWarnResolve;
+
     interface Serial {
 	// when this method is called, object is expected to write a representation of itself to stream b
 	void toSerial(SerialWriter b);

@@ -51,7 +51,7 @@ namespace Parse {
             foreach( Expression f; list.List.elements() ) {
                 u = f.getType(state);
 		if( !t.isAssignableFrom( u ) ) {
-		    if( t.isInteger() ) {
+		    if( t.isScalar() ) {
 			error( "inconsitent types in array initializer: " + t.dump() + " and " + u.dump() );
 			t = undefined_type;
 			break;
@@ -593,7 +593,7 @@ namespace Parse {
 	    } else if( type == Type.CHAR ) {
 		print_value = "'" + escape(value,'\'') + "'";		
                 this.value = "" + cast<int>(value.charAt(0));
-            } else if( Type.isInteger(type) && value.Length > 2 && (value[1] == 'x' || value[1] == 'X') ) {
+            } else if( Type.isScalar(type) && value.Length > 2 && (value[1] == 'x' || value[1] == 'X') ) {
                 this.value = "" + value.substring(2).parseInt(16);
             } else {
                 this.value = value;
@@ -787,313 +787,380 @@ namespace Parse {
 	    return operation;
 	}
 
+	void calcTypeBuiltIn( CompileState state, Type tl, Type tr, bool equals, bool comparison ) {
+	    bool warn_pointer = false;
+	    bool il = tl.isScalar();
+	    bool pl = tl.isPointer();
+            if( right != null ) {
+		bool ir = tr.isScalar();
+		bool pr = tr.isPointer();
+				
+		if( operation == Op.ADD ) {
+		    if( il && ir ) {
+			// add two integers, types must match:
+			if( tl.equals(tr) ) {
+			    type = tl;
+			} else {
+			    error( "scalar type mismatch " + tl + " + " + tr );
+			    type = undefined_type;
+			}
+		    } if( pl && ir ) {
+			// add integer to pointer:
+			warn_pointer = true;
+			type = tl;
+		    } else if( il && pr ) {
+			// add pointer to integer:
+			warn_pointer = true;
+			type = tr;
+		    }	    
+		} else if( operation == Op.SUB ) {
+		    if( il && ir ) {
+			// subtract integers, types must match:
+			if( tl.equals(tr) ) {
+			    type = tl;
+			} else {
+			    error( "scalar type mismatch " + tl + " - " + tr );
+			    type = undefined_type;
+			}
+		    } else if( pl && ir ) {
+			type = tl;
+			warn_pointer = true;
+		    } else if( pl && pr ) {
+			if( tl.equals(tr) ) {
+			    warn_pointer = true;
+			    type = new Type(Type.WORD);
+			} else {
+			    error( "pointer type mismatch " + tl + " - " + tr );
+			    type = undefined_type;
+			}
+		    } 
+		} else if( comparison ) {
+		    if( il && ir || (tl.isEnum() && tr.isEnum()) || (equals && tl.isBool() && tr.isBool()) ) {
+			if( tl.equals(tr) ) {
+			    type = new Type(Type.BOOL);
+			} else {
+			    error( "scalar type mismatch " + tl + " " + OpString + " " + tr );
+			    type = undefined_type;
+			}
+
+		    } else if( pl || pr ) {
+			if( pl && pr ) {
+			    if( tl.equals(tr) ) {
+				type = new Type(Type.BOOL);
+			    } else {
+				error( "pointer type mismatch " + tl + " " + OpString + " " + tr );
+				type = undefined_type;
+			    }
+			} else {
+			    if( tl.isNull() || tr.isNull() ) {
+				type = new Type(Type.BOOL);
+			    }
+			}
+		    } else if( equals && !object_equals ) {
+			if( tl.equals(tr) ) {
+			    type = new Type(Type.BOOL);
+			} else if( tl.isAssignableFrom(tr) || tr.isAssignableFrom(tl) ) {
+			    type = new Type(Type.BOOL);
+			} else if( !object_equals) {  
+			    error( "type mismatch " + tl + " " + OpString + " " + tr );
+			}			
+		    }
+		} else if( (operation >= Op.MUL && operation <= Op.SHAR) ||
+			   (operation >= Op.AND && operation <= Op.XOR)) {
+		    if( il && ir ) {
+			if( tl.equals(tr) ) {
+			    type = tl;
+			} else {
+			    error( "scalar type mismatch " + tl + " " + OpString + " " + tr );
+			    type = undefined_type;
+			}
+		    } else if( pl && pr ) {
+			error( "illegal operation on pointers " + tl + " " + OpString + " " + tr );
+			type = undefined_type;
+		    } else if( operation >= Op.AND && operation <= Op.XOR &&
+			       tl.isBool() && tr.isBool() ) {
+			type = tl;
+		    }
+		} else if( operation >= Op.BOOL_OR && operation <= Op.BOOL_AND ) {
+		    if( tl.isBool() && tr.isBool() ) {
+			type = tl;
+		    }
+		}
+
+		if( warn_pointer ) {
+		    if( state.WantMarkUnsafe ) {
+			state.markCodeUnsafe( CompileState.UNSAFE_POINTER );
+		    }
+                    if( state.WantWarnUnsafe ) {
+                        warn( "pointer arithmetic" );
+                    }
+		}
+            } else {
+                type = tl;
+            }
+	}
+
+	void calcTypeOperatorOverload( CompileState state, Type tl, Type tr, bool equals, bool comparison ) {
+	    // need at least one object operand for operator method and either explicit object-equals operator or 
+	    // an inequality or an arithmetic operator
+	    
+	    // note: no need to bother calling opEquals for =~ or !~ when at least one operand is literal null because
+	    // the result can be determined directly by comparing the operands' addresses
+	    
+	    // look for an operator method if:
+	    // operator is not equal or operator is object equals and neither operand is literal null AND
+	    // at least one operand is an object:
+	    
+	    if( !equals || object_equals ) {
+
+		/* && (tl.TypeKind != Type.NONE && tr.TypeKind != Type.NONE))
+		     ) &&
+		    (tl.TypeKind == Type.CLASS || tr.TypeKind == Type.CLASS) ) {
+		*/
+		MethodCall call_normal, call_reverse;
+		// IO.Std.err.println( "operator overload call: " + tl + " op " + tr );
+		Quality quality_normal, quality_reverse;
+		Type type_normal, type_reverse;
+		
+		reverse = false;
+		
+		String op_string = null; // for error reporting
+		String n;                // operator method name
+		
+		do {
+		    // IO.Std.err.println( "at start reverse now: " + reverse );
+		    // IO.Std.err.println( "searching " + tl + " operator " + tr + "..." );
+		    
+		    // loop at most twice, once for forward operation and once for reverse
+		    
+		    /*
+		      if( !reverse ) {
+		      if( tl.TypeKind != Type.CLASS ) {
+		      // cannot look for operator methods in non-class left operand:
+		      reverse = true;
+		      }
+		      } else {
+		      if( tr.TypeKind != Type.CLASS ) {
+		      // cannot look for reverse operator methods in non-class right operand:
+		      break;
+		      }
+		      }
+		    */
+		    
+		    switch( operation ) {
+		    case Op.ADD:
+			op_string = "+";
+			if( reverse ) {
+			    n = "opAddRev";
+			} else {
+			    n = "opAdd";
+			}
+			
+		    case Op.SUB:
+			op_string = "-";
+			if( reverse ) {
+			    n = "opSubRev";
+			} else {
+			    n = "opSub";
+			}
+			
+		    case Op.MUL:
+			op_string = "*";
+			if( reverse ) {
+			    n = "opMulRev";
+			} else {
+			    n = "opMul";
+			}
+			
+		    case Op.DIV:
+			op_string = "/";
+			if( reverse ) {
+			    n = "opDivRev";
+			} else {
+			    n = "opDiv";
+			}
+			
+		    case Op.MOD:
+			op_string = "%";
+			if( reverse ) {
+			    n = "opModRev";
+			} else {
+			    n = "opMod";
+			}
+			
+		    case Op.SHL:
+			op_string = "<<";
+			if( reverse ) {
+			    n = "opShlRev";
+			} else {
+			    n =  "opShl";
+			}
+			
+		    case Op.SHAR:
+			op_string = ">>";
+			if( reverse ) {
+			    n = "opSharRev";
+			} else {
+			    n = "opShar";
+			}
+			
+		    case Op.AND:
+			op_string = "&";
+			if( reverse ) {
+			    n = "opAndRev";
+			} else {
+			    n =   "opAnd";
+			}
+			
+		    case Op.OR:
+			op_string = "|";
+			if( reverse ) {
+			    n = "opOrRev";
+			} else {
+			    n = "opOr";
+			}
+			
+		    case Op.XOR:
+			op_string = "^";
+			if( reverse ) {
+			    n = "opXorRev";
+			} else {
+			    n = "opXor";
+			}
+			
+		    case Op.EQ:
+			op_string = "=~";
+			n = "opEquals";
+			/*			
+						case Op.NE:
+						n = "opEq";
+						not_result = true;
+			*/
+			    
+		    case Op.GT:
+			op_string = ">";
+			n = "opCompare";
+			inequality = true;
+			
+		    case Op.LT:
+			op_string = "<";
+			n = "opCompare";
+			inequality = true;
+			
+		    case Op.GE:
+			op_string = ">=";
+			n = "opCompare";
+			inequality = true;
+			
+		    case Op.LE:
+			op_string = "<=";
+			n = "opCompare";
+			inequality = true;
+			
+		    default:
+			error( "cannot use this operator here" );			   
+			return;
+			// op_string = "unexpected operator";
+			// n = "<undefined operator " + operation + ">";
+		    }
+
+		    // IO.Std.err.println( "potential operator method: " + n );
+		    
+		    Identifier name = new Identifier( line_number, n );
+		    ExpressionList arg = new ExpressionList( line_number );
+		    if( reverse ) {
+			arg.add( left );
+			call_reverse = new MethodCall( line_number, right, name, arg );
+			// IO.Std.err.println( "will check reverse operation method: " + call_reverse );
+			if( object_equals && (tl.TypeKind == Type.CLASS || tl.TypeKind == Type.NONE) ) {
+			    // include null check:
+			    call_reverse.IsCompareOperation = true;
+			    call_reverse.NotResult = not_result;
+			}
+			call_reverse.calcType( state, true );
+			type_reverse = call_reverse.Type;
+			quality_reverse = call_reverse.Quality;
+			
+			// IO.Std.err.println( "break..." );
+			break;
+		    } else {
+			arg.add( right );
+			call_normal = new MethodCall( line_number, left, name, arg );
+			// IO.Std.err.println( "will check normal operation method: " + call_normal );
+			if( object_equals && (tr.TypeKind == Type.CLASS || tr.TypeKind == Type.NONE) ) {
+			    // include null check:
+			    call_normal.IsCompareOperation = true;
+			    call_normal.NotResult = not_result;
+			}
+			call_normal.calcType( state, true );
+			type_normal = call_normal.Type;
+			quality_normal = call_normal.Quality;
+			
+			reverse = true;
+		    }
+		} while( true );
+		
+		if( quality_normal == null && quality_reverse == null ) {
+		    error( "no matching method found for operation " + tl + " " + op_string + " " + tr );
+		    method_call = null;
+		    type = undefined_type;
+		    return;
+		} else if( quality_reverse == null ) {
+		    method_call = call_normal;
+		    type = type_normal;
+		} else if( quality_normal == null ) {
+		    method_call = call_reverse;
+		    type = type_reverse;
+		} else {
+		    if( quality_normal >= quality_reverse ) {
+			method_call = call_normal;
+			type = type_normal;
+			// IO.Std.err.println( "call normal: " + method_call );
+		    } else {
+			method_call = call_reverse;
+			type = type_reverse;
+			// IO.Std.err.println( "call reverse: " + method_call );
+		    }
+		}
+
+		
+		// IO.Std.err.println( "method call now: " + method_call );
+		
+		if( method_call == call_reverse && state.WantWarnResolve ) {
+		    warn( "using reverse operator method '" + n + "' for " + tl + " " + op_string + " " + tr );
+		}
+	    }
+	}
+
         void calcType( CompileState state ) {
-	    type = undefined_type;
+	    bool comparison = operation >= Op.EQ && operation <= Op.LE;
+	    bool equals = operation == Op.EQ || operation == Op.NE;
 
             Type tl = left.getType( state );
+	    Type tr;
 	    // IO.Std.err.println( "arith calc type op: " + operation );
 	    // IO.Std.err.println( "object equals: " + object_equals );
 
             if( right != null ) {
-                Type tr = right.getType( state );
-                bool comparison = operation >= Op.EQ && operation <= Op.LE;
-                bool equals = operation == Op.EQ || operation == Op.NE;
+		tr = right.getType( state );
+	    }
 
-		// is either the operation not equals or was object equals explicitly requested?
-		// is at least one operand an object? 
+	    calcTypeBuiltIn( state, tl, tr, equals, comparison );
 
-		/*
-		if( tl.TypeKind == Type.CLASS || tr.TypeKind == Type.CLASS ) {
-		    IO.Std.err.println( "op: " + operation + " versus " + Op.EQ );
-		    IO.Std.err.println( "equals: " + equals );
-		    IO.Std.err.println( "object_equals: " + object_equals );
-		    IO.Std.err.println( "tl: " + tl );
-		    IO.Std.err.println( "tr: " + tr );
+	    if( type == null ) {
+		// IO.Std.err.println( "no built in operation matched " + tl + " " + OpString + " " + tr + ", try operator methods..." );
+		calcTypeOperatorOverload( state, tl, tr, equals, comparison );
+	    }
 
-		    if( operation == Op.EQ ) {
-			IO.Std.err.println( "ZZZZZZ: equals operator: " + operation + " == " + Op.EQ + ", equals: " + equals );
-		    }
-		} else if( equals && object_equals) {
-		    IO.Std.err.println( "ZZZZZZ: object equals operation on non-objects: " + tl + " =~ " + tr );
+	    if( type == null ) {
+		// shouldn't happen - should be undefined_type if nothing found:
+		if( tr != null ) {
+		    error( "no built in operation or operator method found for " + tl + " " + OpString + " " + tr );
+		} else {
+		    error( "no built in operation or operator method found for " + OpString + "" + tl );
 		}
-		*/
 
-		// need at least one object operand for operator method and either explicit object-equals operator or 
-		// an inequality or an arithmetic operator
-
-		// note: no need to bother calling opEquals for =~ or !~ when at least one operand is literal null because
-		// the result can be determined directly by comparing the operands' addresses
-
-		// look for an operator method if:
-		// operator is not equal or operator is object equals and neither operand is literal null AND
-		// at least one operand is an object:
-
-		if( (
-		     !equals || 
-		     (object_equals && (tl.TypeKind != Type.NONE && tr.TypeKind != Type.NONE))
-		     ) &&
-		    (tl.TypeKind == Type.CLASS || tr.TypeKind == Type.CLASS) ) {
-		    MethodCall call_normal, call_reverse;
-		    // IO.Std.err.println( "operator overload call: " + tl + " op " + tr );
-		    Quality quality_normal, quality_reverse;
-		    Type type_normal, type_reverse;
-
-		    reverse = false;
-
-		    String op_string = null; // for error reporting
-                    String n;                // operator method name
-		    
-		    do {
-			//IO.Std.err.println( "at start reverse now: " + reverse );
-			//IO.Std.err.println( "searching " + tl + " operator " + tr + "..." );
-
-			// loop at most twice, once for forward operation and once for reverse
-
-			if( !reverse ) {
-			    if( tl.TypeKind != Type.CLASS ) {
-				// cannot look for operator methods in non-class left operand:
-				reverse = true;
-			    }
-			} else {
-			    if( tr.TypeKind != Type.CLASS ) {
-				// cannot look for reverse operator methods in non-class right operand:
-				break;
-			    }
-			}
-
-			switch( operation ) {
-			case Op.ADD:
-			    op_string = "+";
-			    if( reverse ) {
-				n = "opAddRev";
-			    } else {
-				n = "opAdd";
-			    }
-			    
-			case Op.SUB:
-			    op_string = "-";
-			    if( reverse ) {
-				n = "opSubRev";
-			    } else {
-				n = "opSub";
-			    }
-			    
-			case Op.MUL:
-			    op_string = "*";
-			    if( reverse ) {
-				n = "opMulRev";
-			    } else {
-				n = "opMul";
-			    }
-			    
-			case Op.DIV:
-			    op_string = "/";
-			    if( reverse ) {
-				n = "opDivRev";
-			    } else {
-				n = "opDiv";
-			    }
-			    
-			case Op.MOD:
-			    op_string = "%";
-			    if( reverse ) {
-				n = "opModRev";
-			    } else {
-				n = "opMod";
-			    }
-			    
-			case Op.SHL:
-			    op_string = "<<";
-			    if( reverse ) {
-				n = "opShlRev";
-			    } else {
-				n =  "opShl";
-			    }
-			    
-			case Op.SHAR:
-			    op_string = ">>";
-			    if( reverse ) {
-				n = "opSharRev";
-			    } else {
-				n = "opShar";
-			    }
-			    
-			case Op.AND:
-			    op_string = "&";
-			    if( reverse ) {
-				n = "opAndRev";
-			    } else {
-				n =   "opAnd";
-			    }
-			    
-			case Op.OR:
-			    op_string = "|";
-			    if( reverse ) {
-				n = "opOrRev";
-			    } else {
-				n = "opOr";
-			    }
-			    
-			case Op.XOR:
-			    op_string = "^";
-			    if( reverse ) {
-				n = "opXorRev";
-			    } else {
-				n = "opXor";
-			    }
-			    
-			case Op.EQ:
-			    op_string = "=~";
-			    n = "opEquals";
-			    /*			
-						case Op.NE:
-						n = "opEq";
-						not_result = true;
-			    */
-			    
-			case Op.GT:
-			    op_string = ">";
-			    n = "opCompare";
-			    inequality = true;
-			    
-			case Op.LT:
-			    op_string = "<";
-			    n = "opCompare";
-			    inequality = true;
-			    
-			case Op.GE:
-			    op_string = ">=";
-			    n = "opCompare";
-			    inequality = true;
-			    
-			case Op.LE:
-			    op_string = "<=";
-			    n = "opCompare";
-			    inequality = true;
-			    
-			default:
-			    error( "cannot use this operator here" );			   
-			    return;
-			    // op_string = "unexpected operator";
-			    // n = "<undefined operator " + operation + ">";
-			}
-
-			// IO.Std.err.println( "potential operator method: " + n );
-			
-			Identifier name = new Identifier( line_number, n );
-			ExpressionList arg = new ExpressionList( line_number );
-			if( reverse ) {
-			    arg.add( left );
-			    call_reverse = new MethodCall( line_number, right, name, arg );
-			    // IO.Std.err.println( "will check reverse operation method: " + call_reverse );
-			    if( object_equals && (tl.TypeKind == Type.CLASS || tl.TypeKind == Type.NONE) ) {
-				// include null check:
-				call_reverse.IsCompareOperation = true;
-				call_reverse.NotResult = not_result;
-			    }
-			    call_reverse.calcType( state, true );
-			    type_reverse = call_reverse.Type;
-			    quality_reverse = call_reverse.Quality;
-
-			    break;
-			} else {
-			    arg.add( right );
-			    call_normal = new MethodCall( line_number, left, name, arg );
-			    // IO.Std.err.println( "will check normal operation method: " + call_normal );
-			    if( object_equals && (tr.TypeKind == Type.CLASS || tr.TypeKind == Type.NONE) ) {
-				// include null check:
-				call_normal.IsCompareOperation = true;
-				call_normal.NotResult = not_result;
-			    }
-			    call_normal.calcType( state, true );
-			    type_normal = call_normal.Type;
-			    quality_normal = call_normal.Quality;
-			    
-			    reverse = true;
-			}
-		    } while( true );
-
-		    if( quality_normal == null && quality_reverse == null ) {
-			error( "no matching method found for operation " + tl + " " + op_string + " " + tr );
-			method_call = null;
-			type = undefined_type;
-			return;
-		    } else if( quality_reverse == null ) {
-			method_call = call_normal;
-			type = type_normal;
-		    } else if( quality_normal == null ) {
-			method_call = call_reverse;
-			type = type_reverse;
-		    } else {
-			if( quality_normal >= quality_reverse ) {
-			    method_call = call_normal;
-			    type = type_normal;
-			    // IO.Std.err.println( "call normal: " + method_call );
-			} else {
-			    method_call = call_reverse;
-			    type = type_reverse;
-			    // IO.Std.err.println( "call reverse: " + method_call );
-			}
-		    }
-
-
-		    // IO.Std.err.println( "method call now: " + method_call );
-
-		    if( method_call == call_reverse && state.WantWarnResolve ) {
-			warn( "using reverse operator method '" + n + "' for " + tl + " " + op_string + " " + tr );
-		    }
-
-                } else if( !comparison && tl.TypeKind == Type.POINTER ) {
-                    type = tl;
-                    if( !tr.isInteger() ) {
-                        error( "pointer arithmetic with non-integer type " + tr.dump() + " and " + tl.dump() );
-                    }
-		    if( state.WantMarkUnsafe ) {
-			state.markCodeUnsafe( CompileState.UNSAFE_POINTER );
-		    }
-                    if( state.WantWarnUnsafe ) {
-                        warn( "pointer arithmetic" );
-                    }
-                } else if( !comparison && tr.TypeKind == Type.POINTER ) {
-                    type = tr;
-                    if( !tl.isInteger() ) {
-                        error( "pointer arithmetic with non-integer type " + tl.dump() + " and " + tr.dump() );
-                    }
-		    if( state.WantMarkUnsafe ) {
-			state.markCodeUnsafe( CompileState.UNSAFE_POINTER );
-		    }
-                    if( state.WantWarnUnsafe ) {
-                        warn( "pointer arithmetic" );
-                    }
-                } else if( tl.equals( tr ) ) {
-                    if( comparison ) {
-                        type = new Type( Type.BOOL );
-                    } else {
-                        type = tl;
-                    }
-                } else {
-                    bool ok = false;
-
-                    if( operation == Op.EQ || operation == Op.NE ) {
-			// IO.Std.err.println( "check types for equals operator: " + tl + " versus " + tr );
-                        // if( tl.isContainer() && tr.isContainer() ) {
-			if( tl.TypeKind == Type.CLASS && tr.TypeKind == Type.CLASS ) {
-                            if( tl.isAssignableFrom( tr ) || tr.isAssignableFrom( tl ) ) {
-                                ok = true;
-				type = new Type( Type.BOOL );
-			    }
-                        }
-
-                        if( !ok ) {
-                            error( "cannot compare " + tl.dump() + " to " + tr.dump() );
-                        }
-                    } else {
-                        error( "type mismatch " + tl.dump() + " != " + tr.dump() );
-
-                    }
-                }
-            } else {
-                type = left.getType(state);
+		type = undefined_type;
             }
 
 	    // IO.Std.err.println( "method call: " + method_call );
@@ -1120,6 +1187,10 @@ namespace Parse {
 
 	    LLVM.Value cl;
 	    LLVM.Value cr;
+
+	    if( type == undefined_type ) {
+		return ErrorValue();
+	    }
 
 	    // IO.Std.err.println( "ArithExpression.compileValue: " + this );
             if( method_call != null ) {
@@ -1522,6 +1593,10 @@ namespace Parse {
 
         LLVM.Value compileValue( CompileState state, IRBlock into ) {
 	    getType(state);
+
+	    if( type == undefined_type ) {
+		return ErrorValue();
+	    }
 
 	    if( method_call != null || ( operation >= Op.EQ && operation <= Op.LE) ) {
 		// Std.err.println( "boolean expression compile value operation overload method: " + method_call );
@@ -2108,6 +2183,16 @@ namespace Parse {
 	    LLVM.Type[] arg_types;
 
 	    LLVM.BasicBlock handler;
+
+	    if( isError(from) ) {
+		return ErrorValue();
+	    }
+
+	    foreach( var a; args.elements() ) {
+		if( isError(a) ) {
+		    return ErrorValue();
+		}
+	    }
 
 	    /*
 	    if( o < 0 ) {
@@ -2910,10 +2995,15 @@ namespace Parse {
 	    Vector<Type> argument_types,
 	    LLVM.Value from,
 	    int flags,
-	    Symbol super_class ) {
+	    Symbol super_class
+	) {
             LLVM.Value v;
             LLVM.Value t;
             int o, a, u;
+
+	    if( isUndefined(symbol) || rt == undefined_type || isError(from) ) {
+		return ErrorValue();
+	    }
     
             bool address = flags & LOAD_FLAG_ADDRESS != 0;
             bool no_discard = flags & LOAD_FLAG_DISCARD == 0;
@@ -3212,8 +3302,6 @@ namespace Parse {
                   
                 case Symbol.INSTANCE_METHOD:
 		    // IO.Std.err.println( "compile: instance call" );
-
-
 
                     if( !address ) {
                         error( "using method " + symbol.HumanName + " but not calling it" );
