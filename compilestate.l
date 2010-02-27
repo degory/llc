@@ -488,8 +488,10 @@ namespace Parse {
 	bool want_statistics;
 	bool want_native_executable;
 	bool want_native_object_files;
+	bool want_native_library_files;
 	bool want_64bit_target;
 	bool want_pic;
+	bool want_export;
 	bool want_print_deps;
 
 	String target_isa;
@@ -758,6 +760,26 @@ namespace Parse {
 
 	set LLVM.BasicBlock ThrowBoundsBlock = b {
 	    bounds_throw = b;
+	}
+
+        void maybeLinkOnce( LLVM.Value v ) {
+	    maybeLinkOnce( v, true );
+	}
+
+        void maybeLinkOnce( LLVM.Value v, bool odr ) {
+	    if( want_export ) {
+		if( odr ) {
+		    LLVM.Calls.LLVMSetLinkage( v, LLVM.LLVMLinkage.LLVMWeakODRLinkage );
+		} else {
+		    LLVM.Calls.LLVMSetLinkage( v, LLVM.LLVMLinkage.LLVMWeakAnyLinkage );
+		}
+	    } else {
+		if( odr ) {
+		    LLVM.Calls.LLVMSetLinkage( v, LLVM.LLVMLinkage.LLVMLinkOnceODRLinkage );
+		} else {
+		    LLVM.Calls.LLVMSetLinkage( v, LLVM.LLVMLinkage.LLVMLinkOnceAnyLinkage );
+		}
+	    }
 	}
 
 	LLVM.Value getRuntimeFunction( RuntimeFunction f ) {
@@ -1738,6 +1760,8 @@ namespace Parse {
 	    if( WantNativeExecutable ) {
 		IO.Std.err.println( "add shared library: " + dir + name + ".so" );
 		addLibrary( dir + name + ".so" );
+	    } else if( want_native_library_files && IO.File.exists( dir + name + ".so" ) ) {
+		addLibrary( dir + name + ".so"  );
 	    } else {
 		IO.Std.err.println( "add bitcode library: " + dir + name + ".bc" );
 		addLibrary( dir + name + ".bc" );
@@ -2386,7 +2410,7 @@ namespace Parse {
                     main_class_name = class_symbol.HumanName;
                     main_class_decorated = class_symbol.DecoratedName;
 		    main_class_init = "_Z" + main_class_decorated.substring(0,main_class_decorated.Length-1) + "4initEv";
-                } else {
+                } else if( WantLinkLibraries ) {
                     from.error( "duplicate Main class: " + class_symbol.HumanName + " versus " + main_class_name );
                 }
             } 
@@ -3059,12 +3083,28 @@ namespace Parse {
 	    want_native_object_files = n;
 	}
 
+        get bool WantNativeLibraryFiles {
+	    return want_native_library_files;
+	}
+	
+	set bool WantNativeLibraryFiles = l {
+	    want_native_library_files = l;
+	}
+
         get bool WantPIC {
 	    return want_pic;
 	}
 
 	set bool WantPIC = p {
 	    want_pic = p;
+	}
+
+        get bool WantExport {
+	    return want_export;
+	}
+
+	set bool WantExport = e {
+	    want_export = e;
 	}
 
 	get bool WantSafe {

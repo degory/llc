@@ -487,7 +487,11 @@ namespace Parse {
 	}
 
 	LLVM.Value compileValue( CompileState state, IRBlock into ) {
-	    return c.getClassGlobal(state);
+	    if( c != null && type != undefined_type ) {
+		return c.getClassGlobal(state);
+	    } else {
+		return ErrorValue();
+	    }
 	}
     }
 

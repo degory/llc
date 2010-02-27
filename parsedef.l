@@ -779,6 +779,8 @@ namespace Parse {
 					   ft
 					   );
 
+	    state.maybeLinkOnce(f);
+
 	    state.clearThrowBlocks();
 	    var into = new IRBlock( state, f );
 
@@ -813,13 +815,15 @@ namespace Parse {
 						 0,
 						 0
 						 );
-
+	    
 	    var f =
 		LLVM.Calls.LLVMAddFunction(
-					   state.Module, 
+					   state.Module,
 					   ("__static_init_" + c.DecoratedName).toCString(),
 					   ft
 					   );
+
+	    state.maybeLinkOnce(f);
 
 	    state.clearThrowBlocks();
 	    var into = new IRBlock( state, f );
@@ -924,7 +928,8 @@ namespace Parse {
 	    LLVM.Calls.LLVMSetInitializer(
 					  v,
 					  LLVM.Calls.LLVMConstArray(
-								    pft,								   							 fa.address,
+								    pft,
+								    fa.address,
 								    1
 								    )
 					  );
@@ -1014,6 +1019,8 @@ namespace Parse {
 						  0
 						  );
 	    var g = c.getClassGlobal(state);
+
+	    state.maybeLinkOnce(g);
 
 	    var i =
  	        LLVM.Calls.LLVMConstStruct(
@@ -1806,8 +1813,10 @@ namespace Parse {
             var decorated = m.DecoratedName;
 
 	    var fg = m.getFunctionGlobal(state);
+	    state.maybeLinkOnce(fg);
 
 	    LLVM.Calls.LLVMSetFunctionCallConv(fg, LLVM.LLVMCallConv.LLVMCCallConv);
+	    
 
 	    var into = new IRBlock( state, fg );	   
 	    state.clearThrowBlocks();

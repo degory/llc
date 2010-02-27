@@ -37,7 +37,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1227;
+	const int BUILD = 1228;
 
 	CompileState state;
 
@@ -223,6 +223,18 @@ namespace Parse {
 
 			    case 'p':
 				state.WantPIC = false;
+
+			    case 'E':
+				state.WantExport = true;
+
+			    case 'e':
+				state.WantExport = false;
+
+			    case 'L':
+				state.WantNativeLibraryFiles = true;
+
+			    case 'l':
+				state.WantNativeLibraryFiles = false;
 
 			    default:
 				IO.Std.err.println( "unexpected output format option '" + name[j] + "'" );

@@ -86,10 +86,10 @@ include lang.d
 lang: lang.bc lang.lh
 
 lang.bc: $(lang_DEPS)
-	$(LC) -f $(MODEL) $(LFLAGSBC) -w -u lib.l -o lang
+	$(LC) -V -f $(MODEL) $(LFLAGSBC) -CE -w -u lib.l -o lang
 
 lang.so: $(lang_DEPS)
-	$(LC) -V -f $(MODEL) $(LFLAGSNATIVE) -CP -w -u lib.l -o lang
+	$(LC) -V -f $(MODEL) $(LFLAGSNATIVE) -CPE -w -u lib.l -o lang
 	mv lang lang.so
 
 lang.lh: lang.bc

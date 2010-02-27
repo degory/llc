@@ -358,7 +358,7 @@ namespace Parse {
 					     name
 					     );
 	    }
-	    
+
 	    return v;
 	}
 
@@ -411,7 +411,7 @@ namespace Parse {
 
 	    v = LLVM.Calls.LLVMGetNamedGlobal(state.Module, name);
 	    if( v == null ) {
-		v = LLVM.Calls.LLVMAddGlobal(state.Module, LLVM.Calls.LLVMArrayType(LLVM.Calls.LLVMVTableFunctionType(), VTableSize + IFaceOffset + 3), name);		
+		v = LLVM.Calls.LLVMAddGlobal(state.Module, LLVM.Calls.LLVMArrayType(LLVM.Calls.LLVMVTableFunctionType(), VTableSize + IFaceOffset + 3), name);
 		// LLVM.Calls.LLVMSetLinkage(v, LLVM.LLVMLinkage.LLVMDLLImportLinkage);
 	    }
 	    
@@ -1374,6 +1374,8 @@ namespace Parse {
 					  i
 					  );
 
+	    state.maybeLinkOnce(g);
+
 	    return g;
         }
 
@@ -1849,9 +1851,56 @@ namespace Parse {
 					  a
 					  );
 
-	    LLVM.Calls.LLVMSetGlobalConstant(ct, 1);
+	    //LLVM.Calls.LLVMSetGlobalConstant(ct, 1);
+
+	    state.maybeLinkOnce(ct);
 
 	    //LLVM.Calls.LLVMAddTypeName( state.Module, HumanName.toCString(), Type.getLLVMType(state) );
+	}
+
+	void emitInterfaceSelector( CompileState state, Container s ) {
+	    var name = ("__selector_" + s.DecoratedName).toCString();
+
+	    var g = LLVM.Calls.LLVMGetNamedGlobal(
+						  state.Module,
+						  name
+						  );
+
+	    if( g == null ) {
+		g = LLVM.Calls.LLVMAddGlobal(
+					     state.Module,
+					     LLVM.Calls.LLVMInt32Type(),
+					     name
+					     );
+
+		state.maybeLinkOnce(g,false);
+
+		/*
+		LLVM.Calls.LLVMSetLinkage(
+					  g,
+					  LLVM.LLVMLinkage.LLVMWeakAnyLinkage
+					  );
+					 
+		*/
+		int a = 0;
+		if( s.IsAddressValid ) {
+		    a = s.Address;
+		    // IO.Std.err.println( "selector offset: " + s.HumanName + " @ " + a );
+		} else {
+		    // IO.Std.err.println( "selector offset: " + s.HumanName + " @ unknown" );
+		}
+
+		LLVM.Calls.LLVMSetInitializer(
+					      g,
+					      LLVM.Calls.LLVMConstInt(
+								      LLVM.Calls.LLVMInt32Type(),
+								      cast long(a),
+								      0
+								      )
+					      );
+
+		// LLVM.Calls.LLVMDumpValue( g );
+	    }
 	}
 
 	void emitInterfaceTables( CompileState state, ParseTree from, Generic.Vector<LLVM.Value> buffer ) {
@@ -1887,7 +1936,9 @@ namespace Parse {
 		    if( e.IsFinal ) {
 			IO.Std.err.println( "weird: interface member '" + e.HumanName + "' is final" );			
 		    } 
-			
+
+		    emitInterfaceSelector( state, e );
+
 		    i = findImplementedMethod(e);
 		    if( i == null ) { 
 			from.error( HumanName + " must implement " + e.HumanName );
@@ -1948,7 +1999,6 @@ namespace Parse {
 			       );
 		}
 	    }
-
 	}
 
 	int calcIFaceOffset() {

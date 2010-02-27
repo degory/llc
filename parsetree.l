@@ -891,6 +891,10 @@ namespace Parse {
 		return v;
 	    }
 
+	    if( isError(v) ) {
+		return QuietErrorValue(t);
+	    }
+
 	    LLVM.TypeKind kv = LLVM.Calls.LLVMGetTypeKind(tv);
 	    LLVM.TypeKind kt = LLVM.Calls.LLVMGetTypeKind(t);
 
@@ -902,12 +906,12 @@ namespace Parse {
 	    */
 
 	    if( kt == LLVM.TypeKind.LLVMVoidTypeKind ) {
-		IO.Std.err.println( "left type is void" ); IO.Std.err.flush();	       
-		throw new System.Exception( "left type is void" );
+		IO.Std.err.println( "makeLLVMCast: void left value" );
+		return QuietErrorValue(t);
 	    }
 
 	    if( kv == LLVM.TypeKind.LLVMVoidTypeKind ) {
-		IO.Std.err.println( "right type is void" ); IO.Std.err.flush();
+		IO.Std.err.println( "makeLLVMCast: right type is void" ); IO.Std.err.flush();
 		throw new System.Exception( "right type is void" );
 	    }
 
