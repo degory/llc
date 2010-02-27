@@ -10,8 +10,12 @@ else
 	TARGET:=linux-x86-64
 endif
 
+ifeq ($(RUNTIME),)
+	RUNTIME=/usr/lib/lang
+endif
+
 ifeq ($(LFLAGS),)
-	LFLAGS:=-p test -w
+	LFLAGS:=-p test -w -R$(RUNTIME)
 endif
 
 ifeq ($(LFLAGSBC),)
@@ -31,9 +35,14 @@ ifeq ($(LLVM_CXX),)
 	LLVM_CXX:=/usr/local/bin/g++
 endif
 
+ifeq ($(PREFIX),)
+	PREFIX:=/usr
+endif
+
+
 LRT_VERSION:=0.2
 
-INSTALL_OBJS:=$(LC) jit.o dummy.o llvmc.so fcgi.o lang.bc lang.so lang.lh lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o
+INSTALL_OBJS:=lc jit.o dummy.o llvmc.so fcgi.o lang.bc lang.so lang.lh lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o
 
 LRT_CFLAGS:=-DB64 -g -O1 -DLLVM
 
@@ -42,25 +51,22 @@ CP_FLAGS:=-u -v -p --preserve=timestamps
 all: $(INSTALL_OBJS)
 
 install: $(INSTALL_OBJS)
-	mkdir -p safe
 	echo "Installing in $(PREFIX)/"
-	cp safe/lc-previous-1 safe/lc-previous-2 || true
-	cp safe/lc-previous safe/lc-previous-1 || true
-	cp /usr/bin/lc safe/lc-previous
-
-	mkdir -p $(PREFIX)/usr/bin/
-	cp -u -v -p lc $(PREFIX)/usr/bin
-
-	mkdir -p $(PREFIX)/usr/lib/lang/$(TARGET)/trusted/
-	mkdir -p $(PREFIX)/usr/lib/lang/$(TARGET)/unsafe/
-	mkdir -p $(PREFIX)/usr/lib/lang/$(TARGET)/safe/
-
-	cp -r $(CP_FLAGS) lib/* $(PREFIX)/usr/lib/lang	
-	cp $(CP_FLAGS) jit.o fcgi.o llvmc.so $(PREFIX)/usr/lib/lang/$(TARGET)/unsafe/
-	cp $(CP_FLAGS) dummy.o lang.so lang.bc lang.lh $(PREFIX)/usr/lib/lang/$(TARGET)/trusted/
-	cp $(CP_FLAGS) lrt-llvm-$(LRT_VERSION).bc $(PREFIX)/usr/lib/lang/$(TARGET)/
-	cp $(CP_FLAGS) lrt-llvm-$(LRT_VERSION).o $(PREFIX)/usr/lib/lang/$(TARGET)/
-#	cp $(CP_FLAGS) lang.so $(PREFIX)/usr/lib/lang/$(TARGET)/trusted/
+	#mkdir -p safe
+	#cp safe/lc-previous-1 safe/lc-previous-2 || true
+	#cp safe/lc-previous safe/lc-previous-1 || true
+	#cp /usr/bin/lc safe/lc-previous
+	mkdir -p $(PREFIX)/bin/
+	cp -u -v -p lc $(PREFIX)/bin
+	mkdir -p $(PREFIX)/lib/lang/$(TARGET)/trusted/
+	mkdir -p $(PREFIX)/lib/lang/$(TARGET)/unsafe/
+	mkdir -p $(PREFIX)/lib/lang/$(TARGET)/safe/
+	cp -r $(CP_FLAGS) lib/* $(PREFIX)/lib/lang	
+	cp $(CP_FLAGS) jit.o fcgi.o llvmc.so $(PREFIX)/lib/lang/$(TARGET)/unsafe/
+	cp $(CP_FLAGS) dummy.o lang.so lang.bc lang.lh $(PREFIX)/lib/lang/$(TARGET)/trusted/
+	cp $(CP_FLAGS) lrt-llvm-$(LRT_VERSION).bc $(PREFIX)/lib/lang/$(TARGET)/
+	cp $(CP_FLAGS) lrt-llvm-$(LRT_VERSION).o $(PREFIX)/lib/lang/$(TARGET)/
+#	cp $(CP_FLAGS) lang.so $(PREFIX)/lib/lang/$(TARGET)/trusted/
 
 
 lc.zip: $(INSTALL_OBJS)	
@@ -68,7 +74,7 @@ lc.zip: $(INSTALL_OBJS)
 	mkdir /tmp/canned
 	$(MAKE) $(MAKEFILE) PREFIX=/tmp/canned install
 	rm lc.zip || true
-	HERE=`pwd` ; cd /tmp/canned ; zip -r $$HERE/lc.zip usr
+	HERE=`pwd` ; cd /tmp/canned ; zip -r $$HERE/lc.zip .
 
 clean:
 	rm lc lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o lc.bc lc.lh jit.o dummy.o llvmc.o llvmc.so lang lang.bc lang.lh lrt-exception.o lrt-unwind.o lrt-throw.o /tmp/lcache-test/* || true
@@ -132,19 +138,20 @@ lrt-throw.o: lrt-throw.cpp
 	$(LLVM_CXX) $(MODEL) $(LRT_CFLAGS) -emit-llvm -c lrt-throw.cpp
 
 bootstrap:
-	rm lc /tmp/lcache-test/* lcb || true
-	$(MAKE) lc
-	mv lc lc1
-	rm /tmp/lcache-test/*
-	$(MAKE) LC=./lc1 lc
-	mv lc lc2
-	rm /tmp/lcache-test/*
-	$(MAKE) LC=./lc2 lc
-	mv lc lc3
-	rm /tmp/lcache-test/*
-	$(MAKE) LC=./lc3 lc
-	diff lc2 lc3
-	mv lc3 lcb
+	rm -r ./bs1 || true
+	$(MAKE) clean
+	$(MAKE) install PREFIX=./bs1 NOSAFE=1	
+	rm -r ./bs2 || true
+	$(MAKE) clean
+	$(MAKE) install LC=./bs1/bin/lc RUNTIME=./bs1/lib/lang PREFIX=./bs2 NOSAFE=1
+	rm -r ./bs3 || true
+	$(MAKE) clean
+	$(MAKE) install LC=./bs2/bin/lc RUNTIME=./bs2/lib/lang PREFIX=./bs3 NOSAFE=1
+	rm -r ./bs4 || true
+	$(MAKE) clean
+	$(MAKE) install LC=./bs3/bin/lc RUNTIME=./bs3/lib/lang PREFIX=./bs4 NOSAFE=1
+	diff -r bs3 bs4
+
 
 syntaxl.l: syntax-l.jay skeleton-l
 	jay/jay -v syntax-l.jay <skeleton-l >syntaxl.l

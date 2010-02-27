@@ -114,11 +114,43 @@ import "LLVMSystem";
 namespace LLVM {
     struct Context { }
     struct Module { System.String toString() { return "LLVM Module"; } }
-    struct Type { System.String toString() { return "LLVM Type"; } }
+    struct Type {
+	System.String toString() { return "LLVM Type"; }
+
+	bool opEquals( Type t ) {
+	    return this == t;
+	}
+
+	int opCompare( Type t ) {
+	    return cast int(this) - cast int(t);
+	}
+    }
+
     struct TypeHandle { }
 
-    struct Value { System.String toString() { return "LLVM Value"; } }
-    struct BasicBlock { System.String toString() { return "LLVM.BasicBlock"; } }
+    struct Value {
+	System.String toString() { return "LLVM Value"; }
+	
+	bool opEquals( Value v ) {
+	    return this == v;
+	}
+
+	int opCompare( Value v ) {
+	    return cast int(this) - cast int(v);
+	}
+    }
+
+    struct BasicBlock {
+	System.String toString() { return "LLVM.BasicBlock"; }
+
+	bool opEquals( BasicBlock b ) {
+	    return this == b;
+	}
+
+	int opCompare( BasicBlock b ) {
+	    return cast int(this) - cast int(b);
+	}
+    }
     struct Builder { }
 
     struct LLVMOpaqueModuleProvider {}

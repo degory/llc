@@ -37,7 +37,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1228;
+	const int BUILD = 1229;
 
 	CompileState state;
 
@@ -120,7 +120,15 @@ namespace Parse {
                         } else {
                             i = i + 1;
 			    state.addLibrary( args[i] );
-                        }			
+                        }	
+
+		    case 'R':
+                        if( name.getLength() > 2 ) {
+			    state.RuntimeDir = name.substring(2);
+                        } else {
+                            i = i + 1;
+			    state.RuntimeDir = args[i];
+                        }	
 
 		    case 'D':
 			state.WantPrintDeps = true;

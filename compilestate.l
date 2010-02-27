@@ -520,7 +520,7 @@ namespace Parse {
 	ExceptionDescriptor[] exception;
 
         String lcache_dir;
-        static String LIBRARY_DIR = "/usr/lib/lang/";
+        String runtime_dir;
         static String label_prefix = ".L";
 
 	// ThreadPool pool;
@@ -554,6 +554,7 @@ namespace Parse {
 	    }
 	    */
 
+	    result.runtime_dir = runtime_dir;
 	    result.symbol_table = symbol_table.copy();
 
 	    result.state = new State[30]; // new_state;
@@ -573,6 +574,7 @@ namespace Parse {
 	    lcache_dir = null;
 
 	    target_isa = "x86";
+	    RuntimeDir = "/usr/lib/lang/";
 
 	    module = LLVM.Calls.LLVMModuleCreateWithName(`test`);
 	    local_variables = new Generic.Vector<LLVM.Value>();
@@ -622,6 +624,18 @@ namespace Parse {
 	    
 	    // pool = new ThreadPool(2);
 	    // pool.start();
+	}
+
+	get String RuntimeDir {
+	    return runtime_dir;
+	}
+
+	set String RuntimeDir = s { 
+	    if( !s.endsWith('/') ) {
+		s = s + '/';
+	    }
+
+	    runtime_dir = s;
 	}
 
 	get LLVM.Value LocalVariable[int i] {
@@ -692,24 +706,24 @@ namespace Parse {
 		addSearchPath( "./" );
 	    }
 
-	    addSearchPath( LIBRARY_DIR + TargetID + "/" );
-	    addSearchPath( LIBRARY_DIR + TargetID + "/trusted/" );
-	    addSearchPath( LIBRARY_DIR + "trusted/" );
+	    addSearchPath( RuntimeDir + TargetID + "/" );
+	    addSearchPath( RuntimeDir + TargetID + "/trusted/" );
+	    addSearchPath( RuntimeDir + "trusted/" );
 
 	    if( safe ) {
-		addSearchPath( LIBRARY_DIR + "safe/" );
+		addSearchPath( RuntimeDir + "safe/" );
 	    } else {
 
-		addSearchPath( LIBRARY_DIR + TargetID + "/trusted/" );
-		addSearchPath( LIBRARY_DIR + TargetID + "/unsafe/" );
-		addSearchPath( LIBRARY_DIR + "unsafe/" );
+		addSearchPath( RuntimeDir + TargetID + "/trusted/" );
+		addSearchPath( RuntimeDir + TargetID + "/unsafe/" );
+		addSearchPath( RuntimeDir + "unsafe/" );
 	    }
 	}
 
 	bool isSourceFileTrusted( String name ) {
 	    return
-		name.startsWith( LIBRARY_DIR + "trusted/" ) ||
-		name.startsWith( LIBRARY_DIR + "safe/" );
+		name.startsWith( RuntimeDir + "trusted/" ) ||
+		name.startsWith( RuntimeDir + "safe/" );
 	}
 
 	void countInline() {
@@ -1196,8 +1210,8 @@ namespace Parse {
 	    
 	    foreach( String s; dependent_files.elements() ) {
 		// hack: make library files appear in ./lib in .d files:
-		if( s.startsWith(LIBRARY_DIR) ) {
-		    s = "./lib/" + s.substring(LIBRARY_DIR.Length);
+		if( s.startsWith(RuntimeDir) ) {
+		    s = "./lib/" + s.substring(RuntimeDir.Length);
 		}
 		df.print( s );
 		df.print( " " );
@@ -1518,7 +1532,7 @@ namespace Parse {
 		v.add( "gcc" );
 
 		if( WantLinkLibraries ) {
-		    v.add( LIBRARY_DIR + TargetID + "/trusted/dummy.o" );
+		    v.add( RuntimeDir + TargetID + "/trusted/dummy.o" );
 		}
 
 		if( WantPIC ) {
@@ -1552,7 +1566,7 @@ namespace Parse {
 		    }
 
 		    if( WantLinkLibraries ) {
-			v.add( LIBRARY_DIR + TargetID + "/trusted/dummy.o" );
+			v.add( RuntimeDir + TargetID + "/trusted/dummy.o" );
 		    }
 		}
 
@@ -1568,7 +1582,7 @@ namespace Parse {
 		v.add( "-L/usr/lang/lib/" + TargetID + "/" );
 		v.add( "-L/usr/lang/lib/" );
 
-		// v.add( LIBRARY_DIR + "lrt-llvm-" + RUNTIME_VERSION + ".bc" );
+		// v.add( RuntimeDir + "lrt-llvm-" + RUNTIME_VERSION + ".bc" );
 
 		v.add( "-o" );
 
@@ -1579,9 +1593,9 @@ namespace Parse {
 		v.add( "-L/usr/lang/lib/" );
 
 		if( WantNativeObjectFiles ) {
-		    v.add( LIBRARY_DIR + TargetID + "/lrt-llvm-" + RUNTIME_VERSION + ".o" );
+		    v.add( RuntimeDir + TargetID + "/lrt-llvm-" + RUNTIME_VERSION + ".o" );
 		} else {
-		    v.add( LIBRARY_DIR + TargetID + "/lrt-llvm-" + RUNTIME_VERSION + ".bc" );
+		    v.add( RuntimeDir + TargetID + "/lrt-llvm-" + RUNTIME_VERSION + ".bc" );
 		}
 
 		v.add( "-o" );

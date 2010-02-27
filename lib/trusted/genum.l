@@ -40,6 +40,14 @@ namespace System {
 	    return new StringBuffer().append(cast int(w));
 	}
 
+	static StringBuffer opAddRev(T v, System.String s) {
+	    return new StringBuffer(s).append(cast int(v));
+	}
+
+	static StringBuffer opAdd(T v, System.String s) { 
+	    return "" + cast int(v) + s;
+	}
+
 	static Enum<T> box(T w) {
 	    return new Enum<T>(w);
 	}
@@ -59,7 +67,7 @@ namespace System {
 	    return _value == w.Value;
 	}
 
-	int opCompare( T b, T c ) {
+	static int opCompare( T b, T c ) {
 	    if( b > c ) {
 		return 1;
 	    } else if( b < c ) {
