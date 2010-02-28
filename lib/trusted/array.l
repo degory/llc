@@ -85,7 +85,7 @@ namespace Generic is
                if i != 0 then
 	           result.append(',');			
                fi
- 	       result.append(cast word(this[i]));
+ 	       result.append(this[i].toString());
 	    od
 
             return result;

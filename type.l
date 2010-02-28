@@ -246,6 +246,9 @@ namespace Parse {
 	    case Type.ENUM:
 		return LLVM.Calls.LLVMInt32Type();
 
+	    case Type.ERROR:
+		return LLVM.Calls.LLVMInt32Type();		
+
             default:
 		throw new System.Exception( "unexpected type: " + this );
             }
@@ -262,7 +265,8 @@ namespace Parse {
 		Type.INTEGER,
 		Type.LONG,
 		Type.WORD,
-		Type.ENUM:
+		Type.ENUM,
+		Type.ERROR:
 		return LLVM.Calls.LLVMConstInt( getLLVMType(state), 0L, 0 );
 
 		/*

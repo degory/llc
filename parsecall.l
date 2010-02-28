@@ -1221,8 +1221,11 @@ namespace Parse {
             }
 
 	    if( t != null && arg0_type != null ) {
-		// IO.Std.err.println( "XXXX: t is: " + t + ", arg0 is: " + arg0_type + "..." );
-
+		/*
+		IO.Std.err.println( "XXXX: t is: " + t + ", arg0 is: " + arg0_type + "..." );
+		IO.Std.err.println( "" + t + " assignable " + arg0_type + ": " + t.isAssignableFrom(arg0_type) );
+		IO.Std.err.println( "" + arg0_type + " assignable " + t + ": " + arg0_type.isAssignableFrom(t) );
+		*/
 		if( arg0_type.isAssignableFrom(t) ) {
 		    c = t.Clazz;
 		    if( c == null ) {
@@ -1239,6 +1242,12 @@ namespace Parse {
 			    // IO.Std.err.println( "no good, is static" );
 			    s1 = null;
 			}
+
+			/*
+			if( s1 != null ) {
+			    IO.Std.err.println( "possible virtual method: " + s1.HumanName );
+			}
+			*/
 		    } else {
 			IO.Std.err.println( "weird: assignable but no class in: " + t );
 		    }

@@ -723,6 +723,12 @@ namespace IO {
 	int write( char ptr buffer, int size ) {
 	    throw new IOException( 0, "cannot write to StringStream" );
 	}
+
+	void close() {
+	}
+
+	void flush() {
+	}
     }	
 
     /// A read write CharStream over a StringBuffer

@@ -2297,7 +2297,7 @@ namespace Parse {
 				    bool is_slot
 				    ) {
 
-	    // IO.Std.err.println( "make proc ref thunk..." ); IO.Std.err.flush();
+	    // IO.Std.err.println( "make proc ref thunk: " + proc_type ); IO.Std.err.flush();
 
 	    bool is_static = method.IsStatic;
 	    bool is_final = method.CallAsFinal;
@@ -2371,13 +2371,14 @@ namespace Parse {
 						   0
 						   );
 
-	    /* IO.Std.err.println( "thunk function type is: " ); IO.Std.err.flush();
+	    /*
+	    IO.Std.err.println( "thunk function type is: " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpType( ft_thunk );
 	    */
 
 	    // add new function to current module that will be the new thunk:
 	    f_thunk = LLVM.Calls.LLVMAddFunction( m, name.toCString(), ft_thunk );
-	    LLVM.Calls.LLVMSetLinkage(f_thunk, LLVM.LLVMLinkage.LLVMLinkOnceAnyLinkage );
+	    LLVM.Calls.LLVMSetLinkage(f_thunk, LLVM.LLVMLinkage.LLVMLinkOnceODRLinkage );
 	    
 	    var into = new IRBlock( state, f_thunk );
 
@@ -2421,6 +2422,8 @@ namespace Parse {
 					into,
 					LLVM.Calls.LLVMGetParam( f_thunk, 1 ),
 					method.Address ); 
+
+		g = into.PointerCast(g, LLVM.Calls.LLVMPointerType(ft_target,0)); // this.f1 as function ptr
 	    } else if( is_final ) {
 		g = method.getFunctionGlobal(state);
 	    } else {
@@ -2526,7 +2529,6 @@ namespace Parse {
 
 	    /*
 	    IO.Std.err.println( "made thunk: " ); IO.Std.err.flush();
-
 	    LLVM.Calls.LLVMDumpValue( f_thunk );
 	    */
 
@@ -2736,7 +2738,7 @@ namespace Parse {
 				     );
 
 	    // IO.Std.err.print( "address of f0: "); IO.Std.err.flush();
-	    LLVM.Calls.LLVMDumpValue( q );
+	    // LLVM.Calls.LLVMDumpValue( q );
 	    
 	    // locate existing thunk or create one if not found:
 	    var p = makeProcRefThunk(
@@ -2747,7 +2749,7 @@ namespace Parse {
 				     );
 
 	    // IO.Std.err.print( "address of thunk: "); IO.Std.err.flush();
-	    LLVM.Calls.LLVMDumpValue( p );
+	    // LLVM.Calls.LLVMDumpValue( p );
 
 	    // store the thunk in f0 field:
 	    into.Store(

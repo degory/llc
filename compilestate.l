@@ -1545,7 +1545,7 @@ namespace Parse {
 	    } else {
 		IO.Std.err.println( "link bitcode object files" );
 		exe = "llvm-ldh";
-		v.add( "llvm-ld" );
+		v.add( "llvm-ldh" );
 
 		if( OptimizeLevel == 0 ) {
 		    IO.Std.err.println( "linking with -disable-opt" );
