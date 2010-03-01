@@ -730,7 +730,7 @@ namespace Parse {
 	}
 
         String toString() {
-            return "Constant(" + value + "," + type + ")";
+            return print_value;
         }
 
 	get int Depth {

@@ -1935,6 +1935,23 @@ namespace Parse {
             buffer.append( "}\n" );
         }
 
+	bool contains( Statement s ) {
+	    // IO.Std.err.println( "does " + this + " contain " + s );
+	    foreach( Statement t; list.elements() ) {
+		/*
+		IO.Std.err.println( "compare: " + s + " to " + t );
+		IO.Std.err.println( "compare: " + cast long(s) + " to " + cast long(t) );
+		*/
+		if( s == t ) {
+		    // IO.Std.err.println( "match" );
+		    return true;
+		}
+	    }
+
+	    // IO.Std.err.println( "no match" );
+	    return false;
+	}
+
 
         void parseImports( CompileState state ) {
             foreach( Statement s; list.elements() ) {

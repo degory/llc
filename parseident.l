@@ -747,7 +747,11 @@ namespace Parse {
 		right.print( state, p );
 	    }
 	    */
-	}       
+	}     
+
+	String toString() {
+	    return "" + super.toString() + "=" + right;
+	}
     }
 
     class AtExpression extends LeftValue {

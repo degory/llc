@@ -1092,6 +1092,60 @@ namespace Parse {
 	}
     }
 
+    class ProcLiteral extends Expression {
+	MethodDef body;
+	String name;
+
+	void init( int line_number, MethodDef body ) {
+            super.init( line_number );
+            this.body = body;
+
+	    // name = body.Name.Name;
+	    // IO.Std.err.println( "new proc literal: " + name );
+
+            // is_empty = body.IsEmpty;
+        }
+
+	void clear( CompileState state ) {
+	    body.clear(state);
+	}
+
+	void checkTemplates( CompileState state ) {
+	    // IO.Std.err.FlushOnPrintln = true;
+	    // IO.Std.err.println( "proc literal, check templates in class: " + state.CurrentClass );
+	    calcType(state);
+	    if( type != null ) {
+		type.getBoxType(state);
+	    }
+	    // IO.Std.err.println( "will need to compile body: for proc literal: " + type + " in class " + state.CurrentClass.HumanName );
+	    
+	    if( body.Name == null ) {
+		name = "__anon_" + state.CurrentClass.NextAnon;
+		body.Name = new Identifier( line_number, name );
+
+		state.CurrentClass.addToBodyStatement(body);
+	    }
+	}
+
+	void calcType( CompileState state ) {
+	    // IO.Std.err.println( "proc literal, calcType: " + body );
+	    Type return_type = body.getReturnType(state);
+	    // IO.Std.err.println( "return type: " + return_type );
+	    Vector<Type> arg_types = body.getArgTypes(state);
+	    // IO.Std.err.println( "arg types: " + arg_types );
+
+	    type = state.findProcType( return_type, arg_types );
+	}
+
+	LLVM.Value compileValue( CompileState state, IRBlock into ) {
+	    getType(state);
+	    // IO.Std.err.println( "compile proc literal: " + name );
+	    var method = state.CurrentClass.findAnonMethod( name );
+	    
+	    return compileLoadProcRef( state, into, null, method, type /*, method.ArgTypes, t, instance, super_class */ );
+	}      
+    }
+
     class ProcRef extends Expression {
 	Expression left;
 	TypeExpr return_type;

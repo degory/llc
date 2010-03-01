@@ -1191,6 +1191,10 @@ proc_ref:
 |	type PROC OPEN_PAREN CLOSE_PAREN OPEN_PAREN expression CLOSE_PAREN {
 	    $$ = new Parse.ProcRef( first_line, cast<Parse.Expression>($6), cast<Parse.TypeExpr>($1), new Parse.TypeExprList(first_line) );
         }
+|	type PROC declare_arguments block_statement {
+	    $$ = new Parse.ProcLiteral( first_line,
+	        new Parse.MethodDef( first_line, null, 0, cast Parse.TypeExpr($1), cast Parse.ArgumentsDef($3), cast Parse.BlockStatement($4) ) );
+        }
 ;
 
 field_access:

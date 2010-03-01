@@ -48,7 +48,7 @@ namespace Parse {
         }
         
         void dump( StringBuffer human, StringBuffer decorate ) {
-	    IO.Std.err.println( "no state dump called: " + new System.Backtrace() );
+	    // IO.Std.err.println( "no state dump called: " + new System.Backtrace() );
             for( var i = list.elements(); i.hasMoreElements(); ) {
                 VariableDef v = cast<VariableDef>(i.nextElement());
                 v.dump( human, decorate );
@@ -65,14 +65,23 @@ namespace Parse {
         }
         
         Vector<Type> getTypes( CompileState state ) {
-            var result = new Vector<Type>();
+            var result = new Vector<Type>(list.Length);
             foreach( VariableDef v; list.elements() ) {
                 result.add( v.getType( state ) );
             }
             
             return result;
         }
-        
+
+	get Vector<TypeExpr> TypeExprs {
+	    var result = new Vector<TypeExpr>(list.Length);
+            foreach( VariableDef v; list.elements() ) {
+                result.add( v.TypeExpr );
+            }
+
+	    return result;
+	}
+         
         void declareSymbols( CompileState state, bool skip_this ) {
 	    state.beginParseStackParams();
 
@@ -99,6 +108,23 @@ namespace Parse {
 		v.print( state, p );
 		seen_any = true;
 	    }
+	}
+
+	String toString() {
+	    var result = new StringBuffer();
+	    bool seen_any;
+            foreach( VariableDef v; list.elements() ) {
+		if( seen_any ) {
+		    result[result.Length-1] = ',';
+		}
+		result.append( v );
+
+		seen_any = true;
+	    }
+	    if( seen_any ) {
+		result[result.Length-1] = ' ';
+	    }
+	    return result;
 	}
     }
 
@@ -430,6 +456,7 @@ namespace Parse {
 		}
 
                 body.declareGlobalSymbols( state );
+		c.BodyStatement.declareGlobalSymbols( state );
                 state.exitClass( c );
 
 		if( is_generic ) {
@@ -519,6 +546,7 @@ namespace Parse {
 		// }
 
 	    body.declareGlobalSymbols( state );
+	    concrete.BodyStatement.declareGlobalSymbols(state);
 	    state.exitClass( concrete );
 	    // declareSymbols( state, concrete );
 
@@ -597,6 +625,7 @@ namespace Parse {
 		    // IO.Std.err.println( "begin parse class: c: " + c + ", super_class: " + super_class + ", c.Super: " + c.Super );
 			    
 		    body.declareClassSymbols( state );
+		    c.BodyStatement.declareClassSymbols(state);
 		    state.middleParseClass( c );
 		    
 		    state.endParseClass( c );
@@ -689,6 +718,8 @@ namespace Parse {
 	    // IO.Std.err.println( "check template: " + c );
 	    state.enterClass( c );
 	    body.checkTemplates( state );
+	    c.BodyStatement.checkTemplates(state);
+
 	    state.exitClass( c );
 	}
 
@@ -712,6 +743,7 @@ namespace Parse {
 
 	    c.resetMethodIndex();
 	    body.declareSymbols( state );
+	    c.BodyStatement.declareSymbols(state);
 
 	    state.endCompileClass( c );
 	}
@@ -1073,7 +1105,6 @@ namespace Parse {
 
 	    c.resetMethodIndex();
             if( body != null ) {
-
 		// IO.Std.err.println( "GGGG: begin compile class " + c.HumanName );
 
                 state.beginCompileClass( this, c, name.Name );
@@ -1139,6 +1170,9 @@ namespace Parse {
 		    // IO.Std.err.println( "GGGG: begin compile class body " + c.HumanName );
                     body.compile( state );
 		    // IO.Std.err.println( "GGGG: end compile class body " + c.HumanName );
+
+		    c.BodyStatement.compile(state);
+
 
                     int unsafe_flags = state.UnsafeFlags;
                     if( unsafe_flags != 0 ) {
@@ -1461,7 +1495,8 @@ namespace Parse {
             Assignment a;
 
 	    // IO.Std.err.println( "compile variable def, symbol table: " + state.symbol_table );
-            
+
+	    bool first = true;
             var v = list.List;
             foreach( Identifier ident; v.elements() ) {
                 String name = ident.Name;
@@ -1507,6 +1542,9 @@ namespace Parse {
             }
         }
 
+	get TypeExpr TypeExpr {
+	    return type_expr;
+	}
         
         Type getType( CompileState state ) {
             return type_expr.parseType( state );
@@ -1588,6 +1626,8 @@ namespace Parse {
 	bool last_return;
 	// bool is_empty;
 
+	static int next_anon;
+
         void init( int line_number, Identifier name, int access, TypeExpr type, ArgumentsDef args, BlockStatement  body ) {
             super.init( line_number );
 
@@ -1604,6 +1644,34 @@ namespace Parse {
 	    // is_empty = body.IsEmpty;
         }
 
+	set Identifier Name = n {
+	    name = n;
+	}
+
+	get Identifier Name {
+	    return name;
+	}
+
+	get TypeExpr ReturnTypeExpr {
+	    return type;
+	}
+
+	get Vector<TypeExpr> ArgTypeExprs {
+	    return args.TypeExprs;
+	}
+
+	Type getReturnType( CompileState state ) {
+	    return type.parseType(state);
+	}
+
+	Vector<Type> getArgTypes( CompileState state ) {
+	    if( args != null ) {
+		return args.getTypes(state);
+	    } else {
+		return new Vector<Type>();
+	    }
+	}
+       
 	void clear( CompileState state ) {
 	    // IO.Std.err.println( "method def clear: " + m );
 	    m = null;
@@ -1840,9 +1908,9 @@ namespace Parse {
 
 	    // args.compile( state, into );
 
-            if( m.Owner.Super != null && m.Name == "init" && 
+            if( m.Owner.Super != null && m.Name =~ "init" && 
                 !body.isFirstStatementSuperConstructorCall( state ) ) {
-                error( "first statement in " + human + " is not a call to super.init() or this.init()" );
+                warn( "first statement in " + human + " is not a call to super.init() or this.init()" );
             }
 
 	    /*

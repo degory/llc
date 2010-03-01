@@ -44,12 +44,11 @@ namespace Parse {
         String human;
 
 	CompileStatus compile_status;
+	BlockStatement body_statement;
 
 	LLVM.Module llvm_module;
-	// LLVM.Value global;
-	// LLVM.Value static_global;
 	LLVM.Value this_pointer;
-	// LLVM.Value return_value;
+
 
 	public LLVM.Value first_static, last_static;
 
@@ -64,6 +63,7 @@ namespace Parse {
 	int iface_offset;
         int hash_;
 	int label;
+	int next_anon;
 
         bool is_final;
         bool is_struct;
@@ -189,8 +189,44 @@ namespace Parse {
 	    }
 	}
 
+	get int NextAnon {
+	    int result = next_anon;
+	    next_anon = next_anon + 1;
+	    return result;
+	}
+
+	get BlockStatement BodyStatement {
+	    if( body_statement == null ) {
+		body_statement = new BlockStatement(0);
+	    }
+
+	    return body_statement;
+	}
+
+	void addToBodyStatement(Statement s) {
+	    // IO.Std.err.println( "body statement is: " + body_statement );
+	    if( !BodyStatement.contains(s) ) {
+		// IO.Std.err.println( "does not contain: " + s );
+		BodyStatement.add(s);
+	    } else {
+		IO.Std.err.println( "oops: already have anonymous method " + s );
+	    }
+	}
+
 	get Vector<Container> ImplementsList {
 	    return implements_list;
+	}
+
+	Container findAnonMethod(String name) {
+	    foreach( Symbol s; members.SymbolList.elements() ) {
+		if( s.IsMethod && s.Name =~ name ) {
+		    // IO.Std.err.println( "found anon method: " + s.HumanName );
+
+		    return cast Container(s);
+		}
+	    }	 
+	    // IO.Std.err.println( "could not find anon method: " + name + " in " + HumanName );
+	    return null;
 	}
 
 	get bool HasIf {

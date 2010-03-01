@@ -207,6 +207,16 @@ namespace Parse {
 
 	    p.print( "var" );
 	}
+
+        void dump( CompileState  state, StringBuffer  buffer ) {
+            buffer.append("var ");
+        }
+
+        void dump( StringBuffer human, StringBuffer  decorate ) {
+            human.append("var ");
+            decorate.append(" !!!InterTypeExpr!!! ");
+        }
+
     }
 
     class TypeExprList extends ParseTree {
@@ -360,7 +370,7 @@ namespace Parse {
 	}
 
         void dump( StringBuffer human, StringBuffer decorate ) {
-	    IO.Std.err.println( "no state dump called: " + new System.Backtrace() );
+	    IO.Std.err.println( "no state dump called" ); //: " + new System.Backtrace() );
             Type t = new Type( type );
             t.dump( human, decorate );
         }
@@ -665,7 +675,7 @@ namespace Parse {
 	}
 
         void dump( StringBuffer human, StringBuffer decorate ) {
-	    IO.Std.err.println( "no state dump called: " + new System.Backtrace() );
+	    IO.Std.err.println( "no state dump called" ); // : " + new System.Backtrace() );
             decorate.append('P');
             type.dump( human, decorate );
             human.append("[]");
@@ -701,7 +711,7 @@ namespace Parse {
 	}
         
         void dump( StringBuffer  human, StringBuffer  decorate ) {
-	    IO.Std.err.println( "no state dump called: " + new System.Backtrace() );
+	    IO.Std.err.println( "no state dump called" ); // : " + new System.Backtrace() );
             decorate.append( 'R' );
             type.dump( human, decorate );
             human.append( " ref" );
@@ -737,7 +747,7 @@ namespace Parse {
 	}
 
         void dump( StringBuffer  human, StringBuffer  decorate ) {
-	    IO.Std.err.println( "no state dump called: " + new System.Backtrace() );
+	    IO.Std.err.println( "no state dump called" ); //: " + new System.Backtrace() );
             decorate.append( 'P' );
             type.dump( human, decorate );
             human.append( " ptr" );
