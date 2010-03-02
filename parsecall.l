@@ -467,19 +467,23 @@ namespace Parse {
 	}
 
         bool isSuperConstructorCall( CompileState state ) {
-            // getType( state );
-            
-            // Expression left = name.LeftValue;
-            
-	    if( !left_value.isIdentifier(state) ) {
-		return false;
-	    }
-
+	    // sort out mess that is left_value/qualifies...
 	    var name = cast Identifier(left_value);
-
-	    if( name.Name =~ "init" && left_value.isThis( state ) || left_value.isSuper( state ) ) {
+	    var left_value = name.LeftValue;
+	    
+	    if( name.Name =~ "init" && (left_value == null || left_value.isThis( state ) || left_value.isSuper( state )) ) {
 		return true;
 	    } else {
+		/*
+		IO.Std.err.println( "is init call, name: " + name + ": NO" );
+		if( left_value != null ) {
+		    IO.Std.err.println( "left value: " + left_value + " is " + left_value.ClassName );
+		    IO.Std.err.println( "is this: " + left_value.isThis(state) );
+		    IO.Std.err.println( "is super: " + left_value.isSuper(state) );
+		} else {
+		    IO.Std.err.println( "no left value" );
+		}
+		*/
 		return false;
 	    }
         }

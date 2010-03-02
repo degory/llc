@@ -125,6 +125,13 @@ namespace Generic is
 	    // check();
 	end
 
+	/// Append a new value to the end of this Vector immediately after the current last element
+	void add( Iterable<T> o ) is
+	    foreach var v; o.Iterator do
+	        add(v);
+	    od			       	      
+	end
+
 	/// Remove and return the current last value from the end of this Vector
 	T pop() is
 	    if _length > 0 then

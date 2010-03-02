@@ -394,7 +394,7 @@ namespace Parse {
 	    IS_TRUSTED = 4,
             WANT_DEBUG = 5,
 	    WANT_CAST_CHECK = 6,
-	    WANT_PIC = 7,
+	    WARN_INIT = 7,
 	    WANT_VIRTUAL = 8,
 	    WANT_PACK = 9,
 	    WANT_NULL_CHECK = 10,
@@ -3259,15 +3259,13 @@ namespace Parse {
 	    WarnFlag[WANT_CAST_CHECK] = p;
 	}
 
-	/*
-        get bool WantPIC {
-	    return WarnFlag[WANT_PIC];
+        get bool WantWarnInit {
+	    return WarnFlag[WARN_INIT];
         }
 
-	set bool WantPIC = p {
-	    WarnFlag[WANT_PIC] = p;
+	set bool WantWarnInit = p {
+	    WarnFlag[WARN_INIT] = p;
 	}
-	*/
 
         get bool WantPack {
 	    return WarnFlag[WANT_PACK];

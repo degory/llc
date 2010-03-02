@@ -4,8 +4,10 @@ import glist;
 import giterator;
 
 namespace Generic is
+    use System.String;
+
     /// An Iterator<T> over a LinkedList<T>
-    class LinkedListIterator<T> extends System.Object implements Iterator<T> is
+    class LinkedListIterator<T> implements Iterator<T> is
 	RealList<T> _head;
 
         /// Construct a new LinkedListIterator referencing the supplied RealList
@@ -31,7 +33,7 @@ namespace Generic is
     end
 
     /// Thrown if an out of bounds LinkedList index is referenced
-    class ListException extends System.Exception is
+    class ListBoundsException extends System.BoundsException is
         void init( System.String message ) is
 	    super.init(message);
 	end
@@ -39,8 +41,8 @@ namespace Generic is
 
     /// An ordered resizable list of values implemented as a linked list
     /// \param T the type of values in this list
-    class LinkedList<T> extends System.Object implements List<T> is
-	RealList<T> list;
+    class LinkedList<T> implements List<T> is
+	protected RealList<T> list;
 	void init() is
 	    super.init();
 	end
@@ -55,13 +57,21 @@ namespace Generic is
 	    fi
 	end
 
+	/// Append supplied values after last element in this LinkedList
+	/// \param v the value to append
+	void add( Iterator<T> v ) is
+	    foreach var t; v.Iterator do
+	        add(t);
+	    od
+	end              
+
 	/// Remove first occurance, if any, of supplied value from this LinkedList
 	/// \param v the value to remove
 	void remove( T v ) is
 	    if list != null then
 		list = list.remove(v);
 	    else
-		throw new ListException( "remove from empty List" );
+		throw new ListBoundsException( "remove from empty List" );
 	    fi
 	end
 
@@ -87,7 +97,7 @@ namespace Generic is
 	/// \return value at index
 	get T[int index] is
 	    if list == null then
-	        throw new ListException( "index out of bounds" );
+	        throw new ListBoundsException( "index out of bounds" );
             else 
 	        return list[index];
 	    fi
@@ -98,7 +108,7 @@ namespace Generic is
 	/// \param v the value to set
 	set T[int index] = v is
 	    if list == null || index < 0 then
-	        throw new ListException( "index out of bounds" );
+	        throw new ListBoundsException( "index out of bounds" );
             else 
 	        list[index] = v;
  	    fi
@@ -130,7 +140,7 @@ namespace Generic is
 		list = list.Tail;
 		return result;
 	    else
-		throw new ListException( "pull from empty List" );
+		throw new ListBoundsException( "pull from empty List" );
 	    fi
 	end
 
@@ -147,7 +157,7 @@ namespace Generic is
 		    return list.pop();
 		fi
 	    else
-		throw new ListException( "pop from empty List" );
+		throw new ListBoundsException( "pop from empty List" );
 	    fi
 	end
 
@@ -167,12 +177,26 @@ namespace Generic is
 	LinkedListIterator<T> elements() is
 	    return new LinkedListIterator<T>(list);
 	end
+
+	/// Get iterator
+	/// \return Iterator<T> that returns each element of this LinkedList in turn from first to last
+	get LinkedListIterator<T> Iterator is
+	    return new LinkedListIterator<T>(list);
+	end
+
+        String toString() is
+	    if list != null then
+	        return list.toString();
+	    else
+	        return "";
+	    fi
+	end
     end
 
     /// Internal linked list implementation for LinkedList<T>
-    class RealList<T> extends System.Object is
-	RealList<T> tail;
-	T value;
+    class RealList<T> is
+	protected RealList<T> tail;
+	protected T value;
 
 	void init( T v, RealList<T> t ) is
 	    super.init();
@@ -232,7 +256,7 @@ namespace Generic is
 	    if index == 0 then
 	        return value;
 	    elif tail == null then
-	        throw new ListException( "index out of bounds" );
+	        throw new ListBoundsException( "index out of bounds" );
 	    else
 		return tail[index-1];
 	    fi
@@ -242,7 +266,7 @@ namespace Generic is
 	    if index == 0 then
 	        value = v;
 	    elif tail == null then
-	        throw new ListException( "index out of bounds" );
+	        throw new ListBoundsException( "index out of bounds" );
 	    else
 		tail[index-1] = v;
 	    fi
@@ -260,7 +284,7 @@ namespace Generic is
 
 	T pop() is
 	    if tail == null then
-	        throw new ListException( "pop from empty list" );
+	        throw new ListBoundsException( "pop from empty list" );
 	    elif tail.tail == null then
 	        T result = tail.value;
 		tail = null;
@@ -283,7 +307,7 @@ namespace Generic is
 
 	private void cat( System.StringBuffer buffer ) is
 	    if value != null then
-		buffer.append(value);
+  	        buffer.append(value.toString());
 	    else
 		buffer.append("null");
 	    fi
@@ -295,9 +319,8 @@ namespace Generic is
 	end
 
 	System.String toString() is
-	    System.StringBuffer result = new System.StringBuffer( "[RealList:" );
+	    System.StringBuffer result = new System.StringBuffer( "" );
 	    cat( result );
-	    result.append(']');
 	    return result;
 	end
 

@@ -166,7 +166,7 @@ namespace Parse {
 	    bool cannot_check = false;
 	    
             if( t.isAssignableFrom( from ) ) {
-		IO.Std.err.println( "redundant isa: " + from + " -> " + t + ", no run time check required" );		
+		warn( "isa " + t + " always evaluates to true here" );
 		requires_runtime_check = false;
 		fixed_result = true;
 	    } else {
@@ -2233,6 +2233,9 @@ namespace Parse {
 	    case Op.STATIC_CALL, Op.STATIC_CALL_DISCARD:
 		addDummyExceptionHandlerJump( state, line_number, into );
 		if( symbol != null ) {
+		    if( symbol == undefined_method ) {
+			throw new AbortCompilingThisMethodException("call to undefined static method");
+		    }
 		    v = symbol.getFunctionGlobal(state);
 		    /*
 		    IO.Std.err.print( "func " + i + ": " ); IO.Std.err.flush();

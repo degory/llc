@@ -112,7 +112,7 @@ namespace Parse {
 	    String n;
 	    bool want_method = false;
 
-	    // IO.Std.err.println( "XXXXXX: identifier calc type: " + this + "," + left_value + ", getting symbol..." );
+	    //  IO.Std.err.println( "XXXXXX: identifier calc type: " + this + "," + left_value + ", getting symbol..." );
 
 	    // nothing found is not an error and looking for any symbols including types here:
             symbol = getSymbol( state, name, false, Symbol.FIND_ANY );
@@ -398,10 +398,13 @@ namespace Parse {
 			}
 			return new Symbol( null, name, Symbol.ATTRIBUTE_ADDRESS, Symbol.ACCESS_PUBLIC, new Type(Type.POINTER, t.SubType) );
 		    } else {
+			t = t.getBoxType(state);
+			/*
 			if( complain ) {
 			    error( "attribute " + name + " is not defined in " + t.dump() );
 			}
 			return null;
+			*/
 		    }
 		} else if( !t.isContainer() ) {
 		    if( name =~ "address" ) {
@@ -420,12 +423,28 @@ namespace Parse {
 		    }
 		} else if( name =~ "address" ) {
 
+		} else if( t.TypeKind != Type.CLASS && t.CanTreatAsObject ) {
+		    t = t.getBoxType(state);
+		    // IO.Std.err.println( "look up " + this + " in " + t );
 		}
 
-		container = t.Clazz;
+		// IO.Std.err.println( "still looking for " + this + " in " + t );
+
+		/*
+		if( t.TypeKind != Type.CLASS ) {
+		    if( t.CanTreatAsObject ) {
+			want_accessor_only = true;
+			t = t.getBoxType(state);
+			container = t.Clazz;
+		    }
+		} else {
+		*/
+		    container = t.Clazz;
+		    // }
 		    
-		result = container.findSymbol( name, find_what );
-                
+		if( container != null ) {
+		    result = container.findSymbol( name, find_what );
+                }
 		// IO.Std.err.println( "result " + result );
 		
 		if( result != null ) {

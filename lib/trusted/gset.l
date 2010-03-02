@@ -12,7 +12,7 @@ namespace Generic is
 
     /// A set of values
     /// \param T the type of values in this set
-    class Set<T> extends System.Object implements Bag<T> is
+    class Set<T> implements Bag<T> is
     	Map<T,bool> _map;
 
 	/// Construct a new Set with capacity reserved for specified number of values
@@ -35,6 +35,14 @@ namespace Generic is
 	/// \param o the value to add
 	void add( T o ) is
 	    _map[o] = true;
+	end
+
+	/// Place the supplied values in the set. If an equal value is already in the set then it will be replaced by the new value.
+	/// \param o the value to add
+	void add( Iterable<T> o ) is
+	    foreach var v; o.Iterator do
+	        add( v );
+	    od
 	end
 
 	/// Does this set contain a value equal to the supplied value?

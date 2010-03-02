@@ -400,13 +400,6 @@ namespace Parse {
 
 	LLVM.Value getFunctionGlobal(CompileState state) {
 	    LLVM.Value v;
-	    /*
-	    LLVM.Value v = LLVMValue;
-	    if( v != null ) {
-		return v;
-		}*/
-
-	    // IO.Std.err.println( "get function global: " + DecoratedName + " " + HumanName + " in module " + cast int(state.Module) );
 
 	    char ptr name = DecoratedName.toCString();
 
@@ -1003,6 +996,12 @@ namespace Parse {
                 return true;
             }
 
+	    /*
+	    if( c.Super != null ) {
+		IO.Std.err.println( "is assignable from: " + HumanName + " vs " + c.HumanName + ", super: " + c.Super.HumanName );
+	    }
+	    */
+
 	    if( c.getSuper() != null && isAssignableFrom( c.getSuper() ) ) {
 		return true;
             }
@@ -1433,6 +1432,7 @@ namespace Parse {
 		    foreach( Container ik; p.implements_list.elements() ) {
 			Container q = ik;
 			do {
+			    // IO.Std.err.println( "add: " + q.HumanName );
 			    if( !q.IsInterface ) {
 				IO.Std.err.println( "oops: not an interface: " + p.HumanName );
 				continue;
@@ -1440,13 +1440,13 @@ namespace Parse {
 
 			    all_implemented.add( q );
 			    q = q.Super;
-			} while( q != null );
+			} while( q != null && q != ParseTree.object_type.Clazz );
 		    }
 
 		}
 		 
 		p = p.Super;
-	    } while( p != null );
+	    } while( p != null && p != ParseTree.object_type.Clazz );
 	}
 
 	get Vector<Container> AllImplementedInterfaces {
@@ -1471,7 +1471,7 @@ namespace Parse {
 
 
 	    foreach( var js; interfaces_set.elements() ) {
-		// IO.Std.err.println( "interface " + is.HumanName + " interface #" + j + " out of " + matrix.length );
+		// IO.Std.err.println( "interface " + js.HumanName + " interface #" + j + " out of " + matrix.length );
 
 		interfaces.add( js );
 	    }
@@ -1486,15 +1486,6 @@ namespace Parse {
 		j = j + 1;
 	    }
 
-	    /*
-	    foreach( var js; interfaces_set.elements() ) {
-		for( Container q = js.Super; q != null; q = q.Super ) {
-		    matrix[q.Address].mark(js.Address);
-		    matrix[js.Address].mark(q.Address);
-		    IO.Std.err.println( "interface " + q.HumanName + " interferes with " + js.HumanName );
-		}
-	    }
-	    */
 
 	    var all_implemented = new Vector<Container>();
 
@@ -1529,7 +1520,6 @@ namespace Parse {
 			matrix[ai].mark(aj);
 			matrix[aj].mark(ai);
 		    }
-		    ii = ii.Super;
 		}
 	    }
 
@@ -1556,6 +1546,11 @@ namespace Parse {
 	    var m = matrix[address];
 
 	    foreach( Symbol s; ii.members.SymbolList.elements() ) {
+		if( s.Owner == ParseTree.object_type.Clazz ) {
+		    IO.Std.err.println( "weird: " + s.HumanName + " in " + ii.HumanName );
+		    continue;
+		}
+
 		if( !s.IsMethod ) {
 		    if( !s.IsType && !s.IsAccessor ) { 
 			IO.Std.err.println( "weird: interface member '" + s.Owner.HumanName + " " + s.HumanName + "' is not a method" );
@@ -1805,7 +1800,7 @@ namespace Parse {
 
 	    var buffer = new Generic.Vector<LLVM.Value>();
 
-	    emitInterfaceTables( state, from, buffer );
+	    bool error = emitInterfaceTables( state, from, buffer );
 
 	    // Class object:
 	    buffer.add(
@@ -1856,7 +1851,7 @@ namespace Parse {
 						       )
 		       );
 
-	    emitClassTables( state, this, buffer );
+	    error = error | emitClassTables( state, this, buffer );
 
 	    var v = buffer.Array;
 
@@ -1881,16 +1876,17 @@ namespace Parse {
 	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf( ct ) );
 	    */
 	    // LLVM.Calls.LLVMSetLinkage(ct, LLVM.LLVMLinkage.LLVMDLLExportLinkage);
-	    LLVM.Calls.LLVMSetInitializer(
-					  ct,
-					  // ParseTree.makeLLVMConstCast( a, LLVM.Calls.LLVMGetElementType(LLVM.Calls.LLVMTypeOf(ct)) )
-					  a
-					  );
+	    if( !error ) {
+		LLVM.Calls.LLVMSetInitializer(
+					      ct,
+					      // ParseTree.makeLLVMConstCast( a, LLVM.Calls.LLVMGetElementType(LLVM.Calls.LLVMTypeOf(ct)) )
+					      a
+					      );
 
-	    //LLVM.Calls.LLVMSetGlobalConstant(ct, 1);
-
-	    state.maybeLinkOnce(ct);
-
+		//LLVM.Calls.LLVMSetGlobalConstant(ct, 1);
+		
+		state.maybeLinkOnce(ct);
+	    }
 	    //LLVM.Calls.LLVMAddTypeName( state.Module, HumanName.toCString(), Type.getLLVMType(state) );
 	}
 
@@ -1939,8 +1935,10 @@ namespace Parse {
 	    }
 	}
 
-	void emitInterfaceTables( CompileState state, ParseTree from, Generic.Vector<LLVM.Value> buffer ) {
+	bool emitInterfaceTables( CompileState state, ParseTree from, Generic.Vector<LLVM.Value> buffer ) {
 	    // IO.Std.err.println( "BBBB: emit interface tables " + HumanName + " expect to need " + iface_offset + " slots" );
+
+	    bool error;
 
 	    /* not safe: parent classes may implement interfaces:
 	    if( implements_list == null ) {
@@ -1949,7 +1947,7 @@ namespace Parse {
 		return;
 	    }
 	    */
-
+	   
 	    var slots = new Vector<Container>();
 	    var implemented = new Vector<Container>();
 	    populateAllImplementedInterfaces( implemented );
@@ -1978,17 +1976,20 @@ namespace Parse {
 		    i = findImplementedMethod(e);
 		    if( i == null ) { 
 			from.error( HumanName + " must implement " + e.HumanName );
+			error = true;
 			continue;
 		    }
 		    
 		    if( i.IsStatic ) {
 			from.error( "static " + i.HumanName + " cannot implement " + e.HumanName );
+			error = true;
 			continue;
 		    }
 		    
 		    if( !e.Type.isAssignableFrom( i.Type ) ) {
 			from.error(
 				   i.HumanName + " cannot implement " + e.HumanName + " with incompatible return type" );
+			error = true;
 			continue;
 		    }
 		    
@@ -2001,6 +2002,10 @@ namespace Parse {
 		    // IO.Std.err.println( "BBBB: implement slot #" + slot + ": " + i.HumanName );
 		    slots[slot] = i;
 		}
+	    }
+
+	    if( error ) {
+		return true;
 	    }
 
 	    int total_ctable_size = IFaceOffset + 3 + VTableSize;
@@ -2076,12 +2081,16 @@ namespace Parse {
 
 
 	Container findImplementedMethod( Container interface_method ) {
+	    // IO.Std.err.println( "look for " + interface_method.HumanName + " in " + this.HumanName + "..." );
 	    Container result = members.findMethod( interface_method.Name, interface_method.ArgTypes, true );
 	    if( result != null ) {
+		// IO.Std.err.println( "found here" );
 		return result;
 	    } else if( parent != null ) {
+		// IO.Std.err.println( "search super class..." );
 		return parent.findImplementedMethod( interface_method );
 	    } else {
+		// IO.Std.err.println( "not found" );
 		return null;
 	    }
 	}
@@ -2098,15 +2107,16 @@ namespace Parse {
 	    }
 	}
 
-        void emitClassTables( CompileState state, Container for_class, Generic.Vector<LLVM.Value> buffer ) {
+        bool emitClassTables( CompileState state, Container for_class, Generic.Vector<LLVM.Value> buffer ) {
+	    bool error;
             if( !tables_valid ) {
                 IO.Std.err.println( "skipping class with invalid tables: " + HumanName );
-                return;
+                return true;
             }
 
             if( parent != null ) {
 		// IO.Std.err.println( "BBBB: parent methods @ " + buffer.Length );
-                parent.emitClassTables( state, for_class, buffer );
+                error = error | parent.emitClassTables( state, for_class, buffer );
             }
 
 	    int slot = 0;
@@ -2175,6 +2185,8 @@ namespace Parse {
                     throw new Exception( "oops: member " + current.Name + " is weird kind: " + current.Kind );
                 }
             }
+
+	    return false;
         }
 
 	String toString() {

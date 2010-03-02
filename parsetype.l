@@ -176,11 +176,11 @@ namespace Parse {
 	    }
 	    
 	    if( clazz.TypeArgsRequiredLength != supplied_args_length ) {
-		from.warn(
+		from.error(
 			  "class " + clazz.HumanName +
 			  " requires " + clazz.TypeArgsRequiredLength +
 			  " arguments but " + supplied_args_length + " arguments given" );
-		IO.Std.err.println( "check called from: " + new System.Backtrace() );
+		// IO.Std.err.println( "check called from: " + new System.Backtrace() );
 	    }
 	}
     }

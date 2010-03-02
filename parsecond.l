@@ -302,17 +302,12 @@ namespace Parse {
             }
         }
 
-
 	get bool IsLastReturn {
 	    bool result = true_block.IsLastReturn;
 	    if( false_block != null ) {
 		result = result && false_block.IsLastReturn;
 	    }
-	    /*
-	    if( result ) {
-		IO.Std.err.println( "if statement: last is return" );
-	    }
-	    */
+
 	    last_return = result;
 	    return result;
 	}

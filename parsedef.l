@@ -669,7 +669,7 @@ namespace Parse {
 		} else {
 		    error( "super class " + super_ident + " is not defined" );
 		}
-	    } else if( c == ObjectClass || IsInterface || IsStruct ) {
+	    } else if( c == ObjectClass /* || IsInterface */ || IsStruct ) {
 		return null;
 	    } else {
 		// warn( c.HumanName + "does not inherit from System.Object" );
@@ -771,7 +771,7 @@ namespace Parse {
 			    // IO.Std.err.println( "interface: " + p.HumanName );
 			    state.registerInterface( p );
 			    p = p.Super;
-			} while( p != null );
+			} while( p != null && p != object_type.Clazz );
 		    }
 		}
 	    }
@@ -1908,7 +1908,7 @@ namespace Parse {
 
 	    // args.compile( state, into );
 
-            if( m.Owner.Super != null && m.Name =~ "init" && 
+            if( m.Owner.Super != null && m.Owner.Super != object_type.Clazz && state.WantWarnInit && m.Name =~ "init" &&
                 !body.isFirstStatementSuperConstructorCall( state ) ) {
                 warn( "first statement in " + human + " is not a call to super.init() or this.init()" );
             }
@@ -1972,7 +1972,10 @@ namespace Parse {
 		}
 		success = false;
 	    } catch( AbortCompilingThisMethodException ae ) {
-		error( "" + m.HumanName + ": unrecoverable compiler error" );
+		error( "" + m.HumanName + ": unrecoverable error" );
+		if( state.WantVeryVerbose ) {
+		    IO.Std.err.println( "cause: " + nie );
+		}
 		success = false;
 	    }
 

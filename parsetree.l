@@ -1512,6 +1512,8 @@ namespace Parse {
 		state.WantWarnHide = false;
 	    } else if( n =~ "NoWarnResolve" ) {
 		state.WantWarnResolve = false;
+	    } else if( n =~ "NoWarnInit" ) {
+		state.WantWarnInit = false;
 	    } else if( n =~ "NoWarnUnsafe" ) {
 		state.WantWarnUnsafe = false;
 	    } else if( n =~ "NoMarkUnsafe" ) {

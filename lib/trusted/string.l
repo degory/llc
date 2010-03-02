@@ -869,6 +869,7 @@ namespace System is
 	end
 
 	void init( String s ) is
+	    @NoWarnInit;
 	    if s != null then
 		init( s.toCString() );
 	    else

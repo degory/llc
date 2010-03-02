@@ -67,6 +67,12 @@ namespace Generic is
 
 	/// \attention: not implemented
         /// \throw System.NotImplementedException
+	void add( Iterable<T> v ) is
+	    throw new System.NotImplementedException( "Generic.Array is fixed length" );
+	end
+
+	/// \attention: not implemented
+        /// \throw System.NotImplementedException
 	void remove( T v ) is
 	    throw new System.NotImplementedException( "Generic.Array is fixed length" );
         end

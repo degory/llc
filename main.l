@@ -37,7 +37,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1231;
+	const int BUILD = 1232;
 
 	CompileState state;
 
@@ -83,7 +83,8 @@ namespace Parse {
 	    state.WantSharedStandardLibrary = true;
 	    state.WantRegVars = false;
 	    state.WantWarnResolve = false;
-	    state.WantPack = true;
+	    state.WantWarnInit = true;
+	    state.WantPack = false;
 	    state.WantCastCheck = true;
 	    state.WantBoundsCheck = true;
 	    state.WantNullCheck = true;
@@ -353,6 +354,12 @@ namespace Parse {
 
 			    case 'r':
 				state.WantWarnResolve = false;
+
+			    case 'I':
+				state.WantWarnInit = true;
+
+			    case 'i':
+				state.WantWarnInit = false;
 
 			    default:
 				IO.Std.err.println( "unexpected warning option: '" + name[1] + "'" );

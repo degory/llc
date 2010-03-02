@@ -1204,7 +1204,7 @@ proc_ref:
         }
 |	type PROC declare_arguments IS block_statement END {
 	    $$ = new Parse.ProcLiteral( first_line,
-	        new Parse.MethodDef( first_line, null, 0, cast Parse.TypeExpr($1), cast Parse.ArgumentsDef($3), cast Parse.BlockStatement($4) ) );
+	        new Parse.MethodDef( first_line, null, 0, cast Parse.TypeExpr($1), cast Parse.ArgumentsDef($3), cast Parse.BlockStatement($5) ) );
         }
 ;
 

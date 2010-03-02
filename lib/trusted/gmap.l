@@ -75,7 +75,7 @@ namespace Generic is
     /// Holds a key-value pair. 
     /// \param the key type
     /// \param the value type
-    class MapPair<K,T> extends System.Object is
+    class MapPair<K,T> is
 	public K key;
 	public T value;
 
@@ -116,6 +116,7 @@ namespace Generic is
 	/// Construct a new MapKeyIterator
 	/// \param i the underlying MapIterator that iterates over the MapPairs comprising the Map
 	void init( MapIterator<K,T> i ) is
+	    super.init();
 	    _i = i;
 	end
 
