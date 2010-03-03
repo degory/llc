@@ -66,7 +66,6 @@ extern "C" {
   }
 
 
-
   void *__call_function(char *function_name) {
     std::cerr << "looking for function '" << function_name << "'\n";
     Function *f;
@@ -135,7 +134,7 @@ extern "C" {
 	std::cerr << "JIT DWARF debug info initially disabled, enabling now...\n";
 	llvm::JITEmitDebugInfo = true;
       } else {
-	std::cerr << "JIT DWARF debug info already enabled\n";
+	std::cerr << "JIT DWARF debug info already enabled\n";	
       }
 
       std::cerr << "no main module, will create execution engine...\n";
