@@ -39,6 +39,13 @@ ifeq ($(PREFIX),)
 	PREFIX:=/usr
 endif
 
+ifeq ($(NOLLVMCC),)
+	CLEAN:=lc lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o lc.bc lc.lh jit.o dummy.o llvmc.o llvmc.so lang lang.bc lang.lh lrt-exception.o lrt-unwind.o lrt-throw.o /tmp/lcache-test/* || true
+else
+	CLEAN:=lc lrt-llvm-$(LRT_VERSION).bc lc.bc lc.lh llvmc.so lang lang.bc lang.lh /tmp/lcache-test/* || true
+endif
+
+
 
 LRT_VERSION:=0.2
 
@@ -77,10 +84,10 @@ lc.zip: $(INSTALL_OBJS)
 	HERE=`pwd` ; cd /tmp/canned ; zip -r $$HERE/lc.zip .
 
 clean:
-	rm lc lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o lc.bc lc.lh jit.o dummy.o llvmc.o llvmc.so lang lang.bc lang.lh lrt-exception.o lrt-unwind.o lrt-throw.o /tmp/lcache-test/* || true
+	rm $(CLEAN) || true
 
 lc.d:
-	$(LC) $(MODEL) $(LFLAGS) -D -w -p test -o lc -s llvm -lllvmc.o -lLLVMAnalysis -lLLVMArchive -lLLVMBitReader -lLLVMBitWriter -lLLVMCore -lLLVMExecutionEngine -lLLVMipa -lLLVMMC -lLLVMSupport -lLLVMSystem -lLLVMTarget -lLLVMTransformUtils main.l
+	$(LC) $(MODEL) $(LFLAGS) -D -w -p test -o lc -s llvm main.l
 
 lang.d:
 	$(LC) $(MODEL) $(LFLAGS) -D -w -u lib.l -o lang
@@ -101,7 +108,9 @@ lang.so: $(lang_DEPS)
 lang.lh: lang.bc
 
 lc: $(lc_DEPS) llvmc.o llvmc.so dummy.o
-	$(LC) -f $(MODEL) $(LFLAGSNATIVE) -p test -o lc -s llvm -lllvmc.o -lLLVMAnalysis -lLLVMArchive -lLLVMBitReader -lLLVMBitWriter -lLLVMCore -lLLVMExecutionEngine -lLLVMipa -lLLVMMC -lLLVMSupport -lLLVMSystem -lLLVMTarget -lLLVMTransformUtils main.l
+	$(LC) -f $(MODEL) $(LFLAGSNATIVE) -p test -o lc -s llvm -lllvmc.o -lLLVM-2.7svn main.l
+
+# -lLLVMAnalysis -lLLVMArchive -lLLVMBitReader -lLLVMBitWriter -lLLVMCore -lLLVMExecutionEngine -lLLVMipa -lLLVMMC -lLLVMSupport -lLLVMSystem -lLLVMTarget -lLLVMTransformUtils main.l
 
 llvmc.o: llvmc.cpp
 	g++ $(MODEL) `llvm-config --cxxflags` -c llvmc.cpp

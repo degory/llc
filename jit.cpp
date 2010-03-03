@@ -23,6 +23,7 @@
 #include "llvm/System/Process.h"
 #include "llvm/System/Signals.h"
 #include "llvm/Target/TargetSelect.h"
+#include "llvm/Target/TargetOptions.h"
 #include <cerrno>
 using namespace llvm;
 
@@ -46,18 +47,28 @@ extern "C" {
   static std::vector<func *> functions;
 
   static bool __enable_opt = false;
+  static bool __enable_debug = true;
 
 
   void __JIT_enable_opt() {
     __enable_opt = true;
   }
 
-#if 1
+  void __JIT_disable_opt() {
+    __enable_opt = false;
+  }
+
+  void __JIT_enable_debug() {
+    __enable_debug = true;
+  }
+
+  void __JIT_disable_debug() {
+    __enable_debug = false;
+  }
+
   void *__call_function(char *function_name) {
     std::cerr << "looking for function '" << function_name << "'\n";
     Function *f;
-
-
 
     for( std::vector<Module*>::const_iterator i = modules.begin(); i != modules.end() ; ++i ) {
       f = (*i)->getFunction(function_name);
@@ -84,36 +95,6 @@ extern "C" {
 
     return fp();
   }
-
-#else
-  static std::map<std::string,func*> function_map;
-
-  void *__call_function(char *function_name) {
-    func *fp = function_map[function_name];
-
-    if( fp != 0 ) {
-      std::cerr << "will call function from loaded module '" << function_name << "'\n";
-      return fp();
-    }
-
-    Function *f = main_module->getFunction(function_name);
-    if( f == 0 ) {
-      return 0;
-    }
-
-    fp = (func *)execution_engine->getPointerToFunction(f);
-
-    if( !fp ) {
-      std::cerr << "oops: could not compile function '" << function_name << "'\n";
-      return 0;
-    }
-
-    std::cerr << "will call function in main module '" << function_name << "'\n";
-
-    return fp();
-  }
-
-#endif
 
   void __load_module(char *bitcode_name) {
     std::string error_message;
@@ -142,6 +123,20 @@ extern "C" {
     }
 
     if( main_module == 0 ) {
+      if( !llvm::DwarfExceptionHandling ) {
+	std::cerr << "JIT DWARF exception handling initially disabled, enabling now...\n";
+        llvm::DwarfExceptionHandling = true;
+      } else {
+	std::cerr << "JIT DWARF exception handling already enabled\n";	
+      }
+
+      if( !llvm::JITEmitDebugInfo ) {
+	std::cerr << "JIT DWARF debug info initially disabled, enabling now...\n";
+	llvm::JITEmitDebugInfo = true;
+      } else {
+	std::cerr << "JIT DWARF debug info already enabled\n";	
+      }
+
       std::cerr << "no main module, will create execution engine...\n";
 
       InitializeNativeTarget();
@@ -185,72 +180,22 @@ extern "C" {
 
     modules.push_back(module);
 
-    //for (Module::iterator I = main_module->begin(), E = main_module->end(); I != E; ++I) {
+#if 0
     for (Module::iterator I = module->begin(), E = module->end(); I != E; ++I) {
       Function *f = &*I;
       if(!f->isDeclaration()) {
         func *fp = (func *)execution_engine->getPointerToFunction(f);
 
-#if 0
-	if( f->hasName() ) {
-	  function_map[f->getName()] = fp;
-	}
-#endif
 	f->deleteBody();
       }
     }
-
-    /*
-    for( Module::global_iterator I = module->global_begin(); I != module->global_end(); ++I ) {
-      GlobalVariable *g = &*I;
-
-      if(!g->isDeclaration()) {
-	std::cerr << "have global: " << g << "\n";
-	g->eraseFromParent();
-      }
-    }
-    */
-
-    /*
-    std::vector<Constant *> to_delete;
-
-    for( Module::global_iterator I = module->global_begin(); I != module->global_end(); ++I ) {
-      GlobalVariable *g = &*I;
-
-      if(!g->isDeclaration()) {
-	std::cerr << "have global: " << g << "\n";
-	Constant *v = g->getInitializer();
-	if( v != 0 ) {
-	  std::cerr << "has initial value: " << v << "\n";
-	  g->setInitializer(0);
-	  std::cerr << "unset initial value\n";
-	  to_delete.push_back(v);
-	}
-      }
-    }
-
-    for( std::vector<Constant*>::iterator i = to_delete.begin(); i != to_delete.end() ; ++i ) {
-      Constant *c = *i;
-
-      std::cerr << "will delete: " << c << "\n";
-      delete c;
-    }
-    */
+#endif
 
     std::cerr << "JIT'd all functions in: " << bitcode_name << "\n";
 
-    execution_engine->runStaticConstructorsDestructors( /*module,*/ false);
+    execution_engine->runStaticConstructorsDestructors( module, false);
 
     std::cerr << "initialized module: " << bitcode_name << "\n";
-
-    /*
-    if( module != main_module ) {
-      delete module;
-    }
-    */
-    // delete mp;
-
-    // delete buffer;
   }
 }
 
