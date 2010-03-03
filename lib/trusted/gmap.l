@@ -262,6 +262,22 @@ namespace Generic is
 	    fi
 	end
 
+ 	bool containsKey( K key ) is
+	    int k;
+	    int h;
+	    MapPair<K,T> match;
+
+	    if key == null then
+		return null;
+	    fi
+
+	    hashOf(key,k,h);
+
+	    match = _find_pair(key, h, k, false);
+
+            return match != null;
+	end
+
 	/// Return true if this Map contains no values, otherwise return false
 	bool isEmpty() is
 	    for int i = 0; i < _values.length; i = i + 1 do
