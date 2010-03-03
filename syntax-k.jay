@@ -246,7 +246,8 @@ class Root { // is
 %token IMPLEMENTS    112
 %token INTERFACE     113
 %token PROC          114
-
+%token ISA           115
+%token OPERATOR	     116
 %start ROOT
 
 %%
@@ -1310,6 +1311,7 @@ primary:
 |	vector_list
 |	OPEN_PAREN expression CLOSE_PAREN { $$ = $2; }
 |	cast
+|       isa
 |	new
 |       proc_ref
 |	field_access
@@ -1380,6 +1382,10 @@ vector_access:
 	}
 ;
 
+isa:
+	ISA type OPEN_PAREN expression CLOSE_PAREN
+	    { $$ = new Parse.IsA( first_line, cast<Parse.TypeExpr>($2), cast<Parse.Expression>($4) ); }
+;
 
 cast:
 	CAST type OPEN_PAREN expression CLOSE_PAREN

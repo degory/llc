@@ -216,6 +216,7 @@ namespace Parse {
 	    symbol_tokens["interface"] = Token.INTERFACE;
 	    symbol_tokens["proc"] = Token.PROC;
 	    symbol_tokens["isa"] = Token.ISA;
+	    symbol_tokens["operator"] = Token.OPERATOR;
 
 	    return symbol_tokens;
 	}
@@ -401,6 +402,53 @@ namespace Parse {
 	    return c;
 	}
 
+	Token readOperatorMethodToken() {
+	    Token r = readToken2(false);
+	    switch( r ) {
+	    case Token.ADD:
+		token_string = "opAdd";
+
+	    case Token.SUB:
+		token_string = "opSub";
+
+	    case Token.MUL:
+		token_string = "opMul";
+
+	    case Token.DIV:
+		token_string = "opDiv";
+
+	    case Token.MOD:
+		token_string = "opMod";
+
+	    case Token.SHIFT_LEFT:
+		token_string = "opShl";
+
+	    case Token.SHIFT_RIGHT:
+		token_string = "opShar";
+
+	    case Token.AND:
+		token_string = "opAnd";
+
+	    case Token.OR:
+		token_string = "opOr";
+
+	    case Token.XOR:
+		token_string = "opXor";
+
+	    case Token.OBJ_EQ:
+		token_string = "opEquals";
+
+	    case Token.GT:
+		token_string = "opCompare";
+
+	    default:
+		// syntax error:
+		return r;
+	    }
+
+	    return Token.IDENTIFIER;
+	}
+
 	Token readToken() {
 	    Token r;
 
@@ -557,6 +605,10 @@ namespace Parse {
                 token_string = buffer.Freeze;
                 prevChar(c);
 		r = symbol_tokens[token_string];
+
+		if( r == Token.OPERATOR ) {
+		    return readOperatorMethodToken();
+		}
 
 		/*
 		if( r == Token.OF ) {

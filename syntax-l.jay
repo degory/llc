@@ -237,6 +237,7 @@ class Root {
 %token INTERFACE     113
 %token PROC          114
 %token ISA           115
+%token OPERATOR	     116
 %start ROOT
 
 %%
