@@ -235,6 +235,10 @@ namespace IO {
 
 	Object current_reference;
 
+	void init(CharStream s) {
+	    init(new Reader(s));
+	}
+
 	public void init(Reader is) {
 	    parser = new SerialParser(is);
 	    references = new Map<String,Object>();
@@ -244,11 +248,24 @@ namespace IO {
 	    return register(c.Name, c);
 	}
 
-	public static bool register(String key, Class c) {
+	static void lazyInit() {
 	    if( classes == null ) {
 		classes = new Map<String,Class>();
 		names = new Map<Class,String>();
 	    }
+	}
+
+        static get Map<String,Class> Classes is
+	    return classes;
+	end
+
+        static get Map<Class,String> Names is
+	    return names;
+	end
+
+	public static bool register(String key, Class c) {
+	    lazyInit();
+
 	    classes[key] = c;
 	    names[c] = key;
 	    if( debug ) {
@@ -258,10 +275,12 @@ namespace IO {
 	}
 
 	static String getTagForClass(Class c) {
+	    lazyInit();
 	    return names[c];
 	}
 
 	static Class getClassForTag(String n) { 
+	    lazyInit();
 	    return classes[n];
 	}
 
@@ -321,47 +340,43 @@ namespace IO {
 		/*
 		if( !parser.CurrentString.equals("*") ) {
 		*/
-		if( classes == null ) {
-		    // classes is null if no tags registered:
+		lazyInit();
+		Class c = classes[parser.CurrentString];
+		if( c != null ) {
+		    if( c.IsArray ) {
+			IO.Std.err.println( "is array: " + c.Name );
+		    }
+		    
+		    Object o;
+		    Serial p = null;
+		    try {
+			o = c.create();
+			if( isa Serial(o) ) {
+			    p = cast Serial(o);
+			    // IO.Std.err.println( "have: " + cast Object(p) );
+			    
+			    o = p.fromSerial(this);
+			} else {
+			    o = readObjectDefault(o);
+			}
+		    } catch( System.Exception e ) {
+			throw new IOException("problem instantiating: " + c + " (" + e + ")" );
+		    }
+		    return o;
+		} else {
 		    throw new IOException("undefined tag: '" + parser.CurrentString + "'" );
 		}
-
-		    Class c = classes[parser.CurrentString];
-		    if( c != null ) {
-			if( c.IsArray ) {
-			    IO.Std.err.println( "is array: " + c.Name );
-			}
-
-			Object o;
-			Serial p = null;
-			try {
-			    o = c.create();
-			    if( isa Serial(o) ) {
-				p = cast Serial(o);
-				// IO.Std.err.println( "have: " + cast Object(p) );
-
-				o = p.fromSerial(this);
-			    } else {
-				o = readObjectDefault(o);
-			    }
-			} catch( System.Exception e ) {
-			    throw new IOException("problem instantiating: " + c + " (" + e + ")" );
-			}
-			return o;
-		    } else {
-			throw new IOException("undefined tag: '" + parser.CurrentString + "'" );
-		    }
-		    /*
-		} else {
-		    parser.readToken();
-		    var v = new Vector<Object>();
-		    while( parser.CurrentToken != SerialToken.CLOSE ) {
-			v.add(read());
-		    }
-		    parser.readToken();
-		    return v;
-		}
-		    */
+		/*
+		  } else {
+		  parser.readToken();
+		  var v = new Vector<Object>();
+		  while( parser.CurrentToken != SerialToken.CLOSE ) {
+		  v.add(read());
+		  }
+		  parser.readToken();
+		  return v;
+		  }
+		*/
 	    } else if( parser.CurrentToken == SerialToken.STRING ) {
 		// IO.Std.err.println( "read(): token Token.STRING..." );
 		// no open bracket - read single string
@@ -874,7 +889,12 @@ namespace IO {
 	Map<Object,int> references;
 	int handle;
 
-	public void init(Writer os) {
+
+	void init(CharStream s) {
+	    init(new Writer(s));
+	}
+
+	void init(Writer os) {
 	    this.os = os;
 	    indent_ = 0;
 	    handle = 1;
@@ -883,42 +903,50 @@ namespace IO {
 	    references = new Map<Object,int>();
 	}
 
-	public void append( char c ) {
+	void flush() {
+	    os.flush();
+	}
+
+	void dispose() {
+	    os.close();
+	}
+
+	void append( char c ) {
 	    if( debug ) {
 		IO.Std.err.print( "" + c );
 	    }
 	    os.print(c);
 	}
 
-	public void append( int i ) {
+	void append( int i ) {
 	    if( debug ) {
 		IO.Std.err.print( "" + i );
 	    }
 	    os.print(i);
 	}
 
-	public void append( word i ) {
+	void append( word i ) {
 	    if( debug ) {
 		IO.Std.err.print( "" + i );
 	    }
 	    os.print(i);
 	}
 
-	public void append( long i ) {
+	void append( long i ) {
 	    if( debug ) {
 		IO.Std.err.print( "" + i );
 	    }
 	    os.print(i);
 	}
 
-	public void append( String s ) {
+	void append( String s ) {
 	    if( debug ) {
 		IO.Std.err.print( s );
 	    }
 	    os.print(s);
 	}
 
-	public static String quote( String t ) {
+	static String quote( String t ) {
 	    if( t != null ) {
 		StringBuffer result = new StringBuffer(t.Length + 2);
 		result.append( '"' );
@@ -989,15 +1017,15 @@ namespace IO {
 	}
 
 
-	public void reference() {
+	void reference() {
 	    by_reference[indent_] = true;
 	}
 
-	public bool isByReference() {
+	bool isByReference() {
 	    return by_reference[indent_];
 	}
 
-	public void open(String s) {
+	void open(String s) {
 	    indent();
 	    bool r = by_reference[indent_];
 	    indent_ = indent_ + 1;
@@ -1008,22 +1036,22 @@ namespace IO {
 	    newline();
 	}
 
-	public void open(int n) {
+	void open(int n) {
 	    open( "" + n );
 	}
 
-	public void open() {
+	void open() {
 	    open( "*" );
 	}
 
-	public void close() {
+	void close() {
 	    undent();
 	    indent_ = indent_ - 1;
 	    append( '}' );
 	    newline();
 	}
 
-	public void addReference( Object r ) {
+	void addReference( Object r ) {
 	    IO.Std.err.println( "add reference: " + r );
 	    if( r == null ) {
 		append( "* " );

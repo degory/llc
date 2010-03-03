@@ -876,6 +876,11 @@ namespace Parse {
 					   );
 
 	    LLVM.BasicBlock l = into.Block();
+
+	    into.Call(
+		      d,
+		      { makeCStringConstant(state, c.HumanName ) }
+		      );
 	    
 	    into.Branch(
 			into.Load(g),
@@ -893,7 +898,7 @@ namespace Parse {
 
 	    into.Call(
 		      d,
-		      { makeCStringConstant(state, c.HumanName ) }
+		      { makeCStringConstant(state, "static init...") }
 		      );
 
 
@@ -913,6 +918,10 @@ namespace Parse {
 
 	    foreach( Symbol s; c.Members.elements() ) {
 		if( s.IsStatic && !s.IsMethod ) {
+		    into.Call(
+			      d,
+			      { makeCStringConstant(state, s.HumanName) }
+			      );
 		    // IO.Std.err.println( "SSSS: static var: " + c.HumanName + " . " + s.Name ); IO.Std.err.flush();
 		    into.Call(
 			      gcar,

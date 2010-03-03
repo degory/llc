@@ -1769,15 +1769,21 @@ namespace Parse {
 
 	    need_compile.addLibraryHashFile( new LibraryHashFile(name,in) );
 
-	    IO.Std.err.println( "will link L library: " + name );
+	    if( WantVeryVerbose ) {
+		ParseTree.message( "will link L library: " + name );
+	    }
 	    // libraries.add( dir + name + ".so" );
 	    if( WantNativeExecutable ) {
-		IO.Std.err.println( "add shared library: " + dir + name + ".so" );
+		if( WantVeryVerbose ) {
+		    ParseTree.message( "add shared library: " + dir + name + ".so" );
+		}
 		addLibrary( dir + name + ".so" );
 	    } else if( want_native_library_files && IO.File.exists( dir + name + ".so" ) ) {
 		addLibrary( dir + name + ".so"  );
 	    } else {
-		IO.Std.err.println( "add bitcode library: " + dir + name + ".bc" );
+		if( WantVeryVerbose ) {
+		    ParseTree.message( "add bitcode library: " + dir + name + ".bc" );
+		}
 		addLibrary( dir + name + ".bc" );
 	    }
 	}

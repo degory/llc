@@ -98,7 +98,7 @@ typedef signed char int8_t;
 struct OurExceptionType;
 
 void __debug_init( char *name ) {
-  // printf( "intialize: %s\n", name ); fflush(stdout);
+  fprintf( stderr, "__static_init: %s\n", name ); fflush(stderr);
 }
 
 void __add_roots( void *b, void *e ) {

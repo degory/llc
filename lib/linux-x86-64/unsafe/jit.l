@@ -1,4 +1,4 @@
-
+/*
 import "LLVMAnalysis";
 import "LLVMArchive";
 import "LLVMBitReader";
@@ -21,6 +21,8 @@ import "LLVMJIT";
 import "LLVMLinker";
 import "LLVMInstCombine";
 import "LLVMInterpreter";
+*/
+import "LLVM-2.7svn";
 import "/usr/lib/lang/linux-x86-64/unsafe/jit.o";
 
 namespace System {

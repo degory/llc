@@ -103,7 +103,7 @@ namespace Generic is
 	end
 
 	System.String toString() is
-	    return "[MapPair: " + key + "," + value + "]";
+	    return "" + key + "=>" + value;
 	end
     end
 
@@ -325,12 +325,15 @@ namespace Generic is
 	end
 
 	System.String toString() is
-	    var b = new System.StringBuffer( "[Map" );
+	    bool seen_any;
 	    foreach MapPair<K,T> i; new MapIterator<K,T>(this) do
-		b.append( ' ' );
+	        if seen_any then
+		    b.append( ',' );
+		else
+		    seen_any = true;
+		fi
 		b.append( i );
 	    od
-	    b.append( "]" );
 
 	    return b;
 	end

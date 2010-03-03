@@ -185,17 +185,16 @@ namespace Parse {
 
 	    case Type.WORD:
 		if( state.Want64BitTarget ) {
-		    if( !warned_bits ) {
+		    if( !warned_bits && state.WantVeryVerbose ) {
 			IO.Std.err.println( "target is 64 bit" );
-			warned_bits = true;
 		    }
+		    warned_bits = true;
 		    return LLVM.Calls.LLVMInt64Type();
 		} else {		    
-		    if( !warned_bits ) {
+		    if( !warned_bits && state.WantVeryVerbose ) {
 			IO.Std.err.println( "target is 32 bit" );
-			warned_bits = true;
 		    }
-
+		    warned_bits = true;
 		    return LLVM.Calls.LLVMInt32Type();
 		}
 		/*
