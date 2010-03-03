@@ -11,6 +11,9 @@ import stream;
 pragma NoWarnHide;
 
 namespace Generic is
+    use System.String;
+    use System.StringBuffer;
+
     /// Iterates over a Map and returns each MapPair comprising the Map in turn. Returns values in no particular order 
     /// \param K the key type
     /// \param T the value type
@@ -102,7 +105,7 @@ namespace Generic is
 	    return key.opCompare(v.key);
 	end
 
-	System.String toString() is
+	String toString() is
 	    return "" + key + "=>" + value;
 	end
     end
@@ -324,7 +327,8 @@ namespace Generic is
 	    return null;
 	end
 
-	System.String toString() is
+	String toString() is
+	    var b = new StringBuffer();
 	    bool seen_any;
 	    foreach MapPair<K,T> i; new MapIterator<K,T>(this) do
 	        if seen_any then

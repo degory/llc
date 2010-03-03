@@ -255,13 +255,13 @@ namespace IO {
 	    }
 	}
 
-        static get Map<String,Class> Classes is
+        static get Map<String,Class> Classes {
 	    return classes;
-	end
+	}
 
-        static get Map<Class,String> Names is
+        static get Map<Class,String> Names {
 	    return names;
-	end
+	}
 
 	public static bool register(String key, Class c) {
 	    lazyInit();
