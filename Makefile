@@ -102,6 +102,7 @@ lang.bc: $(lang_DEPS)
 	$(LC) -V -f $(MODEL) $(LFLAGSBC) -CE -w -u lib.l -o lang
 
 lang.so: $(lang_DEPS)
+	rm /tmp/lcache-test/* || true
 	$(LC) -V -f $(MODEL) $(LFLAGSNATIVE) -CPE -w -u lib.l -o lang
 	mv lang lang.so
 
