@@ -101,6 +101,16 @@ void __debug_init( char *name ) {
   //  fprintf( stderr, "__static_init: %s\n", name ); fflush(stderr);
 }
 
+struct Root {
+  char *low;
+  char *high;
+};
+
+#define NUM_ROOT 8
+#define MAX_DISTANCE (256*1024) /* 256kB */
+
+struct Root __roots[NUM_ROOT+1]; // additional sentinal at end so L library doesn't need to know NUM_ROOT
+
 void __add_roots( void *b, void *e ) {
   // printf( "GC_add_roots(%p,%p)\n", b, e ); fflush(stdout);
   GC_add_roots( b, e );  
@@ -109,7 +119,125 @@ void __add_roots( void *b, void *e ) {
 static char *__root_low = 0;
 static char *__root_high = 0;
 
+struct Root *__get_roots() {
+  return __roots;
+}
+
+struct Root *__find_closest_root( char *p ) {
+  struct Root *closest = 0;
+  int64 distance = 0;
+  int i;
+
+  fprintf( stderr, "find closest root to %p\n", p );
+
+  struct Root *r;
+  for( i = 0; i < NUM_ROOT; i++ ) {
+    fprintf( stderr, "search close: try root %d...\n", i ); fflush( stderr );
+    r = &__roots[i];
+
+    if( i == 0 && !r->low ) {
+      fprintf( stderr, "root %d is unused\n", i );
+      return r;
+    }
+
+    if( p >= r->low - MAX_DISTANCE &&
+	p <= r->high + MAX_DISTANCE ) {
+      fprintf( stderr, "root %d (%p..%p) is close enough\n", i, r->low, r->high );
+      // close enough:
+      return r;
+    } else {
+      int d = 0;
+      if( p < r->low ) {
+	d = r->low - p;
+      } else if( p > r->high ) {
+	d = p - r->high;
+      }
+      fprintf( stderr, "root %d (%p..%p) is too far away (%ld bytes)\n", i, r->low, r->high, d );
+    }
+  }
+
+  for( i = 0; i < NUM_ROOT; i++ ) {
+    fprintf( stderr, "search unused: try root %d...\n", i ); fflush( stderr );
+    r = &__roots[i];
+
+    if( !r->low ) {
+      fprintf( stderr, "root %d is unused\n", i );
+      return r;
+    }
+  }
+
+  for( i = 0; i < NUM_ROOT; i++ ) {
+    fprintf( stderr, "search least bad: try root %d...\n", i ); fflush( stderr );
+    r = &__roots[i];
+    int d = 0;
+
+    if( closest == 0 ) {
+      fprintf( stderr, "root %d (%p..%p) closest yet (first)\n", i, r->low, r->high );
+      closest = r;
+      continue;
+    } else if( p < closest->low ) {
+      d = closest->low - p;
+      fprintf( stderr, "root %d (%p..%p) distance %ld bytes below\n", i, r->low, r->high, d );
+    } else if( p > closest->high ) {
+      d = p - closest->high;
+      fprintf( stderr, "root %d (%p..%p) distance %ld bytes above\n", i, r->low, r->high, d );
+    } else {
+      fprintf( stderr, "root %d (%p..%p) contains pointer (shouldn't happen here)\n", i, r->low, r->high );
+      return r;
+    }
+
+    if( distance == 0 || d < distance ) {
+      distance = d;
+      closest = r;
+      fprintf( stderr, "root %d (%p..%p) closest yet\n", i, r->low, r->high );
+    }
+  }
+
+  if( closest != 0 ) {
+    fprintf( stderr, "root %d (%p..%p) is %ld bytes away\n", i, r->low, r->high, distance );
+  } else {
+    fprintf( stderr, "no root found (shouldn't happen)\n" );
+  }
+
+  fflush(stderr);
+
+  return closest;
+}
+
 void __add_root( char *g ) {
+  struct Root *c = __find_closest_root(g);
+
+  if( c == 0 ) {
+    fprintf( stderr, "no free GC roots\n" );
+    fflush(stderr);
+    abort();
+  }
+
+  char *old_low = c->low;
+  char *old_high = c->high;
+
+  if( c->low == 0 || g < c->low ) {
+    c->low = g;
+  }
+
+  if( c->high == 0 || g > c->high ) {
+    c->high = g;
+  }
+  
+  if( c->low != old_low || c->high != old_high ) {
+    if( old_low ) {
+      fprintf( stderr, "GC remove root %p..%p\n", old_low, old_high );
+      GC_remove_roots( old_low, old_high + 8);
+    }
+
+    GC_add_roots( c->low, c->high + 8);
+
+    fprintf( stderr, "GC add root %p..%p (%ld bytes)\n", c->low, c->high, c->high - c->low);
+    fflush(stderr);
+  }
+}
+
+void __add_root_old( char *g ) {
   int changed = 0;
   char *old_low = __root_low;
   char *old_high = __root_high;
@@ -136,7 +264,7 @@ void __add_root( char *g ) {
       GC_remove_roots( old_low, old_high + 8); fflush(stdout);
     }
 
-    // printf( "GC roots now %p-%p\n", __root_low, __root_high );
+    printf( "GC roots now %p-%p (%ld)\n", __root_low, __root_high, __root_high - __root_low );
     GC_add_roots( __root_low, __root_high + 8); fflush(stdout);
   }
 }

@@ -633,6 +633,20 @@ void __call_dispose( WORD *object ) {
 }
 
 
+#else
+
+typedef void DISPOSE(WORD*);
+
+void __call_dispose( WORD *object ) {
+  WORD *vtable = (WORD *)object[0];
+  DISPOSE *dispose = (DISPOSE *)vtable[FINALIZE_OFFSET];
+
+  fprintf( stderr, "calling dipose on %lp\n", object );
+  (*dispose)(object);
+}
+
+
+
 #endif
 
 // allocate an object and register it's dispose method with the garbage collector
@@ -640,8 +654,8 @@ void __call_dispose( WORD *object ) {
 void *__alloc_object_finalize( WORD size, GC_finalization_proc *vtable ) {
   char **p = (char **)vtable;
 
-  //printf( "XXXX: alloc object finalize %s\n", p[-2] );
-  //fflush(stdout);
+  fprintf( stderr, "XXXX: alloc object finalize %s\n", p[-2] );
+  fflush(stderr);
 
   WORD *result = (WORD *)__alloc_object( size, (WORD *)vtable );
 
@@ -657,7 +671,8 @@ void *__alloc_object_finalize( WORD size, GC_finalization_proc *vtable ) {
   GC_register_finalizer( (GC_PTR)result, (GC_finalization_proc)__call_dispose, 0, &ofn, &ocd );
 
 #else
-  GC_register_finalizer( (GC_PTR)result, vtable[FINALIZE_OFFSET], 0, &ofn, &ocd );
+  GC_register_finalizer( (GC_PTR)result, (GC_finalization_proc)__call_dispose, 0, &ofn, &ocd );
+  // GC_register_finalizer( (GC_PTR)result, vtable[FINALIZE_OFFSET], 0, &ofn, &ocd );
 #endif
   return result;  
 }

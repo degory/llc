@@ -1,6 +1,9 @@
 #K
 
 namespace System is
+    use Generic.List;
+    use Generic.Vector;
+
     /// Gives information about the state of the garbage collected heap
     class GC is
         /// Return the size of the heap in bytes
@@ -59,6 +62,53 @@ namespace System is
 	    catch MemoryException me 
 	        return 0;
 	    yrt
+	end
+
+	static get List<GCRoot> Roots is
+	    var result = new Vector<GCRoot>();
+
+            word ptr roots = cast word ptr(native.__get_roots());
+
+	    if roots == null then
+	        return result;
+	    fi
+
+	    while [roots] != 0W do
+		result.add( new GCRoot( [roots], [roots+1] ) );
+	        roots = roots + 2;
+	    od
+
+	    return result;
+	end
+    end
+
+    struct GCRoot is
+        word low;
+	word high;
+
+	void init( word l, word h ) is
+	    low = l;
+	    high = h;
+	end
+
+	get word Low is
+	    return low;
+	end
+
+	get word High is
+	    return high;
+	end
+
+	String toString() is
+	    return String.hex(low) + ".." + String.hex(high);
+	end
+
+        bool operator =~(GCRoot u) is
+	    return this == u;
+	end
+
+	int operator >(GCRoot u) is
+	    return Word.operator >(cast word(this), cast word(u));
 	end
     end
 end

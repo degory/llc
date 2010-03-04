@@ -42,6 +42,7 @@ namespace System is
 	    fi
 
 	    try 
+		IO.Std.err.println( "_dispose: " + Class.Name );
 	        dispose();
 	    catch System.Exception se 
 		Startup.uncaughtException( se );
@@ -57,7 +58,8 @@ namespace System is
 
         /// Override dispose() to deallocate any resources held by this object. Can be called explicitly as well as by garbage collector when Object is
 	/// deallocated. As a result, implementers should be prepared for dispose() to be called repeatedly
-	void dispose() is    	    
+	void dispose() is
+	    @Virtual;
 	end
 
         /// Constructor
