@@ -17,6 +17,7 @@
 // #define GC_DEBUG 0
 // #define TRACE_ALLOC 1
 
+#define GC_THREADS 1
 #include <gc/gc.h>
 
 #ifdef LLVM
@@ -309,8 +310,10 @@ typedef struct _Stat {
   int size;
 } Stat;
 
-extern __thread ExRecord *__exception_top;
-extern __thread void     *__exception_rsp;
+typedef struct _Stat2 {
+  int mtime;
+  int size;
+} Stat2;
 
 extern int GC_print_stats;
 extern int GC_quiet;
@@ -470,8 +473,6 @@ extern  _ZN6System15MemoryException7throwMEEv();
 #define STACK_SIZE (1024*1024*2)
 
 void *__thread_entry( void *thread_object ) {
-  __exception_top = 0;
-  __exception_rsp = 0;
   _ZN6System6Thread14__thread_entryEv( thread_object );
   return 0;
 }
@@ -567,21 +568,6 @@ void __GC_add_roots( GC_PTR from, GC_PTR to ) {
 }
 
 
-/*
-void __GC_finalize( GC_PTR obj, GC_PTR p ) {
-  if( obj != 0 ) {
-    VTable *v = getObjectVTable( (void *)obj );
-
-    // printf( "finalize: %s @ %p\n", v->name, obj );
-
-    fflush(stdout);
-  }
-}
-*/
-
-
-// extern int GC_find_leak;
-
 
 
 
@@ -654,8 +640,8 @@ void __call_dispose( WORD *object ) {
 void *__alloc_object_finalize( WORD size, GC_finalization_proc *vtable ) {
   char **p = (char **)vtable;
 
-  fprintf( stderr, "XXXX: alloc object finalize %s\n", p[-2] );
-  fflush(stderr);
+  // fprintf( stderr, "XXXX: alloc object finalize %s\n", p[-2] );
+  // fflush(stderr);
 
   WORD *result = (WORD *)__alloc_object( size, (WORD *)vtable );
 
@@ -1245,102 +1231,6 @@ void __flush_stdout() {
   fflush(stdout);
 }
 
-#define BACKTRACE_LENGTH 32
-
-void catchException( WORD type, void *e, ExRecord *r, WORD rbp, WORD rip, Registers *regs ) {
-  // if( r != 0 ) {
-  BacktraceRecord *backtrace = 0;
-
-  D( "catch exception %ld, %p\n", type, e );
-
-  if( __l_rbp != 0 ) {
-    D( "catch as if called from __native_thunk..." );
-
-    rbp = __l_rbp;
-    rip = __native_thunk;
-    
-    __l_rbp = 0;
-  }
-  
-  if( type == THROW_EXCEPTION ) {
-    if( _ZN6System9Exception16getBacktraceInfoEv(e) == 0 ) {
-      backtrace = (BacktraceRecord*)GC_malloc( sizeof(BacktraceRecord)*BACKTRACE_LENGTH );
-      _ZN6System9Exception16setBacktraceInfoEu4word( e, (WORD)backtrace );
-    } else {
-      fprintf( stderr, "exception object already has a backtrace token\n" );
-    }
-  } else {
-    fprintf( stderr, "runtime does not expect to see exception of type %ld\n", type );
-    fflush( stderr );
-    exit(1);
-  }
-  
-  Registers initial_regs;
-
-  if( regs == 0 ) {
-    regs = &initial_regs;
-  }
-  
-  D( "need to unwind to method containing address %p\n", r->catch );
-  
-  ExRecord *m = 0;
-  WORD catch_address = 0;
-  
-  if( r != 0 ) {
-    // fixme - is this needed if the handler label is within the method
-    // since unwindStack should find it anyway?
-    m = findMethodHandler( r );
-    if( m == 0 ) {
-      fprintf( stderr, "could not find method containing exception handler\n" );
-      fflush( stderr );
-      exit( 1 );
-    } else {
-      catch_address = (WORD)m->catch;
-    }
-  } else {
-    D( "build backrace only\n" );
-  }
-  
-  D( "about to unwind stack\n" );
-  
-  if( unwindStack( rbp, rip, catch_address, regs, backtrace, BACKTRACE_LENGTH-1 ) && r != 0 ) {
-    D( "about to catch %lx, %p, %p, %p...\n", type, e, r->func, regs );
-
-    __in_segv = 0;
-    __catch_exception( type, e, r->func, regs );
-  } else {
-    // D( "get backtrace string from %p\n", backtrace );
-    
-    // char *s = (char *)toCString__Q26System12StringBuffer( backtrace );
-    char *s = (char *)_ZN6System6Object9toCStringEv( e );
-
-    fprintf( stderr, s );
-    // }
-    D( "failed to catch %p\n", e );
-    // D( "%s\n", s );
-  }
-
-  fprintf( stderr, "failed to catch exception\n" );
-  fflush( stderr );
-  exit(1);
-}
-
-
-void __throw( WORD type, void *e, WORD rbp, WORD rip ) {
-  ExRecord *top = __exception_top;
-
-  D( "__throw(%ld,%p)...\n", type, e );
-  D( "top is %p\n", top );
-  D( "sizeof UnwindRecord is %p", (void *)sizeof(UnwindRecord) );
-
-  if( top != 0 ) {
-    catchException( type, e, top, rbp, rip, 0 );
-  } else {
-    fprintf( stderr, "unhandled exception\n" );
-  }
-
-  exit( 1 );
-}
 
 
 
@@ -1438,40 +1328,6 @@ Exception *makeNullPointerException() {
 }
 */
 
-
-Exception *__make_castexception() {
-  Exception *result = (Exception *)__alloc_object(__size_N6System13CastExceptionE,__get_vtable_N6System13CastExceptionE());
-
-  _ZN6System15MemoryException4initEPc(result,"illegal cast");
-
-  return result;
-}
-
-Exception *__make_arrayboundsexception() {
-  Exception *result = (Exception *)__alloc_object(__size_N6System15BoundsExceptionE,__get_vtable_N6System15BoundsExceptionE());
-
-  _ZN6System15MemoryException4initEPc(result,"array bounds");
-
-  return result;
-}
-
-Exception *__make_memoryprotectionexception() {
-  Exception *result = (Exception *)__alloc_object(__size_N6System25MemoryProtectionExceptionE,__get_vtable_N6System25MemoryProtectionExceptionE());
-
-  _ZN6System25MemoryProtectionException4initEPc(result,"memory protection");
-
-  return result;
-}
-
-
-Exception *__make_nullpointerexception() {
-  // Exception *result = (Exception *)malloc(size$__Q26System20NullPointerException);
-  Exception *result = (Exception *)__alloc_object(__size_N6System20NullPointerExceptionE,__get_vtable_N6System20NullPointerExceptionE());
-
-  _ZN6System20NullPointerException4initEPc(result,"null pointer");
-
-  return result;
-}
 
 
 int segv_count = 0;
@@ -1611,15 +1467,6 @@ void __install_segv_handler() {
   }
 }
 
-void __start_thread( void *thread ) {
-
-}
-
-
-void __throw_continue() {
-  D( "throw continue\n" );
-  exit(1);
-}
 
 int __stat_file( char *name, Stat *ls ) {
   struct stat us;
@@ -1627,6 +1474,17 @@ int __stat_file( char *name, Stat *ls ) {
   int result = stat( name, &us );
   if( !result ) {
 
+    ls->mtime = us.st_mtime;
+  }
+
+  return result;
+}
+
+int __stat_file2( char *name, Stat2 *ls ) {
+  struct stat us;
+
+  int result = stat( name, &us );
+  if( !result ) {
     ls->mtime = us.st_mtime;
   }
 
@@ -1648,10 +1506,6 @@ void __set_environ( char **env ) {
 
 void *__get_stderr() {
   return stderr;
-}
-
-void *__get_unwind_start() {
-  return __unwind_start;
 }
 
 long __get_nanotime() {

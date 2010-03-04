@@ -2063,6 +2063,7 @@ namespace Parse {
 
 	    for( int i = 0; i < gep_depth-1; i = i + 1 ) {
 		gep_indexes[i] = LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt32Type(), 0L, 0 );
+
 		/*
 		IO.Std.err.print( "GEP[" + i + "]:   " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue( gep_indexes[i] );
@@ -2075,11 +2076,9 @@ namespace Parse {
 	    /*
 	    IO.Std.err.print( "GEP[" + i + "]:   " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpValue( gep_indexes[i] );
-	    */
 
 	    LLVM.Type tt = LLVM.Calls.LLVMTypeOf(t);
 
-	    /*
 	    IO.Std.err.print( "value this:   " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpValue( t );
 	    IO.Std.err.print( "type this:    " ); IO.Std.err.flush();
@@ -2092,11 +2091,19 @@ namespace Parse {
 		IO.Std.err.println( "from: " + new System.Backtrace() );
 	    }
 	    */
+
+	    LLVM.Value result;
 	    if( want_const ) {
-		return LLVM.Calls.LLVMConstInBoundsGEP( t, gep_indexes.address, gep_indexes.length );
+		result = LLVM.Calls.LLVMConstInBoundsGEP( t, gep_indexes.address, gep_indexes.length );
 	    } else {
-		return into.InBoundsGEP( t, gep_indexes );
+		result = into.InBoundsGEP( t, gep_indexes );
 	    }
+	    /*
+	    IO.Std.err.println( "result is: " ); IO.Std.err.flush();
+	    LLVM.Calls.LLVMDumpValue( result );
+	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(result) );
+	    */
+	    return result;
         }
 
 	// v should reference an object, result is reference to function in vtable slot @ offset

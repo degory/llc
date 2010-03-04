@@ -159,9 +159,8 @@ bootstrap:
 	$(MAKE) install LC=./bs2/bin/lc RUNTIME=./bs2/lib/lang PREFIX=./bs3 NOSAFE=1
 	rm -r ./bs4 || true
 	$(MAKE) clean
-	$(MAKE) install LC=./bs3/bin/lc RUNTIME=./bs3/lib/lang PREFIX=./bs4 NOSAFE=1
+	$(MAKE) install LC=./bs3/bin/lc RUNTIME=./bs3/lib/lang PREFIX=./bs4 NOSAFE=1	
 	diff -r bs3 bs4
-
 
 syntaxl.l: syntax-l.jay skeleton-l
 	jay/jay -v syntax-l.jay <skeleton-l >syntaxl.l

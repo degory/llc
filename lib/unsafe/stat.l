@@ -5,13 +5,13 @@ namespace IO {
     /// Wrapper around UNIX stat() 
     struct Stat {
 	public int mtime;
-	// public int size;
+	public int size;
 	
 	void init() {
 	}
 
 	bool stat( System.String name ) {
-	    if( native.__stat_file( name.toCString(), this ) != null ) {
+	    if( native.__stat_file2( name.toCString(), this ) != null ) {
 		return false;
 	    } else {
 		return true;

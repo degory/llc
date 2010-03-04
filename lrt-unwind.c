@@ -128,21 +128,21 @@ struct Root *__find_closest_root( char *p ) {
   int64 distance = 0;
   int i;
 
-  fprintf( stderr, "find closest root to %p\n", p );
+  // fprintf( stderr, "find closest root to %p\n", p );
 
   struct Root *r;
   for( i = 0; i < NUM_ROOT; i++ ) {
-    fprintf( stderr, "search close: try root %d...\n", i ); fflush( stderr );
+    // fprintf( stderr, "search close: try root %d...\n", i ); fflush( stderr );
     r = &__roots[i];
 
     if( i == 0 && !r->low ) {
-      fprintf( stderr, "root %d is unused\n", i );
+      // fprintf( stderr, "root %d is unused\n", i );
       return r;
     }
 
     if( p >= r->low - MAX_DISTANCE &&
 	p <= r->high + MAX_DISTANCE ) {
-      fprintf( stderr, "root %d (%p..%p) is close enough\n", i, r->low, r->high );
+      // fprintf( stderr, "root %d (%p..%p) is close enough\n", i, r->low, r->high );
       // close enough:
       return r;
     } else {
@@ -152,35 +152,35 @@ struct Root *__find_closest_root( char *p ) {
       } else if( p > r->high ) {
 	d = p - r->high;
       }
-      fprintf( stderr, "root %d (%p..%p) is too far away (%ld bytes)\n", i, r->low, r->high, d );
+      // fprintf( stderr, "root %d (%p..%p) is too far away (%ld bytes)\n", i, r->low, r->high, d );
     }
   }
 
   for( i = 0; i < NUM_ROOT; i++ ) {
-    fprintf( stderr, "search unused: try root %d...\n", i ); fflush( stderr );
+    // fprintf( stderr, "search unused: try root %d...\n", i ); fflush( stderr );
     r = &__roots[i];
 
     if( !r->low ) {
-      fprintf( stderr, "root %d is unused\n", i );
+      // fprintf( stderr, "root %d is unused\n", i );
       return r;
     }
   }
 
   for( i = 0; i < NUM_ROOT; i++ ) {
-    fprintf( stderr, "search least bad: try root %d...\n", i ); fflush( stderr );
+    // fprintf( stderr, "search least bad: try root %d...\n", i ); fflush( stderr );
     r = &__roots[i];
     int d = 0;
 
     if( closest == 0 ) {
-      fprintf( stderr, "root %d (%p..%p) closest yet (first)\n", i, r->low, r->high );
+      // fprintf( stderr, "root %d (%p..%p) closest yet (first)\n", i, r->low, r->high );
       closest = r;
       continue;
     } else if( p < closest->low ) {
       d = closest->low - p;
-      fprintf( stderr, "root %d (%p..%p) distance %ld bytes below\n", i, r->low, r->high, d );
+      // fprintf( stderr, "root %d (%p..%p) distance %ld bytes below\n", i, r->low, r->high, d );
     } else if( p > closest->high ) {
       d = p - closest->high;
-      fprintf( stderr, "root %d (%p..%p) distance %ld bytes above\n", i, r->low, r->high, d );
+      // fprintf( stderr, "root %d (%p..%p) distance %ld bytes above\n", i, r->low, r->high, d );
     } else {
       fprintf( stderr, "root %d (%p..%p) contains pointer (shouldn't happen here)\n", i, r->low, r->high );
       return r;
@@ -189,14 +189,14 @@ struct Root *__find_closest_root( char *p ) {
     if( distance == 0 || d < distance ) {
       distance = d;
       closest = r;
-      fprintf( stderr, "root %d (%p..%p) closest yet\n", i, r->low, r->high );
+      // fprintf( stderr, "root %d (%p..%p) closest yet\n", i, r->low, r->high );
     }
   }
 
   if( closest != 0 ) {
-    fprintf( stderr, "root %d (%p..%p) is %ld bytes away\n", i, r->low, r->high, distance );
+    fprintf( stderr, "Forced to expand GC root %d (%p..%p) even though %ld bytes away. If roots become too large garbage collection may break\n", i, r->low, r->high, distance );
   } else {
-    fprintf( stderr, "no root found (shouldn't happen)\n" );
+    fprintf( stderr, "No suitable GC root found for address %p (shouldn't happen)\n", p );
   }
 
   fflush(stderr);
@@ -226,13 +226,13 @@ void __add_root( char *g ) {
   
   if( c->low != old_low || c->high != old_high ) {
     if( old_low ) {
-      fprintf( stderr, "GC remove root %p..%p\n", old_low, old_high );
+      // fprintf( stderr, "GC remove root %p..%p\n", old_low, old_high );
       GC_remove_roots( old_low, old_high + 8);
     }
 
     GC_add_roots( c->low, c->high + 8);
 
-    fprintf( stderr, "GC add root %p..%p (%ld bytes)\n", c->low, c->high, c->high - c->low);
+    // fprintf( stderr, "GC add root %p..%p (%ld bytes)\n", c->low, c->high, c->high - c->low);
     fflush(stderr);
   }
 }

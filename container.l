@@ -566,8 +566,12 @@ namespace Parse {
 	    if( this == null ) {
 		IO.Std.err.println( "GGGG: getGEPDepth: " + s.HumanName + " null owner from: " + new System.Backtrace() );
 	    } else if( s.Owner == this ) {
-		// IO.Std.err.println( "GGGG: GEP: " + HumanName + "." + s.Name );
-		return 1;
+		if( IsStruct ) {
+		    return 1;
+		} else {
+		    // IO.Std.err.println( "GGGG: GEP: " + HumanName + "." + s.Name );
+		    return 1;
+		}
 	    } else if( parent == null ) {
 		IO.Std.err.println( "GGGG: getGEPDepth: " + s.HumanName + " not found from: " + new System.Backtrace() );
 		throw new System.NotImplementedException( "GEP not owner: " + s.HumanName );
@@ -1647,13 +1651,16 @@ namespace Parse {
 
 	    var llvm_fields = new LLVM.Type[members.Length+2];
 
-	    if( parent == null ) {
-		llvm_fields[0] = LLVM.Calls.LLVMVTableType();
-	    } else {
-		llvm_fields[0] = LLVM.Calls.LLVMResolveTypeHandle(parent.llvm_opaque_type_handle);
+	    var llvm_fields_i = 0;
+	    if( !IsStruct ) {
+		if( parent == null ) {
+		    llvm_fields[0] = LLVM.Calls.LLVMVTableType();
+		} else {
+		    llvm_fields[0] = LLVM.Calls.LLVMResolveTypeHandle(parent.llvm_opaque_type_handle);
+		}
+		
+		llvm_fields_i = 1;
 	    }
-
-	    var llvm_fields_i = 1;
         
             foreach( Symbol current; members.SymbolList.elements() ) { 
 		int k = current.Kind;
@@ -1740,7 +1747,7 @@ namespace Parse {
 
 		    current.Address = llvm_fields_i;
 
-		    // IO.Std.err.println( "address for " +  HumanName + "." + current.Name + " @ " + a );
+		    // IO.Std.err.println( "address for " +  HumanName + "." + current.Name + " @ " + current.Address );
 
 		    /*
 		    if( current.Type.isReference() ) {
@@ -1763,6 +1770,12 @@ namespace Parse {
                     // throw new Exception( "weird: ignoring symbol " + current.Name + " of kind " + current.Kind );
                 }
             }
+
+	    if( IsStruct ) {
+		var st = LLVM.Calls.LLVMStructType(llvm_fields.address, llvm_fields_i, 0 );
+		IO.Std.err.println( "struct type " + HumanName + " is: " ); IO.Std.err.flush();
+		LLVM.Calls.LLVMDumpType(st);
+	    }
 	    
 	    llvm_struct_type_handle = LLVM.Calls.LLVMCreateTypeHandle( LLVM.Calls.LLVMStructType(llvm_fields.address, llvm_fields_i, 0 ) );
 			       
