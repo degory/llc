@@ -441,6 +441,9 @@ namespace Parse {
 	    case Token.GT:
 		token_string = "opCompare";
 
+	    case Token.RANGE:
+		token_stirng = "opRange";
+
 	    default:
 		// syntax error:
 		return r;
@@ -892,7 +895,15 @@ namespace Parse {
                 }
 	    case '%': return Token.MOD;	    
 
-            case '.': return Token.DOT;
+            case '.': 
+		c = nextChar();
+		if( c == '.' ) {
+		    return Token.RANGE;
+		} else {
+		    prevChar(c);
+		    return Token.DOT;
+		}
+
             case ',': return Token.COMMA;
             case ':': return Token.COLON;
             case ';': 

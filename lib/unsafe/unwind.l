@@ -16,7 +16,7 @@ namespace System {
 	/// Accessor: static get UnwindInfo First
 	/// Get the UnwindInfo struct referring to the first method in the program
 	static get UnwindInfo First {
-	    return cast UnwindInfo(native.__get_unwind_start());
+	    // return cast UnwindInfo(native.__get_unwind_start());
 	}
 
 	/// Accessor: get UnwindInfo Next

@@ -158,10 +158,17 @@ namespace Generic is
 	    od
         end
 */
-
 	get bool IsArray is
 	    return true;
         end
+
+	ArrayRange<T> range(int from, int to) is
+	    return new ArrayRange<T>(this, from, to); 
+	end	   
+
+	get ArrayRange<T>[System.RangeIterator<int> r] is
+	    return new ArrayRange<T>(this, r.from, r.to);
+	end
     end
 
     /// an Iterator<T> that returns each element of an array in increasing index order
@@ -185,4 +192,108 @@ namespace Generic is
 	    return result;
 	end
     end
+
+    class ArrayRange<T> implements List<T>, Iterator<T> is
+        T[] a;
+        int i;
+	int from, to;
+
+	void init( T[] a, int from, int to ) is
+	    this.a = a;
+            i = from;
+	    this.from = from;
+	    this.to = to;
+	end
+
+	bool hasMoreElements() is
+	    return i <= to;
+	end
+
+	T nextElement() is
+	    T result = a[i];
+	    i = i + 1;
+	    return result;
+	end
+
+	get T[int index] is 
+	    return a[from + index];
+	end
+
+	set T[int index] = v is
+	    _read_only();
+	end
+
+	void _read_only() is 
+	    throw new System.NotImplementedException( Class.Name + " is read only" );
+	end
+
+	/// accessor: get int Length
+	/// \return the number of values in this array
+	get int Length is
+	    return from - to;
+	end
+
+	/// \attention: not implemented
+        /// \throw System.NotImplementedException
+	void add( T v ) is
+	    _read_only();
+	end
+
+	/// \attention: not implemented
+        /// \throw System.NotImplementedException
+	void add( Iterable<T> v ) is
+	    _read_only();
+	end
+
+	/// \attention: not implemented
+        /// \throw System.NotImplementedException
+	void remove( T v ) is
+	    _read_only();
+	    throw new System.NotImplementedException( Class.Name + "Generic.Array is fixed length" );
+        end
+
+	/// \attention: partially implemented
+        /// \throw System.NotImplementedException
+	void lengthen( int l ) is
+	    if l > Length then
+	        _read_only();
+	    fi
+	end
+
+	String toString() is
+            var result = new StringBuffer();
+            for int i = from; i <= to; i = i + 1 do
+               if i != 0 then
+	           result.append(',');			
+               fi
+ 	       result.append(this[i].toString());
+	    od
+
+            return result;
+        end
+
+        /// \attention: checks reference equality only for reference types
+	bool contains( T v ) is
+	    for int i = from; i <= to; i = i + 1 do
+ 		if cast T[](this)[i] =~ v then
+		    return true;
+		fi
+	    od
+
+	    return false;
+	end
+
+	bool isEmpty() is
+	    return Length > 0;
+	end
+
+	get ArrayRange<T> Iterator is
+	    return new ArrayRange<T>(a, from, to);
+	end
+
+	ArrayRange<T> elements() is
+	    return new ArrayRange<T>(a, from, to);
+	end
+
+    end	
 end

@@ -238,6 +238,7 @@ class Root {
 %token PROC          114
 %token ISA           115
 %token OPERATOR	     116
+%token RANGE	     117
 %start ROOT
 
 %%
@@ -723,23 +724,30 @@ expression0:
 
 
 expressionA:
-   expressionA EQ expressionB
+   expressionA EQ expressionR
 		{ $$ = new Parse.BooleanExpression( first_line, Op.EQ, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
-|   expressionA NE expressionB
+|   expressionA NE expressionR
 		{ $$ = new Parse.BooleanExpression( first_line, Op.NE, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
-|   expressionA GT expressionB
+|   expressionA GT expressionR
 		{ $$ = new Parse.BooleanExpression( first_line, Op.GT, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
-|   expressionA LT expressionB
+|   expressionA LT expressionR
 		{ $$ = new Parse.BooleanExpression( first_line, Op.LT, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
-|   expressionA GE expressionB
+|   expressionA GE expressionR
 		{ $$ = new Parse.BooleanExpression( first_line, Op.GE, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
-|   expressionA LE expressionB
+|   expressionA LE expressionR
 		{ $$ = new Parse.BooleanExpression( first_line, Op.LE, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
-|   expressionA OBJ_EQ expressionB
+|   expressionA OBJ_EQ expressionR
 		{ $$ = new Parse.BooleanExpression( first_line, Op.OBJ_EQ, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
-|   expressionA OBJ_NE expressionB
+|   expressionA OBJ_NE expressionR
 		{ $$ = new Parse.BooleanExpression( first_line, Op.OBJ_NE, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
+|   expressionR
+;
+
+expressionR:
+    expressionR RANGE expressionB
+               { $$ = new Parse.ArithExpression( first_line, Op.RANGE, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
 |   expressionB
+
 ;
 
 expressionB:

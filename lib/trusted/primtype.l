@@ -6,6 +6,8 @@ import primlong;
 pragma NoMarkUnsafe, NoWarnUnsafe;
 
 namespace System is
+    use Generic.Iterator;
+
     /// Object wrapper around primitive int type
     class Int extends Object is
 	public static Int Zero = new Int(0);
@@ -94,7 +96,36 @@ namespace System is
 	static void seedRandom() is
 	    native.srand( native.__get_time() );
 	end
+
+	static int next(int i) is
+	    return i + 1;
+	end
+
+	static RangeIterator<int> opRange(int from, int to) is
+	    return new RangeIterator<int>(from, to);
+	end	
     end
+
+    class RangeIterator<T> implements Iterator<T> is
+        bool done;
+        public T i, from, to;
+
+	void init( T from, T to ) is
+	    i = from;
+            this.from = from;
+	    this.to = to;	    
+	end
+
+	bool hasMoreElements() is
+	    return i <= to;
+	end
+
+	T nextElement() is
+	    T result = i;
+	    i = i.next();
+	    return result;	 
+	end
+    end				
 
     class Bool extends Object is
 	public static Bool False = new Bool(false);
@@ -264,5 +295,14 @@ namespace System is
         static char fromString( String s ) is
 	    return s[0];
 	end
+
+	static char next(char i) is
+	    return i + 1c;
+	end
+
+	static RangeIterator<char> opRange(char from, char to) is
+	    return new RangeIterator<char>(from, to);
+	end	
+
     end
 end

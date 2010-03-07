@@ -35,18 +35,19 @@ namespace System is
         
 	void _dispose() is
 	    @Virtual;
- 
 	    if this == null then
-	        // FIXME: is this a GC issue?
+	    	// FIXME: is this a GC issue?
 	        return;
-	    fi
+	    fi		    
 
-	    try 
-		IO.Std.err.println( "_dispose: " + Class.Name );
+	    // try
 	        dispose();
+            /*
 	    catch System.Exception se 
+	        native.GC_disable();
 		Startup.uncaughtException( se );
 	    yrt
+            */
 	end
 
 	// DO NOT MOVE: runtime depends on the _implements() method occupying the second slot in the vtable

@@ -1060,6 +1060,10 @@ namespace Parse {
 			op_string = "<=";
 			n = "opCompare";
 			inequality = true;
+
+		    case Op.RANGE:
+			op_string = "..";
+			n = "opRange";
 			
 		    default:
 			error( "cannot use this operator here" );			   
