@@ -2064,8 +2064,9 @@ namespace Parse {
 
 	    // IO.Std.err.println( "\n\nGGGG: resulting depth: " + gep_depth + "\n\n" );
 	    var gep_indexes = new LLVM.Value[gep_depth];
+	    int i;
 
-	    for( int i = 0; i < gep_depth-1; i = i + 1 ) {
+	    for( i = 0; i < gep_depth-1; i = i + 1 ) {
 		gep_indexes[i] = LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt32Type(), 0L, 0 );
 
 		/*

@@ -1473,9 +1473,6 @@ namespace Parse {
 		}
 
                 Symbol symbol = state.declareVariable( this, ident.Name, kind, actual_access, use_type );
-                if( symbol != null ) {
-                    IO.Std.err.println( "declared: " + symbol.Type + " " + symbol.HumanName );
-                }
 
                 if( kind == Symbol.CONST ) {
                     if( e == null ) {
@@ -1499,15 +1496,12 @@ namespace Parse {
         }
 
 	void compile( CompileState state ) {
-	    IO.Std.err.println( "compile variable-def does nothing" );
+	    // IO.Std.err.println( "compile variable-def does nothing" );
 	}
 
         void compile( CompileState state, IRBlock into ) {
             if( state.CurrentMethod != null ) {
-                IO.Std.err.println( "declare in method: " + state.CurrentMethod.HumanName + ": " + this );
                 declare( state );
-            } else {
-                IO.Std.err.println( "do not declare: " + this );
             }
 
             // seen_variables = true;
@@ -1522,8 +1516,6 @@ namespace Parse {
                                 
                 Symbol symbol = state.findSymbol( name, Symbol.FIND_ANY );
 		if( symbol == null ) {
-		    IO.Std.err.println( "looking for " + name );
-		    IO.Std.err.flush();
 
 		    error( "could not find previous defitition of " + name );
 		    if( state.CurrentClass != null ) {
@@ -1883,8 +1875,6 @@ namespace Parse {
 		body.markLastReturns();
 	    }
 
-            IO.Std.err.println( "method " + m.HumanName + ", not declaring symbols yet" );
-
 	    // body.declareSymbols( state );
             // IO.Std.err.println( "local depth A: " + m.getLocalOffset() );
 
@@ -1895,7 +1885,7 @@ namespace Parse {
 
         void compile( CompileState state ) {
 	    m = state.nextMethodByIndex( name.Name );
-	    IO.Std.err.println( "GGGG: compile method " + m.HumanName + " in class " + m.Owner.HumanName );
+	    // IO.Std.err.println( "GGGG: compile method " + m.HumanName + " in class " + m.Owner.HumanName );
 
 	    checkOverride( state );
 
@@ -1917,9 +1907,6 @@ namespace Parse {
                 throw new Exception( "couldn't find previous definition for " + human + " (" + decorated + ")" );
                 return;
             }
-
-	    m.allocaLocals( state, into );
-
 
             state.beginParseMethodArgs( this, m );
 

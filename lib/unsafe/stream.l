@@ -739,7 +739,8 @@ namespace IO {
 
 	int write( char ptr buffer, int size ) {
 	    System.StringBuffer s = cast<System.StringBuffer>(string);
-	    for( int i = 0; i < size; i = i + 1 ) {
+	    int i;
+	    for( i = 0; i < size; i = i + 1 ) {
 		s.append( [buffer + i] );
 	    }
 	    return i;

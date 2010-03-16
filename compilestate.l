@@ -1672,14 +1672,18 @@ namespace Parse {
 	IO.Reader tryOpen( String dir, String ref file_name, String extension ) {
 	    try {
 		String open_file_name = dir + file_name + extension;
+		// IO.Std.err.println( "try open: " + open_file_name );
 
 		var s = IO.File.openStream( open_file_name, IO.File.O_RDONLY, 0, true );
 		if( s == null ) {
+		    // IO.Std.err.println( "failed: " + open_file_name );
 		    return null;
 		}
 
 		var in = new IO.Reader(s);
 		file_name = open_file_name;
+
+		// IO.Std.err.println( "success: " + file_name + ", " + in );
 
 		return in;
 	    } catch( IO.IOException ioe ) {
@@ -1709,7 +1713,14 @@ namespace Parse {
 		search.add( "" );
 	    }
 
-            foreach( String s; search.elements() ) {
+	    // IO.Std.err.println( "search in: " + search );
+
+	    var i = search.elements();
+
+	    // IO.Std.err.println( "i is: " + i );
+
+            foreach( String s; i /* search.elements() */ ) {
+		// IO.Std.err.println( "try: " + s );
 		if( !s.endsWith('/') ) {
 		    s = s + '/';
 		}

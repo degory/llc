@@ -2049,9 +2049,6 @@ namespace Parse {
                 }
             }
    
-            if( /* seen_variables && */ state.CurrentMethod != null ) {
-                state.CurrentMethod.stripDefined( state.BlockLevel );
-            }
             // block_level = block_level - 1;
 	    state.exitBlock(st);
         }

@@ -447,17 +447,6 @@ namespace Parse {
 	    return v;
 	}
 
-	void allocaLocals(CompileState state, Gen.IRBlock into) {
-            IO.Std.err.println( "allocaLocals: do nothing" );
-            /*
-	    foreach( Symbol s; members.SymbolList.elements() ) {
-		if( s.IsLocal ) {
-		    s.LLVMValue = into.AllocaEntry( s.Type.getLLVMType(state), s.Name );
-		}
-	    }
-            */
-	}
-
 	LLVM.Value getLocalVariable(CompileState state) {
 	    return LLVMValue;
 	}
@@ -1238,9 +1227,6 @@ namespace Parse {
             return members;
         }
         
-        void stripDefined( int level ) {
-            members.stripDefined( level );
-        }
 
         int enterBlock() {
             return members.enterBlock();
@@ -1783,11 +1769,13 @@ namespace Parse {
                 }
             }
 
+	    /*
 	    if( IsStruct ) {
 		var st = LLVM.Calls.LLVMStructType(llvm_fields.address, llvm_fields_i, 0 );
 		IO.Std.err.println( "struct type " + HumanName + " is: " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpType(st);
 	    }
+	    */
 	    
 	    llvm_struct_type_handle = LLVM.Calls.LLVMCreateTypeHandle( LLVM.Calls.LLVMStructType(llvm_fields.address, llvm_fields_i, 0 ) );
 			       

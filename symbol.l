@@ -214,7 +214,6 @@ namespace Parse {
 
 	LLVM.Value getLocal(CompileState state, IRBlock into) {
 	    if( llvm_value == null ) {
-                IO.Std.err.println( "lazy alloca: " + Type + " " + HumanName );
                 llvm_value = into.AllocaEntry( Type.getLLVMType(state), Name );
 	    }
 
@@ -592,25 +591,12 @@ namespace Parse {
 	    }
         }
 
-        void stripDefined( int level ) {
-            IO.Std.err.println( "strip defined: broken" );
-            /*
-	    foreach( Symbol s; list.elements() ) {
-		if( s.Defined == level ) {
-		    s.Defined = 0;
-		}
-	    }
-            */
-        }
-
         int enterBlock() {
-            var result = stack_top;
-            stack_top = list.Length;
-            return result;
+            return list.Length;
         }
 
         void exitBlock(int st) {
-            stack_top = st;
+	    list.Length = st;
         }
         
         void add( Symbol symbol ) {

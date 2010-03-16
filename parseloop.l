@@ -349,20 +349,13 @@ namespace Parse {
             this.expr = expr;
             this.statement = statement;
         }
-
+	/*
         void declareSymbols( CompileState state ) {	   
-	    var te = type_expr;
-	    var t = type_expr.parseType( state );
-	    if( t.TypeKind == Type.INFER ) {
-		te = inferElementTypeExpr( state );
-	    }
 
-            VariableDef vd_ident = new VariableDef( line_number, ident, 0, te ); // new ReferenceType( line_number, type_expr ) );
-
-            vd_ident.declareSymbols(state);
             
             statement.declareSymbols( state );
         }
+	*/
 
 	void clear( CompileState state ) {
 	    type_expr.clear(state);
@@ -407,12 +400,24 @@ namespace Parse {
             LLVM.BasicBlock exit = into.Block();
             LLVM.BasicBlock top = into.Block();
             LLVM.BasicBlock cont = into.Block();
+	    var st = state.enterBlock();
+
             // bool is_vector = false;
 	    LLVM.Value temp;
             Assignment assignment;
 
 	    Cast next_element_cast;
 	    MethodCall has_more_elements_call, next_element_call;
+
+	    var te = type_expr;
+	    var t = type_expr.parseType( state );
+	    if( t.TypeKind == Type.INFER ) {
+		te = inferElementTypeExpr( state );
+	    }
+
+            VariableDef vd_ident = new VariableDef( line_number, ident, 0, te ); // new ReferenceType( line_number, type_expr ) );
+
+            vd_ident.declareSymbols(state);
             
             state.Loops.pushLoop( LoopName, exit, cont );
             
@@ -425,7 +430,7 @@ namespace Parse {
 	    }
              
             // MethodCall *elements_call = new MethodCall( line_number, expr, new Identifier( line_number, "elements" ), 0 );
-            Type t = expr.getType(state);
+            t = expr.getType(state);
 
 	    Type et;
 	    LLVM.Type let;
@@ -519,7 +524,7 @@ namespace Parse {
 
 		into.Label( exit );
             }
-            
+	    state.exitBlock(st);            
             state.Loops.popLoop();
         }
         
@@ -616,6 +621,8 @@ namespace Parse {
             LLVM.BasicBlock top = into.Block();
             LLVM.BasicBlock cont = into.Block();
             LLVM.BasicBlock exit = into.Block();
+
+	    var st = state.enterBlock();
             
             state.Loops.pushLoop( LoopName, exit, cont );
             
@@ -652,6 +659,8 @@ namespace Parse {
             }
                          
             state.Loops.popLoop();
+
+	    state.exitBlock(st);
         }    
         
         void dump( CompileState state, StringBuffer  buffer ) {

@@ -620,7 +620,8 @@ namespace System is
 	/// Return the length in characters of supplied C-string
 	/// \param s C-string to get the length of. Must be terminated with cast char(0)
 	int _c_getLength( char ptr s ) is
-	    for int i = 0; [s + i] != cast char(0); i = i + 1 do
+	    int i;
+	    for i = 0; [s + i] != cast char(0); i = i + 1 do
 	        ;
 	    od
 

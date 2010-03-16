@@ -21,6 +21,7 @@ namespace Generic is
  
 	void init( Vector<T> v ) is
 	    super.init();
+            // IO.Std.err.println( "new iterator: " + v.Length );
 	    _v = v;
 	    _i = 0;
 	end
