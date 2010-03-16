@@ -10,6 +10,7 @@ namespace Parse {
     use System.StringBuffer;
     use System.Exception;
     use Generic.Vector;
+    use Generic.Iterator;
 
     use Gen.IRBlock;
 
@@ -213,7 +214,8 @@ namespace Parse {
 
 	LLVM.Value getLocal(CompileState state, IRBlock into) {
 	    if( llvm_value == null ) {
-		throw new System.Exception( "no local value: " + HumanName );
+                IO.Std.err.println( "lazy alloca: " + Type + " " + HumanName );
+                llvm_value = into.AllocaEntry( Type.getLLVMType(state), Name );
 	    }
 
 	    return llvm_value;
@@ -542,17 +544,45 @@ namespace Parse {
 	}
     }
 
+    class SymbolSearchIterator implements Iterator<Symbol> {
+        Vector<Symbol> list;
+        int i;
+        void init( Vector<Symbol> list, int stack_top ) {
+            this.list = list;
+            this.i = stack_top - 1;
+        }
+
+        bool hasMoreElements() {
+            return i >= 0;
+        }
+
+        Symbol nextElement() {
+            var result = list[i];
+            i = i - 1;
+
+            IO.Std.err.println( "search: " + result.HumanName );
+            return result;
+        }
+    }
 
     class SymbolList extends Object {
 	const int MAX_LEN = 15;
-        SymbolList parent;
+        // SymbolList parent;
+
+        int stack_top;
+
 	Vector<Symbol> list;
+        /*
         Vector<Symbol>[] by_length; // one list per possible length of symbol upto maximum length, longer lengths stored in last bucket
+        */
 
         void init() {
             super.init();
+            stack_top = -1;
 	    list = new Vector<Symbol>();
+            /*
             by_length = new Vector<Symbol>[MAX_LEN+1];
+            */
         }
 
         void dump() {
@@ -563,15 +593,29 @@ namespace Parse {
         }
 
         void stripDefined( int level ) {
+            IO.Std.err.println( "strip defined: broken" );
+            /*
 	    foreach( Symbol s; list.elements() ) {
 		if( s.Defined == level ) {
 		    s.Defined = 0;
 		}
 	    }
+            */
+        }
+
+        int enterBlock() {
+            var result = stack_top;
+            stack_top = list.Length;
+            return result;
+        }
+
+        void exitBlock(int st) {
+            stack_top = st;
         }
         
         void add( Symbol symbol ) {
 	    String s = symbol.Name;
+            /*
 	    int l = s.Length;
 	    if( l > MAX_LEN ) {
 		l = MAX_LEN;
@@ -582,8 +626,18 @@ namespace Parse {
 	    }
     
             by_length[l].add( symbol );
+            */
 	    list.add( symbol );
 	    // IO.Std.err.println( "list now: " + list );
+        }
+
+        Iterator<Symbol> getSearchList() {
+            // if( stack_top < 0 ) {
+            // IO.Std.err.println( "will search: " + list );
+                return list.elements();
+                //} else {
+                // return new SymbolSearchIterator( list, stack_top );
+                //}
         }
 
         void addAll( SymbolList l ) {
@@ -616,10 +670,12 @@ namespace Parse {
             if( name == null ) {
                 throw new Exception( "oops: can't lookup null name in symbol list" );
             }
-
+            /*
 	    Vector<Symbol> v;
+            Iterator i;
+
 	    if( use_list ) {
-		v = list;
+		i = getSearchList();
 	    } else {
 		int l = name.Length;
 		if( l > MAX_LEN ) {
@@ -629,9 +685,10 @@ namespace Parse {
 	    }
 
 	    if( v != null ) {
-		// IO.Std.err.println( "search symbol '" + name + "' in length " + l + " bucket..." );
+ 		// IO.Std.err.println( "search symbol '" + name + "' in length " + l + " bucket..." );
+                */
 
-		foreach( Symbol s; v.elements() ) {
+		foreach( Symbol s; getSearchList() ) {
 		    if( s == null ) {
 			throw new Exception( "null symbol in list\n" );
 		    }
@@ -657,10 +714,11 @@ namespace Parse {
 		    }
 
 		}
+                /*
 	    } else {
 		// IO.Std.err.println( "symbol '" + name + "': no length " + l + " bucket" );
 	    }
-            
+                */
             return null;
         }
 
@@ -669,7 +727,7 @@ namespace Parse {
                 throw new Exception( "oops: can't lookup null name in symbol list" );
             }
 
-	    foreach( Symbol s; list.elements() ) {
+	    foreach( Symbol s; getSearchList() ) {
 		if( s.Kind & Symbol.FLAG_METHOD != 0 && name.equals( s.DecoratedName ) ) {
 		    return s;
 		}
@@ -684,7 +742,7 @@ namespace Parse {
                 return null;
             }
 
-	    foreach( Symbol s; list.elements() ) {
+	    foreach( Symbol s; getSearchList() ) {
 		if( name.equals( s.DecoratedName ) ) {
 		    return s;
 		}
@@ -715,6 +773,8 @@ namespace Parse {
 		return null;
 	    }
 
+            /*
+
 	    int l = name.Length;
 	    if( l > MAX_LEN ) {
 		l = MAX_LEN;
@@ -723,7 +783,8 @@ namespace Parse {
 	    var v = by_length[l];
             
 	    if( v != null ) {
-		foreach( Symbol s; v.elements() ) {
+            */
+                foreach( Symbol s; getSearchList() ) {
 
 		    Quality q = new Quality();
 		    if( s.Kind & Symbol.FLAG_METHOD != 0 && name.equals( s.Name ) ) {
@@ -753,7 +814,7 @@ namespace Parse {
 		    result.score = best_score;
 		    return best_match;
 		} 
-	    }
+                // }
 
 	    return null;
         }
@@ -762,6 +823,7 @@ namespace Parse {
             if( name == null ) {
                 throw new Exception( "oops: can't search for a null method name in symbol list" );
             }
+            /*
 
 	    int l = name.Length;
 	    if( l > MAX_LEN ) {
@@ -770,7 +832,8 @@ namespace Parse {
 	    var v = by_length[l];
             
 	    if( v != null ) {
-		foreach( Symbol s; v.elements() ) {
+            */
+		foreach( Symbol s; getSearchList() ) {
 		    if( s.Kind & Symbol.FLAG_METHOD != 0 ) {
 			if( name.equals( s.Name ) ) {                     
 			    Container class_symbol = cast<Container>( s );
@@ -781,7 +844,7 @@ namespace Parse {
 			}
 		    }
 		}
-            }
+                // }
             
             return null;
         }
@@ -811,10 +874,12 @@ namespace Parse {
 	    return list.Length;
 	}
 
+        /*
         void setSuper( SymbolList parent ) {
             this.parent = parent;
         }
-        
+        */        
+
         get Vector<Symbol> SymbolList {
             return list;
         }

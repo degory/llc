@@ -2038,7 +2038,7 @@ namespace Parse {
 	}
 
         void compile( CompileState state, IRBlock into ) {
-	    state.enterBlock();
+	    var st = state.enterBlock();
             // block_level = block_level + 1;
             // seen_variables = false;
             foreach( Statement s; list.elements() ) {
@@ -2053,7 +2053,7 @@ namespace Parse {
                 state.CurrentMethod.stripDefined( state.BlockLevel );
             }
             // block_level = block_level - 1;
-	    state.exitBlock();
+	    state.exitBlock(st);
         }
         
         void compile( CompileState state ) {

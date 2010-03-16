@@ -448,11 +448,14 @@ namespace Parse {
 	}
 
 	void allocaLocals(CompileState state, Gen.IRBlock into) {
+            IO.Std.err.println( "allocaLocals: do nothing" );
+            /*
 	    foreach( Symbol s; members.SymbolList.elements() ) {
 		if( s.IsLocal ) {
 		    s.LLVMValue = into.AllocaEntry( s.Type.getLLVMType(state), s.Name );
 		}
 	    }
+            */
 	}
 
 	LLVM.Value getLocalVariable(CompileState state) {
@@ -1238,7 +1241,15 @@ namespace Parse {
         void stripDefined( int level ) {
             members.stripDefined( level );
         }
-        
+
+        int enterBlock() {
+            return members.enterBlock();
+        }
+
+        void exitBlock( int st ) {
+            members.exitBlock(st);
+        }
+
         Symbol findSymbol( String name, int find_what ) {
             Symbol result = null;
 
@@ -1246,6 +1257,7 @@ namespace Parse {
             // search genuine members first
             if( members != null ) {
                 result = members.find( name, find_what );
+
                 if( result != null ) {
                     return result;
                 }

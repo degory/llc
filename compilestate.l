@@ -988,12 +988,20 @@ namespace Parse {
 	    in_child_process = v;
 	}
 
-	void enterBlock() {
-	    block_level = block_level + 1;
+	int enterBlock() {
+            if( CurrentMethod != null ) {
+                block_level = block_level + 1;
+                return CurrentMethod.enterBlock();
+            } else {
+                return -1;
+            }
 	}
 
-	void exitBlock() {
-	    block_level = block_level - 1;
+	void exitBlock(int st) {
+            if( CurrentMethod != null ) {
+                CurrentMethod.exitBlock(st);
+                block_level = block_level - 1;
+            }
 	}
 
 	get int BlockLevel {

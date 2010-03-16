@@ -87,8 +87,7 @@ namespace Parse {
 
 
         void declareSymbols( CompileState state ) {
-            match.declareSymbols( state );
-            statement.declareSymbols( state );
+
         }
 
 	void checkTemplates( CompileState state ) {
@@ -113,6 +112,8 @@ namespace Parse {
 		     LLVM.Value exception_object, 
 		     bool first,
 		     bool last ) {
+            match.declareSymbols( state );
+
             Type type = match.getType( state );
             
             if( type == null || type.TypeKind != Type.CLASS ) {
@@ -305,7 +306,7 @@ namespace Parse {
 	    ExceptionDescriptor ed;
             int offset = 0;
 
-	    state.enterBlock();
+	    var st = state.enterBlock();
 
 	    LLVM.BasicBlock next_handler; // = into.Block();
 	    LLVM.BasicBlock this_handler = into.Block();
@@ -358,7 +359,7 @@ namespace Parse {
             
             // block.add( new ITree( line_number, Op.LABEL, 8, skip_label ) );
             
-	    state.exitBlock();
+	    state.exitBlock(st);
             return offset;
         }
 

@@ -442,7 +442,7 @@ namespace Parse {
 		token_string = "opCompare";
 
 	    case Token.RANGE:
-		token_stirng = "opRange";
+		token_string = "opRange";
 
 	    default:
 		// syntax error:

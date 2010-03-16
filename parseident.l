@@ -475,10 +475,12 @@ namespace Parse {
             }
             
             symbol = result;
+            /*
             if( symbol != null && symbol.Defined == 0 && state.Pass > CompilePass.DECLARE_SYMBOLS ) {
 		IO.Std.err.println( "symbol is: " + symbol + ", pass is: " + cast int(state.Pass) );
                 error( symbol.HumanName + " is not valid here" );
             }
+            */
 
 	    // IO.Std.err.println( "YYYYYY: returning: " + result );
             return result;

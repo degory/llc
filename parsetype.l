@@ -156,7 +156,7 @@ namespace Parse {
         }
 
         void dump( StringBuffer human, StringBuffer  decorate ) {
-	    throw new System.Exception( "dump unknown type: " + Class.Name );
+	    // throw new System.Exception( "dump unknown type: " + Class.Name );
             human.append("<unknown type>");
             decorate.append('v');
         }

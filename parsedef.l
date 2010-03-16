@@ -1473,6 +1473,9 @@ namespace Parse {
 		}
 
                 Symbol symbol = state.declareVariable( this, ident.Name, kind, actual_access, use_type );
+                if( symbol != null ) {
+                    IO.Std.err.println( "declared: " + symbol.Type + " " + symbol.HumanName );
+                }
 
                 if( kind == Symbol.CONST ) {
                     if( e == null ) {
@@ -1496,10 +1499,17 @@ namespace Parse {
         }
 
 	void compile( CompileState state ) {
-	    // IO.Std.err.println( "compile variable-def does nothing" );
+	    IO.Std.err.println( "compile variable-def does nothing" );
 	}
 
         void compile( CompileState state, IRBlock into ) {
+            if( state.CurrentMethod != null ) {
+                IO.Std.err.println( "declare in method: " + state.CurrentMethod.HumanName + ": " + this );
+                declare( state );
+            } else {
+                IO.Std.err.println( "do not declare: " + this );
+            }
+
             // seen_variables = true;
             Assignment a;
 
@@ -1761,6 +1771,7 @@ namespace Parse {
 		    state.declareAccessor( this, n.substring(5), n );
 		}
 	    }
+            /*
 
             state.beginParseMethodArgs( this, m );
 
@@ -1771,6 +1782,7 @@ namespace Parse {
             }
 
             state.endParseMethodArgs( m );
+            */
             // IO.Std.err.println( "method def parsed: " + m );
         }
 
@@ -1844,9 +1856,9 @@ namespace Parse {
 	    // IO.Std.err.println( "declare symbols: " + name );
 
 	    m = state.nextMethodByIndex( name.Name );
-
+            /*
 	    checkOverride( state );
-
+            */
             var decorated = m.DecoratedName;
 
             state.beginCompileMethod( this, m, decorated );
@@ -1871,8 +1883,9 @@ namespace Parse {
 		body.markLastReturns();
 	    }
 
+            IO.Std.err.println( "method " + m.HumanName + ", not declaring symbols yet" );
 
-	    body.declareSymbols( state );
+	    // body.declareSymbols( state );
             // IO.Std.err.println( "local depth A: " + m.getLocalOffset() );
 
             state.endParseMethodBody(m);
@@ -1882,7 +1895,9 @@ namespace Parse {
 
         void compile( CompileState state ) {
 	    m = state.nextMethodByIndex( name.Name );
-	    // IO.Std.err.println( "GGGG: compile method " + m.HumanName + " in class " + m.Owner.HumanName );
+	    IO.Std.err.println( "GGGG: compile method " + m.HumanName + " in class " + m.Owner.HumanName );
+
+	    checkOverride( state );
 
 	    progress();
 
@@ -1905,6 +1920,19 @@ namespace Parse {
 
 	    m.allocaLocals( state, into );
 
+
+            state.beginParseMethodArgs( this, m );
+
+            // IO.Std.err.println( "method scope: " + m.Scope );
+
+            if( args != null ) {
+
+                args.declareSymbols( state, !m.IsStatic );
+            }
+
+            state.endParseMethodArgs( m );
+	    
+	   
 	    if( state.WantVeryVerbose ) {
 		message( "compile method: " + human );
             }
@@ -1950,9 +1978,8 @@ namespace Parse {
 	    }
 
 	    state.endParseMethodBody(m);
-	    // into.WantLineNumbers = state.WantLineNumbers;                
-	    
-	   
+	    // into.WantLineNumbers = state.WantLineNumbers;
+
 	    compileArguments(state, into, !m.IsStatic);
 
 	    try {
