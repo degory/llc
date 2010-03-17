@@ -991,7 +991,7 @@ namespace Parse {
 
 	    var il = c.AllImplementedInterfaces;
 
-	    IO.Std.err.FlushOnPrintln = true;
+	    // IO.Std.err.FlushOnPrintln = true;
 
 	    state.clearThrowBlocks();
 	    var into = new IRBlock( state, fi );
@@ -1050,7 +1050,7 @@ namespace Parse {
 	}
 
 	void compileClassGlobal(CompileState state, Container c) {
-	    IO.Std.err.FlushOnPrintln = true;
+	    // IO.Std.err.FlushOnPrintln = true;
 
 	    var ppi32 = LLVM.Calls.LLVMPointerType(
 						  LLVM.Calls.LLVMPointerType(

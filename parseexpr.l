@@ -158,7 +158,7 @@ namespace Parse {
         }
 
         void calcType( CompileState state ) {
-	    IO.Std.err.FlushOnPrintln = true;
+	    // IO.Std.err.FlushOnPrintln = true;
 	    type = new Type(Type.BOOL);
 
             Type t = left.parseType( state );
@@ -2500,7 +2500,7 @@ namespace Parse {
 	    */
 
 	    int j = 0;
-	    IO.Std.err.FlushOnPrintln = true;
+	    // IO.Std.err.FlushOnPrintln = true;
 
 	    if( !is_static && !is_slot ) {
 		IO.Std.err.println( "param #0 is bound object" );
@@ -2661,7 +2661,7 @@ namespace Parse {
 				      Type proc_type,
 				      Vector<LLVM.Value> use_list
 				      ) {
-	    if( method.IsStatic || (use_list == null || use_list.Length == 0) ) {
+	    if( method.IsStatic && (use_list == null || use_list.Length == 0) ) {
 		return compileLoadStaticProcRef(state, into, method, proc_type );
 	    } else {
 		return compileLoadDynamicProcRef(state, into, from, method, proc_type, use_list );
@@ -2704,7 +2704,7 @@ namespace Parse {
                                                       0
                                                       );
 
-	    LLVM.Calls.LLVMDumpType( st );
+	    // LLVM.Calls.LLVMDumpType( st );
 
 	    return st;
 	}
