@@ -751,7 +751,8 @@ namespace Parse {
 	    if( arg_names == null ) {
 		arg_names = new Vector<Identifier>();
 	    }
-	    arg_names.add(name);
+	    arg_names.lengthen(arg_types.Length);
+	    arg_names[arg_types.Length-1] = name;
 	}
 
 	get Container Template {

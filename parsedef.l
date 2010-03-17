@@ -1816,14 +1816,25 @@ namespace Parse {
 		    if( j >= mn ) {
 			IO.Std.err.println( "not yet defined arg #" + j );
 			IO.Std.err.println( "arg types: " + m.ArgTypes );
+			if( j > m.ArgTypes.Length ) {
+			    IO.Std.err.println( "off end - maybe undefined arg type" );
+			    break;
+			}
 			var vd = new VariableDef(line_number, m.ArgNames[j], 0, new WrapTypeAsTypeExpr(line_number, m.ArgTypes[j]));
 			IO.Std.err.println( "will declare: " + vd );
 			vd.declareSymbols(state);
+
+
+			//} else {
+			// IO.Std.err.println( "look for arg #" + j + " " + m.ArgTypes[j] + "..." );
 		    }
 
 		    Symbol sy = m.getSymbolByIndex( j );
-		    
-
+		    /*
+		    if( sy != null ) {
+			IO.Std.err.println( "arg #j is " + sy.Type + " " + sy.HumanName );
+		    }
+		    */
 		    v = sy.getLocal(state, into);
 		} else {
 		    v = into.AllocaEntry( m.Owner.Type.getLLVMType(state), "this" );
