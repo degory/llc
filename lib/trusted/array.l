@@ -59,7 +59,7 @@ namespace Generic is
 	    return T.sizeof;
 	end
 
-	/// \attention: not implemented
+	/// \attention not implemented
         /// \throw System.NotImplementedException
 	void add( T v ) is
 	    throw new System.NotImplementedException( "Generic.Array is fixed length" );
@@ -71,13 +71,13 @@ namespace Generic is
 	    throw new System.NotImplementedException( "Generic.Array is fixed length" );
 	end
 
-	/// \attention: not implemented
+	/// \attention not implemented
         /// \throw System.NotImplementedException
 	void remove( T v ) is
 	    throw new System.NotImplementedException( "Generic.Array is fixed length" );
         end
 
-	/// \attention: partially implemented
+	/// \attention partially implemented
         /// \throw System.NotImplementedException
 	void lengthen( int l ) is
 	    if l > length then
@@ -109,7 +109,7 @@ namespace Generic is
 	end
 
 	bool isEmpty() is
-	    return length > 0;
+	    return length == 0;
 	end
 
 	/// accessor: get ArrayIterator<T> Iterator

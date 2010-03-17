@@ -1099,10 +1099,15 @@ namespace Parse {
     class ProcLiteral extends Expression {
 	MethodDef body;
 	String name;
+	IdentifierList use_list;
 
-	void init( int line_number, MethodDef body ) {
+	void init( int line_number, IdentifierList use_list, MethodDef body ) {
             super.init( line_number );
             this.body = body;
+	    if( use_list == null ) {
+		use_list = new IdentifierList(line_number);
+	    }
+	    this.use_list = use_list;	    
 
 	    // name = body.Name.Name;
 	    // IO.Std.err.println( "new proc literal: " + name );
@@ -1112,6 +1117,7 @@ namespace Parse {
 
 	void clear( CompileState state ) {
 	    body.clear(state);
+	    use_list.clear(state);
 	}
 
 	void checkTemplates( CompileState state ) {
@@ -1136,6 +1142,7 @@ namespace Parse {
 	    Type return_type = body.getReturnType(state);
 	    // IO.Std.err.println( "return type: " + return_type );
 	    Vector<Type> arg_types = body.getArgTypes(state);
+
 	    // IO.Std.err.println( "arg types: " + arg_types );
 
 	    type = state.findProcType( return_type, arg_types );
@@ -1143,10 +1150,26 @@ namespace Parse {
 
 	LLVM.Value compileValue( CompileState state, IRBlock into ) {
 	    getType(state);
-	    // IO.Std.err.println( "compile proc literal: " + name );
+	    IO.Std.err.FlushOnPrintln = true;
+	    IO.Std.err.println( "compile proc literal: " + name );
 	    var method = state.CurrentClass.findAnonMethod( name );
+
+	    IO.Std.err.println( "method is: " + method );
+	    var v = new Vector<LLVM.Value>();
+
+	    if( use_list != null ) {
+		foreach( var i; use_list.List.Iterator ) {
+		    IO.Std.err.println( "will compile: " + i );
+
+		    method.addArgument( i.getType(state), i );
+ 
+		    v.add( i.compileValue(state, into) );
+		}
+	    }
+
+	    IO.Std.err.println( "use values: " + v );
 	    
-	    return compileLoadProcRef( state, into, null, method, type /*, method.ArgTypes, t, instance, super_class */ );
+	    return compileLoadProcRef( state, into, null, method, type, v );
 	}      
     }
 
@@ -1442,7 +1465,7 @@ namespace Parse {
                 IO.Std.err.println( "IIIIII: kind is " + method.Kind + " versus " + Symbol.STATIC_METHOD );
 		*/
 
-                t = compileLoadProcRef( state, into, t, method, type /*, method.ArgTypes, t, instance, super_class */ );
+                t = compileLoadProcRef( state, into, t, method, type, null );
             } else {
 
                 // IO.Std.err.println( "call B..." );
@@ -1455,7 +1478,7 @@ namespace Parse {
 			// t = left_value.compileValue( state, into );
                 }
 
-                t = compileLoadProcRef( state, into, null, method, type /*, method.ArgTypes, null, instance, null */);
+                t = compileLoadProcRef( state, into, null, method, type, null );
             }
 	
 	    return t;

@@ -169,6 +169,10 @@ namespace Parse {
 	    return false;
 	}
 
+	get bool IsAnon {
+	    return false;
+	}
+
 	get bool NeedsBody {
 	    return false;
 	}

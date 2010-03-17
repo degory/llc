@@ -150,6 +150,10 @@ namespace Parse {
 	    // IO.Std.err.println( "add interface " + c.HumanName + " to " + HumanName + ": " + implements_list );
 	}
 
+	get bool IsAnon {
+	    return Name.startsWith( "__anon_" );
+	}
+
 	get LLVM.Module LLVMModule {
 	    // IO.Std.err.println( "get module for: " + HumanName );
 	    if( llvm_module == null ) {
@@ -399,6 +403,11 @@ namespace Parse {
 	}
 
 	LLVM.Value getFunctionGlobal(CompileState state) {
+	    if( Name.startsWith("__anon_") ) { 
+		IO.Std.err.println( "from: " + new System.Backtrace() );
+		IO.Std.err.println( "get LLVM function global: " + HumanName + " args: " + arg_types );
+	    }
+
 	    LLVM.Value v;
 
 	    char ptr name = DecoratedName.toCString();
@@ -414,6 +423,11 @@ namespace Parse {
 	}
 
 	LLVM.Type getLLVMFunctionType(CompileState state) {
+	    if( Name.startsWith("__anon_") ) { 
+		IO.Std.err.println( "from: " + new System.Backtrace() );
+		IO.Std.err.println( "get LLVM function type for: " + HumanName + " args: " + arg_types );
+	    }
+
 	    int l = 0;
 	    if( arg_types != null ) {
 		l = arg_types.Length;
@@ -727,6 +741,17 @@ namespace Parse {
 
 	get Vector<Type> ArgTypes {
 	    return arg_types;
+	}
+
+	void addArgument( Type type, Identifier name ) {
+	    if( arg_types == null ) {
+		arg_types = new Vector<Type>();
+	    }
+	    arg_types.add(type);
+	    if( arg_names == null ) {
+		arg_names = new Vector<Identifier>();
+	    }
+	    arg_names.add(name);
 	}
 
 	get Container Template {
@@ -1158,6 +1183,10 @@ namespace Parse {
         
 	Symbol getSymbolByIndex( int n ) {
 	    return cast<Symbol>(members.SymbolList[n]);
+	}
+
+	int getSymbolCount() {
+	    return members.SymbolList.Length;
 	}
 
         Container findMethod( Container method ) {
@@ -2141,8 +2170,13 @@ namespace Parse {
                     throw new Exception( "oops: cannot emit vtable slot for missing member" );
                 } else if( current.Kind & Symbol.FLAG_METHOD != 0 ) {
                     Symbol candidate = for_class.findMethod( cast<Container>(current) );
-                
-                    if( candidate == null ) {
+		    
+		    if( candidate.IsAnon ) {
+			buffer.add( LLVM.Calls.LLVMConstPointerNull(
+								    LLVM.Calls.LLVMVTableFunctionType()
+								    )
+				    );
+		    } else if( candidate == null ) {
                         throw new Exception( "strange: member missing: " + current.Name );
                         // Machine.emitDefPointer( state.Output, 0 );
                     } else {

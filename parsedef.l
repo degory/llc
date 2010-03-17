@@ -1799,6 +1799,7 @@ namespace Parse {
 	    int i;
 
 	    LLVM.Value f = m.getFunctionGlobal(state);
+	    int mn = m.getSymbolCount();
 	    
 	    for( i = 0; i < num_args; i = i + 1 ) {
 		int j;
@@ -1812,15 +1813,24 @@ namespace Parse {
 		LLVM.Value v;
 
 		if( j >= 0 ) {
-		    Symbol sy = m.getSymbolByIndex( j );
+		    if( j >= mn ) {
+			IO.Std.err.println( "not yet defined arg #" + j );
+			IO.Std.err.println( "arg types: " + m.ArgTypes );
+			var vd = new VariableDef(line_number, m.ArgNames[j], 0, new WrapTypeAsTypeExpr(line_number, m.ArgTypes[j]));
+			IO.Std.err.println( "will declare: " + vd );
+			vd.declareSymbols(state);
+		    }
 
-		    // IO.Std.err.println( "BBBBBB: param " + i + " is " + sy + " at offset " + sy.getAddress() );
+		    Symbol sy = m.getSymbolByIndex( j );
+		    
 
 		    v = sy.getLocal(state, into);
 		} else {
 		    v = into.AllocaEntry( m.Owner.Type.getLLVMType(state), "this" );
 		    state.CurrentMethod.ThisPointer = v;
 		}
+
+		// IO.Std.err.println( "store indirect..." );
 
 		addStoreIndirect( state, line_number, into, false, v, LLVM.Calls.LLVMGetParam( f, i ) );
 	    }
@@ -1895,6 +1905,8 @@ namespace Parse {
             var decorated = m.DecoratedName;
 
 	    var fg = m.getFunctionGlobal(state);
+
+	    // LLVM.Calls.LLVMDumpValue( fg );
 	    state.maybeLinkOnce(fg);
 
 	    LLVM.Calls.LLVMSetFunctionCallConv(fg, LLVM.LLVMCallConv.LLVMCCallConv);
@@ -1913,7 +1925,6 @@ namespace Parse {
             // IO.Std.err.println( "method scope: " + m.Scope );
 
             if( args != null ) {
-
                 args.declareSymbols( state, !m.IsStatic );
             }
 

@@ -195,7 +195,7 @@ namespace System is
 	end
     end
 
-    /// Exception thrown when runtime detects an out of bounds array index
+    /// Exception thrown on out of bounds List<T> index
     class BoundsException extends RuntimeException is
 	void init( System.String m ) is
 	    super.init( m );
@@ -207,8 +207,7 @@ namespace System is
     end
 
     /// Exception thrown when runtime detects an out of bounds array index
-    /// \deprecated 
-    class ArrayBoundsException extends RuntimeException is
+    class ArrayBoundsException extends BoundsException is
 	void init( System.String m ) is
 	    super.init( m );
 	end

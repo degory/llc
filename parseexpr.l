@@ -2308,7 +2308,8 @@ namespace Parse {
 	LLVM.Value makeProcRefThunk(
 				    CompileState state,
 				    Container method,
-				    Type proc_type,
+				    LLVM.Type proc_type,
+				    Vector<LLVM.Value> use_list,
 				    bool is_slot
 				    ) {
 
@@ -2360,6 +2361,11 @@ namespace Parse {
 		num_arg = num_arg + 1;
 	    }
 
+	    if( use_list != null ) {
+		num_arg = num_arg - use_list.Length;
+	    }
+
+	    // types of arguments to the thunk:
 	    var at = new LLVM.Type[num_arg]; 
 	    var atp = at.address;
 
@@ -2375,7 +2381,7 @@ namespace Parse {
 	    var t_this = at[0];
 
 	    // thunk takes a reference to a Proc<> object as 'this' (param 0), other params as target function:
-	    at[0] = proc_type.getLLVMType(state);
+	    at[0] = proc_type;
 
 	    // IO.Std.err.println( "thunk argument types are: " + at );
 
@@ -2427,6 +2433,7 @@ namespace Parse {
 				 into
 				 );
 	    }		
+
 
 	    // IO.Std.err.println( "compile load target function" ); IO.Std.err.flush();
 	    // load target function:
@@ -2493,19 +2500,41 @@ namespace Parse {
 	    */
 
 	    int j = 0;
+	    IO.Std.err.FlushOnPrintln = true;
 
 	    if( !is_static && !is_slot ) {
-		// IO.Std.err.println( "param #0 is bound object" );
+		IO.Std.err.println( "param #0 is bound object" );
 		av[j] = o;
 		j = j + 1;
 	    }
 
-	    for( int i = 1; i < at.length; i = i + 1 ) {
+	    int i;
+	    for( i = 1; i < at.length; i = i + 1 ) {
 		// IO.Std.err.println( "param thunk(" + i + ") -> target(" + j + ")..." );
 		av[j] = LLVM.Calls.LLVMGetParam( f_thunk, i );
 		// LLVM.Calls.LLVMDumpValue( av[j] );
 		j = j + 1;
 	    }
+
+	    if( use_list != null && use_list.Length > 0 ) {
+		for( i = 0; i < use_list.Length; i = i + 1 ) {
+		    // IO.Std.err.println( "bound variable(" + i + "/" + use_list.Length + ") -> target(" + j + ")..." );
+
+		    o = into.InBoundsGEP(
+					 p,
+					 {
+					     LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt32Type(), 0L, 0 ), // this[0]
+					     LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt32Type(), 4L + cast long(i), 0 ) // &this[0].d == &bound param i
+					 }
+					 );
+		
+		    av[j] = into.Load(o);
+
+		    // LLVM.Calls.LLVMDumpValue( av[j] );
+		    j = j + 1;			
+		}
+	    }
+
 
 	    // IO.Std.err.println( "call arguments: " + av ); IO.Std.err.flush();
 
@@ -2516,6 +2545,9 @@ namespace Parse {
 		IO.Std.err.print( "argument type: " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(t) );
 	    }
+
+	    IO.Std.err.println( "will call: " );
+	    LLVM.Calls.LLVMDumpValue(g);
 	    */
 
 	    var r = into.Call( g, av ); 
@@ -2546,7 +2578,6 @@ namespace Parse {
 	    IO.Std.err.println( "made thunk: " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpValue( f_thunk );
 	    */
-
 	    return f_thunk;
 	}
 
@@ -2562,11 +2593,17 @@ namespace Parse {
 						       0
 						       );
 
+	    var st = makeProcStructType(
+					proc_type,
+					null
+					);
+
 	    // locate existing thunk or create one if not found:
 	    var p = makeProcRefThunk(
 				     state, 
 				     method,
-				     proc_type,
+				     st,
+				     null,
 				     true
 				     );
 
@@ -2621,16 +2658,56 @@ namespace Parse {
 				      IRBlock into,
 				      LLVM.Value from,
 				      Container method,
-				      Type proc_type
+				      Type proc_type,
+				      Vector<LLVM.Value> use_list
 				      ) {
-	    if( method.IsStatic ) {
+	    if( method.IsStatic || (use_list == null || use_list.Length == 0) ) {
 		return compileLoadStaticProcRef(state, into, method, proc_type );
 	    } else {
-		return compileLoadDynamicProcRef(state, into, from, method, proc_type );
+		return compileLoadDynamicProcRef(state, into, from, method, proc_type, use_list );
 	    }
 	}
 
 
+	LLVM.Type makeProcStructType(
+				     Type proc_type,
+				     Vector<LLVM.Value> use_list
+				     ) {
+	    LLVM.Type pi8 = LLVM.Calls.LLVMPointerType(
+						       LLVM.Calls.LLVMInt8Type(),
+						       0
+						       );
+	    int num_use = 0;
+
+	    if( use_list != null ) {
+		num_use = use_list.Length;
+	    }
+
+            var s = new LLVM.Type[4 + num_use];
+
+            s[0] = pi8;
+            s[1] = pi8;
+            s[2] = pi8;
+            s[3] = pi8;
+
+            int i;
+            for( i = 0; i < num_use; i = i + 1 ) {
+                s[4 + i] = LLVM.Calls.LLVMTypeOf(use_list[i]);
+            }
+
+            LLVM.Type st = LLVM.Calls.LLVMPointerType(
+                                                      LLVM.Calls.LLVMStructType(
+                                                                                s.Address,
+                                                                                s.Length,
+                                                                                0
+                                                                                ),
+                                                      0
+                                                      );
+
+	    LLVM.Calls.LLVMDumpType( st );
+
+	    return st;
+	}
 
 	LLVM.Value compileLoadStaticProcRef(
 					    CompileState state,
@@ -2638,16 +2715,23 @@ namespace Parse {
 					    Container method,
 					    Type proc_type
 					    ) {
+
+
+	    var st = makeProcStructType( proc_type, null );
+
+
 	    LLVM.Type pi8 = LLVM.Calls.LLVMPointerType(
 						       LLVM.Calls.LLVMInt8Type(),
 						       0
 						       );
 
+	   
 	    // locate existing thunk or create one if not found:
 	    var p = makeProcRefThunk(
 				     state, 
 				     method,
-				     proc_type,
+				     st,
+				     null,
 				     false
 				     );
 
@@ -2702,8 +2786,15 @@ namespace Parse {
 				      IRBlock into,
 				      LLVM.Value from,
 				      Container method,
-				      Type proc_type
+				      Type proc_type,
+				      Vector<LLVM.Value> use_list
 				      ) {
+	    LLVM.Type pi8 = LLVM.Calls.LLVMPointerType(
+						       LLVM.Calls.LLVMInt8Type(),
+						       0
+						       );
+
+            var st = makeProcStructType( proc_type, use_list );
 
 	    // IO.Std.err.println( "load proc ref: " + proc_type + " from method: " + method.HumanName );
 
@@ -2723,7 +2814,7 @@ namespace Parse {
 	    // LLVM.Calls.LLVMDumpValue( f );
 
 	    var vtable = makeLoadVTable(state, c);
-	    var args = { LLVM.Calls.LLVMConstTypeSizeIndirect(proc_type.getLLVMType(state)), vtable };
+	    var args = { LLVM.Calls.LLVMConstTypeSizeIndirect(st), vtable };
 	    var o = callOrInvoke( state, into, f, args );
 
 	    // IO.Std.err.print( "call to alloc object is: " ); IO.Std.err.flush();
@@ -2733,15 +2824,11 @@ namespace Parse {
 	    // IO.Std.err.print( "proc type is: " ); IO.Std.err.flush();
 	    // LLVM.Calls.LLVMDumpType( proc_type.getLLVMType(state) );
 
-	    o = into.PointerCast( o, proc_type.getLLVMType(state) );
+	    o = into.PointerCast( o, st );
 
 	    // IO.Std.err.print( "allocated proc ref object: " ); IO.Std.err.flush();
 	    // LLVM.Calls.LLVMDumpValue( o );
 
-	    LLVM.Type pi8 = LLVM.Calls.LLVMPointerType(
-						       LLVM.Calls.LLVMInt8Type(),
-						       0
-						       );
 
 	    // calculate address of f0 (== thunk) field in Proc object:
 	    var q = into.InBoundsGEP(
@@ -2759,7 +2846,8 @@ namespace Parse {
 	    var p = makeProcRefThunk(
 				     state, 
 				     method,
-				     proc_type,
+				     st,
+				     use_list,
 				     false
 				     );
 
@@ -2837,7 +2925,28 @@ namespace Parse {
 
 	    }
 
-	    return o;
+
+            if( use_list != null && use_list.Length > 0 ) {
+                for( int i = 0; i < use_list.Length; i = i + 1 ) {
+		    // IO.Std.err.println( "store use list " + i + "..." );
+                    var r = into.InBoundsGEP(
+					     o,
+					     {
+						 LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt32Type(), 0L, 0 ), // this[0]
+						 LLVM.Calls.LLVMConstInt( LLVM.Calls.LLVMInt32Type(), 4L + cast long(i), 0 ) // &this[0].d == &bound param i
+					     }
+					     );
+
+		    into.Store( use_list[i], r );
+                }
+            }
+
+
+	    return makeLLVMCast(
+				o,
+				proc_type.getLLVMType(state),
+				into
+				);
 	}
 
 
