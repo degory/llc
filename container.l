@@ -407,11 +407,6 @@ namespace Parse {
 	}
 
 	LLVM.Value getFunctionGlobal(CompileState state) {
-	    if( Name.startsWith("__anon_") ) { 
-		IO.Std.err.println( "from: " + new System.Backtrace() );
-		IO.Std.err.println( "get LLVM function global: " + HumanName + " args: " + arg_types );
-	    }
-
 	    LLVM.Value v;
 
 	    char ptr name = DecoratedName.toCString();
@@ -427,11 +422,6 @@ namespace Parse {
 	}
 
 	LLVM.Type getLLVMFunctionType(CompileState state) {
-	    if( Name.startsWith("__anon_") ) { 
-		IO.Std.err.println( "from: " + new System.Backtrace() );
-		IO.Std.err.println( "get LLVM function type for: " + HumanName + " args: " + arg_types );
-	    }
-
 	    int l = 0;
 	    if( arg_types != null ) {
 		l = arg_types.Length;

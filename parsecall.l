@@ -933,7 +933,6 @@ namespace Parse {
 		// FIXME: this is a bad place for this but MethodCall doesn't make it easy
 		// to do this in the caller:
 		if( compare_operation ) {
-		    IO.Std.err.FlushOnPrintln = true;
 		    // IO.Std.err.println( "compare operation on objects: requires null check..." );
 		    n = into.Block();
 		    d = into.Block();
@@ -1223,26 +1222,27 @@ namespace Parse {
 
 	LLVM.Value compileValue( CompileState state, IRBlock into ) {
 	    getType(state);
-	    IO.Std.err.FlushOnPrintln = true;
-	    IO.Std.err.println( "compile proc literal: " + name );
+
 	    var method = state.CurrentClass.findAnonMethod( name );
 
 	    if( state.CurrentMethod == null || state.CurrentMethod.IsStatic ) {
+		/*
 		if( state.CurrentMethod != null ) {
 		    IO.Std.err.println( "anon method " + method.HumanName + " is static because " + state.CurrentMethod.HumanName + " is static"  );
 		} else {
 		    IO.Std.err.println( "anon method " + method.HumanName + " is static because outside any method"  );
 		}
+		*/
 		method.IsStatic = true;
 	    }
 
 
-	    IO.Std.err.println( "method is: " + method );
+	    // IO.Std.err.println( "method is: " + method );
 	    var v = new Vector<LLVM.Value>();
 
 	    if( use_list != null ) {
 		foreach( var i; use_list.List.Iterator ) {
-		    IO.Std.err.println( "will compile: " + i );
+		    // IO.Std.err.println( "will compile: " + i );
 
 		    method.addArgument( i.getType(state), i );
  
@@ -1250,7 +1250,7 @@ namespace Parse {
 		}
 	    }
 
-	    IO.Std.err.println( "use values: " + v );
+	    // IO.Std.err.println( "use values: " + v );
 	    
 	    return compileLoadProcRef( state, into, null, method, type, v );
 	}      

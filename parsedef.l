@@ -1814,16 +1814,17 @@ namespace Parse {
 
 		if( j >= 0 ) {
 		    if( j >= mn ) {
+			/*
 			IO.Std.err.println( "not yet defined arg #" + j );
 			IO.Std.err.println( "arg types: " + m.ArgTypes );
+			*/
 			if( j > m.ArgTypes.Length ) {
-			    IO.Std.err.println( "off end - maybe undefined arg type" );
+			    warn( "argument to proc literal not found" );
 			    break;
 			}
 			var vd = new VariableDef(line_number, m.ArgNames[j], 0, new WrapTypeAsTypeExpr(line_number, m.ArgTypes[j]));
-			IO.Std.err.println( "will declare: " + vd );
+			// IO.Std.err.println( "will declare: " + vd );
 			vd.declareSymbols(state);
-
 
 			//} else {
 			// IO.Std.err.println( "look for arg #" + j + " " + m.ArgTypes[j] + "..." );
