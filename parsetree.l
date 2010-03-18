@@ -1127,13 +1127,17 @@ namespace Parse {
 
         // static int next_temporary = 0;
 
-        static LLVM.Value makeLoadThis( CompileState state, int line_number, IRBlock into ) {
+        LLVM.Value makeLoadThis( CompileState state, int line_number, IRBlock into ) {
 	    // no need to allow for a dummy jump to exception handler here. 
 	    // this may be null if a final method is called on a null object but
 	    // loading this cannot in itself cause a null pointer exception as
 	    // this is either on the stack or will be assigned to register:
-
-	    return into.Load(state.CurrentMethod.ThisPointer);
+	    if( state.CurrentMethod != null && !state.CurrentMethod.IsStatic ) {
+		return into.Load(state.CurrentMethod.ThisPointer);
+	    } else {
+		error( "no this in static method" );
+		return ErrorValue();
+	    }
 	}
 
         void init( int line_number ) {

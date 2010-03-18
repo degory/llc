@@ -402,6 +402,7 @@ namespace Parse {
 
 	LLVM.Value compileValue( CompileState state, IRBlock into ) {
 	    return makeLoadThis( state, line_number, into );
+
 	}
         
         void calcType( CompileState state ) {
@@ -2798,11 +2799,16 @@ namespace Parse {
 
 	    // IO.Std.err.println( "load proc ref: " + proc_type + " from method: " + method.HumanName );
 
+	    bool is_static = method.IsStatic;
 	    bool is_final = method.CallAsFinal;
 
-	    if( from == null ) {
-		// IO.Std.err.println( "instance method and no bound this supplied: bind this now" );
+	    IO.Std.err.println( "method: " + method.HumanName + " is static: " + is_static );
+
+	    if( !is_static && from == null ) {
+		IO.Std.err.FlushOnPrintln = true;
+		IO.Std.err.println( "instance method and no bound this supplied: bind this now" );
 		from = makeLoadThis(state, line_number, into);
+		IO.Std.err.println( "this loaded" );
 	    }
 
 	    Container c = proc_type.getBoxType(state).Clazz;

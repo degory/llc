@@ -694,7 +694,7 @@ namespace Parse {
 	    } else if( k == Symbol.CONST ) {
                 error( "cannot take address of constant " + symbol.HumanName );
 		return ErrorValue( LLVM.Calls.LLVMPointerType(getType(state).getLLVMType(state),0) );
-            } else if( (k & Symbol.FLAG_STATIC) == 0 ) {
+            } else if( k & Symbol.FLAG_STATIC == 0 ) {
                 if( left_value == null ) {
                     return compileLoad( state, into, symbol, state.CurrentClass, null, null, null, null, ref_flag, null );
                 } else {

@@ -296,6 +296,10 @@ namespace Parse {
 	    return Kind & Symbol.FLAG_STATIC != 0;
 	}
 
+	set bool IsStatic = s {
+	    Kind = Kind | Symbol.FLAG_STATIC;
+	}
+
 	get int StaticSize {
 	    return stable_offset;
 	}

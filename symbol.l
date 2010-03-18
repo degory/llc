@@ -344,6 +344,10 @@ namespace Parse {
             return kind;
         }
 
+	protected set int Kind = k {
+	    kind = k;
+	}
+
         get int Size {
             throw new Exception( "oops: getSize() called for non class: " + Name );
             return 0;

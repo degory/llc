@@ -421,8 +421,6 @@ namespace Parse {
             this.left_value = left_value;
         }
 
-
-
 	void clear( CompileState state ) {
 	    // IO.Std.err.println( "method call clear: " + name );
 	    super.clear( state );
@@ -524,11 +522,66 @@ namespace Parse {
 	    // quiet => internally constructed method call and hence cannot be a proc reference
 	    // otherwise check if left value refers to a method identifier (rather than a proc reference
 	    // or some other kind of symbol):
-	    if( quiet || left_value.isSuper(state) || left_value.isMethod(state) ) {
+	    if( quiet || left_value.isSuper(state) || left_value.isMethod(state) || left_value.isThis(state) ) {
 		calcTypeNormal( state, quiet );
 	    } else {
 		calcTypeProcReference( state );
 	    }
+	}
+
+	void addHiddenArgTypes( Vector<Type> ref arg_types, Container method ) {
+	    if( method.ArgTypes.Length > 0 ) {
+		if( arg_types == null ) {
+		    arg_types = new Vector<Type>();
+		}
+
+		while( arg_types.Length < method.ArgTypes.Length ) {
+		    IO.Std.err.println( "add hidden argument type: " + method.ArgTypes[arg_types.Length] );
+		    arg_types.add( method.ArgTypes[arg_types.Length] );
+		}
+	    }
+	}
+
+	void addHiddenArguments( ExpressionList ref args, Container method ) {
+	    int mal = 0;
+	    if( method.ArgTypes != null ) {
+		mal = method.ArgTypes.Length;
+	    }
+
+	    if( mal == 0 ) {
+		IO.Std.err.println( "method " + method.HumanName + " expects no arguments" );
+		return;
+	    }
+
+	    int al = 0;
+	    if( args != null ) {
+		al = args.List.Length;
+	    }
+
+	    if( mal == al ) {
+		return;
+	    }
+
+	    var result = new ExpressionList(line_number);
+
+	    if( al != 0 ) {
+		foreach( var e; args.List.Iterator ) {
+		    IO.Std.err.println( "add existing argument: " + e );
+		    result.add( e );
+		}
+	    }	    
+
+	    while( result.List.Length < method.ArgTypes.Length ) {
+		IO.Std.err.println( "add hidden argument identifier: " + method.ArgNames[result.List.Length] );
+		result.add(
+			   new Identifier(
+					  line_number,
+					  method.ArgNames[result.List.Length].Name
+					  )
+			   );
+	    }
+
+	    args = result;
 	}
 
         void calcTypeNormal( CompileState state, bool quiet ) {
@@ -542,7 +595,18 @@ namespace Parse {
                 // IO.Std.err.println( "method call arguments: " + arg_types );
             }
 
-	    var name = cast Identifier(left_value);
+	    Identifier name;
+	    if( this.left_value.isThis(state) ) {
+		var m = state.CurrentMethod;
+		name = new Identifier(line_number, m.Name);
+		if( m.IsAnon ) {
+		    IO.Std.err.println( "call this() anon method: " + m.HumanName );
+		    addHiddenArgTypes(arg_types, m);
+		}
+	    } else {
+		name = cast Identifier(this.left_value);
+	    }
+
 	    var left_value = name.LeftValue;
 	    
             if( left_value != null && left_value.isThis( state ) ) {
@@ -650,7 +714,7 @@ namespace Parse {
                         return;
                     }
 
-                    error( name.Name + " is not a method" );
+                    error( name.Name + " is not a method (A)" );
                 } else {
                     method = cast<Container>( symbol );
                     if( method == null ) {
@@ -734,10 +798,10 @@ namespace Parse {
 				error( s.OwnerHumanName + "." + s.Name + " is a " + scope_s + kind_s + " not a method" );
 			    }
 			} else {
-			    error( "" + proc_type + " is not a method" );
+			    error( "" + proc_type + " is not a method (B)" );
 			}
 		    } else {
-			error( "" + proc_type + " is not a method" );
+			error( "" + proc_type + " is not a method (C)" );
 		    }
 		    proc_type = null;
 		    type = undefined_type;
@@ -767,6 +831,7 @@ namespace Parse {
 
         LLVM.Value compileValue( CompileState state, IRBlock into, bool need_value ) {
 	    int tt, ta, tr;
+	    var arguments = this.arguments;
 
 	    /*
 	    IO.Std.err.println( "call method, current class: " + state.CurrentClass );
@@ -803,7 +868,15 @@ namespace Parse {
 	    var left_value = this.left_value;
 
 	    if( !proc_call ) {
-		name = cast Identifier(left_value);
+		if( left_value.isThis(state) ) {
+		    name = new Identifier(line_number, state.CurrentMethod.Name);
+		    if( method.IsAnon ) {
+			addHiddenArguments( arguments, method );
+		    }
+		} else {
+		    name = cast Identifier(left_value);
+		}
+
 		left_value = name.LeftValue;
 	    
 		// IO.Std.err.println( "call method " + method.Owner.HumanName + " " + method.Name );
@@ -1154,6 +1227,16 @@ namespace Parse {
 	    IO.Std.err.println( "compile proc literal: " + name );
 	    var method = state.CurrentClass.findAnonMethod( name );
 
+	    if( state.CurrentMethod == null || state.CurrentMethod.IsStatic ) {
+		if( state.CurrentMethod != null ) {
+		    IO.Std.err.println( "anon method " + method.HumanName + " is static because " + state.CurrentMethod.HumanName + " is static"  );
+		} else {
+		    IO.Std.err.println( "anon method " + method.HumanName + " is static because outside any method"  );
+		}
+		method.IsStatic = true;
+	    }
+
+
 	    IO.Std.err.println( "method is: " + method );
 	    var v = new Vector<LLVM.Value>();
 
@@ -1380,7 +1463,7 @@ namespace Parse {
 		return;
             } else if( symbol.Kind & Symbol.FLAG_METHOD == 0 ) {
 		type = undefined_type;
-		error( name.Name + " is not a method" );
+		error( name.Name + " is not a method (D)" );
 		return;
             }
 

@@ -1830,6 +1830,7 @@ namespace Parse {
 		    }
 
 		    Symbol sy = m.getSymbolByIndex( j );
+
 		    /*
 		    if( sy != null ) {
 			IO.Std.err.println( "arg #j is " + sy.Type + " " + sy.HumanName );
@@ -1844,6 +1845,8 @@ namespace Parse {
 		// IO.Std.err.println( "store indirect..." );
 
 		addStoreIndirect( state, line_number, into, false, v, LLVM.Calls.LLVMGetParam( f, i ) );
+
+		
 	    }
 
 	    return 0;
