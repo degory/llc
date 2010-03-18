@@ -434,8 +434,7 @@ namespace System is
 	    int cl = _length;
 	    int i;
 	    for i = 0; i < cl; i = i + 1 do
-		char c = [t + i];
-
+ 	        // char c = [t + i];
 		if [_buffer+i] != [t + i] then
 		    return false;
 		fi

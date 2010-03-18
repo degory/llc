@@ -1587,6 +1587,11 @@ namespace Parse {
 	    }
 	}
 
+
+	void applyPragmas( CompileState state ) {
+	    apply( state );
+	}
+
         void declareGlobalSymbols( CompileState state ) {
 	    apply( state );
         }
@@ -1683,6 +1688,10 @@ namespace Parse {
 	}
 
 	void markLastReturns() {
+	}
+
+	void applyPragmas( CompileState state ) {
+	    // do nothing
 	}
 
 	get bool IsIf {
@@ -1968,6 +1977,16 @@ namespace Parse {
                 }
             }
         }
+
+	void applyPragmas( CompileState state ) {
+            foreach( Statement s; list.elements() ) {
+                if( s != null ) {
+                    s.applyPragmas( state );
+                } else {
+                    throw new Exception( "null statement\n" );
+                }
+            }
+	}
 
         void declareGlobalSymbols( CompileState state ) {
             foreach( Statement s; list.elements() ) {

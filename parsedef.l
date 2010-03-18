@@ -1744,10 +1744,6 @@ namespace Parse {
 
 	    // m.IsPIC = state.WantPIC;
 
-	    if( state.WantVirtual ) {
-		m.IsFinal = false;
-		warn( "force not final: " + m.HumanName );
-	    }
 	   
 	    if( n.Length > 3 ) {
 		if( n.startsWith( "get" ) || n.startsWith( "set" ) ) {
@@ -1763,6 +1759,18 @@ namespace Parse {
 		    state.declareAccessor( this, n.substring(5), n );
 		}
 	    }
+
+
+            state.beginCompileMethod( this, m, m.DecoratedName );
+	    body.applyPragmas(state);
+	    state.endCompileMethod(m);
+
+	    if( state.WantVirtual ) {
+		m.IsFinal = false;
+		warn( "force not final: " + m.HumanName );
+	    }
+
+
             /*
 
             state.beginParseMethodArgs( this, m );

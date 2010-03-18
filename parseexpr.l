@@ -2313,8 +2313,8 @@ namespace Parse {
 				    Vector<LLVM.Value> use_list,
 				    bool is_slot
 				    ) {
-
-	    // IO.Std.err.println( "make proc ref thunk: " + proc_type ); IO.Std.err.flush();
+	    // IO.Std.err.FlushOnPrintln = true;
+	    // IO.Std.err.println( "make proc ref thunk: " + method.toString() ); IO.Std.err.flush();
 
 	    bool is_static = method.IsStatic;
 	    bool is_final = method.CallAsFinal;
@@ -2330,13 +2330,27 @@ namespace Parse {
 		name = name + "bound_";
 	    }
 
+	    // IO.Std.err.println( "name is: " + name.Class.Name );
+
 	    name = name + method.DecoratedName;
-	    var f_thunk = LLVM.Calls.LLVMGetNamedFunction( m, name.toCString() );
+	    // FIXME: no idea what's going on here - calling name.toCString() without intervening
+	    // + operation causes segfault here:
+	    // var other = "xxx" + name + "xxx";
+
+	    /*
+	    IO.Std.err.FlushOnPrintln = true;
+	    IO.Std.err.println( "name is: " );
+	    IO.Std.err.println( name );
+	    */
+	    var cn = name.toCString();
+
+	    // IO.Std.err.println( "name is: '" + name + "'" );
+	    var f_thunk = LLVM.Calls.LLVMGetNamedFunction( m, cn );
 
 	    if( f_thunk != null ) {
-		/* IO.Std.err.println( "use existing thunk" ); IO.Std.err.flush();
-		LLVM.Calls.LLVMDumpValue( f_thunk );
-		*/
+		// IO.Std.err.println( "use existing thunk" ); IO.Std.err.flush();
+		// LLVM.Calls.LLVMDumpValue( f_thunk );
+		
 
 		// FIXME: assuming that method is representative of methods that will be called via this
 		// proc object (i.e. right number of params, param types compatible without casting) and so
@@ -2351,15 +2365,21 @@ namespace Parse {
 	    // function signature of target function we want to call is same as supplied method:
 	    var ft_target = method.getLLVMFunctionType(state);
 
-	    /* IO.Std.err.println( "target function type is: " ); IO.Std.err.flush();
+	    /*
+	      IO.Std.err.println( "target function type is: " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpType( ft_target );
 	    */
 
-	    int num_arg = LLVM.Calls.LLVMCountParamTypes(ft_target);
+	    int oa = LLVM.Calls.LLVMCountParamTypes(ft_target);
+	    int num_arg = oa;
+
+
+	    // IO.Std.err.println( "actual num args is: " + oa );
 	    if( is_static || is_slot ) {
-		// IO.Std.err.println( "static target function: allocate space for additional parameter in thunk" );
 		// allocate one more arg to accomodate proc object parameter to thunk, which target is not expecting:
 		num_arg = num_arg + 1;
+		oa = oa + 1;
+		IO.Std.err.println( "static target function: allocate space for additional parameter in thunk: " + oa );
 	    }
 
 	    if( use_list != null ) {
@@ -2367,29 +2387,38 @@ namespace Parse {
 	    }
 
 	    // types of arguments to the thunk:
-	    var at = new LLVM.Type[num_arg]; 
+	    // IO.Std.err.println( "allocating space for: " + oa );
+	    var at = new LLVM.Type[oa]; 
+
 	    var atp = at.address;
 
 	    if( is_static || is_slot ) {
+		// IO.Std.err.println( "shift args + 1..." );
 		// shift static functions arguments one to right to accomodate proc this param to thunk:
 		atp = atp + 1;
 	    }
 
+	    // IO.Std.err.println( "get param types..." );
+
 	    // if target is a static function these args shifted one to right leaving space for proc arg as first param:
 	    LLVM.Calls.LLVMGetParamTypes(ft_target, atp);
 
+	    // IO.Std.err.println( "save t_this..." );
 	    // save type of target function's 'this' parameter as we need to cast to it later (will be null for static function):
 	    var t_this = at[0];
 
+	    // IO.Std.err.println( "set at[0]..." );
 	    // thunk takes a reference to a Proc<> object as 'this' (param 0), other params as target function:
 	    at[0] = proc_type;
 
 	    // IO.Std.err.println( "thunk argument types are: " + at );
 
+	    // IO.Std.err.println( "create thunk function..." );
+
 	    var ft_thunk = LLVM.Calls.LLVMFunctionType(
 	 				           return_type,
 						   at.address,
-						   at.length,
+						   num_arg,
 						   0
 						   );
 
@@ -2401,13 +2430,19 @@ namespace Parse {
 	    // add new function to current module that will be the new thunk:
 	    f_thunk = LLVM.Calls.LLVMAddFunction( m, name.toCString(), ft_thunk );
 	    LLVM.Calls.LLVMSetLinkage(f_thunk, LLVM.LLVMLinkage.LLVMLinkOnceODRLinkage );
-	    
+
+	    /*
+	    IO.Std.err.println( "f_thunk initially: " );
+	    LLVM.Calls.LLVMDumpValue( f_thunk );
+	    */
+
 	    var into = new IRBlock( state, f_thunk );
 
 	    // get thunk's 'this' value, which is in param #0:
 	    var p = LLVM.Calls.LLVMGetParam(f_thunk,0);
 
-	    /* IO.Std.err.println( "thunk param 0 is: " ); IO.Std.err.flush();
+	    /*
+	    IO.Std.err.println( "thunk param 0 is: " ); IO.Std.err.flush();
 	    LLVM.Calls.LLVMDumpValue( p );
 	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(p) );
 	    */
@@ -2458,7 +2493,8 @@ namespace Parse {
 				     }
 				     );
 
-		/* IO.Std.err.println( "target function field address is (should be i8**): " ); IO.Std.err.flush();
+		/*
+		IO.Std.err.println( "target function field address is (should be i8**): " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue( g );
 		LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(g) );
 		*/
@@ -2473,6 +2509,7 @@ namespace Parse {
 
 		// IO.Std.err.println( "will cast to function pointer..." ); IO.Std.err.flush();
 		g = into.PointerCast(g, LLVM.Calls.LLVMPointerType(ft_target,0)); // this.f1 as function ptr
+
 		/*
 		IO.Std.err.println( "have function pointer: "); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue( g );
@@ -2510,7 +2547,7 @@ namespace Parse {
 	    }
 
 	    int i;
-	    for( i = 1; i < at.length; i = i + 1 ) {
+	    for( i = 1; i < num_arg; i = i + 1 ) {
 		// IO.Std.err.println( "param thunk(" + i + ") -> target(" + j + ")..." );
 		av[j] = LLVM.Calls.LLVMGetParam( f_thunk, i );
 		// LLVM.Calls.LLVMDumpValue( av[j] );
@@ -2535,7 +2572,6 @@ namespace Parse {
 		    j = j + 1;			
 		}
 	    }
-
 
 	    // IO.Std.err.println( "call arguments: " + av ); IO.Std.err.flush();
 
@@ -3469,6 +3505,8 @@ namespace Parse {
                         } else {
                             o = Op.STATIC_CALL_DISCARD;
                         }
+
+			// IO.Std.err.println( "final call " + symbol.HumanName );
 
 			// although we're not going to call though it, still need to check from against null here
 			// because called function expects this to be guarentee'd non-null:
