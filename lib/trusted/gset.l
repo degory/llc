@@ -12,30 +12,30 @@ namespace Generic is
 
     /// A set of values
     /// \param T the type of values in this set
-    class Set<T> implements Bag<T> is
+    class Set<T> do Bag<T> is
     	Map<T,bool> _map;
 
 	/// Construct a new Set with capacity reserved for specified number of values
 	/// \param size initial capacity to reserve
 	void init( int size ) is
 	    _map = new Map<T,bool>(size);
-	end
+	si
 
 	/// Construct a new Set with default initial capacity
 	void init() is
 	    init( 1021 );
-	end
+	si
 
 	/// Get the number of values in this Set
 	get int Length is
 	    return _map.Length;
-        end
+        si
 
 	/// Place the supplied value in the set. If an equal value is already in the set then it will be replaced by the new value.
 	/// \param o the value to add
 	void add( T o ) is
 	    _map[o] = true;
-	end
+	si
 
 	/// Place the supplied values in the set. If an equal value is already in the set then it will be replaced by the new value.
 	/// \param o the value to add
@@ -43,32 +43,32 @@ namespace Generic is
 	    foreach var v; o.Iterator do
 	        add( v );
 	    od
-	end
+	si
 
 	/// Does this set contain a value equal to the supplied value?
 	/// \param o the value to search for
 	bool contains( T o ) is
 	    return _map[o];
-	end
+	si
 
 	/// Return true if this Set contains no values, otherwise return false
 	bool isEmpty() is
 	    return _map.isEmpty();
-	end	    
+	si	    
 
 	/// If this Set contains a value equal to the supplied value then remove that value from this Set
         void remove( T o ) is
 	    _map.remove(o);
-        end
+        si
 
 	/// Return a new Iterator over the values in this set. The Iterator returns each value in the set in turn in no particular order.
 	Iterator<T> elements() is
 	    return _map.keys();
-	end
+	si
 
 	get Iterator<T> Iterator is
 	    return _map.keys();
-        end
+        si
 
         String toString() is
 	    StringBuffer result = new StringBuffer( "[Set" );
@@ -79,6 +79,6 @@ namespace Generic is
 	    result.append(']');
 
  	    return result;
-	end
-    end
-end
+	si
+    si
+si

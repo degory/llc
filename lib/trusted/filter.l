@@ -16,7 +16,7 @@ namespace Util is
             od
 
             return result;
-        end
+        si
 
         static List<T> except(Iterable<T> l, bool proc(T) f ) is
             var result = new Vector<T>();
@@ -28,7 +28,7 @@ namespace Util is
             od
 
             return result;
-        end
+        si
 
         static List<T> map(Iterable<T> l, T proc(T) f ) is
             var result = new Vector<T>();
@@ -38,14 +38,14 @@ namespace Util is
             od
 
             return result;
-        end
+        si
 
         static void apply(List<T> l, T proc(T) f ) is
             int len = l.Length;
             for var i = 0; i < len; i = i + 1 do
                 l[i] = f(l[i]);
             od
-        end
+        si
 
         static List<T> mapIf(Iterable<T> l, bool proc(T) p, T proc(T) f ) is
             var result = new Vector<T>();
@@ -59,7 +59,7 @@ namespace Util is
             od
 
             return result;
-        end
+        si
 
         static void applyIf(List<T> l, bool proc(T) p, T proc(T) f ) is
             int len = l.Length;
@@ -69,6 +69,6 @@ namespace Util is
                     l[i] = f(v);
                 fi
             od
-        end
-    end
-end
+        si
+    si
+si

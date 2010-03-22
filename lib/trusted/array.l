@@ -12,8 +12,8 @@ namespace System is
     class Array is
 	int length;
         word values;
-    end
-end
+    si
+si
 
 namespace Generic is
     use System.Object;
@@ -22,7 +22,7 @@ namespace Generic is
     /// Native arrays can be converted to and from specializations of this template class.
     /// Arrays are fixed length and bounds checked with valid indexes of 0 - length-1 inclusive. 
     /// \param T element type of the array
-    class Array<T> implements List<T> is
+    class Array<T> do List<T> is
 	int length;
 
 	/// indexer: get T[int index]
@@ -31,7 +31,7 @@ namespace Generic is
 	/// \throw System.BoundsException if index is negative or greater than or equal to length
 	get T[int index] is
 	    return cast T[](this)[index];
-	end
+	si
 
 	/// indexer: set T[int index] = v
         /// \param index which array element to set
@@ -39,43 +39,43 @@ namespace Generic is
 	/// \throw System.BoundsException if index is negative or greater than or equal to length
 	set T[int index] = v is
 	    cast T[](this)[index] = v;
-        end
+        si
 
 	/// accessor: get List<T> List
 	/// \return this array as a List<T> interface
 	get List<T> List is
 	    return cast List<T>(this);
-	end
+	si
 
 	/// accessor: get int Length
 	/// \return the number of values in this array
 	get int Length is
 	    return length;
-	end
+	si
 
 	/// accessor: get int ValueSize
 	/// \return the size of each value in this array
 	get int ValueSize is
 	    return T.sizeof;
-	end
+	si
 
 	/// \attention not implemented
         /// \throw System.NotImplementedException
 	void add( T v ) is
 	    throw new System.NotImplementedException( "Generic.Array is fixed length" );
-	end
+	si
 
 	/// \attention: not implemented
         /// \throw System.NotImplementedException
 	void add( Iterable<T> v ) is
 	    throw new System.NotImplementedException( "Generic.Array is fixed length" );
-	end
+	si
 
 	/// \attention not implemented
         /// \throw System.NotImplementedException
 	void remove( T v ) is
 	    throw new System.NotImplementedException( "Generic.Array is fixed length" );
-        end
+        si
 
 	/// \attention partially implemented
         /// \throw System.NotImplementedException
@@ -83,7 +83,7 @@ namespace Generic is
 	    if l > length then
 		throw new System.NotImplementedException( "Generic.Array is fixed length" );
 	    fi
-	end
+	si
 
 	String toString() is
             var result = new StringBuffer();
@@ -95,7 +95,7 @@ namespace Generic is
 	    od
 
             return result;
-        end
+        si
 
         /// \attention: checks reference equality only for reference types
 	bool contains( T v ) is
@@ -106,28 +106,28 @@ namespace Generic is
 	    od
 
 	    return false;
-	end
+	si
 
 	bool isEmpty() is
 	    return length == 0;
-	end
+	si
 
 	/// accessor: get ArrayIterator<T> Iterator
         /// Return an ArrayIterator<T> over this array
         /// \return an ArrayIterator<T> that returns each element of this array in increasing index order
 	get ArrayIterator<T> Iterator is
 	    return new ArrayIterator<T>(cast T[](this));	    
-	end
+	si
 
         /// Return an ArrayIterator<T> over this array
         /// \return an ArrayIterator<T> that returns each element of this array in increasing index order
 	ArrayIterator<T> elements() is
 	    return new ArrayIterator<T>(cast T[](this));
-	end
+	si
 
 	get T ptr Address is
 	    return cast T ptr(cast word(this) + 16w);
-        end
+        si
 
 	get Object ptr ObjectValuesPointer is
 	    if !T.isobject then
@@ -135,15 +135,15 @@ namespace Generic is
             fi
 
 	    return cast Object ptr(this) + 2;
-	end
+	si
 
 	get int ObjectValuesLength is
 	    return length;
-	end
+	si
 
 	get int MemoryUse is 
 	    return System.Environment.WORD_BYTES * 3 + T.sizeof * Length;
-	end
+	si
 
 /*
 	String toString() is
@@ -156,23 +156,23 @@ namespace Generic is
 		    result.append(this[i].toString());
 		fi		    
 	    od
-        end
+        si
 */
 	get bool IsArray is
 	    return true;
-        end
+        si
 
 	ArrayRange<T> range(int from, int to) is
 	    return new ArrayRange<T>(this, from, to); 
-	end	   
+	si	   
 
 	get ArrayRange<T>[System.RangeIterator<int> r] is
 	    return new ArrayRange<T>(this, r.from, r.to);
-	end
-    end
+	si
+    si
 
     /// an Iterator<T> that returns each element of an array in increasing index order
-    class ArrayIterator<T> implements Iterator<T> is
+    class ArrayIterator<T> do Iterator<T> is
         T[] values;
 	int index;
 
@@ -180,20 +180,20 @@ namespace Generic is
 	/// \param values the array to iterate over
 	void init( T[] values ) is
 	    this.values = values;
-	end
+	si
 
 	bool hasMoreElements() is
 	    return index < values.length;
-	end
+	si
 
 	T nextElement() is
 	    T result = values[index];
 	    index = index + 1;
 	    return result;
-	end
-    end
+	si
+    si
 
-    class ArrayRange<T> implements List<T>, Iterator<T> is
+    class ArrayRange<T> do List<T>, Iterator<T> is
         T[] a;
         int i;
 	int from, to;
@@ -203,54 +203,54 @@ namespace Generic is
             i = from;
 	    this.from = from;
 	    this.to = to;
-	end
+	si
 
 	bool hasMoreElements() is
 	    return i <= to;
-	end
+	si
 
 	T nextElement() is
 	    T result = a[i];
 	    i = i + 1;
 	    return result;
-	end
+	si
 
 	get T[int index] is 
 	    return a[from + index];
-	end
+	si
 
 	set T[int index] = v is
 	    _read_only();
-	end
+	si
 
 	void _read_only() is 
 	    throw new System.NotImplementedException( Class.Name + " is read only" );
-	end
+	si
 
 	/// accessor: get int Length
 	/// \return the number of values in this array
 	get int Length is
 	    return from - to;
-	end
+	si
 
 	/// \attention: not implemented
         /// \throw System.NotImplementedException
 	void add( T v ) is
 	    _read_only();
-	end
+	si
 
 	/// \attention: not implemented
         /// \throw System.NotImplementedException
 	void add( Iterable<T> v ) is
 	    _read_only();
-	end
+	si
 
 	/// \attention: not implemented
         /// \throw System.NotImplementedException
 	void remove( T v ) is
 	    _read_only();
 	    throw new System.NotImplementedException( Class.Name + "Generic.Array is fixed length" );
-        end
+        si
 
 	/// \attention: partially implemented
         /// \throw System.NotImplementedException
@@ -258,19 +258,19 @@ namespace Generic is
 	    if l > Length then
 	        _read_only();
 	    fi
-	end
+	si
 
 	String toString() is
             var result = new StringBuffer();
             for int i = from; i <= to; i = i + 1 do
-               if i != 0 then
+               if i != from then
 	           result.append(',');			
                fi
  	       result.append(this[i].toString());
 	    od
 
             return result;
-        end
+        si
 
         /// \attention: checks reference equality only for reference types
 	bool contains( T v ) is
@@ -281,19 +281,19 @@ namespace Generic is
 	    od
 
 	    return false;
-	end
+	si
 
 	bool isEmpty() is
 	    return Length > 0;
-	end
+	si
 
 	get ArrayRange<T> Iterator is
 	    return new ArrayRange<T>(a, from, to);
-	end
+	si
 
 	ArrayRange<T> elements() is
 	    return new ArrayRange<T>(a, from, to);
-	end
+	si
 
-    end	
-end
+    si	
+si

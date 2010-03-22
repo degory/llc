@@ -24,7 +24,7 @@ namespace System is
 	    fi
    	    native.__flush_stdout();
 	    native.exit(1);
-	end
+	si
 
 	/// L-code entry point. Called by assembler runtime after Main class instance created. Calls generated
 	/// function __main_init in entry.S which in turn calls Main.init(). This is needed to support Main
@@ -41,7 +41,7 @@ namespace System is
 	    catch System.Exception se
 	        uncaughtException( se );
 	    yrt
-	end
+	si
 
         /// Alternative L-code entry point.
         /// \deprecated only safe for classes that inherit from Object
@@ -53,6 +53,6 @@ namespace System is
 	    catch System.Exception se
 	        uncaughtException( se );
 	    yrt
-	end
-    end
-end
+	si
+    si
+si

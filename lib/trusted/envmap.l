@@ -11,7 +11,7 @@ namespace Util is
         /// Returns program environment as a set of key-value pairs
 	static get Map<String,String> Map is
     	    return makeMap( new Map<String,String>(), System.Arguments.ProgramEnvironment );
-        end
+        si
 
 	/// Populates a supplied map with key value pairs parsed from a supplied array of strings in 'name=value' format
 	/// \param result a map to populate. Keys will be overwritten from env if they exist in both in both result and env
@@ -34,6 +34,6 @@ namespace Util is
 	    od
 
 	    return result;
-	end
-    end
-end
+	si
+    si
+si

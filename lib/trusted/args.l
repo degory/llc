@@ -22,17 +22,17 @@ namespace System is
 	    od
 
 	    return result;
-	end
+	si
 
 	/// returns program command line arguments as an array of String
 	static get String[] ProgramArguments is
 	    char ptr ptr argv = cast char ptr ptr(native.__get_argv());
 	    return makeStringArrayFromCStringList( argv );
-	end
+	si
 
 	/// returns the program environment as an array of String
 	static get String[] ProgramEnvironment is
 	    return makeStringArrayFromCStringList( cast char ptr ptr(native.__get_envp()) );
-	end
-    end
-end
+	si
+    si
+si

@@ -1,26 +1,26 @@
 #K
 
 namespace Util is
-    class Compare extends System.Object is
+    class Compare is
 	public int compare( System.Object a, System.Object b ) is
 	    return 0;
-	end
+	si
 
 	public void init() is
 	    super.init();
-	end
-    end
+	si
+    si
 
     /// Sort arrays or Vectors of Objects.
     /// \deprecated Use Generic.SortList<T> or Generic.SortArray<T> instead
     class Sort is
 	static void sort(Compare compare, Util.Vector values ) is
 	    sort( compare, values, 0, values.getLength() - 1 );
-	end
+	si
 
 	static void sort(Compare compare, System.Object[] values ) is
 	    sort( compare, values, 0, values.length - 1 );
-	end
+	si
 
 	static void sort(Compare compare, Util.Vector values, int p, int r) is
 	    if p < r then
@@ -31,7 +31,7 @@ namespace Util is
 		sort( compare, values, p, q );
 		sort( compare, values, q+1, r );
 	    fi
-	end
+	si
 
 	static void sort(Compare compare, System.Object[] values, int p, int r) is
 	    if p < r then
@@ -42,7 +42,7 @@ namespace Util is
 		sort( compare, values, p, q );
 		sort( compare, values, q+1, r );
 	    fi
-	end
+	si
 
 	static int partition( Compare compare, Util.Vector values, int lo, int hi ) is
 	    System.Object middle = values[lo];
@@ -63,7 +63,7 @@ namespace Util is
 		    return hi;
 		fi
 	    od
-	end
+	si
     
 	static int partition( Compare compare, System.Object[] values, int lo, int hi ) is
 	    System.Object middle = values[lo];
@@ -84,6 +84,6 @@ namespace Util is
 		    return hi;
 		fi
 	    od
-	end
-    end
-end
+	si
+    si
+si

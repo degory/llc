@@ -11,11 +11,11 @@ namespace Generic is
     use System.String;
     use System.StringBuffer;
     use System.Object;
-    use System.Exception;
+    use System.BoundsException;
     use System.Backtrace;
 
     /// An Iterator over Vector<T>
-    class VectorIterator<T> implements Iterator<T> is
+    class VectorIterator<T> do Iterator<T> is
 	private Vector<T> _v;
 	private int _i;
  
@@ -24,12 +24,12 @@ namespace Generic is
             // IO.Std.err.println( "new iterator: " + v.Length );
 	    _v = v;
 	    _i = 0;
-	end
+	si
 
 	bool hasMoreElements() is
 	    // IO.Std.err.println( this.Class.Name + ": has more index: " + _i + " versus length: " + _v.getLength() );
 	    return _i < _v.getLength();
-	end
+	si
 
 	T nextElement() is
 	    T result;
@@ -39,11 +39,11 @@ namespace Generic is
 	    _i = _i + 1;
 
 	    return result;
-	end
-    end
+	si
+    si
 
     /// A reverse Iterator over Vector<T>
-    class VectorReverseIterator<T> implements Iterator<T> is
+    class VectorReverseIterator<T> do Iterator<T> is
 	private Vector<T> _v;
 	private int _i;
 
@@ -51,11 +51,11 @@ namespace Generic is
 	    super.init();
 	    _v = v;
 	    _i = v.getLength() - 1;
-	end
+	si
 
 	bool hasMoreElements() is
 	    return _i >= 0;
-	end
+	si
 
 	T nextElement() is
 	    T result;
@@ -64,18 +64,18 @@ namespace Generic is
 	    _i = _i - 1;
 
 	    return result;
-	end
-    end
+	si
+    si
 
     /// Thrown for out of bounds Vector<T> indexes 
-    class VectorException extends Exception is
+    class VectorException isa BoundsException is
 	void init( String message ) is
 	    super.init( message );
-	end
-    end
+	si
+    si
     
     /// A resizeable array of parameterised type.  
-    class Vector<T> implements List<T> is
+    class Vector<T> do List<T> is
 	int _length;
 	int _allocated_length;
 	T ptr _values;
@@ -96,20 +96,20 @@ namespace Generic is
 	    _allocated_length = 0;
 	    _values = null;
 	    reserve( l );
-	end
+	si
 
 	/// Construct a new Vector with default initial capacity
 	void init() is
 	    init( INITIAL_LENGTH );
-	end
+	si
 
 	get int Length is
 	    return _length;
-	end
+	si
 
         int _get_PointerLength(int n) is
 	    return _allocated_length;
-	end
+	si
 
 	/*
 	    void dispose() is 
@@ -122,16 +122,14 @@ namespace Generic is
 	    reserve( _length + 1 );
 	    [_values + _length] = o;
 	    _length = _length + 1;
-
-	    // check();
-	end
+	si
 
 	/// Append a new value to the end of this Vector immediately after the current last element
 	void add( Iterable<T> o ) is
 	    foreach var v; o.Iterator do
 	        add(v);
 	    od			       	      
-	end
+	si
 
 	/// Remove and return the current last value from the end of this Vector
 	T pop() is
@@ -142,7 +140,7 @@ namespace Generic is
 	    else
 		throw new VectorException( "Vector.pop() performed on empty Vector" ); 
 	    fi
-        end
+        si
 
 	/// Return the current last value of this Vector
 	get T Top is
@@ -151,7 +149,7 @@ namespace Generic is
 	    else
 		throw new VectorException( "Vector.top() performed on empty Vector" ); 
 	    fi
-	end
+	si
 
 	/// Return a copy of this Vector as an array 
 	get T[] Array is
@@ -160,7 +158,7 @@ namespace Generic is
 		result[i] = [_values + i];
 	    od
 	    return result;
-	end
+	si
 
 	/// Replace the current last value of this Vector with the supplied value
 	/// \param o the new last value to set
@@ -170,16 +168,14 @@ namespace Generic is
 	    else
 		throw new VectorException( "Vector.putTop() performed on empty Vector" );
 	    fi
-
-	    // check();
-	end
+	si
 
 	/// Replace the current last value of this Vector with the supplied value
 	/// \param o the new last value to set
 	/// deprecated use accessor String.Top (\see String.setTop(T))
 	void putTop( T o ) is
 	    Top = o;
-	end
+	si
 
 	/// Indexed get. Allows use of array subscript syntax on this Vector
 	/// \param i index of the value to get
@@ -191,7 +187,7 @@ namespace Generic is
 		throw new VectorException( "Vector.get() outside Vector bounds" );
 		return null;
 	    fi
-	end
+	si
 
 	/// Indexed set. Allows use of array subscript syntax on this Vector
 	/// \param i index of the value to set
@@ -208,9 +204,7 @@ namespace Generic is
 	    if i >= _length then
 		_length = i + 1;
 	    fi
-
-	    // check();
-	end
+	si
 
 	/// Return the index of the first element in this Vector with supplied value. Return -1 if no
 	/// matching value found
@@ -223,17 +217,17 @@ namespace Generic is
 	    od
 
 	    return -1;
-	end
+	si
 
 	/// Return true if this Vector contains no values, otherwise return false
         bool isEmpty() is
 	    return _length == 0;
-	end
+	si
 
 	/// Return true if the supplied value appears at least once in this Vector, otherwise return false
 	bool contains( T v ) is
 	    return indexOf(v) >= 0;
-	end
+	si
 
 	/// If the supplied value appears in this Vector then remove the first instance of it, otherwise do nothing
 	void remove( T v ) is
@@ -241,7 +235,7 @@ namespace Generic is
 	    if i >= 0 then
 	        removeIndex(i);
 	    fi
-	end
+	si
 
 	/// Remove the value at the supplied index, shifting any later values left one place to close the gap
 	/// \param i the index of the value to remove
@@ -259,39 +253,37 @@ namespace Generic is
 
 	    _length = _length - 1;
 
-	    // check();
-
 	    return result;
-	end
+	si
 	
 	/// Remove and return the first value in this Vector
 	T pull() is
 	    return removeIndex(0);
-	end
+	si
 
 	/// Return a new Iterator that returns each element in the Vector from first to last in turn. Behaviour is undefined if the Vector is altered
 	/// before Iterator<T>.nextElement() returns false 
 	VectorIterator<T> elements() is
 	    return new VectorIterator<T>( this );
-	end
+	si
 
 	/// Return a new Iterator that returns each element in the Vector from last to first in turn. Behaviour is undefined if the Vector is altered
 	/// before Iterator<T>.nextElement() returns false 
 	VectorReverseIterator<T> reverseElements() is
 	    return new VectorReverseIterator<T>( this );
-	end
+	si
 
 	/// Return a new Iterator that returns each element in the Vector from first to last in turn. Behaviour is undefined if the Vector is altered
 	/// before Iterator<T>.nextElement() returns false 
 	get VectorIterator<T> Iterator is
 	    return new VectorIterator<T>( this );
-	end
+	si
 
 	/// Return a new Iterator that returns each element in the Vector from last to first in turn. Behaviour is undefined if the Vector is altered
 	/// before Iterator<T>.nextElement() returns false 
 	get VectorReverseIterator<T> ReverseIterator is
 	    return new VectorReverseIterator<T>( this );
-	end
+	si
 
 	/// Set the length of this Vector to the supplied value. If the new length is shorter than the exisiting length then values beyond the new last
 	/// value are discarded as if they had been removed with Vector<T>.remove(T). If the new length is longer than the existing length then the new
@@ -299,12 +291,12 @@ namespace Generic is
 	set int Length = l is
 	    reserve(l);
 	    _length = l;
-	end
+	si
 
 	/// Remove all elements in this Vector making new length equal to zero
         void clear() is
 	    Length = 0;
-	end
+	si
 
 	/// if supplied length is longer than the existing length then set length to the supplied length, filling new values with T.none, otherwise, if
 	/// supplied length is equal to or shorter than existing length, then do nothing
@@ -313,7 +305,7 @@ namespace Generic is
 	    if l > _length then
 		_length = l;
 	    fi
-	end
+	si
 
 	/// if supplied length is longer than the existing capacity then allocate additional space so that the total capacity is at least l values.
 	/// Note reserve(int) does not affect length, just the reserved capacity that enables values to be added with allocating additional memory
@@ -362,18 +354,15 @@ namespace Generic is
 	    
 		_allocated_length = a;
 
-		// [cast char ptr(_values + _allocated_length)] = 254c;
-
-		// check();
 	    fi
-	end
+	si
 
 	/// Return a copy of this Vector
 	Vector<T> copy() is
 	    Vector<T> result = cast Vector<T>(clone());
 	    result.completeCopy();
 	    return result;
-	end
+	si
 
 	/// Internal method supporting copy()
 	void completeCopy() is
@@ -385,8 +374,7 @@ namespace Generic is
 	    od
 	    _values = v;
 
-	    // check();
-	end
+	si
 
 	String toString() is
 	    StringBuffer result;
@@ -409,28 +397,22 @@ namespace Generic is
 	    od
 
 	    return result;
-	end
-
-        void check() is
-	    if [cast char ptr(_values + _allocated_length)] != 254c then
-	       throw new System.Exception( "corrupt vector: " + this );
-	    fi 
-	end
+	si
 
 	get Object ptr ObjectValuesPointer is
 	    if !T.isobject then
 		return null;
             fi
 	    return cast Object ptr(_values);
-	end
+	si
 
 	get int ObjectValuesLength is
 	    return _length;
-	end
+	si
 
 	get int MemoryUse is 
 	    return ObjectSize + T.sizeof * _allocated_length;
-	end
-    end
-end
+	si
+    si
+si
 

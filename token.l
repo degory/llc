@@ -170,7 +170,6 @@ namespace Parse {
 	    symbol_tokens["class"] = Token.CLASS;
 	    symbol_tokens["struct"] = Token.STRUCT;
 	    symbol_tokens["enum"] = Token.ENUM;
-	    symbol_tokens["extends"] = Token.EXTENDS;
 	    symbol_tokens["public"] = Token.PUBLIC;
 	    symbol_tokens["protected"] = Token.PROTECTED;
 	    symbol_tokens["private"] = Token.PRIVATE;
@@ -212,7 +211,6 @@ namespace Parse {
 	    symbol_tokens["pragma"] = Token.PRAGMA;
 	    symbol_tokens["get"] = Token.GET;
 	    symbol_tokens["set"] = Token.SET;
-	    symbol_tokens["implements"] = Token.IMPLEMENTS;
 	    symbol_tokens["interface"] = Token.INTERFACE;
 	    symbol_tokens["proc"] = Token.PROC;
 	    symbol_tokens["isa"] = Token.ISA;
@@ -228,7 +226,8 @@ namespace Parse {
 
 		    // IO.Std.err.println( "init tokens for K syntax" );
 		    symbol_tokens_k["is"] = Token.IS;
-		    symbol_tokens_k["end"] = Token.END;
+		    // symbol_tokens_k["end"] = Token.END;
+		    symbol_tokens_k["si"] = Token.END;
 		    symbol_tokens_k["then"] = Token.THEN;
 		    symbol_tokens_k["elif"] = Token.ELIF;
 		    symbol_tokens_k["fi"] = Token.FI;
@@ -243,9 +242,9 @@ namespace Parse {
 		    symbol_tokens_l = initSymbolTokensCommon();
 
 		    // IO.Std.err.println( "init tokens for L syntax" );
-		    
-		    symbol_tokens_l["switch"] = Token.SWITCH;
-		    
+		    symbol_tokens_l["extends"] = Token.EXTENDS;
+		    symbol_tokens_l["implements"] = Token.IMPLEMENTS;		    
+		    symbol_tokens_l["switch"] = Token.SWITCH;		    
 		}
 	    	this.symbol_tokens = symbol_tokens_l;
 	    }

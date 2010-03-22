@@ -332,7 +332,7 @@ class:
 		  cast Parse.ParseTree($$).Comment = cast Parse.ParseTree($3).Comment;
   	          Parse.ParseTree.resetLastComment();
 		}
-|   class_specifiers CLASS identifier generic EXTENDS name generic_super implements class_body
+|   class_specifiers CLASS identifier generic ISA name generic_super implements class_body
 		{ $$ = new Parse.ClassDef(
 		    first_line,
 			cast<Parse.Identifier>($3),		// name
@@ -361,7 +361,7 @@ interface:
 		  cast Parse.ParseTree($$).Comment = cast Parse.ParseTree($3).Comment;
                   Parse.ParseTree.resetLastComment();
 		}
-|   class_specifiers INTERFACE identifier generic EXTENDS name generic_super class_body
+|   class_specifiers INTERFACE identifier generic ISA name generic_super class_body
 		{ $$ = new Parse.InterfaceDef(
 		    first_line,
 			cast<Parse.Identifier>($3),		// name
@@ -376,7 +376,7 @@ interface:
 ;
 
 implements:
-       IMPLEMENTS type_list { $$ = $2; }
+       DO type_list { $$ = $2; }
 |
        { $$ = null; }
 ;

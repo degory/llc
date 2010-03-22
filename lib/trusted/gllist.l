@@ -7,18 +7,18 @@ namespace Generic is
     use System.String;
 
     /// An Iterator<T> over a LinkedList<T>
-    class LinkedListIterator<T> implements Iterator<T> is
+    class LinkedListIterator<T> do Iterator<T> is
 	RealList<T> _head;
 
         /// Construct a new LinkedListIterator referencing the supplied RealList
 	void init( RealList<T> h ) is
 	    super.init();
 	    _head = h;
-	end
+	si
 
 	bool hasMoreElements() is
 	    return _head != null;
-	end
+	si
 
 	T nextElement() is
 	    if _head == null then
@@ -29,23 +29,23 @@ namespace Generic is
 	    _head = _head.Tail;
 
 	    return result;
-	end
-    end
+	si
+    si
 
     /// Thrown if an out of bounds LinkedList index is referenced
-    class ListBoundsException extends System.BoundsException is
+    class ListBoundsException isa System.BoundsException is
         void init( System.String message ) is
 	    super.init(message);
-	end
-    end 
+	si
+    si 
 
     /// An ordered resizable list of values implemented as a linked list
     /// \param T the type of values in this list
-    class LinkedList<T> implements List<T> is
+    class LinkedList<T> do List<T> is
 	protected RealList<T> list;
 	void init() is
 	    super.init();
-	end
+	si
 
 	/// Append supplied value after last element in this LinkedList
 	/// \param v the value to append
@@ -55,7 +55,7 @@ namespace Generic is
 	    else
 		list.append( v );
 	    fi
-	end
+	si
 
 	/// Append supplied values after last element in this LinkedList
 	/// \param v the value to append
@@ -63,7 +63,7 @@ namespace Generic is
 	    foreach var t; v.Iterator do
 	        add(t);
 	    od
-	end              
+	si              
 
 	/// Remove first occurance, if any, of supplied value from this LinkedList
 	/// \param v the value to remove
@@ -73,7 +73,7 @@ namespace Generic is
 	    else
 		throw new ListBoundsException( "remove from empty List" );
 	    fi
-	end
+	si
 
 	/// Return true if this LinkedList contains the supplied value
 	/// \param v the value to look for
@@ -83,14 +83,14 @@ namespace Generic is
 	    else
 	        return false;
 	    fi
-	end
+	si
 
 	void lengthen( int l ) is	
-	end
+	si
 
 	void push( T v ) is
 	    add(v);
-	end
+	si
 	
 	/// Indexer: get T[int index]
 	/// \param index the index of the value to get
@@ -101,7 +101,7 @@ namespace Generic is
             else 
 	        return list[index];
 	    fi
-	end
+	si
 
 	/// Indexer: set T[int index] = v
 	/// \param index the index of the value to set
@@ -112,13 +112,13 @@ namespace Generic is
             else 
 	        list[index] = v;
  	    fi
-	end	 
+	si	 
 	
 	/// Is this list empty?
         /// \return true if list contains no values, false otherwise
 	bool isEmpty() is
 	    return list == null;
-	end
+	si
 
 	/// Accessor: get int Length
 	/// Get the length of the list
@@ -129,7 +129,7 @@ namespace Generic is
 	    else
 		return list.Length;
 	    fi
-	end
+	si
 
 	/// Remove and return the first value in this LinkedList
 	/// \return removed value
@@ -142,7 +142,7 @@ namespace Generic is
 	    else
 		throw new ListBoundsException( "pull from empty List" );
 	    fi
-	end
+	si
 
 	/// Remove and return the last value in this LinkedList
 	/// \return removed value
@@ -159,7 +159,7 @@ namespace Generic is
 	    else
 		throw new ListBoundsException( "pop from empty List" );
 	    fi
-	end
+	si
 
 	/// Accessor: get T Head
 	/// Get the first value in the list
@@ -170,19 +170,19 @@ namespace Generic is
 	    else
 		return null;
 	    fi
-	end
+	si
 
 	/// Get iterator
 	/// \return Iterator<T> that returns each element of this LinkedList in turn from first to last
 	LinkedListIterator<T> elements() is
 	    return new LinkedListIterator<T>(list);
-	end
+	si
 
 	/// Get iterator
 	/// \return Iterator<T> that returns each element of this LinkedList in turn from first to last
 	get LinkedListIterator<T> Iterator is
 	    return new LinkedListIterator<T>(list);
-	end
+	si
 
         String toString() is
 	    if list != null then
@@ -190,8 +190,8 @@ namespace Generic is
 	    else
 	        return "";
 	    fi
-	end
-    end
+	si
+    si
 
     /// Internal linked list implementation for LinkedList<T>
     class RealList<T> is
@@ -202,18 +202,18 @@ namespace Generic is
 	    super.init();
 	    value = v;
 	    tail = t;
-	end
+	si
 
 	void init() is
 	    super.init();
 	    value = null;
 	    tail = null;
-	end
+	si
 
 	void insert( T v ) is
 	    tail = new RealList<T>( value, tail );
 	    value = v;
-	end
+	si
 
 	RealList<T> remove( T v ) is
 	    if value == v then
@@ -224,7 +224,7 @@ namespace Generic is
                 fi
 		return this;
 	    fi
-	end
+	si
 
 	bool contains( T v ) is
 	    if value == v then
@@ -234,23 +234,23 @@ namespace Generic is
   	    else
 	        return false;
 	    fi
-	end
+	si
 
 	get T Value is
 	    return value;
-	end
+	si
 
 	set T Value = v is
 	    value = v;
-	end
+	si
 
 	get RealList<T> Tail is
 	    return tail;
-	end
+	si
 
 	set RealList<T> Tail = t is
 	    tail = t;
-	end
+	si
 
 	get T[int index] is 
 	    if index == 0 then
@@ -260,7 +260,7 @@ namespace Generic is
 	    else
 		return tail[index-1];
 	    fi
-	end
+	si
 
 	set T[int index] = v is
 	    if index == 0 then
@@ -270,7 +270,7 @@ namespace Generic is
 	    else
 		tail[index-1] = v;
 	    fi
-	end
+	si
 
 	RealList<T> append( T v ) is
 	    if tail == null then
@@ -280,7 +280,7 @@ namespace Generic is
 		RealList<T> result = tail.append( v );
 		return result;
 	    fi
-	end
+	si
 
 	T pop() is
 	    if tail == null then
@@ -292,7 +292,7 @@ namespace Generic is
 	    else
 	        return tail.pop();
 	    fi	    
-	end
+	si
 
 	get int Length is
 	    int result = 1;
@@ -303,7 +303,7 @@ namespace Generic is
 	    od
 
 	    return result;
-	end
+	si
 
 	private void cat( System.StringBuffer buffer ) is
 	    if value != null then
@@ -316,16 +316,16 @@ namespace Generic is
 		buffer.append(',');
 		tail.cat(buffer);
 	    fi
-	end
+	si
 
 	System.String toString() is
 	    System.StringBuffer result = new System.StringBuffer( "" );
 	    cat( result );
 	    return result;
-	end
+	si
 
 	LinkedListIterator<T> elements() is
 	    return new LinkedListIterator<T>(this);
-	end
-    end
-end
+	si
+    si
+si

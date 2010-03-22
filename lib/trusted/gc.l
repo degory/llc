@@ -9,44 +9,44 @@ namespace System is
         /// Return the size of the heap in bytes
         static get int HeapSize is
             return cast int(native.GC_get_heap_size());
-	end
+	si
 
 	static set int MaxHeapSize = s is
 	    native.GC_set_max_heap_size(s);
-	end
+	si
 
 	/// Return amount of free space in the heap in bytes
         static get int HeapFree is
 	    return cast int(native.GC_get_free_bytes());
-	end
+	si
 
 	/// Return amount of used space in the heap in bytes
 	static get int HeapUsed is
 	    return HeapSize - HeapFree;
-        end
+        si
 
 	static void collect() is
 	    native.GC_gcollect();
-	end    
+	si    
 
         static void disable() is
 	    native.GC_disable();
-	end
+	si
 
 	static void enable() is
 	    native.GC_enable();
-	end
+	si
 
         static word ptr getBaseQuiet(word ptr p) is
 	    var b = cast word ptr(native.__native_thunk(native.__get_GC_base(),p));	    
 	    IO.Std.err.println( String.hex(cast word(p)) + ": base is " + String.hex(cast word(b)) );
 
 	    return b;
-	end
+	si
 
         static int getSizeQuiet(word ptr p) is
 	    return cast int(native.__native_thunk(native.__get_GC_size(),p));		
-	end
+	si
 
         static word ptr getBase(word ptr p) is
 	    try
@@ -54,7 +54,7 @@ namespace System is
 	    catch MemoryException me
 	        return null;
 	    yrt
-	end
+	si
 
         static int getSize(word ptr p) is
 	    try
@@ -62,7 +62,7 @@ namespace System is
 	    catch MemoryException me 
 	        return 0;
 	    yrt
-	end
+	si
 
 	static get List<GCRoot> Roots is
 	    var result = new Vector<GCRoot>();
@@ -79,8 +79,8 @@ namespace System is
 	    od
 
 	    return result;
-	end
-    end
+	si
+    si
 
     struct GCRoot is
         word low;
@@ -89,26 +89,26 @@ namespace System is
 	void init( word l, word h ) is
 	    low = l;
 	    high = h;
-	end
+	si
 
 	get word Low is
 	    return low;
-	end
+	si
 
 	get word High is
 	    return high;
-	end
+	si
 
 	String toString() is
 	    return String.hex(low) + ".." + String.hex(high);
-	end
+	si
 
         bool operator =~(GCRoot u) is
 	    return this == u;
-	end
+	si
 
 	int operator >(GCRoot u) is
 	    return Word.operator >(cast word(this), cast word(u));
-	end
-    end
-end
+	si
+    si
+si

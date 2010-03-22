@@ -10,13 +10,13 @@ namespace FCGI is
     use IO.Reader;
     use IO.Writer;
 
-    class Stream extends CharStream is
+    class Stream isa CharStream  is
         word fcgi_stream;
 	bool is_at_end;
 
         void init( word fcgi_stream ) is
 	    this.fcgi_stream = fcgi_stream;
-        end
+        si
 
 	int read( char ptr buffer, int count ) is
 	    IO.Std.err.println( "about to FCGI_fread..." );
@@ -26,19 +26,19 @@ namespace FCGI is
  	    fi
    	    IO.Std.err.println( "read " + bytes_read + " bytes" );
             return bytes_read;
-        end
+        si
 
 	int write( char ptr buffer, int count ) is 
 	    return cast int(native.FCGI_fwrite(buffer, 1, count, fcgi_stream));    
-        end
+        si
 
 	void close() is
 	    native.FCGI_fclose(fcgi_stream);
-	end
+	si
 
 	bool isAtEnd() is
 	    return is_at_end;
-        end
+        si
 
 	static Reader _stdin;
 	static Writer _stdout;
@@ -49,33 +49,33 @@ namespace FCGI is
 	        _stdin = new Reader( new Stream( cast word(native.__get_FCGI_stdin()) ) );
             fi
             return _stdin;
-	end
+	si
 
 	static get Writer out is
 	    if _stdout == null then
 	        _stdout = new Writer( new Stream( cast word(native.__get_FCGI_stdout()) ) );
             fi
             return _stdout;
-	end
+	si
 
 	static get Writer err is
 	    if _stderr == null then
 	        _stderr = new Writer( new Stream( cast word(native.__get_FCGI_stderr()) ) );
             fi
             return _stderr;
-	end
+	si
 
 	void flush() is
 	    native.FCGI_fflush(fcgi_stream);
-	end
+	si
 
 	static void flushAll() is
 	    _stdin.Stream.flush();
 	    _stdout.Stream.flush();
 	    _stderr.Stream.flush();
-	end
+	si
 
-    end
+    si
 
     class Environment is 
 	static void addTo( Generic.Map<System.String,System.String> existing ) is
@@ -84,21 +84,21 @@ namespace FCGI is
 	    System.String[] env = System.Arguments.makeStringArrayFromCStringList( environ );
 
 	    Util.ProgramEnvironment.makeMap( existing, env );
-        end
-    end	
+        si
+    si	
 
 
     class Loop is
 	static bool accept() is
 	    return cast int(native.FCGI_Accept()) >= 0;
-	end
+	si
 
 	static void exit() is
 	    native.FCGI_Finish();
 // native.FCGX_ShutdownPending();
-        end
-    end
-end
+        si
+    si
+si
 
 
 

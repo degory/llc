@@ -9,9 +9,9 @@ namespace Generic is
         bool hasMoreElements();
         /// Return the next value. Behaviour is undefined if nextElement() is called after hasMoreElements() has returned false
 	T nextElement();
-    end
+    si
 
     interface Iterable<T> is
 	get Iterator<T> Iterator;
-    end
-end
+    si
+si

@@ -4,7 +4,7 @@ pragma NoWarnUnsafe, NoMarkUnsafe;
 
 namespace Util is
     /// A process that can fork and run other programs
-    class Process extends System.Object is
+    class Process is
 	const int
 	    EAGAIN = 11,
 	    ENOMEM = 12,
@@ -16,7 +16,7 @@ namespace Util is
 	/// Construct an empty Process
 	void init() is
 	    super.init();
-	end
+	si
 
 	/// Throw an Exception for the last operating system error encountered
 	/// \param unix_call description of the operating system call that failed
@@ -24,7 +24,7 @@ namespace Util is
 	    int errno = cast int(native.__geterrno());
 	    // IO.Std.err.println( "unix call failed: " + unix_call + ", errno: " + errno + ", " + cast<char ptr>(native.strerror()) );
 	    throw new System.Exception(unix_call + ": " + cast char ptr(native.strerror()));
-	end
+	si
  
         /// Fork this process
 	/// \return true in child process, false in parent process
@@ -55,7 +55,7 @@ namespace Util is
 		fi
 		return child;
 	    fi
-	end
+	si
 
         /// V-Fork this process
 	/// \return true in child process, false in parent process
@@ -86,19 +86,19 @@ namespace Util is
 		fi
 		return child;
 	    fi
-	end
+	si
 
 	/// Is this the child process?
 	/// \return true in child process, false in parent process
 	bool isChild() is
 	    return child;
-	end
+	si
 
 	/// Return process id of child process
 	/// \attention returned process id only correct in parent process
 	get int PID is
 	    return pid;
-	end
+	si
 
 	/// Wait for child process to exit
 	/// \return exit status of child process
@@ -114,7 +114,7 @@ namespace Util is
 	    fi
 
 	    return exit_status;
-	end
+	si
 
 	/// Replace running program with a new program
 	/// \param name path to program to execute
@@ -129,7 +129,7 @@ namespace Util is
 	    native.fprintf( native.__get_stderr(), `Content-type: text/plain\r\n\r\nexec failed '%s'\n`, name );
 
 	    throwUnixError("execvp: " + name );
-	end
+	si
 
 	/// Replace running program with a new program
 	/// \param name path to program to execute
@@ -155,7 +155,7 @@ namespace Util is
 	    fi
 	    
 	    spawn( name.toCString(), a, e );
-	end
+	si
 
 	/// Start a new program and optionally wait for it to complete
 	/// \param name path to program to execute
@@ -177,7 +177,7 @@ namespace Util is
 		    return 0;
 		fi
 	    fi
-	end
+	si
 
 	/// Start a new program and wait for it to complete
 	/// \param name path to program to execute
@@ -186,7 +186,7 @@ namespace Util is
 	/// \return child exit status
 	int run( System.String name, System.String[] args, System.String[] env ) is
 	    return run( name, args, env, true ) >> 8;
-	end
+	si
 
 	/// Start a new program and wait for it to complete. New program receives a copy of the current program environment.
 	/// \param name path to program to execute
@@ -194,6 +194,6 @@ namespace Util is
 	/// \return child exit status
 	int run( System.String name, System.String[] args ) is
 	    return run( name, args, null, true ) >> 8;
-	end
-    end
-end
+	si
+    si
+si

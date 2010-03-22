@@ -4,22 +4,22 @@ import object;
 import iterator;
 
 namespace Util is
-    class ListException extends System.Exception is
+    class ListException isa System.Exception is
 	void init( System.String s ) is
 	    super.init(s);
-	end
-    end
+	si
+    si
 
-    private class ListIterator extends Iterator is
+    private class ListIterator isa Iterator is
 	RealList _head;
 	void init( RealList h ) is
 	    super.init();
 	    _head = h;
-	end
+	si
 
 	bool hasMoreElements() is
 	    return _head != null;
-	end
+	si
 
 	System.Object nextElement() is
 	    if _head == null then
@@ -30,16 +30,16 @@ namespace Util is
 	    _head = _head.getTail();
 
 	    return result;
-	end
-    end
+	si
+    si
 
     /// A linked list of Objects.
     /// \deprecated Use Generic.LinkedList<T> instead
-    class List extends System.Object is
+    class List is
 	RealList list;
 	void init() is
 	    super.init();
-	end
+	si
 
 	void add( System.Object v ) is
 	    if list == null then
@@ -47,7 +47,7 @@ namespace Util is
 	    else
 		list.append( v );
 	    fi
-	end
+	si
 
 	void remove( System.Object v ) is
 	    if list != null then
@@ -55,7 +55,7 @@ namespace Util is
 	    else
 		throw new ListException( "remove from empty List" );
 	    fi
-	end
+	si
 
 	void push( System.Object v ) is
 	    if list == null then
@@ -63,11 +63,11 @@ namespace Util is
 	    else
 		list.insert( v );
 	    fi
-	end
+	si
 
 	bool isEmpty() is
 	    return list == null;
-	end
+	si
 
 	System.Object pop() is
 	    if list != null then
@@ -77,7 +77,7 @@ namespace Util is
 	    else
 		throw new ListException( "pop from empty List" );
 	    fi
-	end
+	si
 
 	get System.Object Head is
 	    if list != null then
@@ -85,16 +85,16 @@ namespace Util is
 	    else
 		return null;
 	    fi
-	end
+	si
 
 	Iterator elements() is
 	    return new ListIterator(list);
-	end
-    end
+	si
+    si
 
     /// A linked list of Objects.
     /// \deprecated Use Generic.RealList<T> instead
-    class RealList extends System.Object is
+    class RealList is
 	RealList tail;
 	System.Object value;
 
@@ -102,18 +102,18 @@ namespace Util is
 	    super.init();
 	    value = v;
 	    tail = t;
-	end
+	si
 
 	void init() is
 	    super.init();
 	    value = null;
 	    tail = null;
-	end
+	si
 
 	void insert( System.Object v ) is
 	    tail = new RealList( value, tail );
 	    value = v;
-	end
+	si
 
 	RealList remove( System.Object v ) is
 	    if value == v then
@@ -121,15 +121,15 @@ namespace Util is
 	    else
 		tail = tail.remove( v );
 	    fi
-	end
+	si
 
 	get System.Object Value is
 	    return value;
-	end
+	si
 
 	get RealList Tail is
 	    return tail;
-	end
+	si
 
 	RealList append( System.Object v ) is
 	    if tail == null then
@@ -139,7 +139,7 @@ namespace Util is
 		RealList result = tail.append( v );
 		return result;
 	    fi
-	end
+	si
 
 	private void cat( System.StringBuffer buffer ) is
 	    if value != null then
@@ -152,17 +152,17 @@ namespace Util is
 		buffer.append(',');
 		tail.cat(buffer);
 	    fi
-	end
+	si
 
 	System.String toString() is
 	    System.StringBuffer result = new System.StringBuffer( "[RealList:" );
 	    cat( result );
 	    result.append(']');
 	    return result;
-	end
+	si
 
 	Iterator elements() is
 	    return new ListIterator(this);
-	end
-    end
-end
+	si
+    si
+si

@@ -4,13 +4,13 @@ import unwind;
 
 namespace System is
     /// A method in memory
-    class Method extends System.Object is
+    class Method is
 	UnwindInfo unwind;
 	ConstString name;
 
 	void init( UnwindInfo u ) is
 	    this.unwind = u;
-	end
+	si
 	
 	System.String getName() is
 	    if name == null then
@@ -18,31 +18,31 @@ namespace System is
 	    fi
 
 	    return name;
-	end
+	si
 
 	get int CodeSize is
 	    return cast int(unwind.method_length);
-	end
+	si
 
 	get int RoDataSize is
 	    return cast int(unwind.ro_size);
-	end
+	si
 
 	word invoke( word[] args ) is
 	    // return native.__invoke_method( unwind.method_start, args.length, args.address );
-	end
+	si
 
 	String toString() is
 	    return "method " + Name;
-	end
+	si
 
 	static MethodIterator methods() is
 	    return new MethodIterator( UnwindInfo.First );
-	end
+	si
 
 	static MethodNameIterator methodNames() is
 	    return new MethodNameIterator( UnwindInfo.First );
-	end
+	si
 
 	static Method find( System.String name ) is
 	    foreach Method m; methods() do
@@ -50,42 +50,42 @@ namespace System is
 		    return m;
 		fi
 	    od
-	end
-    end
+	si
+    si
 
     // avoid linking rest of library here by not extending Iterator:
-    class MethodNameIterator extends Object is
+    class MethodNameIterator is
 	UnwindInfo current;
 
 	void init( UnwindInfo c ) is
 	    current = c;
-	end
+	si
 
 	bool hasMoreElements() is
 	    return current.method_start != 0W;
-	end
+	si
 
 	String nextElement() is
 	    String result = new ConstString(current.method_name);
 	    current = current.Next;
-	end
-    end
+	si
+    si
 
-    class MethodIterator extends Object is
+    class MethodIterator is
 	UnwindInfo current;
 
 	void init( UnwindInfo m ) is
 	    current = m;
-	end
+	si
 
 	bool hasMoreElements() is
 	    return current.method_start != 0W;
-	end
+	si
 
 	Method nextElement() is
 	    Method result = new Method( current );
 	    current = current.Next;
 	    return result;
-	end
-    end
-end
+	si
+    si
+si

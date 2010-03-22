@@ -8,7 +8,7 @@ import iterator;
 namespace Util is
     /// Iterates over the keys or values in a Map
     /// \deprecated use Generic.Map
-    private class MapIterator extends Iterator is
+    private class MapIterator isa Iterator is
 	Map _map;            // the Map we're iterating over
 	int _i;              // the index of the hash chain we're currently iterating over
 	Iterator _j;         // iterator over the current hash chain
@@ -23,11 +23,11 @@ namespace Util is
 	    _i = 0-1;
 	    _j = null;
 	    _go_next();
-	end
+	si
 
 	void init( Map m ) is
 	    this.init( m, false );
-	end
+	si
 
 	void _go_next() is
 	    // IO.Std.out.println( "_go_next: " + _map );
@@ -61,22 +61,22 @@ namespace Util is
 		fi
 	    fi
 	    // IO.Std.out.println( "_next: " + _next );
-	end
+	si
 
 	bool hasMoreElements() is
 	    return _more_elements;
-	end
+	si
 
 	System.Object nextElement() is
 	    System.Object result = _next;
 	    _go_next();
 	    return result;
-	end
-    end
+	si
+    si
 
     /// Holds a key-value pair of Objects
     /// \deprecated use Generic.MapPair<K,T>
-    private class MapPair extends System.Object is
+    private class MapPair is
 	public System.Object key;
 	public System.Object value;
 
@@ -85,20 +85,20 @@ namespace Util is
 	    key = k;
 	    value = v;
 	    // IO.Std.err.println( "new MapPair: " + k + "," + v + ": " + this );
-	end
+	si
 
 	bool _matches( System.Object k, int h ) is
 	    return key == k || (k.hash() == h && k.equals(key) );
-	end
+	si
 
 	System.String toString() is
 	    return "[MapPair: " + key + "," + value + "]";
-	end
-    end
+	si
+    si
 
     /// An associative array
     /// \deprecated Use Generic.Map<K,V> instead
-    class Map extends System.Object is
+    class Map is
 	public Vector _values;
 
 	void init( int size ) is
@@ -114,15 +114,15 @@ namespace Util is
 		_values.put( i, null );
 		i = i + 1;
 	    od
-	end
+	si
 
 	void init() is
 	    init(53);
-	end
+	si
 
 	set System.Object[int key] = value is
 	    opSet( key.box, value );
-	end
+	si
 
         set System.Object[System.Object key] = value is
 	    int k;
@@ -163,11 +163,11 @@ namespace Util is
 	    else
 		match.value = value;
 	    fi
-	end
+	si
 
 	get System.Object[int key] is
 	    return opGet( key.box );
-	end
+	si
 
 	get System.Object[System.Object key] is
 	    int k;
@@ -197,11 +197,11 @@ namespace Util is
 	    else
 		return match.value;
 	    fi
-	end
+	si
 
 	void put( System.Object key, System.Object value ) is
 	    opSet( key, value );
-	end
+	si
 
 	MapPair _find_pair( System.Object key, int h, int k ) is
 	    // IO.Std.out.println( "_find_pair: " + key + "," + h + "," + k + "..." );
@@ -230,27 +230,27 @@ namespace Util is
 	    od
 
 	    return null;
-	end
+	si
 
 	System.String toString() is
 	    return "[Map " + _values + "]";
-	end
+	si
 
 	get Iterator Elements is
 	    return elements();
-	end
+	si
 
 	get Iterator Keys is
 	    return keys();
-	end
+	si
 
 	Iterator elements() is
 	    // IO.Std.out.print( "Map.elements for " + this + "\n" );
 	    return new MapIterator(this,false);
-	end
+	si
 
 	Iterator keys() is
 	    return new MapIterator(this,true);
-	end
-    end
-end
+	si
+    si
+si

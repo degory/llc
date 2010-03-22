@@ -36,7 +36,7 @@ namespace System is
 	    
 	    // IO.Std.err.println( "result: " + size );
 	    return size;
-	end
+	si
 
 	/// Return number of methods in a class
 	/// \param c Class to return number of methods
@@ -67,6 +67,6 @@ namespace System is
 	    
 	    // IO.Std.err.println( "result: " + size );
 	    return count;
-	end
-    end
-end
+	si
+    si
+si

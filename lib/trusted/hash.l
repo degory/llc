@@ -7,7 +7,7 @@ namespace Util is
 	static int rotate( int u ) is
             int result = u << 5;
             return result | ((u >> 27) & 0x1F);
-        end
+        si
 
 	/// Return a hash of supplied String
 	static int hash( System.String s ) is
@@ -16,11 +16,11 @@ namespace Util is
 	    for int i = 0; i < l; i = i + 1 do
 		h = rotate(h) + cast int(s.charAt(i));
 	    od
-	end
+	si
 
 	/// Combine to hashes 
 	static int hash( int i, int j ) is
 	    return rotate(i) + j;
-	end
-    end
-end
+	si
+    si
+si

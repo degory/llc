@@ -6,21 +6,21 @@ pragma NoWarnUnsafe, NoMarkUnsafe;
 
 namespace System is
     /// Represents a class in the program.
-    class Class extends Object is
+    class Class is
 	int ptr ptr _vtable;
 
         /// Construct an empty Class
 	void init() is
 	    super.init();
 	    _vtable = null;
-	end
+	si
 
         /// Construct a Class representing the class of the supplied Object
         /// \param o Object to return a Class for
 	void init( Object o ) is
 	    super.init();
 	    _vtable = o._get_vtable();
-	end
+	si
 
         /// Construct a Class representing the class with the supplied VTable pointer
         /// \param vt pointer to VTable slot 0
@@ -28,7 +28,7 @@ namespace System is
 	    super.init();
 	
 	    _vtable = vt;
-	end
+	si
 
 	/// Accessor: set int ptr ptr VTable = vt
         /// Set the VTable pointer for this Class
@@ -36,14 +36,14 @@ namespace System is
 	/// \attention this sets the VTable in this Class object, it does not affect the VTable of the underlying class that this Class object describes
 	set int ptr ptr VTable = vt is
 	    _vtable = vt;
-	end
+	si
 
 	/// Accessor: get int ptr ptr VTable
         /// Get the VTable pointer for this Class
         /// \return pointer to VTable slot 0
 	get int ptr ptr VTable is
 	    return _vtable;
-	end
+	si
 
 	/// Accessor: get int ObjectSize
         /// Get the number of bytes needed to store an instance of this class
@@ -53,12 +53,12 @@ namespace System is
 	    else
 		return 0;
 	    fi
-	end
+	si
 
         /// Return a pointer to this Class's super class's VTable slot 0
 	int ptr ptr _parent() is
 	    return cast int ptr ptr([_vtable]);
-	end
+	si
 
 	/// Accessor: get Class Super
         /// Get a Class representing this class's super class
@@ -71,7 +71,7 @@ namespace System is
 	    else
 		return null;
 	    fi
-	end
+	si
 
 	/// Accessor: get word ptr TypeTable
 	/// Get a pointer to the type table for this class
@@ -81,7 +81,7 @@ namespace System is
 	    else
 		return null;
 	    fi
-	end
+	si
 
 	/// Accessor: get char ptr NameC
         /// Get this class's fully qualified name as a C-string
@@ -91,17 +91,17 @@ namespace System is
 	    else
 		return `null`;
 	    fi
-	end
+	si
 
 	/// Accessor: get String Name
         /// Get this Class's fully qualified name
 	get String Name is
 	    return new String( getNameC() );
-	end
+	si
 
 	String toString() is
 	    return "class " + getName();
-	end
+	si
 
         /// Is this Class the same class as given Class or one of its super classes?
         /// \param c Class to compare
@@ -120,7 +120,7 @@ namespace System is
 		c = c.Super;
 		if c == null then return false; fi
 	    od
-	end
+	si
 
         /// Is this Class the same class as the class of supplied Object or one of its super classes?
         /// \param c Object to compare
@@ -141,7 +141,7 @@ namespace System is
 
 		if vtable_o == null then return false; fi
 	    od
-	end
+	si
 
 	/// Find a class by fully qualified name and return a new Class representing it
 	/// \param name the fully qualified class name to search for
@@ -176,19 +176,19 @@ namespace System is
 	    od
 
 	    return null;
-	end
+	si
 
         /// Return a ClassIterator that steps through all classes in program returning
         /// a Class object for each class in turn
 	static ClassIterator classes() is
 	    return new ClassIterator(cast word ptr(native.__get_classes_info()));
-	end
+	si
 
         /// Return a ClassIterator that steps through all classes in program returning
         /// the fully qualified name of each class in turn
 	static ClassNameIterator classNames() is
 	    return new ClassNameIterator(cast word ptr(native.__get_classes_info()));
-	end
+	si
     
 	/// Create an instance of the class this Class represents.
 	/// \attention the created object may not be completely constructed if its class does not implement init()
@@ -203,56 +203,56 @@ namespace System is
 	    Object o = cast Object(p);
 	    o.init();
 	    return o;
-	end
+	si
 
 	get bool IsArray is
 	    return Name.startsWith( "Generic.Array<" );
-	end
-    end
+	si
+    si
 
     // avoid linking rest of library here by not extending Iterator:
     /// Iterates over all class names in program
-    class ClassNameIterator extends Object is
+    class ClassNameIterator is
 	word ptr current_record;
 
 	/// Construct a new ClassNameIterator
         /// \param p pointer to class info table
 	void init( word ptr p ) is
 	    current_record = p;
-	end
+	si
 
         /// Are there more class names?
 	bool hasMoreElements() is
 	    return [current_record] != null;
-	end
+	si
 
         /// Return next class name
 	String nextElement() is
 	    System.String result = new String( cast char ptr([current_record]) );
 	    current_record = current_record + 2;
-	end
-    end
+	si
+    si
 
     /// Iterates over all classes in program
-    class ClassIterator extends Object is
+    class ClassIterator is
 	word ptr current_record;
 	
 	/// Construct a new ClassIterator
         /// \param p pointer to class info table
 	void init( word ptr p ) is
 	    current_record = p;
-	end
+	si
 
         /// Are there more classes?
 	bool hasMoreElements() is
 	    return [current_record] != null;
-	end
+	si
 
         /// Return the next Class
 	Class nextElement() is
 	    Class result = new Class( cast int ptr ptr([current_record+1]) );
 	    current_record = current_record + 2;
 	    return result;
-	end
-    end
-end
+	si
+    si
+si

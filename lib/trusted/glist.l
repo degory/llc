@@ -4,7 +4,7 @@ import gbag;
 
 namespace Generic is
     /// Interface. An ordered list of values accessible with array syntax
-    interface List<T> extends Bag<T> is
+    interface List<T> isa Bag<T> is
         /// Make this List as long as supplied length if it is not already longer
 	/// \param l new minimum length
 	void lengthen(int l);
@@ -19,5 +19,5 @@ namespace Generic is
 	/// \param index index of value to set
 	/// \param v new value
 	set T[int index] = v;
-    end
-end
+    si
+si

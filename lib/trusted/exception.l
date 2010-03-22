@@ -5,7 +5,7 @@ pragma NoWarnUnsafe, NoMarkUnsafe, NoWarnHide, NoWarnResolve;
 
 namespace System is
     /// Generates an exception backtrace for debugging
-    class Backtrace extends Object is
+    class Backtrace is
 	String _backtrace;
 	/// Construct a new Backtrace from the current stack frame
 	void init() is
@@ -15,15 +15,15 @@ namespace System is
 	    catch System.Exception e
 		_backtrace = e.Backtrace;
 	    yrt
-	end
+	si
 
 	String toString() is
 	    return _backtrace;
-	end
-    end    
+	si
+    si    
 
     /// Root of Exception heirarchy. Runtime expects all thrown objects to inherit from Exception
-    class Exception extends Object is
+    class Exception is
 	const int MAX_BACKTRACE_DEPTH = 16;
         word ptr ptr _backtrace_info;  
 
@@ -36,7 +36,7 @@ namespace System is
 	/// \deprecated
 	void init( int eip, int ebp ) is
 	    super.init();
-	end
+	si
     
 	/// Construct a new exception with the supplied message
 	/// \param m message text to include in this Exception
@@ -44,7 +44,7 @@ namespace System is
 	    super.init();
             initBacktrace();
 	    _message = m;
-	end
+	si
 
 	/// Construct a new exception with the supplied C-string message
 	/// \param m C-string message text to include in this Exception
@@ -52,14 +52,14 @@ namespace System is
 	    super.init();
             initBacktrace();
 	    _message = new String(m);
-	end
+	si
 
         void initBacktrace() is
 	    if System.Environment.WORD_BYTES == 8 then
 	        _backtrace_info = cast word ptr ptr(native.malloc(MAX_BACKTRACE_DEPTH * System.Environment.WORD_BYTES));
  	        _backtrace_depth = cast int(native.backtrace(_backtrace_info, MAX_BACKTRACE_DEPTH));
             fi
-	end 
+	si 
 
 	String toString() is
 	    getBacktrace();
@@ -77,17 +77,17 @@ namespace System is
 		    return getClassName();
 		fi
 	    fi
-	end
+	si
 
 	/// Internal interface for runtime to get backtrace token
 	word getBacktraceInfo() is
 	    return cast word(_backtrace_info);
-	end
+	si
 
 	/// Internal interface for runtime to set backtrace token
 	void setBacktraceInfo( word info ) is
 
-	end
+	si
 
 	/// Get the bracktrace string for this Exception
 	get String Backtrace is
@@ -111,150 +111,150 @@ namespace System is
 	    else
 		return "no backtrace available";
 	    fi
-	end
+	si
 
 	/// Get the message string for this Exception
 	get String Message is
 	    return _message;
-	end
-    end   
+	si
+    si   
 
     /// Root class for exceptions thrown by the runtime
-    class RuntimeException extends Exception is
+    class RuntimeException isa Exception is
 	void init() is
 	    super.init();
-	end
+	si
 
 	void init( String s ) is
 	    super.init( s );
-	end
+	si
 
 	void init( char ptr m ) is
 	    super.init( m );
-	end
-    end
+	si
+    si
 
     /// Exception thrown when the runtime detects a memory protection fault
-    class MemoryException extends RuntimeException is
+    class MemoryException isa RuntimeException is
 	word address;
 
 	void init( String m ) is
 	    super.init( m );
-	end
+	si
 
 	void init( char ptr m ) is
 	    super.init( m );
-	end
+	si
 
 	/// Set the faulting address
 	/// \param a the memory address that caused the fault
 	set word Address = a is
 	    address = a;
-	end
+	si
 
 	/// Get the faulting address
 	get word Address is
 	    return address;
-	end
+	si
 
         static void throwME() is
 	    throw new MemoryException("invalid pointer dereference");
-        end
-    end
+        si
+    si
 
     /// Exception thrown when runtime detects a null pointer dereference
-    class NullPointerException extends MemoryException is
+    class NullPointerException isa MemoryException is
 	void init( String m ) is
 	    // native.printf( `new null pointer exception %p\n`, this );
 	    super.init( m );
-	end
+	si
 
 	void init( char ptr m ) is
 	    // native.printf( `new null pointer exception %p\n`, this );
 	    super.init( m );
-	end
+	si
 
         static void throwNPE() is
 	    throw new NullPointerException("null pointer dereference");
-        end
+        si
 
 	/// \deprecated
 	void enableGC() is
 	    native.GC_enable();
-	end
-    end
+	si
+    si
 
     /// Exception thrown when runtime detects a non-null memory protection fault
-    class MemoryProtectionException extends MemoryException is
+    class MemoryProtectionException isa MemoryException is
 	void init( System.String m ) is
 	    super.init( m );
-	end
+	si
 
 	void init( char ptr s ) is
 	    super.init( s );
-	end
-    end
+	si
+    si
 
     /// Exception thrown on out of bounds List<T> index
-    class BoundsException extends RuntimeException is
+    class BoundsException isa RuntimeException is
 	void init( System.String m ) is
 	    super.init( m );
-	end
+	si
 
 	void init( char ptr s ) is
 	    super.init( s );
-	end
-    end
+	si
+    si
 
     /// Exception thrown when runtime detects an out of bounds array index
-    class ArrayBoundsException extends BoundsException is
+    class ArrayBoundsException isa BoundsException is
 	void init( System.String m ) is
 	    super.init( m );
-	end
+	si
 
 	void init( char ptr s ) is
 	    super.init( s );
-	end
+	si
 
         static void throwBounds() is
 	    throw new ArrayBoundsException("array index out of bounds");
-        end
-    end
+        si
+    si
 
     /// Exception thrown when the runtime detects an invalid cast
-    class CastException extends RuntimeException is
+    class CastException isa RuntimeException is
 	void init( System.String m ) is
 	    super.init( m );
-	end
+	si
 
 	void init( char ptr s ) is
 	    super.init( s );
-	end
+	si
 
         static void throwCast() is
 	    throw new CastException("invalid cast");
-	end
-    end
+	si
+    si
 
     /// Exception thrown when an operation is not implemented
-    class NotImplementedException extends Exception is
+    class NotImplementedException isa Exception is
 	void init( String message ) is
 	    super.init( message );
-	end
+	si
 
 	void init() is
 	    super.init( "method not implemented" );
-	end
-    end
+	si
+    si
 
     /// Exception thrown when an assertion (Object.assert()) fails 
-    class AssertException extends Exception is
+    class AssertException isa Exception is
 	void init( String message ) is
 	    super.init( message );
-	end
+	si
 
 	void init() is
 	    super.init( "Assertion failed exception" );
-	end
-    end
-end
+	si
+    si
+si

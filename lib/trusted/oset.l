@@ -6,27 +6,27 @@ namespace Util is
     use System.Object;
     /// A set of Objects.
     /// \deprecated Use Generic.Set<T>
-    class Set extends System.Object is
+    class Set is
 	Map _map;
 
 	void init( int size ) is
 	    _map = new Map(size);
-	end
+	si
 
 	void init() is
 	    init( 1021 );
-	end
+	si
 
 	void add( System.Object o ) is
 	    _map.put( o, o );
-	end
+	si
 
 	bool contains( System.Object o ) is
 	    return _map[o] != null;
-	end
+	si
 
 	Iterator elements() is
 	    return _map.elements();
-	end
-    end
-end
+	si
+    si
+si

@@ -31,7 +31,7 @@ namespace System is
             TYPE_ERROR = 25;
 
         /// Internal interface for garbage collector. Ensures that any exceptions thrown by dispose() are caught
-	// DO NOT MOVE: runtime depends on the _dispose() method occupying the first slot in the vtable:
+	// DO NOT MOVE: runtime depsis on the _dispose() method occupying the first slot in the vtable:
         
 	void _dispose() is
 	    @Virtual;
@@ -48,24 +48,24 @@ namespace System is
 		Startup.uncaughtException( se );
 	    yrt
             */
-	end
+	si
 
 	// DO NOT MOVE: runtime depends on the _implements() method occupying the second slot in the vtable
 	bool _implements(char ptr v) is
 	    @Virtual;
 
 	    throw new System.Exception("internal error: Object._implements() called");
-	end
+	si
 
         /// Override dispose() to deallocate any resources held by this object. Can be called explicitly as well as by garbage collector when Object is
 	/// deallocated. As a result, implementers should be prepared for dispose() to be called repeatedly
 	void dispose() is
 	    @Virtual;
-	end
+	si
 
         /// Constructor
 	void init() is
-	end
+	si
 
 	/// Returns a shallow copy
         Object clone() is
@@ -85,7 +85,7 @@ namespace System is
 	    od
 
 	    return cast Object(save_result);
-	end
+	si
 
 	/// Check that supplied bool argument is true otherwise throw an AssertException with supplied message
 	/// \param v value asserted to be true
@@ -95,33 +95,33 @@ namespace System is
 	    if !v then
 		throw new AssertException(message);
 	    fi
-	end
+	si
 
         /// Check that supplied bool argument is true otherwise throw an AssertException with a standard message
         /// \param v value asserted to be true
         /// \throw AssertException
 	static void assert( bool v ) is
 	    assert( v, "assertion failed" );
-        end
+        si
 
         /// Throw an AssertException with supplied message
         /// \param message message displayed
         /// \throw AssertException
 	static void assert( String message ) is
 	    assert(false, message);
-	end
+	si
 
 	/// Return a hash value for this Object. Hash values must be equal for equal Objects and should differ for unequal Objects	    
 	int hash() is
 	    return cast int(this);
-	end
+	si
 
 	/// Return a pointer to this Object's type table
 	protected int ptr _get_ttable() is
 	    int ptr ptr vtable = _get_vtable();
 	
 	    return cast int ptr([vtable+1]);
-	end
+	si
 
 	/// Return the size of this Object in bytes   
 	get int ObjectSize is
@@ -132,7 +132,7 @@ namespace System is
 	    else
 		return 0;
 	    fi
-	end
+	si
     
 	/// return this Object's class name as a C-string
 	get char ptr ClassNameC is
@@ -142,7 +142,7 @@ namespace System is
 	    else
 		return `null`;
 	    fi
-	end
+	si
 
 	/// Return a pointer to this Object's type table
 	get int ptr TypeTable is
@@ -152,12 +152,12 @@ namespace System is
 	    else
 		return null;
 	    fi
-	end
+	si
 
 	/// Return this Object's class name
 	get String ClassName is
 	    return new String( getClassNameC() );
-	end
+	si
 
 	/// Return a human readable string representing this Object
 	String toString() is
@@ -170,12 +170,12 @@ namespace System is
 	    result.append( hash(), 16 );
 	
 	    return result;
-	end
+	si
 
 	/// Attempt to convert this Object to an int. Throws CastException.
 	int toInt() is
 	    throw new CastException( "cannot convert " + Class.Name + " to int" );
-	end
+	si
 
 	/// Print this Object's string representation to C standard output
 	void print() is
@@ -186,22 +186,22 @@ namespace System is
 		char ptr p = this.toCString();
 		native.printf( `%s`, p );
 	    fi
-	end
+	si
 
 	/// Return a human readable C-string representing this Object
 	char ptr toCString() is
 	    return toString().toCString();
-	end
+	si
 
 	/// compare this Object to Object o and return true if they refer to the same object.
 	/// \param o Object to compare this Object to
 	bool equals( Object o ) is
 	    return cast word(this) == cast word(o);
-	end
+	si
 
         bool opEquals( Object o ) is
 	    return cast word(this) == cast word(o);
-	end
+	si
 
 	int opCompare( Object o ) is
 	    word a = cast word(this);
@@ -214,7 +214,7 @@ namespace System is
 	    else
 	        return 0;
 	    fi	        
-	end
+	si
 
 	/// compare Object o to Object p and return true if they compare equal.
 	/// \param o Object to compare
@@ -225,7 +225,7 @@ namespace System is
 	    else
 		return o.equals(p);
 	    fi
-	end
+	si
     	
 	/// return a pointer to this Object's vtable
 	protected int ptr ptr _get_vtable() is
@@ -234,19 +234,19 @@ namespace System is
 	    else
 		return [cast int ptr ptr ptr(this)];
 	    fi
-	end
+	si
 
 	    /*	
 	/// return a Class representing this Object's class
 	get Class Class is
 	    return new Class(this);
-	end
+	si
 	    */
 
 	get Class Class is 
 	    int ptr ptr _vtable = _get_vtable();
 	    return cast Class([_vtable-3]);
-	end
+	si
 
 	/// return true if Object o is an instance of the same class as or a sub-class of this Object's class
 	/// \param o Object to test if instance
@@ -275,33 +275,33 @@ namespace System is
 	    //native.printf( `'%s' is instance of '%s': NO\n`, toCString(), o.toCString() );
 	    //native.__flush_stdout();
 	    return false;
-	end
+	si
 
 	/// accessor: get Object ptr ObjectValuesPointer
 	/// internal method used by Util.Walk to obtain a pointer to the list of values in a collection that is implemented with pointers
 	/// \return a pointer to this object's value list
 	get Object ptr ObjectValuesPointer is
 	    return null;
-        end
+        si
 
 	/// accessor: get Object ptr ObjectValuesPointer
 	/// internal method used by Util.Walk to obtain the length of the list of values in a collection that is implemented with pointers
 	get int ObjectValuesLength is
 	    return 0;
-	end
+	si
 
 	/// get memory used by this object
 	/// \return number of bytes occupied by this object not including any referenced objects
 	get int MemoryUse is
 	    return ObjectSize;
-	end
+	si
 
 	get bool IsArray is
 	    return false;
-        end
+        si
 
         int _get_PointerLength(int n) is
 	    throw new System.NotImplementedException( "object with pointers must implement _get_PointerLength(int) to be serializable: " + Class.Name );
-	end
-    end
-end
+	si
+    si
+si

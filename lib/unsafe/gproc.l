@@ -31,5 +31,17 @@ namespace System {
 	get P Proc {
 	    return cast<P>(this);
 	}
+
+	String toString() {
+	    var cn = Class.Name;
+
+	    var from = cn.indexOf('<');
+	    var to = cn.lastIndexOf('>');
+	    if( from >= 0 && to >= 0 ) {
+		cn = cn.substring(from+1, to);
+	    }
+
+	    return cn + " @" + System.hex(cast long(this));
+	}
     }
 }

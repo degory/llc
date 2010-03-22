@@ -4,7 +4,7 @@ import giterator;
 
 namespace Generic is
     /// Interface. An unordered collection of values
-    interface Bag<T> extends Iterable<T> is
+    interface Bag<T> isa Iterable<T> is
         /// Add a value to the Bag. Adding a duplicate value may or may not replace the existing value depending on the implementation
 	/// \param v the value to add
         void add( T v );
@@ -29,13 +29,13 @@ namespace Generic is
 
 	/// Return an Iterator over the values in this bag. The order values are returned in depends on the implementation
 	Iterator<T> elements();
-    end
+    si
 
     class AddAll<T> is
 	static void addTo( Bag<T> to, Iterable<T> values ) is
 	    foreach var v; values.Iterator do
 	        to.add(v);
 	    od
-	end
-    end
-end
+	si
+    si
+si

@@ -15,7 +15,7 @@ namespace System is
     @NoWarnUnsafe, NoMarkUnsafe;
    
     /// A string of characters. String is immutable, its child StringBuffer is not.
-    class String implements IO.Serial is
+    class String do IO.Serial is
 	@NoWarnHide;
 
         protected  char ptr _buffer;
@@ -41,7 +41,7 @@ namespace System is
 		fi
 	    od
 	    return result;
-	end
+	si
 
 	/// Return a formatted copy of supplied string with supplied arguments substituted for '%'
 	static StringBuffer format( String s, int[] args ) is
@@ -61,7 +61,7 @@ namespace System is
 		fi
 	    od
 	    return result;
-	end
+	si
 
 	/// Append every object int the supplied array into a new StringBuffer and return it
 	static StringBuffer cat( Object[] args ) is
@@ -70,27 +70,27 @@ namespace System is
 		result.append( args[i] );
 	    od
 	    return result;
-	end
+	si
 
 	/// Format a string with a single argument
 	static StringBuffer format( String s, int i ) is
 	    return format( s, Object { new Int(i) } );
-	end
+	si
 
 	/// Format a string with a two arguments
 	static StringBuffer format( String s, int i, int j ) is
 	    return format( s, Object { new Int(i), new Int(i) } );
-	end
+	si
 
 	/// Format a string with a single argument
 	static StringBuffer format( String s, Object i ) is
 	    return format( s, { i } );
-	end
+	si
 
 	/// Format a string with a two arguments
 	static StringBuffer format( String s, Object i, Object j ) is
 	    return format( s, { i, j } );
-	end
+	si
 
 	// Construct a new String by copying the supplied C-string
 	// \param s a C-string to copy. Must be terminated with cast char(0)
@@ -120,12 +120,12 @@ namespace System is
 	    od
 
 	    //System.Exit.check("S2");
-	end
+	si
 
 	/// Construct a new String by copying the supplied String
 	void init( String s ) is
 	    this.init( s.toCString() );
-	end
+	si
 
 	int hash() is
 	    int result, i;
@@ -138,30 +138,30 @@ namespace System is
 	    od
 	
 	    return result;
-	end
+	si
 
 	/// Return character at supplied index
 	/// \deprecated Use get char[int i] instead (\see opGet(int i))
 	char charAt( int i ) is
 	    return opGet(i);
-	end
+	si
 
 	/// Return character at supplied index
 	/// \param i index of character to get
 	get char[int i] is
 	    // FIXME: not bounds checked!
 	    return [_buffer + i];
-	end
+	si
 
 	String toString() is
 	    return this;
-	end
+	si
 
 	/// Is supplied character white space?
 	/// \param c character to test
 	static bool isSpace( char c ) is
 	    return c == ' ' || c == cast char(9) || c == '\n' || c == cast char(13);
-	end
+	si
 
 	/// Return a copy of this string with leading an trailing white space trimmed
 	String trim() is
@@ -177,7 +177,7 @@ namespace System is
             od
 
 	    return substring( from, to + 1 );
-	end
+	si
 
 	/// Return a copy of this string with all instances of the supplied character removed
 	/// \param c the character to strip
@@ -193,7 +193,7 @@ namespace System is
 	    od
 
 	    return result;
-	end
+	si
 	    
         /// Return a String representing the supplied integer in base 8
 	/// \param i the value to format in octal
@@ -201,7 +201,7 @@ namespace System is
 	    StringBuffer result = new StringBuffer();
 	    result.append( i, 8 );
 	    return result;
-	end
+	si
 
         /// Return a String representing the supplied integer in base 16
 	/// \param i the value to format in hex
@@ -209,7 +209,7 @@ namespace System is
 	    StringBuffer result = new StringBuffer();
 	    result.append( i, 16 );
 	    return result;
-	end
+	si
 
         /// Return a String representing the supplied word in base 16
 	/// \param i the value to format in hex
@@ -217,7 +217,7 @@ namespace System is
 	    StringBuffer result = new StringBuffer();
             result.append( cast long(i), 16 );
 	    return result;
-	end
+	si
 
 	/*
 	static String hex(word w) {
@@ -236,12 +236,12 @@ namespace System is
 	/// returned C-string are immutable.
 	public char ptr toCString() is
 	    return _buffer;
-	end
+	si
 
 	/// Return the number of characters that comprise this String
 	get int Length is
 	    return _length;
-	end
+	si
 
 	/// Compare this String to the supplied C-string and return true if they are the same.
 	/// \param s the C-string to compare to. Must be terminated with cast char(0)
@@ -254,7 +254,7 @@ namespace System is
 		i = i + 1;
 	    od
 	    return i == _length && [s + i] == cast char(0);
-	end
+	si
 
 	/// Compare this String to the supplied Object and return true iff the Object is non-null,
 	/// a String, it's length is equal to this String's length and the two String's buffers
@@ -283,7 +283,7 @@ namespace System is
 	    else // not a string - maybe we should compare against s.toString() ?
 		return false;
 	    fi
-	end
+	si
 
 	/// Return true if supplied string is a prefix of or is equal to this String
 	bool startsWith( System.String s ) is
@@ -306,16 +306,16 @@ namespace System is
 
 		return true;
 	    fi
-	end
+	si
 
 	bool startsWith( char c ) is
 	    return _length > 0 && [_buffer] == c;
-	end
+	si
 
 	/// Return true if the last character of this string equals the supplied character
 	bool endsWith( char c ) is
 	    return _length > 0 && [_buffer + _length - 1] == c;
-	end
+	si
 
 	/// Return true if the supplied string is a suffix of or is equal to this String
 	bool endsWith( System.String s ) is
@@ -337,7 +337,7 @@ namespace System is
 
 		return true;
 	    fi
-	end
+	si
 
 	/// Return the first index where the supplied char appears in this String, or -1 if it
 	/// does not appear
@@ -349,7 +349,7 @@ namespace System is
 	    od
 
 	    return -1;
-	end
+	si
 
 	/// Return the first index where the supplied char appears in this String, or -1 if it
 	/// does not appear
@@ -361,7 +361,7 @@ namespace System is
 	    od
 
 	    return -1;
-	end
+	si
 
         /// Return the last index where the supplied char appears in this String, or -1 if it
 	/// does not appear	
@@ -373,7 +373,7 @@ namespace System is
 	    od
 
 	    return -1;
-	end
+	si
 
 	/// Return true if the supplied string is a substring of this String beginning with the supplied index
 	bool matches( System.String s, int index ) is
@@ -389,7 +389,7 @@ namespace System is
 		fi
 	    od
 	    return true;
-	end
+	si
 
 	/// Return the first index where matches(s,index) is true
 	int indexOf( System.String s ) is
@@ -399,7 +399,7 @@ namespace System is
 		fi
 	    od
 	    return -1;
-	end
+	si
 
 
 	/// Return the first index where matches(s,index) is true
@@ -410,7 +410,7 @@ namespace System is
 		fi
 	    od
 	    return -1;
-	end
+	si
 
 	/// Equality operator
 	/// \param t String to compare this String to
@@ -426,7 +426,7 @@ namespace System is
 		od
 		return true;
 	    fi
-	end
+	si
 
 	/// Equality operator
 	/// \param t C-string to compare this String to
@@ -441,7 +441,7 @@ namespace System is
 	    od
 
 	    return [t + i] == cast char(0);
-	end
+	si
 
 	/// Inequality operator
 	/// \param t String to compare this String to
@@ -470,7 +470,7 @@ namespace System is
 
 	    // IO.Std.err.println( "tie result is: " + tie );
 	    return tie;
-	end
+	si
 
 	/// \deprecated Use =~ operator instead (\see String.opEquals(String))
 	static bool equals( System.String s, System.String t ) is
@@ -490,7 +490,7 @@ namespace System is
 		od
 		return true;
 	    fi
-	end
+	si
 
 	int toInt() is
 	    if _length >= 2 && ([_buffer + 1] == 'x' || [_buffer + 1] == 'X') then
@@ -498,13 +498,13 @@ namespace System is
             else
   	        return parseInt(10);
             fi
-	end
+	si
 
 	/// Parse this string as an integer
 	/// \deprecated Use \see System.String.toInt() instead
 	int parseInt() is
 	    return toInt();
-	end
+	si
 
 	/// Parse this string as an integer of supplied base
 	/// \param base radix to use for conversion. Must be between 1 and 36
@@ -554,15 +554,15 @@ namespace System is
 	    else
 		return result;
 	    fi
-	end
+	si
 
 	long parseLong() is
 	    return parseLong(10);
-	end
+	si
 
         word parseWord() is
 	    return cast word(parseLong(10));
-        end
+        si
 
 	/// Parse this string as an long of supplied base
 	/// \param base radix to use for conversion. Must be between 1 and 36
@@ -614,7 +614,7 @@ namespace System is
 	    else
 		return result;
 	    fi
-	end
+	si
 
 	/// Return the length in characters of supplied C-string
 	/// \param s C-string to get the length of. Must be terminated with cast char(0)
@@ -625,19 +625,19 @@ namespace System is
 	    od
 
 	    return i;
-	end
+	si
 
 	/// Return a copy of this string.
 	String copy() is
 	    return this;
-	end
+	si
 
 	/// Returns a substring of this string comprised of characters from and including the supplied position up to and including the last character 
 	/// in the string. If from is greater than or equal to length then result is an empty String. Behaviour is undefined if from is negative
 	/// \param from index of first character to include in substring
 	StringBuffer substring( int from ) is
 	    return substring( from, _length );
-	end
+	si
 
 	/// Returns a substring of this string comprised of characters from and including the supplied to position up to and not including the supplied from
 	/// position. If from is greater than or equal to length then result is an empty String. If to is greater than or equal to length then the result is
@@ -650,7 +650,7 @@ namespace System is
 		result.append( charAt(i) );
 	    od
 	    return result;
-	end
+	si
 
 	/// Splits this String at each point where the supplied delimiter character is found into an array of substrings
 	/// \param delim character at which to split this String 
@@ -687,13 +687,13 @@ namespace System is
 	    od
 
 	    return result;
-	end
+	si
 
 	/// Implements + operator. 
 	StringBuffer opAdd( String s ) is
 	// System.Exit.check("A0");
 	    return new StringBuffer( toCString() ).append( s );
-	end
+	si
 
 	/// Implements + operator. 
 	StringBuffer opAdd( int i ) is
@@ -706,28 +706,28 @@ namespace System is
 //            System.Exit.check("C4");
             return r;
 // return new StringBuffer( toCString() ).append( i );
-	end
+	si
 
 	/// Implements + operator. 
 	StringBuffer opAdd( word w ) is
 	    return new StringBuffer( toCString() ).append( w );
-	end
+	si
 
 	StringBuffer opAdd( long l ) is
 	    return new StringBuffer( toCString() ).append( l );
-        end
+        si
 
 	/// Implements + operator. 
 	//StringBuffer opAdd( long l ) is
 	//    return new StringBuffer( toCString() ).append( cast word(l) );
-	//end
+	//si
 
 	/// Implements + operator. 
 	StringBuffer opAdd( char c ) is
 	//	    System.Exit.check("A2");
 
 	    return new StringBuffer( toCString() ).append( c );
-	end
+	si
 
 	/// Implements + operator. 
 	StringBuffer opAdd( bool b ) is
@@ -736,21 +736,21 @@ namespace System is
 	    else
 		return new StringBuffer( toCString() ).append( `false` );
 	    fi
-	end
+	si
 
 	/// Implements + operator. 
 	StringBuffer opAdd( char ptr s ) is
 	    //	    System.Exit.check("A3");
 
 	    return new StringBuffer( toCString() ).append( s );
-	end
+	si
 
 	/// Implements + operator. 
 	StringBuffer opAdd( Object o ) is
 	//	    System.Exit.check("A4");
 
 	    return new StringBuffer( toCString() ).append( o );
-	end
+	si
 
 	/// Return a copy of this string with all ASCII upper case characters converted to lower case equivalents. This
 	/// method converts only 'A' - 'Z', no other letters are affected.
@@ -765,7 +765,7 @@ namespace System is
 		fi
 	    od
 	    return result;
-	end
+	si
 
 	/// Return a copy of this string with all ASCII lower case characters converted to upper case equivalents. This
 	/// method converts only 'a' - 'z', no other letters are affected.
@@ -780,11 +780,11 @@ namespace System is
 		fi
 	    od
 	    return result;
-	end
+	si
 
 	get int MemoryUse is 
 	    return ObjectSize + _length;
-	end
+	si
 
 	get String Freeze is
 	    return this;
@@ -795,11 +795,11 @@ namespace System is
 		pool[f] = f;
 	    fi
 	    return f;
-	end
+	si
 
 	get Iterator<char> Iterator is
 	    return new StringIterator(this);
-	end
+	si
 
         StringBuffer replace(char c, char d) is
 	    var result = new StringBuffer(Length);
@@ -813,41 +813,41 @@ namespace System is
 	    od
 
 	    return result;
-        end
+        si
 
         void toSerial( IO.SerialWriter w ) is
 	    // IO.Std.err.println( "String.toSerial '" + this + "'" );
 	    w.add(this);
-	end
+	si
 
 	Object fromSerial( IO.SerialReader r ) is
 	    init(r.readString());
             return this;
-	end
-    end
+	si
+    si
 
-    class StringIterator implements Iterator<char> is
+    class StringIterator do Iterator<char> is
         String s;
         int index;
 
 	void init( String s ) is
 	    this.s = s;	    
-	end
+	si
 
 	bool hasMoreElements() is
 	    return index < s.Length;
-	end
+	si
 
 	char nextElement() is
 	    var result = s[index];
 	    index = index + 1;
 	    return result;
-	end
-    end
+	si
+    si
 
 				  
     /// A variable length modifyible string of characters. 
-    class StringBuffer extends String is
+    class StringBuffer isa String is
 	const int INITIAL_LENGTH = 16;
 	const int MAX_DOUBLE_LENGTH = 65536;
 	const int LENGTH_INCREMENT = 16384;
@@ -866,7 +866,7 @@ namespace System is
 	*/
 	    super.init(s);
             _allocated_length = _length;
-	end
+	si
 
 	void init( String s ) is
 	    @NoWarnInit;
@@ -875,16 +875,16 @@ namespace System is
 	    else
 		init( INITIAL_LENGTH );
 	    fi	    
-	end
+	si
 
 	void init( int l ) is
 	    super.init(cast char ptr(null));
 	    _reserve(l);
-	end
+	si
 
 	void init() is
 	    init( INITIAL_LENGTH );
-	end
+	si
 
 	void _copy_from( char ptr s, int l ) is
 	    if s == null then
@@ -902,7 +902,7 @@ namespace System is
 		i = i + 1;
 	    od
 	    // check();
-	end
+	si
 
 	void _reserve( int l ) is
 	    char ptr new_buffer, old_buffer;
@@ -934,7 +934,7 @@ namespace System is
 		fi
 
 	    fi
-	end
+	si
 
 		/*
 	void mark() is
@@ -948,11 +948,11 @@ namespace System is
 		   
 		// check();
 	    fi
-	end
+	si
 		*/
 	void putCharAt( int i, char c ) is
 	    opSet( i, c );
-	end
+	si
 
 	set char[int i] = c is
 	    if i < 0 then
@@ -968,7 +968,7 @@ namespace System is
 	    [_buffer + i] = c;
 
 	    // check();
-	end
+	si
     
 	char ptr toCString() is
 	    _reserve( _length + 1 );
@@ -979,7 +979,7 @@ namespace System is
             // check();
 
 	    return _buffer;
-	end
+	si
 
         StringBuffer append( bool b ) is
 	    if b then
@@ -987,7 +987,7 @@ namespace System is
   	    else
 	        append( "false" );
 	    fi
-        end
+        si
 	        
 
 	StringBuffer append( char c ) is
@@ -1002,7 +1002,7 @@ namespace System is
 //  	    System.Exit.check( "F" );
 
 	    return this;
-	end
+	si
 
 	StringBuffer append( char ptr s ) is
 	//  	    System.Exit.check( "G" );
@@ -1023,14 +1023,14 @@ namespace System is
 	    //  	    System.Exit.check( "H" );
 
 	    return this;
-	end
+	si
 
 	set int Length = new_length is
 	    if new_length >= 0 then
 		_reserve( new_length + 1 );
 		_length = new_length;
 	    fi
-	end
+	si
 
 	StringBuffer append( int v, int b, int l, char pad ) is
 	    StringBuffer t = new StringBuffer( l );
@@ -1050,7 +1050,7 @@ namespace System is
 		nl = nl - 1;
 	    od
 	    return append( t );
-	end
+	si
 
 	StringBuffer append( int v, int b ) is
 	    int m, n, i;
@@ -1107,7 +1107,7 @@ namespace System is
 	    // check();
 
 	    return this;
-	end
+	si
 
 	StringBuffer append( long v, int ib ) is
             long b = cast long(ib);
@@ -1163,27 +1163,27 @@ namespace System is
 	    // check();
 
 	    return this;
-	end
+	si
 
 	/*
 	StringBuffer append( word v, int b ) is
 	    append( cast long(v), b );
 
 	    return this;
-	end
+	si
 	*/
 
 	StringBuffer append( int n ) is
 	    return append( n, 10 );
-	end
+	si
 	
 	StringBuffer append( long n ) is
 	    return append( n, 10 );
-        end
+        si
 
 	StringBuffer append( word n ) is
 	    return append( cast long(n), 10 );
-	end
+	si
 
 	StringBuffer append( String s ) is
 	    if s != null then
@@ -1191,7 +1191,7 @@ namespace System is
 	    else
 		return append( `<null>` );
 	    fi
-	end
+	si
 
 	
 	StringBuffer append( Object o ) is
@@ -1200,16 +1200,16 @@ namespace System is
 	    else
 		return append( `<null>` );
 	    fi
-	end
+	si
 
 
 	StringBuffer copy() is
 	    return new StringBuffer( toCString() );
-	end
+	si
 
 	get int MemoryUse is 
 	    return ObjectSize + _allocated_length;
-	end
+	si
 
 	/*
 	void checkFail() is
@@ -1219,7 +1219,7 @@ namespace System is
 	    native.printf( `string buffer is '%s'\n`, _buffer );
             native.__flush_stdout();
 	    throw new System.Exception( "corrupt string buffer: " + this );
-	end
+	si
 
 	void checkIndex(int i) is
 	    if in_check then
@@ -1241,7 +1241,7 @@ namespace System is
 	    //if i >= _length then
 	    //		native.printf( `suspicious string index %d versus %d\n`, i, _length );
 	    //fi
-	end
+	si
 
         void check() is
             if in_check then
@@ -1254,17 +1254,17 @@ namespace System is
 	    fi
 
 	    in_check = false;
-	end
+	si
 	*/
-    end
+    si
 
-    class ConstString extends String is
+    class ConstString isa String is
 	void init( char ptr s ) is
 	    super.init( null );
 	    if s != null then
 		_buffer = s;
 		_length = _c_getLength(s);
 	    fi
-	end
-    end
-end
+	si
+    si
+si

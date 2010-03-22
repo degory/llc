@@ -9,11 +9,11 @@ namespace Generic is
         /// \param values the List<T> of values to sort
         static void sort(List<T> values) is
             sort( values, int proc(T,T)(T.opCompare), 0, values.Length - 1 );
-        end
+        si
 	
         static void sort(List<T> values, int proc(T,T) compare) is
             sort( values, compare, 0, values.Length - 1 );
-        end
+        si
 
         /// Sort a slice of the supplied List
         /// \param values the List<T> of values to sort
@@ -28,7 +28,7 @@ namespace Generic is
 		sort( values, compare, p, q );
 		sort( values, compare, q+1, r );
             fi
-        end
+        si
 
         /// Internal method supporting sort(List<T>, int p, int r )
 	static int partition(List<T> values, int proc(T,T) compare, int lo, int hi ) is
@@ -50,8 +50,8 @@ namespace Generic is
                     return hi;
                 fi
             od
-        end
-    end
+        si
+    si
 
 
     /// Sort a List of values of type T
@@ -61,7 +61,7 @@ namespace Generic is
 	/// \param values the List<T> of values to sort
 	static void sort(List<T> values) is
 	    sort( values, 0, values.Length - 1 );
-	end
+	si
 
 	/// Sort a slice of the supplied List
 	/// \param values the List<T> of values to sort
@@ -76,7 +76,7 @@ namespace Generic is
 		sort( values, p, q );
 		sort( values, q+1, r );
 	    fi
-	end
+	si
 
 	/// Internal method supporting sort(List<T>, int p, int r )
 	static int partition(List<T> values, int lo, int hi ) is
@@ -98,8 +98,8 @@ namespace Generic is
 		    return hi;
 		fi
 	    od
-	end
-    end
+	si
+    si
 
     /// Sort an array of values of type T
     /// \param T type of values in the array to be sorted
@@ -108,7 +108,7 @@ namespace Generic is
 	/// \param values the T[] array of values to sort
 	static void sort(T[] values) is
 	    sort( values, 0, values.length - 1 );
-	end
+	si
 
 	/// Sort a slice of the supplied array
 	/// \param values the T[] array of values to sort
@@ -123,7 +123,7 @@ namespace Generic is
 		sort( values, p, q );
 		sort( values, q+1, r );
 	    fi
-	end
+	si
 
 	/// Internal method supporting sort(T[] values, int p, int r)
 	static int partition(T[] values, int lo, int hi ) is
@@ -145,6 +145,6 @@ namespace Generic is
 		    return hi;
 		fi
 	    od
-	end
-    end
-end
+	si
+    si
+si

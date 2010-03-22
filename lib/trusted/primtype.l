@@ -9,50 +9,50 @@ namespace System is
     use Generic.Iterator;
 
     /// Object wrapper around primitive int type
-    class Int extends Object is
+    class Int is
 	public static Int Zero = new Int(0);
 	protected int _value;
 
 	void init( int v ) is
 	    // super.init();
 	    _value = v;
-	end
+	si
 
 	get int Value is
 	    return _value;
-	end
+	si
 
 	int toInt() is
 	    return _value;
-	end
+	si
 
 	static int toInt(int value) is
 	    return value;
-	end
+	si
 
 	bool toBool() is
 	    return _value != 0;
-	end
+	si
 
 	static bool toBool(int value) is
 	    return value != 0;
-	end
+	si
 
 	int hash() is
 	    return _value;
-	end
+	si
 
 	static int hash(int i) is
 	    return i;
-	end
+	si
 
 	static String toString(int i) is
 	    return new StringBuffer().append(i);
-	end
+	si
 
 	static Int box(int i) is
 	    return new Int(i);
-	end
+	si
 
 	bool equals( Object o ) is
 	    if o == null then
@@ -63,50 +63,50 @@ namespace System is
 	    fi
 
 	    return false;
-	end
+	si
 
 	bool opEquals( Int i ) is
 	    return _value == i.Value;
-	end
+	si
 
 	static int opCompare( int i, int j ) is
 	    return i - j;
-	end
+	si
 
 	int opCompare( Int j ) is
 	    return opCompare( _value, j._value );
-	end
+	si
 
 	String toString() is
 	    return toString(_value);
-	end
+	si
 
         static int fromString(String s) is
 	    return s.parseInt();
-        end
+        si
 
 	static int random() is
 	    return cast int(native.rand());
-	end
+	si
 
 	static void seedRandom( int seed ) is
 	    native.srand( seed );
-	end
+	si
 
 	static void seedRandom() is
 	    native.srand( native.__get_time() );
-	end
+	si
 
 	static int next(int i) is
 	    return i + 1;
-	end
+	si
 
 	static RangeIterator<int> opRange(int from, int to) is
 	    return new RangeIterator<int>(from, to);
-	end	
-    end
+	si	
+    si
 
-    class RangeIterator<T> implements Iterator<T> is
+    class RangeIterator<T> do Iterator<T> is
         bool done;
         public T i, from, to;
 
@@ -114,31 +114,31 @@ namespace System is
 	    i = from;
             this.from = from;
 	    this.to = to;	    
-	end
+	si
 
 	bool hasMoreElements() is
 	    return i <= to;
-	end
+	si
 
 	T nextElement() is
 	    T result = i;
 	    i = i.next();
 	    return result;	 
-	end
-    end				
+	si
+    si				
 
-    class Bool extends Object is
+    class Bool is
 	public static Bool False = new Bool(false);
 	protected bool _value;
 
 	void init( bool v ) is
 	    // super.init();
 	    _value = v;
-	end
+	si
 
 	get bool Value is
 	    return _value;
-	end
+	si
 
 	int toInt() is
 	    if _value then
@@ -146,7 +146,7 @@ namespace System is
 	    else
 		return 0;
 	    fi
-	end
+	si
 
 	static int toInt(bool value) is
 	    if value then
@@ -154,23 +154,23 @@ namespace System is
 	    else
 		return 0;
 	    fi
-	end
+	si
 
 	bool toBool() is
 	    return _value;
-	end
+	si
 
 	static bool toBool(bool value) is
 	    return value;
-	end
+	si
 
 	int hash() is
 	    return hash(_value);
-	end
+	si
 
 	static int hash(bool b) is
 	    return toInt(b);
-	end
+	si
 
 	static String toString(bool b) is
 	    if b then
@@ -178,11 +178,11 @@ namespace System is
 	    else
 		return "false";
 	    fi
-	end
+	si
 
 	static Bool box(bool b) is
 	    return new Bool(b);
-	end
+	si
 
 	bool equals( Object o ) is
 	    if o == null then
@@ -193,11 +193,11 @@ namespace System is
 	    fi
 
 	    return false;
-	end
+	si
 
 	bool opEquals( Bool b ) is
 	    return _value == b._value;
-	end
+	si
 
 	static int opCompare( bool b, bool c ) is
 	    if b == c then
@@ -207,15 +207,15 @@ namespace System is
 	    else
 		return -1;
 	    fi
-	end
+	si
 
 	int opCompare( Bool j ) is
 	    return opCompare( _value, j._value );
-	end
+	si
 
 	String toString() is
 	    return toString(_value);
-	end
+	si
 
         static bool fromString(String s) is
 	    if s == null || s.Length == 0 then
@@ -225,45 +225,45 @@ namespace System is
             else
 		return s !~ "false";
 	    fi
-        end
-    end
+        si
+    si
 
-    class Char extends Object is
+    class Char is
 	public static Char Zero = new Char(cast char(0));
 	protected char _value;
 
 	void init( char v ) is
 	    // super.init();
 	    _value = v;
-	end
+	si
 
 	get char Value is
 	    return _value;
-	end
+	si
 	
 	int hash() is
 	    return hash(_value);
-	end
+	si
 
 	int toInt() is
 	    return cast int(_value);
-	end
+	si
 
 	static int toInt(char c) is
 	    return cast int(c);
-	end
+	si
 
 	static int hash(char c) is
 	    return cast int(c);
-	end
+	si
 
 	static String toString(char c) is
 	    return new StringBuffer().append(c);
-	end
+	si
 
 	static Char box(char c) is
 	    return new Char(c);
-	end
+	si
 
 	bool equals( Object o ) is
 	    if o == null then
@@ -274,35 +274,35 @@ namespace System is
 	    fi
 
 	    return false;
-	end
+	si
 
 	bool opEquals( Char c ) is
 	    return _value == c.Value;
-	end
+	si
 
         static int opCompare( char b, char c ) is
 	    return cast int(b - c);
-	end
+	si
 
 	String toString() is
 	    return toString(_value);
-	end
+	si
 
         bool isSpace( char c ) is
 	    return String.isSpace(c);
-        end
+        si
 
         static char fromString( String s ) is
 	    return s[0];
-	end
+	si
 
 	static char next(char i) is
 	    return i + 1c;
-	end
+	si
 
 	static RangeIterator<char> opRange(char from, char to) is
 	    return new RangeIterator<char>(from, to);
-	end	
+	si	
 
-    end
-end
+    si
+si
