@@ -9,16 +9,17 @@ import serial;
 
 namespace System is
     use Generic.Map;
+    use Generic.List;
     use Generic.Iterable;
     use Generic.Iterator;
 
     @NoWarnUnsafe, NoMarkUnsafe;
    
     /// A string of characters. String is immutable, its child StringBuffer is not.
-    class String do IO.Serial is
+    class String do IO.Serial, List<char> is
 	@NoWarnHide;
 
-        protected  char ptr _buffer;
+        protected char ptr _buffer;
 	protected int _length;
 
         static Map<String,String> pool = new Map<String,String>(65419);
@@ -652,6 +653,10 @@ namespace System is
 	    return result;
 	si
 
+	get StringBuffer[RangeIterator<int> r] is
+	    return substring(r.from, r.to+1);
+        si
+
 	/// Splits this String at each point where the supplied delimiter character is found into an array of substrings
 	/// \param delim character at which to split this String 
 	String[] split( char delim ) is
@@ -797,7 +802,7 @@ namespace System is
 	    return f;
 	si
 
-	get Iterator<char> Iterator is
+	get StringIterator Iterator is
 	    return new StringIterator(this);
 	si
 
@@ -824,6 +829,40 @@ namespace System is
 	    init(r.readString());
             return this;
 	si
+
+        void add(char c) is
+            throw new NotImplementedException("System.String is read only");
+	si
+
+        void add(Iterable<char> c) is
+            throw new NotImplementedException("System.String is read only");
+	si
+
+	void lengthen(int len) is
+	    if len > _length then
+	        throw new NotImplementedException("System.String is read only");
+	    fi
+	si
+
+	void remove(char c) is
+            throw new NotImplementedException("System.String is read only");	    
+	si
+
+	bool contains(char c) is
+	    return indexOf(c) >= 0;
+	si
+
+	bool isEmpty() is
+	    return _length == 0;
+	si
+
+	StringIterator elements() is
+	    return Iterator;
+        si
+
+	set char[int index] = c is
+            throw new NotImplementedException("System.String is read only");	    
+        si
     si
 
     class StringIterator do Iterator<char> is
@@ -1256,6 +1295,16 @@ namespace System is
 	    in_check = false;
 	si
 	*/
+
+        void add(char c) is
+            append(c);
+	si
+
+        void add(Iterable<char> b) is
+	    foreach var c; b.Iterator do
+	        append(c);
+	    od
+	si
     si
 
     class ConstString isa String is

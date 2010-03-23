@@ -38,7 +38,7 @@ namespace Generic is
 	void _go_next() is
 	    // IO.Std.out.println( "_go_next: " + _map );
 	    _more_elements = true;
-	    RealList<MapPair<K,T>> l;
+	    ListNode<MapPair<K,T>> l;
 
 	    // try to find a non-null hash chain that has some elements in it
 	    while _j == null || !_j.hasMoreElements() do
@@ -99,8 +99,8 @@ namespace Generic is
 	    return key == k || (k.hash() == h && k =~ key);
 	si
 
-	/// Implements =~ operator.
-	/// \param v the MapPair to compare to for equality
+	/// Implements inequality operators.
+	/// \param v the MapPair to compare to for ordering
 	int opCompare( MapPair<K,T> v ) is
 	    return key.opCompare(v.key);
 	si
@@ -157,7 +157,7 @@ namespace Generic is
     /// \param K type of keys in the Map. K must implement int hash() method and =~ operator (bool opEquals(K)). 
     /// \param T type of values in the Map.
     class Map<K,T> do Iterable<T> is
-	public RealList<MapPair<K,T>>[] _values;
+	public ListNode<MapPair<K,T>>[] _values;
 
 	/// Construct a new Map
 	/// \param size number of slots in the Map's hash table. Size should be prime.
@@ -167,7 +167,7 @@ namespace Generic is
 		throw new System.Exception( "oops: map length is " + size );
 	    fi
 
-	    _values = new RealList<MapPair<K,T>>[size];
+	    _values = new ListNode<MapPair<K,T>>[size];
 	si
 
 	/// Construct a new Map with default hash table size
@@ -193,7 +193,7 @@ namespace Generic is
 	set T[K key] = value is
 	    int k;
 	    int h;
-	    RealList<MapPair<K,T>> chain;
+	    ListNode<MapPair<K,T>> chain;
 	    hashOf(key,k,h);
 
 	    // IO.Std.out.print( "Map.put(" + key + "," + value + ")\n" );
@@ -207,8 +207,8 @@ namespace Generic is
 
 		chain =_values[h];
 
-		RealList<MapPair<K,T>> c = new RealList<MapPair<K,T>>(match,chain);
-		// IO.Std.out.print( "putting RealList " + c + " at " + h + "\n" );
+		ListNode<MapPair<K,T>> c = new ListNode<MapPair<K,T>>(match,chain);
+		// IO.Std.out.print( "putting ListNode " + c + " at " + h + "\n" );
 	  
 		_values[h] = c;
 	    else
@@ -295,7 +295,7 @@ namespace Generic is
 	    int result = 0;
 
 	    for int i = 0; i < _values.length; i = i + 1 do
-		RealList<MapPair<K,T>> l = _values[i];
+		ListNode<MapPair<K,T>> l = _values[i];
 		if l != null then
 		    result = result + l.Length;
 		fi
@@ -314,7 +314,7 @@ namespace Generic is
 	/// Internal method
 	MapPair<K,T> _find_pair( K key, int h, int k, bool remove ) is
     // IO.Std.out.println( "_find_pair: " + key + "," + h + "," + k + "..." );
-	    RealList<MapPair<K,T>> head = _values[h], prev = null;
+	    ListNode<MapPair<K,T>> head = _values[h], prev = null;
 
 	    while head != null do
 		// IO.Std.out.println( "loop..." );

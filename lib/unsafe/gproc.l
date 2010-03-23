@@ -41,7 +41,7 @@ namespace System {
 		cn = cn.substring(from+1, to);
 	    }
 
-	    return cn + " @" + System.hex(cast long(this));
+	    return cn + " @" + String.hex(cast word(this));
 	}
     }
 }

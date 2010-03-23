@@ -51,14 +51,16 @@ namespace Parse {
             foreach( Expression f; list.List.elements() ) {
                 u = f.getType(state);
 		if( !t.isAssignableFrom( u ) ) {
+		    /*
 		    if( t.isScalar() ) {
 			error( "inconsitent types in array initializer: " + t.dump() + " and " + u.dump() );
 			t = undefined_type;
 			break;
-		    } else if( u.isAssignableFrom( t ) ) { 
+  		    } else */ if( u.isAssignableFrom( t ) ) { 
 			t = u;
                     } else {
 			t = object_type;
+			break;
 		    }
                 }
             }
@@ -90,6 +92,11 @@ namespace Parse {
         LLVM.Value compileValue( CompileState state, IRBlock into ) {
 	    var t = getType(state);
             var l = list.List;
+	    if( t == undefined_type ) {
+		return ErrorValue();
+	    }
+
+	    var st = t.SubType;
 
 	    var a = makeAllocateArray(
 				      state,
@@ -100,7 +107,15 @@ namespace Parse {
 
 	    int i = 0;
 	    foreach( Expression e; l.elements() ) {
-		// Type tp = e.getType(state);
+		if( st == object_type ) {
+		    Type tp = e.getType(state);
+		    if( !object_type.isAssignableFrom(tp) ) {
+			var box_ident = new Identifier(line_number, "box");
+			box_ident.qualifies(e);
+			e = box_ident;
+			IO.Std.err.println( "boxed expr is: " + e );
+		    }
+		}
 
 		var p = makeGetArrayDataPointer(
 						state,

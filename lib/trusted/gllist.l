@@ -8,10 +8,10 @@ namespace Generic is
 
     /// An Iterator<T> over a LinkedList<T>
     class LinkedListIterator<T> do Iterator<T> is
-	RealList<T> _head;
+	ListNode<T> _head;
 
-        /// Construct a new LinkedListIterator referencing the supplied RealList
-	void init( RealList<T> h ) is
+        /// Construct a new LinkedListIterator referencing the supplied ListNode
+	void init( ListNode<T> h ) is
 	    super.init();
 	    _head = h;
 	si
@@ -42,7 +42,7 @@ namespace Generic is
     /// An ordered resizable list of values implemented as a linked list
     /// \param T the type of values in this list
     class LinkedList<T> do List<T> is
-	protected RealList<T> list;
+	protected ListNode<T> list;
 	void init() is
 	    super.init();
 	si
@@ -51,7 +51,7 @@ namespace Generic is
 	/// \param v the value to append
 	void add( T v ) is
 	    if list == null then
-		list = new RealList<T>( v, null );
+		list = new ListNode<T>( v, null );
 	    else
 		list.append( v );
 	    fi
@@ -194,11 +194,11 @@ namespace Generic is
     si
 
     /// Internal linked list implementation for LinkedList<T>
-    class RealList<T> is
-	protected RealList<T> tail;
+    class ListNode<T> is
+	protected ListNode<T> tail;
 	protected T value;
 
-	void init( T v, RealList<T> t ) is
+	void init( T v, ListNode<T> t ) is
 	    super.init();
 	    value = v;
 	    tail = t;
@@ -211,11 +211,11 @@ namespace Generic is
 	si
 
 	void insert( T v ) is
-	    tail = new RealList<T>( value, tail );
+	    tail = new ListNode<T>( value, tail );
 	    value = v;
 	si
 
-	RealList<T> remove( T v ) is
+	ListNode<T> remove( T v ) is
 	    if value == v then
 		return tail;
 	    else
@@ -244,11 +244,11 @@ namespace Generic is
 	    value = v;
 	si
 
-	get RealList<T> Tail is
+	get ListNode<T> Tail is
 	    return tail;
 	si
 
-	set RealList<T> Tail = t is
+	set ListNode<T> Tail = t is
 	    tail = t;
 	si
 
@@ -272,12 +272,12 @@ namespace Generic is
 	    fi
 	si
 
-	RealList<T> append( T v ) is
+	ListNode<T> append( T v ) is
 	    if tail == null then
-		tail = new RealList<T>(v, null);
+		tail = new ListNode<T>(v, null);
 		return tail;
 	    else
-		RealList<T> result = tail.append( v );
+		ListNode<T> result = tail.append( v );
 		return result;
 	    fi
 	si
@@ -296,7 +296,7 @@ namespace Generic is
 
 	get int Length is
 	    int result = 1;
-	    RealList<T> t = tail;
+	    ListNode<T> t = tail;
 	    while t != null do
 		result = result + 1;
 		t = t.tail;

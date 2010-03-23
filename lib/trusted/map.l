@@ -32,7 +32,7 @@ namespace Util is
 	void _go_next() is
 	    // IO.Std.out.println( "_go_next: " + _map );
 	    _more_elements = true;
-	    RealList l;
+	    ListNode l;
 
 	    // try to find a non-null hash chain that has some elements in it
 	    while _j == null || !_j.hasMoreElements() do
@@ -44,7 +44,7 @@ namespace Util is
 		    return;
 		fi
 
-		l = cast RealList(_map._values[_i]);
+		l = cast ListNode(_map._values[_i]);
 		if l != null then
 		    _j = l.elements();
 		fi
@@ -127,7 +127,7 @@ namespace Util is
         set System.Object[System.Object key] = value is
 	    int k;
 	    int h;
-	    RealList chain;
+	    ListNode chain;
 	    k = key.hash();
 	    int l = _values.Length;
 	    if l == 0 then
@@ -154,10 +154,10 @@ namespace Util is
 
 		// IO.Std.out.print( "putting MapPair " + match + " at " + h + "\n" );
 
-		chain = cast RealList(_values[h]);
+		chain = cast ListNode(_values[h]);
 
-		RealList c = new RealList(match,chain);
-		// IO.Std.out.print( "putting RealList " + c + " at " + h + "\n" );
+		ListNode c = new ListNode(match,chain);
+		// IO.Std.out.print( "putting ListNode " + c + " at " + h + "\n" );
 	  
 		_values.put(h, c);
 	    else
@@ -205,13 +205,13 @@ namespace Util is
 
 	MapPair _find_pair( System.Object key, int h, int k ) is
 	    // IO.Std.out.println( "_find_pair: " + key + "," + h + "," + k + "..." );
-	    RealList head;
+	    ListNode head;
 	    System.Object v = _values[h];
 	    if v == null then
 		return null;
 	    fi
 	    // IO.Std.out.println( "v: " + v );
-	    head = cast RealList( v );
+	    head = cast ListNode( v );
 	    // IO.Std.out.println( "head: " + head );
 
 	    while head != null do

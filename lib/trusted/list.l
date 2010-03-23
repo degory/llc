@@ -11,8 +11,8 @@ namespace Util is
     si
 
     private class ListIterator isa Iterator is
-	RealList _head;
-	void init( RealList h ) is
+	ListNode _head;
+	void init( ListNode h ) is
 	    super.init();
 	    _head = h;
 	si
@@ -36,14 +36,14 @@ namespace Util is
     /// A linked list of Objects.
     /// \deprecated Use Generic.LinkedList<T> instead
     class List is
-	RealList list;
+	ListNode list;
 	void init() is
 	    super.init();
 	si
 
 	void add( System.Object v ) is
 	    if list == null then
-		list = new RealList( v, null );
+		list = new ListNode( v, null );
 	    else
 		list.append( v );
 	    fi
@@ -59,7 +59,7 @@ namespace Util is
 
 	void push( System.Object v ) is
 	    if list == null then
-		list = new RealList( v, null );
+		list = new ListNode( v, null );
 	    else
 		list.insert( v );
 	    fi
@@ -93,12 +93,12 @@ namespace Util is
     si
 
     /// A linked list of Objects.
-    /// \deprecated Use Generic.RealList<T> instead
-    class RealList is
-	RealList tail;
+    /// \deprecated Use Generic.ListNode<T> instead
+    class ListNode is
+	ListNode tail;
 	System.Object value;
 
-	void init( System.Object v, RealList t ) is
+	void init( System.Object v, ListNode t ) is
 	    super.init();
 	    value = v;
 	    tail = t;
@@ -111,11 +111,11 @@ namespace Util is
 	si
 
 	void insert( System.Object v ) is
-	    tail = new RealList( value, tail );
+	    tail = new ListNode( value, tail );
 	    value = v;
 	si
 
-	RealList remove( System.Object v ) is
+	ListNode remove( System.Object v ) is
 	    if value == v then
 		return tail;
 	    else
@@ -127,16 +127,16 @@ namespace Util is
 	    return value;
 	si
 
-	get RealList Tail is
+	get ListNode Tail is
 	    return tail;
 	si
 
-	RealList append( System.Object v ) is
+	ListNode append( System.Object v ) is
 	    if tail == null then
-		tail = new RealList(v, null);
+		tail = new ListNode(v, null);
 		return tail;
 	    else
-		RealList result = tail.append( v );
+		ListNode result = tail.append( v );
 		return result;
 	    fi
 	si
@@ -155,7 +155,7 @@ namespace Util is
 	si
 
 	System.String toString() is
-	    System.StringBuffer result = new System.StringBuffer( "[RealList:" );
+	    System.StringBuffer result = new System.StringBuffer( "[ListNode:" );
 	    cat( result );
 	    result.append(']');
 	    return result;
