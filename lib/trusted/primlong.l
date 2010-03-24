@@ -60,11 +60,11 @@ namespace System {
 	    return false;
 	}
 
-	bool opEquals( Long w ) {
+	bool operator=~( Long w ) {
 	    return _value == w.Value;
 	}
 
-	int opCompare( long b, long c ) {
+	int operator>( long b, long c ) {
 	    if( b > c ) {
 		return 1;
 	    } else if( b < c ) {
@@ -74,7 +74,7 @@ namespace System {
 	    }
 	}
 
-	int opCompare( Long w ) {
+	int operator>( Long w ) {
 	    return opCompare( _value, w._value );
 	}
 

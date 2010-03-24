@@ -16,7 +16,7 @@ namespace Generic is
     use System.String;
     use System.StringBuffer;
 
-    /// Iterates over a Map and returns each MapPair comprising the Map in turn. Returns values in no particular order 
+    /// Iterates over a Map<K,T> and returns each Pair<K,T> comprising the map in turn. Returns values in no particular order 
     /// \param K the key type
     /// \param T the value type
     class MapIterator<K,T> do Iterator<Pair<K,T>> is
@@ -109,6 +109,7 @@ namespace Generic is
 	si
     si
 
+	/*       
     /// Iterates over a Map returning each key in the map in turn. Returns keys in no particular order
     /// \param K the key type
     /// \param T the value type
@@ -151,15 +152,19 @@ namespace Generic is
 	    return _i.nextElement().value;
 	si
     si
+	*/
 
-    /// An associative array
+    /// An associative array implemented as a hash table. 
     /// \param K type of keys in the Map. K must implement int hash() method and =~ operator (bool opEquals(K)). 
     /// \param T type of values in the Map.
     class Map<K,T> do Dict<K,T> is
 	public ListNode<MapPair<K,T>>[] _values;
 
 	/// Construct a new Map
-	/// \param size number of slots in the Map's hash table. Size should be prime.
+	/// \param size number of slots in the Map's hash table. Size should be prime. The hash table size is
+        /// not adjustable after the Map is constructed.
+        /// \attention Performance will degrade if the number of elements
+        /// stored greatly excedes this size.
 	void init( int size ) is
 	    super.init();
 	    if size <= 0 then
@@ -312,7 +317,6 @@ namespace Generic is
 
 	/// Internal method
 	MapPair<K,T> _find_pair( K key, int h, int k, bool remove ) is
-    // IO.Std.out.println( "_find_pair: " + key + "," + h + "," + k + "..." );
 	    ListNode<MapPair<K,T>> head = _values[h], prev = null;
 
 	    while head != null do
@@ -357,19 +361,18 @@ namespace Generic is
 	    return b;
 	si
 
-	/// Accessor: get MapValueIterator<K,T> Iterator
-	/// Get a new Iterator that returns each value in the Map in turn
-	get PairValueIterator<K,T> Iterator is
-	    return elements();
-	si
-
-	/// Accessor: get MapKeyIterator<K,T> Keys
+	/// Accessor: get PairKeyIterator<K,T> Keys
 	/// Get a new Iterator that returns each key in the Map in turn
 	get PairKeyIterator<K,T> Keys is
 	    return keys();
 	si
 
-	/// Accessor: get MapIterator<K,T> Pairs
+	/// Return a new Iterator that returns each key in the Map in turn
+	PairKeyIterator<K,T> keys() is
+	    return new PairKeyIterator<K,T>(pairs());
+	si
+
+	/// Accessor: get Iterator<Pair<K,T>> Pairs
 	/// Get a new Iterator that returns each key-value pair in the Map in turn
 	get MapIterator<K,T> Pairs is
 	    return pairs();
@@ -380,15 +383,16 @@ namespace Generic is
 	    return new MapIterator<K,T>(this);
 	si
 
+	/// Accessor: get PairValueIterator<K,T> Iterator
+	/// Get a new Iterator that returns each value in the Map in turn
+	get PairValueIterator<K,T> Iterator is
+	    return elements();
+	si
+
 	/// Return a new Iterator that returns each value in the Map in turn
 	PairValueIterator<K,T> elements() is
 	    // IO.Std.out.print( "Map.elements for " + this + "\n" );
 	    return new PairValueIterator<K,T>(pairs());
-	si
-
-	/// Return a new Iterator that returns each key in the Map in turn
-	PairKeyIterator<K,T> keys() is
-	    return new MapKeyIterator<K,T>(pairs());
 	si
     si
 si

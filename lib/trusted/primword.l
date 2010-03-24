@@ -74,7 +74,7 @@ namespace System {
 	    return false;
 	}
 
-	static int opCompare( word w, word x ) {
+	static int operator>( word w, word x ) {
 	    if( w > x ) { 
 		return 1;
 	    } else if( w < x ) {
@@ -84,11 +84,11 @@ namespace System {
 	    }
 	}
 
-	int opCompare( Word x ) {
+	int operator>( Word x ) {
 	    return opCompare( _value, x._value );
 	}
 
-	bool opEquals( Word w ) {
+	bool operator=~( Word w ) {
 	    return _value == w.Value;
 	}
 

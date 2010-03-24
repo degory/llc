@@ -296,11 +296,17 @@ namespace System is
 	    return ObjectSize;
 	si
 
+	/// Is this object an array? Used by the serializer when serializing arrays.
+	/// \return true if object's class is a specialization of Generic.Array<T>
 	get bool IsArray is
+	    @Virtual;
 	    return false;
         si
 
+	/// Get the length of pointed to region for the n'th field of pointer type in this object. Used 
+	/// by the serializer when serializing objects that contain pointers. See Generic.Vector<T> for example
         int _get_PointerLength(int n) is
+	    @Virtual;
 	    throw new System.NotImplementedException( "object with pointers must implement _get_PointerLength(int) to be serializable: " + Class.Name );
 	si
     si

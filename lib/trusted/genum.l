@@ -4,14 +4,21 @@
 
 
 namespace System {
+    /// This is the corresponding box class for values of enum type
+    /// \param T the enum type this Enum<T> wraps
     class Enum<T> {
 	T _value;
 
+	/// Construct a new Enum<T> for an enum value
+	/// \param v the enum value to box
 	void init( T v ) {
 	    // super.init();
 	    _value = v;
 	}
 
+	/// accessor: get T Value
+	/// Get the boxed enum value
+	/// \return boxed enum value
 	get T Value {
 	    return _value;
 	}
@@ -44,14 +51,24 @@ namespace System {
 	    return new StringBuffer().append(cast int(w));
 	}
 
+	/// Reverse add operator. Allows enums to be appended to strings without
+	/// having to implement this operator within System.String for every possible
+	/// Enum<T> specialization.
+	/// \param v the enum value to append
+	/// \param s the string to append it to 
 	static StringBuffer opAddRev(T v, System.String s) {
 	    return new StringBuffer(s).append(cast int(v));
 	}
 
+	/// Forward add operator
+	/// \param v the enum value to append
+	/// \param s the string to append it to 
 	static StringBuffer opAdd(T v, System.String s) { 
 	    return "" + cast int(v) + s;
 	}
-
+	
+	/// Implements .box attribute, which creates an instance of Enum<T> from an enum value of type T
+	/// \param w the enum value to box
 	static Enum<T> box(T w) {
 	    return new Enum<T>(w);
 	}
@@ -67,11 +84,16 @@ namespace System {
 	    return false;
 	}
 
-	bool opEquals( Enum<T> w ) {
+	/// bool operator=~( Enum<T> w )
+	/// \param w the enum value to compare to
+	bool operator=~( Enum<T> w ) {
 	    return _value == w.Value;
 	}
 
-	static int opCompare( T b, T c ) {
+	/// static bool operator>( T b )
+	/// \param b enum value to compare
+	/// \param c other enum value to compare
+	static int operator>( T b, T c ) {
 	    if( b > c ) {
 		return 1;
 	    } else if( b < c ) {
@@ -81,7 +103,9 @@ namespace System {
 	    }
 	}
 
-	int opCompare( Enum<T> w ) {
+	/// int operator>( Enum<T> w )
+	/// \param w enum value to compare
+	int operator>( Enum<T> w ) {
 	    return opCompare( _value, w._value );
 	}
 

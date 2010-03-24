@@ -2,7 +2,7 @@
 
 import gvector;
 namespace Generic is
-    /// Sort a List of values of type T
+    /// Sort a List of values of type T using the Quicksort algorithm
     /// \param T type of values in the list to be sorted
     class Sort<T> is
         /// Sort the supplied List of values

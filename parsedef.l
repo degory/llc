@@ -1794,7 +1794,7 @@ namespace Parse {
 		if( state.WantVeryVerbose ) {
 		    IO.Std.err.println( "cause: " + be );
 		}
-		throw be
+		throw be;
 	    }
         }
 
@@ -2051,7 +2051,7 @@ namespace Parse {
 		if( state.WantVeryVerbose ) {
 		    IO.Std.err.println( "cause: " + be );
 		}
-		throw be
+		throw be;
 	    }
 
 

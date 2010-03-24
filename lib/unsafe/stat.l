@@ -14,6 +14,8 @@ namespace IO {
 	void init() {
 	}
 
+	/// Get information for a file
+	/// \param name path to file
 	bool stat( System.String name ) {
 	    if( native.__stat_file2( name.toCString(), this ) != null ) {
 		return false;
@@ -21,7 +23,9 @@ namespace IO {
 		return true;
 	    }
 	}
-
+	
+	/// Is mtime for this file after mtime for another file
+	/// \param s other file
 	bool after( Stat s ) {
 	    return mtime > s.mtime;
 	}

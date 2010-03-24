@@ -1,15 +1,21 @@
 #K
-import gllist.l;
+import gllist;
 
 namespace Generic is
+    /// A LinkedList<T> which is kept in sorted order either in the natural order of the elements or ordered by a supplied compare function
+    /// \param T the element type of the SortedList<T>
     class SortedList<T> isa LinkedList<T> is
+        /// the comparison function used to keep the list in order
 	int proc(T, T) compare;
 
+	/// Construct a new SortedList<T> with a specified ordering
+	/// \param compare 
 	void init( int proc(T, T) compare ) is
 	    super.init();
 	    this.compare = compare;
 	si
 
+	/// Construct a new SortedList<T> with natural ordering
 	void init() is
 	    this.init( int proc(T, T)(T.opCompare) );
 	si
@@ -27,19 +33,29 @@ namespace Generic is
 	si
     si
 
+    /// A node in a sorted linked list
+    /// \param T the element type of the list
     class SortedListNode<T> isa ListNode<T> is
+        /// Construct a new SortedListNode<T>
+ 	/// \param v the new node's value
+	/// \param t the new node's tail
         void init( T v, SortedListNode<T> t ) is
             super.init(v, t );
 	si
 
+	/// Construct a new empty ListNode<T>
 	void init() is
 	    super.init();
 	si
 
+	/// \attention not implemented
 	void insert( T v ) is
 	    throw new System.NotImplementedException( "Sort order required: use " + Class.Name + ".insert(T v, int proc(T,T))" );
 	si
-
+	
+	/// Insert a value into this list at appropriate position
+	/// \param v value to insert
+	/// \compare compare sort order to apply
 	void insert( T v, int proc(T,T) compare ) is
 	    if compare(v,value) <= 0 then
 		throw new ListBoundsException( "value sorts before head of this list" );

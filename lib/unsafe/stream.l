@@ -12,9 +12,11 @@ pragma NoWarnUnsafe, NoMarkUnsafe;
 namespace IO {
     /// Holds Reader on standard input and Writers on standard output and standard error streams
     class Std extends System.Object {
-
+	/// Underlying stream for in
 	static FileStream in_stream = new FileStream(0);
+	/// Underlying stream for out
 	static FileStream out_stream = new FileStream(1);
+	/// Underlying stream of err
 	static FileStream err_stream = new FileStream(2);
 
         /// Standard input

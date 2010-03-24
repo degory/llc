@@ -16,7 +16,10 @@ namespace Generic is
     	Map<T,bool> _map;
 
 	/// Construct a new Set with capacity reserved for specified number of values
-	/// \param size initial capacity to reserve
+	/// \param size number of slots in the Set's hash table. Size should be prime. The hash table size is
+        /// not adjustable after the Map is constructed.
+        /// \attention Performance will degrade if the number of elements
+        /// stored greatly excedes this size.
 	void init( int size ) is
 	    _map = new Map<T,bool>(size);
 	si

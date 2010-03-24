@@ -16,15 +16,9 @@ namespace Generic is
         /// SortedMap Red-black tree that represents this set:
     	SortedMap<T,bool> _map;
 
-	/// Construct a new Set with capacity reserved for specified number of values
-	/// \param size initial capacity to reserve
+	/// Construct a new SortedSet
 	void init( int size ) is
-	    _map = new Map<T,bool>(size);
-	si
-
-	/// Construct a new Set with default initial capacity
-	void init() is
-	    init( 1021 );
+	    _map = new SortedMap<T,bool>();
 	si
 
 	/// Get the number of values in this Set
@@ -62,11 +56,12 @@ namespace Generic is
 	    _map.remove(o);
         si
 
-	/// Return a new Iterator over the values in this set. The Iterator returns each value in the set in turn in no particular order.
+	/// Return a new Iterator over the values in this set. The Iterator returns each value in ascending key order
 	Iterator<T> elements() is
 	    return _map.keys();
 	si
 
+	/// Return a new Iterator over the values in this set. The Iterator returns each value in ascending key order
 	get Iterator<T> Iterator is
 	    return _map.keys();
         si

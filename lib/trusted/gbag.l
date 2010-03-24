@@ -30,12 +30,4 @@ namespace Generic is
 	/// Return an Iterator over the values in this bag. The order values are returned in depends on the implementation
 	Iterator<T> elements();
     si
-
-    class AddAll<T> is
-	static void addTo( Bag<T> to, Iterable<T> values ) is
-	    foreach var v; values.Iterator do
-	        to.add(v);
-	    od
-	si
-    si
 si

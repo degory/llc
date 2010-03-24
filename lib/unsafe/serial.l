@@ -17,6 +17,8 @@ namespace IO {
 
     pragma NoWarnUnsafe, NoMarkUnsafe, NoWarnHide, NoWarnResolve;
 
+    /// Classes that cannot be serialized by the standard serializer (for instance if they contain pointers to regions of unknown size or pointers to the
+    /// interior of regions) can implement this interface and serialize/deserialize themselves in response to calls to toSerial/fromSerial
     interface Serial {
 	// when this method is called, object is expected to write a representation of itself to stream b
 	void toSerial(SerialWriter b);
@@ -25,6 +27,7 @@ namespace IO {
 	Object fromSerial(SerialReader b);
     }
 
+    /// Tokens used by the serializer protocol
     enum SerialToken {
 	EOF,
         OPEN,
@@ -34,6 +37,7 @@ namespace IO {
 	STRING
     } 
 
+    /// Parses the serializer protocol. This is an internal class. Use SerialReader to deserialze objects
     class SerialParser {
 	static bool debug = false;
 
@@ -43,20 +47,28 @@ namespace IO {
 	SerialToken current_token;
 	String current_string;
 
+	/// accessor: static set bool Debug = d
+	/// \param d if set then debug output enabled when parsing serializer protocol
 	static set bool Debug = d {
 	    debug = d;
 	}
 
+	/// accessor: static get bool Debug
+	/// \return true if debug output enabled
         static get bool Debug {
 	    return debug;
 	}
 
+	/// construct a new SerialParser
+	/// \param is where to read serialized objects from
 	void init(Reader is) {
 	    this.is = is;
 	    readChar();
 	    readToken();
 	}
 
+	/// accessor: get bool AtEOF
+	/// \return true if at end of reader
 	get bool AtEOF {
 	    return is_eof;
 	}
@@ -202,7 +214,6 @@ namespace IO {
     // [ 1234 1234.5 11/05/05 wibble[wobble " contains spaces " [ sub-record ] ]
 
     
-
     class ListReader<T> {
 	static void read(SerialReader r, List<T> l) {
 	    r.open();
@@ -227,31 +238,39 @@ namespace IO {
 	}
     }
 
+    /// Reads and recreates serialized objects from an IO.Reader
     class SerialReader {
 	public static bool debug = false;
 
+	/// Map from class names in stream to classes to deserialize
 	static Map<String,Class> classes;
+
+	/// Map from classes to serialize to class names in stream
 	static Map<Class,String> names;
+
+	/// Parser used to parse seralized object prototcol
 	SerialParser parser;
 
-	int level;
+	/// Map from reference ids in stream to previously deserialized objects
 	Map<String,Object> references;
 
+	/// Object referred to by most recently read reference id
 	Object current_reference;
 
+	/// Construct a new SerialReader from a CharStream
+	/// \param s the stream that objects will be read from
 	void init(CharStream s) {
 	    init(new Reader(s));
 	}
 
+	/// Construct a new SerialReader from a Reader
+	/// \param is the stream that objects will be read from
 	public void init(Reader is) {
 	    parser = new SerialParser(is);
 	    references = new Map<String,Object>();
 	}
 
-	public static bool register(Class c) {
-	    return register(c.Name, c);
-	}
-
+	/// Internal method
 	static void lazyInit() {
 	    if( classes == null ) {
 		classes = new Map<String,Class>();
@@ -259,14 +278,28 @@ namespace IO {
 	    }
 	}
 
+	/// Get the map of class names to classes
         static get Map<String,Class> Classes {
 	    return classes;
 	}
 
+	/// Get the map of classes to class names
         static get Map<Class,String> Names {
 	    return names;
 	}
 
+	/// Register a class with the serializer
+	/// \param c the class to register. The class's fully qualified name will
+	/// be used to identify its instances in serialized streams
+	/// \return true. Allows use in static initializers (e.g. static bool dummy=SerialReader.register(class<ThisClass>))
+	public static bool register(Class c) {
+	    return register(c.Name, c);
+	}
+
+	/// Register a class with the serializer
+	/// \param key the string that will be used to identify instances of this class in serialized streams
+	/// \param c the class to register.
+	/// \return true. Allows use in static initializers (e.g. static bool dummy=SerialReader.register(class<ThisClass>))
 	public static bool register(String key, Class c) {
 	    lazyInit();
 
@@ -278,28 +311,42 @@ namespace IO {
 	    return true;
 	}
 
+	/// Get the tag used to identifiy a class
+	/// \param c the class to get the tag for
+	/// \return the string used to identify this class
 	static String getTagForClass(Class c) {
 	    lazyInit();
 	    return names[c];
 	}
 
+	/// Get the class identified by a given tag
+	/// \param the tag to get the class for
+	/// \return the class identified by this tag
 	static Class getClassForTag(String n) { 
 	    lazyInit();
 	    return classes[n];
 	}
 
+	/// Get the last string read by the parser
 	public get String CurrentString {
 	    return parser.CurrentString;
 	}
 
+	/// Get the last token read by the parser
 	public get SerialToken CurrentToken {
 	    return parser.CurrentToken;
 	}
-
+	
+	/// Was the last tag read by the parser an open block token?
+	/// \return true if the last tag was an OPEN token, false otherwise
 	public bool isOpen() {
 	    return parser.CurrentToken != SerialToken.CLOSE;
 	}
 
+	/// Check if the current object either references a previous id or
+	/// defines a new reference id and set the current reference object
+	/// accordingly
+	/// \return true if the current object is a reference
 	bool checkReference() {
 	    if( parser.CurrentToken == SerialToken.ASSIGN ) {
 		current_reference = readAssign();
@@ -325,6 +372,7 @@ namespace IO {
 	    }
 	}
 
+	/// Read an assignment to an object id
 	public Object readAssign() {
 	    // IO.Std.err.println( "read assign..." );
 	    String r = parser.CurrentString;
@@ -337,6 +385,8 @@ namespace IO {
 	    return value;
 	}
 
+	/// Read an object. This could be a reference to a previous object by id,
+	/// a new object with or without an id assignment or a null reference
 	public Object read() {
 	    if( checkReference() ) {
 		return current_reference;
@@ -399,6 +449,7 @@ namespace IO {
 	    }
 	}
 
+	// Check next token is an OPEN token for any tag and discard it
 	public void open() {
 	    // IO.Std.err.println( "read open untagged" );
 	    if( parser.CurrentToken == SerialToken.OPEN ) {
@@ -408,6 +459,8 @@ namespace IO {
 	    }
 	}
 
+	/// Check next token is an OPEN token for a particular tag and discard it
+	/// \param expected tag
 	public void open( String tag ) {
 	    // IO.Std.err.println( "read open:" + tag );
 	    if( parser.CurrentToken == SerialToken.OPEN && parser.CurrentString.equals(tag) ) {
@@ -417,12 +470,14 @@ namespace IO {
 	    }
 	}
 
+	/// Check current object is not a reference and issue a warning if it is
 	public void checkNull() {
 	    if( current_reference != null ) {
 		IO.Std.err.println( "cannot reference this - returning null" );
 	    }
 	}
 
+	/// Read a long integer value
 	public long readLong() {
 	    if( checkReference() ) {
 		checkNull();
@@ -436,6 +491,7 @@ namespace IO {
 	    }
 	}
 
+	/// Read a word integer value
 	public word readWord() {
 	    if( checkReference() ) {
 		checkNull();
@@ -449,6 +505,7 @@ namespace IO {
 	    }
 	}
 
+	/// Read an integer value
 	public int readInt() {
 	    if( checkReference() ) {
 		checkNull();
@@ -462,6 +519,7 @@ namespace IO {
 	    }
 	}
 
+	/// Read a string value
 	public String readString() {
 	    if( checkReference() ) {
 		checkNull();
@@ -475,6 +533,7 @@ namespace IO {
 	    }
 	}
 
+	/// Read a boolean value
 	public bool readBool() {
 	    if( checkReference() ) {
 		checkNull();
@@ -488,6 +547,7 @@ namespace IO {
 	    }
 	}
 
+	/// Read a character value
 	public char readChar() {
 	    if( checkReference() ) {
 		checkNull();
@@ -501,6 +561,7 @@ namespace IO {
 	    }
 	}
 
+	/// Read and discard tokens until a CLOSE token is read 
 	public void close() {
 	    while( parser.CurrentToken != SerialToken.CLOSE ) {
 		read();
@@ -508,11 +569,19 @@ namespace IO {
 	    parser.readToken();
 	}
 	
+	/// Have all available objects been read
+	/// \return true if no more objects available
 	public get bool AtEOF {
 	    return parser.AtEOF;
 	}
 
-	Object readElements( Object t, int offset, int length, int type ) {
+	/// Read an array
+	/// \param t template object used to determine vtable for new array
+	/// \param offset offset in bytes of first element relative to this
+	/// \param length number of element in array
+	/// \type type of array elements
+	/// \return an object that can be cast to the appropriate array type
+	Object readArray( Object t, int offset, int length, int type ) {
 	    word ptr result;
 
 	    switch( type ) {
@@ -600,6 +669,7 @@ namespace IO {
 	    return cast Object(result);
 	}
 
+/*
 	Object readArray( Class klass ) {
 	    int type;
 	    int offset;
@@ -705,8 +775,12 @@ namespace IO {
 
 	    return cast Object(result);
 	}
+*/
 
-
+	/// Read a list of values, previously serialized from a pointer, into a buffer
+	/// \param type type of each value
+	/// \param length number of values
+	/// \return a pointer to the read values that can be cast to the appropriate type
 	char ptr readPointer(int type, int length) {
 	    char ptr result;
 
@@ -786,7 +860,11 @@ namespace IO {
 	    return result;
 	}
 
-
+	/// Read a field type and offset from a class's type table
+	/// \param tp pointer to current type in type table, will be updated to next type
+	/// \param type receives field type
+	/// \param offset receives field offset
+	/// \return true if a type and offset read or false if no more fields remain in class 
 	static bool readType( int ptr ref tp, int ref type, int ref offset ) {
 	    int ct = [tp];
 	    if( ct == 0 ) {
@@ -801,6 +879,10 @@ namespace IO {
 	    return true;
 	}
 
+	/// Populate fields in an object from serialized object stream using the default deserializer
+	/// \param o the object to populate. Must have been pre-allocated of correct size and with
+	/// correct vtable pointer
+	/// \return deserialized object (which may not be the passed in object in case of arrays)
 	Object readObjectDefault( Object o ) {
 	    int ptr pt = o.TypeTable;
 	    var result = o;
@@ -826,7 +908,7 @@ namespace IO {
 		    // if object is an array then first integer field is length and following field specifies offset of
 		    // element data and its type:
 		    IO.Std.err.println( "should read " + l + " array elements starting at offset " + offset );
-		    result = readElements( o, offset, l, type );
+		    result = readArray( o, offset, l, type );
 		    break;
 		}
 
@@ -882,22 +964,35 @@ namespace IO {
 	}
     }
 
+    /// Serializes objects to a stream
     public class SerialWriter {
+    	/// Block indent for pretty printing in debug mode
 	const int MAX_INDENT = 4;
+ 
+	/// If true then output will be indented to make it more readable and echoed to the console
 	public static bool debug = false;
 
-	bool optional;
+	/// Stream to write serialized objects to
 	Writer os;
+
+	/// Current indent level for pretty printing
 	public int indent_;
+
+	/// Whether to send reference ids for objects
 	bool[] by_reference;
+
+	/// Map from objects to reference ids
 	Map<Object,int> references;
 	int handle;
 
-
+	/// Create a new SerialWriter
+	/// \param s stream to write serialized objects to
 	void init(CharStream s) {
 	    init(new Writer(s));
 	}
 
+	/// Create a new SerialWriter
+	/// \param os stream to write serialized objects to
 	void init(Writer os) {
 	    this.os = os;
 	    indent_ = 0;
@@ -907,6 +1002,7 @@ namespace IO {
 	    references = new Map<Object,int>();
 	}
 
+	/// Flush the underlying stream
 	void flush() {
 	    os.flush();
 	}
@@ -915,6 +1011,8 @@ namespace IO {
 	    os.close();
 	}
 
+	/// Append a char to the output stream directly with no quoting
+	/// \param c char to write
 	void append( char c ) {
 	    if( debug ) {
 		IO.Std.err.print( "" + c );
@@ -922,6 +1020,8 @@ namespace IO {
 	    os.print(c);
 	}
 
+	/// Append an integer to the output stream directly with no quoting
+	/// \param i the integer to write
 	void append( int i ) {
 	    if( debug ) {
 		IO.Std.err.print( "" + i );
@@ -929,6 +1029,8 @@ namespace IO {
 	    os.print(i);
 	}
 
+	/// Append a word to the output stream directly with no quoting
+	/// \param i the word to write
 	void append( word i ) {
 	    if( debug ) {
 		IO.Std.err.print( "" + i );
@@ -936,6 +1038,8 @@ namespace IO {
 	    os.print(i);
 	}
 
+	/// Append a long to the output stream directly with no quoting
+	/// \param i the long to write
 	void append( long i ) {
 	    if( debug ) {
 		IO.Std.err.print( "" + i );
@@ -943,13 +1047,18 @@ namespace IO {
 	    os.print(i);
 	}
 
+	/// Append a string to the output stream directly with no quoting
+	/// \param s the 
 	void append( String s ) {
 	    if( debug ) {
 		IO.Std.err.print( s );
 	    }
 	    os.print(s);
 	}
-
+	
+	/// quote a string for writing to the output stream
+	/// \param t the string to quote
+	/// \return the string quoted so it's 7-bit clean with all characters significant to serializer, below 32 or over 127 escaped or quoted
 	static String quote( String t ) {
 	    if( t != null ) {
 		StringBuffer result = new StringBuffer(t.Length + 2);
@@ -993,6 +1102,8 @@ namespace IO {
 	    }
 	}
 
+	/// If debug mode and indentation level doesn't exceed maximum then write spaces to indent the current line
+	/// according to current block nesting level
 	private void indent() {
 	    if( debug && indent_ < MAX_INDENT ) {
 		for( int i = 0; i < indent_; i = i + 1 ) {
@@ -1002,6 +1113,8 @@ namespace IO {
 	    }
 	}
 
+	/// If debug mode and indentation level doesn't exceed maximum then write spaces to indent the current line
+	/// according to enclosing block nesting level
 	private void undent() {
 	    if( debug && indent_ < MAX_INDENT ) {
 		for( int i = 0; i < indent_-1; i = i + 1 ) {
@@ -1011,6 +1124,7 @@ namespace IO {
 	    }
 	}
 
+	/// If debug mode and indentation level doesn't exceed maximum then write a newline
 	private void newline() {
 	    if( debug && indent_ < MAX_INDENT ) {
 		append( ' ' );
@@ -1020,15 +1134,19 @@ namespace IO {
 	    }
 	}
 
-
+	/// Pass subsequent objects found within this object by reference
 	void reference() {
 	    by_reference[indent_] = true;
 	}
 
+	/// Should objects in this object be passed by reference
+	/// \return true if pass by reference enabled
 	bool isByReference() {
 	    return by_reference[indent_];
 	}
 
+	/// Open a block for an object
+	/// \param s tag for this object
 	void open(String s) {
 	    indent();
 	    bool r = by_reference[indent_];
@@ -1040,14 +1158,19 @@ namespace IO {
 	    newline();
 	}
 
+	/// Open a block for an object
+	/// \param n tag for this object
 	void open(int n) {
 	    open( "" + n );
 	}
 
+	/// Open a block for an object with no tag (deserializer will need to know
+	/// exactly what type of object to expect)
 	void open() {
 	    open( "*" );
 	}
 
+	/// Close current object
 	void close() {
 	    undent();
 	    indent_ = indent_ - 1;
@@ -1055,6 +1178,11 @@ namespace IO {
 	    newline();
 	}
 
+	/// Write object to serialization stream by reference. If the object has previously been
+	/// written and we have a stored reference id for it, just write that id. If not then
+	/// generate a new reference id and write an assignment to that id plus the object's 
+	/// value
+	/// \param r the object to write by reference
 	void addReference( Object r ) {
 	    IO.Std.err.println( "add reference: " + r );
 	    if( r == null ) {
@@ -1082,6 +1210,9 @@ namespace IO {
 	    }
 	}
 
+	/// Write an object to the serialization stream. If reference is set then it will be written by
+	/// reference, otherwise by value.
+	/// \param o the object to write
 	public void add(Object o) {
 	    IO.Std.err.println( "add(Object): " + o );
 	    if( isByReference() ) {
@@ -1091,6 +1222,8 @@ namespace IO {
 	    }
 	}
 
+	/// Write a string to the serialization stream.
+	/// \param s the string to write
 	public void add(String s) {
 	    if( s == null ) {
 		addNull();
@@ -1101,34 +1234,45 @@ namespace IO {
 	    }
 	}
 
+	/// Write a null to the serialization stream
 	public void addNull() {
 	    indent();
 	    append( '*' );
 	    newline();
 	}
 
+	/// Write a char to the serialization stream
+	/// \param c the char to write 
 	public void add(char c) {
 	    add( "" + c );
 	}
 
+	/// Write a long to the serialization stream
+	/// \param i the long to write
 	public void add(long i) {
 	    indent();
 	    append( i );
 	    newline();
 	}
 
+	/// Write a word to the serialization stream
+	/// \param w the word to write
 	public void add(word w) {
 	    indent();
 	    append( w );
 	    newline();
 	}
 
+	/// Write an int to the serialization stream
+	/// \param i the int to write
 	public void add(int i) {
 	    indent();
 	    append( i );
 	    newline();
 	}
 
+	/// Write a word to the serialization stream
+	/// \param b the bool to write
 	public void add(bool b) {
 	    indent();
 	    if( b ) {
@@ -1139,17 +1283,8 @@ namespace IO {
 	    newline();
 	}
 
-	/*
-	  public void add(java.util.Date d) {
-	  if( d == null ) {
-	  addNull();
-	  } else {
-	  add( uk.co.innate.locale.InternalConversionBundle.getBundle().formatDateSQL(d).substring(1,20) );
-	  }
-	  newline();
-	  }
-	*/
-
+	/// Write an array of integers to the serialization stream
+	/// \param v the array to write
 	public void addValue( int[] v ) {
 	    if( v == null ) {
 		addNull();
@@ -1162,6 +1297,8 @@ namespace IO {
 	    }
 	}
 
+	/// Write an array of booleans to the serialization stream
+	/// \param v the array to write
 	public void addValue( bool[] v ) {
 	    if( v == null ) {
 		addNull();
@@ -1175,6 +1312,8 @@ namespace IO {
 
 	}
 
+	/// Write an array of Objects to the serialization stream
+	/// \param v the array to write
 	public void addValue( Object[] v ) {
 	    if( v == null ) {
 		addNull();
@@ -1187,6 +1326,8 @@ namespace IO {
 	    }
 	}
 
+	/// Write an Object to the serialization stream by value
+	/// \param o the Object to write
 	void addValue( Object o ) {
 	    IO.Std.err.println( "add value: " + o + " (" + o.Class.Name + ")" );
 	    if( isa Serial(o) ) {
@@ -1206,12 +1347,10 @@ namespace IO {
 	    }
 	}
 
-	public void optional() {
-	}
-
-	public void required() {
-	}
-
+	/// Write a list of values to the serialization stream
+	/// \param p pointer to the list of values to write
+	/// \param type type of each element
+	/// \length number of elements to write
 	void writeElements( char ptr p, int type, int length ) {
 	    IO.Std.err.println( "writeElements(" + cast long(p) + "," + type + "," + length + ")..." );
 
@@ -1280,7 +1419,8 @@ namespace IO {
 	    IO.Std.err.println( "writeElements finished" );
 	}
 	   
-
+	/// Write an Object to the serialization stream using the default serializer
+	/// \param o the object to write
 	void addValueDefault( Object o ) {
 	    int ptr pt = o.TypeTable;
 

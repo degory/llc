@@ -11,6 +11,7 @@ namespace Generic is
 	T nextElement();
     si
 
+    /// Interface. Objects implementing Iterable<T> can be iterated over using Iterator<T>
     interface Iterable<T> is
 	get Iterator<T> Iterator;
     si

@@ -37,16 +37,21 @@ namespace Generic is
 use System.String;
 use System.StringBuffer;
 
+/// tree node color for red-black tree
 enum NodeColor is RED, BLACK si
 
 /// An associative array that is naturally sorted
+/// \param K type of keys in the Map. K must implement int operator>(K,K)
+/// \param V type of values in the Map.
 class SortedMap<K,V> do Dict<K,V> is
     public TreeNode<K,V> root;
 
+    /// Construct an empty SortedMap<K,V>
     void init() is
         root = null;
     si
 
+    /// Internal method
     private static NodeColor nodeNodeColor(TreeNode<K,V> n) is
 	if n == null then
 	    return NodeColor.BLACK;
@@ -54,6 +59,7 @@ class SortedMap<K,V> do Dict<K,V> is
         return n.color;
     si
 
+    /// Internal method
     private TreeNode<K,V> lookupTreeNode(K key) is
         TreeNode<K,V> n = root;
         while n != null do

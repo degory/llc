@@ -515,7 +515,7 @@ namespace Parse {
 
 	    type_expr.print( state, p );
 
-	    p.print( " proc(" );
+	    p.print( " (" );
 	    bool seen_any = false;
 	    foreach( TypeExpr e; arguments.List.elements() ) {
 		if( seen_any ) {
