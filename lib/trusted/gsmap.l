@@ -29,6 +29,9 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 Retrieved from: http://en.literateprograms.org/Red-black_tree_(Java)?oldid=16622
 */
 
+import gpair;
+import gdict;
+
 namespace Generic is
 
 use System.String;
@@ -36,57 +39,8 @@ use System.StringBuffer;
 
 enum NodeColor is RED, BLACK si
 
-class TreeNode<K,V> is
-    public K key;
-    public V value;
-    public TreeNode<K,V> left;
-    public TreeNode<K,V> right;
-    public TreeNode<K,V> parent;
-    public NodeColor color;
-
-    void init(K key, V value, NodeColor nodeNodeColor, TreeNode<K,V> left, TreeNode<K,V> right) is
-        this.key = key;
-        this.value = value;
-        this.color = nodeNodeColor;
-        this.left = left;
-        this.right = right;
-        if left  != null then
-	    left.parent = this;
-	fi
-        if right != null then
-	    right.parent = this;
-	fi
-        this.parent = null;
-    si
-
-    public TreeNode<K,V> grandparent() is
-        return parent.parent;
-    si
-
-    public TreeNode<K,V> sibling() is
-        if this == parent.left then
-            return parent.right;
-        else
-            return parent.left;
-        fi
-    si
-
-    public TreeNode<K,V> uncle() is
-        return parent.sibling();
-    si
-
-
-    public String toString() is
-    	return new StringBuffer()
-	    .append(key)
-	    .append("=>")
-	    .append(value);
-    si
-si
-
-class RBTree<K,V> is
-    const int INDENT_STEP = 4;
-
+/// An associative array that is naturally sorted
+class SortedMap<K,V> do Dict<K,V> is
     public TreeNode<K,V> root;
 
     void init() is
@@ -246,11 +200,13 @@ class RBTree<K,V> is
         fi
     si
 
-    public void remove(K key) is
+    V remove(K key) is
         TreeNode<K,V> n = lookupTreeNode(key);
         if n == null then
-            return;  // Key not found, do nothing
+            return V.none;  // Key not found, do nothing
 	fi
+
+        var result = n.value;
 
         if n.left != null && n.right != null then
             // Copy key/value from predecessor and then delete it instead
@@ -276,7 +232,9 @@ class RBTree<K,V> is
         
         if nodeNodeColor(root) == NodeColor.RED then
             root.color = NodeColor.BLACK;
-        fi
+        fi	
+
+        return result;
     si
 
     static TreeNode<K,V> minimumTreeNode(TreeNode<K,V> n) is
@@ -374,13 +332,33 @@ class RBTree<K,V> is
 	fi
     si
 
-    public String toString() is
+    String toString() is
 	var buffer = new System.StringBuffer();
-        printHelper(root, 0, buffer);
+        toString(root, buffer);
 	return buffer;
     si
 
-    private static void printHelper(TreeNode<K,V> n, int indent, StringBuffer b) is
+    bool isEmpty() is
+	return root == null;
+    si
+
+    void clear() is
+        root = null;
+    si
+
+    get int Length is
+        return length(root);
+    si
+
+    private static int length(TreeNode<K,V> n) is
+      	if n == null then
+	    return 0;
+	else
+	    return this(n.left) + this(n.right);
+	fi
+    si
+
+    private static void toString(TreeNode<K,V> n, StringBuffer b) is
         if n == null then
             b.append("()");
             return;
@@ -391,7 +369,7 @@ class RBTree<K,V> is
 	b.append('(');
 
         if n.left != null then
-            printHelper(n.left, indent + INDENT_STEP, b);
+            toString(n.left, b);
 	    b.append(',');
         fi
 
@@ -402,26 +380,83 @@ class RBTree<K,V> is
 
 	if n.right != null then
 	    b.append( ',' );
-            printHelper(n.right, indent + INDENT_STEP, b);
+            toString(n.right, b);
 	fi
 
 	b.append(')');
     si    
 
-    get RBTreeIterator<K,V> Iterator is
-        return new RBTreeIterator<K,V>(root);
+    get SortedMapIterator<K,V> Pairs is
+        return new SortedMapIterator<K,V>(root);
     si
 
-    get RBTreeReverseIterator<K,V> ReverseIterator is
-        return new RBTreeReverseIterator<K,V>(root);
+    get SortedMapReverseIterator<K,V> ReversePairs is
+        return new SortedMapReverseIterator<K,V>(root);
+    si
+
+    get PairKeyIterator<K,V> Keys is
+        return new PairKeyIterator<K,V>(Pairs);
+    si
+
+    get PairValueIterator<K,V> Iterator is
+        return new PairValueIterator<K,V>(Pairs);
     si
 si
 
-class RBTreeIterator<K,V> do Iterator<TreeNode<K,V>> is
+/// A node in the SortedMap<K,V> Red-black tree 
+class TreeNode<K,V> isa Pair<K,V> is
+    public K key;
+    public V value;
+    public TreeNode<K,V> left;
+    public TreeNode<K,V> right;
+    public TreeNode<K,V> parent;
+    public NodeColor color;
+
+    void init(K key, V value, NodeColor nodeNodeColor, TreeNode<K,V> left, TreeNode<K,V> right) is
+        this.key = key;
+        this.value = value;
+        this.color = nodeNodeColor;
+        this.left = left;
+        this.right = right;
+        if left  != null then
+	    left.parent = this;
+	fi
+        if right != null then
+	    right.parent = this;
+	fi
+        this.parent = null;
+    si
+
+    TreeNode<K,V> grandparent() is
+        return parent.parent;
+    si
+
+    TreeNode<K,V> sibling() is
+        if this == parent.left then
+            return parent.right;
+        else
+            return parent.left;
+        fi
+    si
+
+    TreeNode<K,V> uncle() is
+        return parent.sibling();
+    si
+
+    String toString() is
+    	return new StringBuffer()
+	    .append(key)
+	    .append("=>")
+	    .append(value);
+    si
+si
+
+/// Iterates over elements of a SortedMap<K,V> in order
+class SortedMapIterator<K,V> do Iterator<Pair<K,V>> is
     TreeNode<K,V> current;
 
     void init(TreeNode<K,V> root) is
-        current = RBTree<K,V>.minimumTreeNode(root);
+        current = SortedMap<K,V>.minimumTreeNode(root);
     si
 
     bool hasMoreElements() is
@@ -436,7 +471,7 @@ class RBTreeIterator<K,V> do Iterator<TreeNode<K,V>> is
    
     TreeNode<K,V> successor(TreeNode<K,V> x) is
         if x.right != null then
-            return RBTree<K,V>.minimumTreeNode(x.right);
+            return SortedMap<K,V>.minimumTreeNode(x.right);
 	else
 	    var y = x.parent;
 	    while y != null && x == y.right do
@@ -449,11 +484,12 @@ class RBTreeIterator<K,V> do Iterator<TreeNode<K,V>> is
     si
 si
 
-class RBTreeReverseIterator<K,V> do Iterator<TreeNode<K,V>> is
+/// Iterates over elements of a SortedMap<K,V> in reverse order
+class SortedMapReverseIterator<K,V> do Iterator<Pair<K,V>> is
     TreeNode<K,V> current;
 
     void init(TreeNode<K,V> root) is
-        current = RBTree<K,V>.maximumTreeNode(root);
+        current = SortedMap<K,V>.maximumTreeNode(root);
     si
 
     bool hasMoreElements() is
@@ -468,7 +504,7 @@ class RBTreeReverseIterator<K,V> do Iterator<TreeNode<K,V>> is
    
     TreeNode<K,V> predecessor(TreeNode<K,V> x) is
         if x.left != null then
-            return RBTree<K,V>.maximumTreeNode(x.left);
+            return SortedMap<K,V>.maximumTreeNode(x.left);
 	else
 	    var y = x.parent;
 	    while y != null && x == y.left do
@@ -481,9 +517,10 @@ class RBTreeReverseIterator<K,V> do Iterator<TreeNode<K,V>> is
     si
 si
 
+/*	 
 class Main is
     void init() is
-	var t = new RBTree<int,String>();
+	var t = new SortedMap<int,String>();
 
 	for int i = 0; i < 100; i = i + 1 do
 	    t[i] = "value: " + i;
@@ -491,10 +528,10 @@ class Main is
 
 	IO.Std.out.println( "t is: " + t );	
 
-	foreach var i; t.ReverseIterator do
+	foreach var i; t.ReversePairs do
 	    IO.Std.err.println( "have: " + i );
 	od
     si
 si
-
+*/
 si

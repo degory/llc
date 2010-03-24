@@ -1,6 +1,8 @@
 #K
 
 import object;
+import gpair;
+import gdict;
 import glist;
 import gllist;
 import gvector;
@@ -17,7 +19,7 @@ namespace Generic is
     /// Iterates over a Map and returns each MapPair comprising the Map in turn. Returns values in no particular order 
     /// \param K the key type
     /// \param T the value type
-    class MapIterator<K,T> do Iterator<MapPair<K,T>> is
+    class MapIterator<K,T> do Iterator<Pair<K,T>> is
 	Map<K,T> _map;            // the Map we're iterating over
 	LinkedListIterator<MapPair<K,T>> _j;   // iterator over the current hash chain
 	MapPair<K,T> _next; // the map value that we will return as nextElement()	
@@ -78,10 +80,7 @@ namespace Generic is
     /// Holds a key-value pair. 
     /// \param the key type
     /// \param the value type
-    class MapPair<K,T> is
-	public K key;
-	public T value;
-
+    class MapPair<K,T> isa Pair<K,T> is
 	/// Construct a new MapPair
 	/// \param k the key
 	/// \param v the value
@@ -156,7 +155,7 @@ namespace Generic is
     /// An associative array
     /// \param K type of keys in the Map. K must implement int hash() method and =~ operator (bool opEquals(K)). 
     /// \param T type of values in the Map.
-    class Map<K,T> do Iterable<T> is
+    class Map<K,T> do Dict<K,T> is
 	public ListNode<MapPair<K,T>>[] _values;
 
 	/// Construct a new Map
@@ -262,7 +261,7 @@ namespace Generic is
 	    fi
 	si
 
- 	bool containsKey( K key ) is
+ 	bool contains( K key ) is
 	    int k;
 	    int h;
 	    MapPair<K,T> match;
@@ -360,13 +359,13 @@ namespace Generic is
 
 	/// Accessor: get MapValueIterator<K,T> Iterator
 	/// Get a new Iterator that returns each value in the Map in turn
-	get MapValueIterator<K,T> Iterator is
+	get PairValueIterator<K,T> Iterator is
 	    return elements();
 	si
 
 	/// Accessor: get MapKeyIterator<K,T> Keys
 	/// Get a new Iterator that returns each key in the Map in turn
-	get MapKeyIterator<K,T> Keys is
+	get PairKeyIterator<K,T> Keys is
 	    return keys();
 	si
 
@@ -382,13 +381,13 @@ namespace Generic is
 	si
 
 	/// Return a new Iterator that returns each value in the Map in turn
-	MapValueIterator<K,T> elements() is
+	PairValueIterator<K,T> elements() is
 	    // IO.Std.out.print( "Map.elements for " + this + "\n" );
-	    return new MapValueIterator<K,T>(pairs());
+	    return new PairValueIterator<K,T>(pairs());
 	si
 
 	/// Return a new Iterator that returns each key in the Map in turn
-	MapKeyIterator<K,T> keys() is
+	PairKeyIterator<K,T> keys() is
 	    return new MapKeyIterator<K,T>(pairs());
 	si
     si

@@ -1,3 +1,7 @@
+#C
+
+// Copyright 2004-2010 <degs@giantblob.com> all rights reserved
+
 pragma NoWarnUnsafe, NoMarkUnsafe;
 
 namespace System {

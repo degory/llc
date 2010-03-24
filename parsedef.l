@@ -1,3 +1,6 @@
+#C
+
+// Copyright 2004-2010 <degs@giantblob.com> all rights reserved
 
 namespace Parse {
     use System.Object;
@@ -1688,6 +1691,8 @@ namespace Parse {
 	    m = null;
 
 	    // last_return = false;
+
+	    type.clear(state);
 	
 	    if( args != null ) {
 		args.clear( state );
@@ -1696,6 +1701,7 @@ namespace Parse {
 	}
 
 	void checkTemplates( CompileState state ) {
+	    type.checkTemplates(state);
 	    if( args != null ) {
 		args.checkTemplates( state );
 	    }
@@ -1706,84 +1712,90 @@ namespace Parse {
 	// the method itself plus its arguments):
         void declareClassSymbols( CompileState state ) {
             // IO.Std.err.println( "method def declare class symbols: " + name + " type: " + type );
-
-
-	    /*
-	    m = state.nextMethodByIndex( name.Name );
-	    if( m != null ) {
-		IO.Std.err.println( "MMMMMM: appear to have already parsed: " + m.HumanName );
-		return;
-	    }
-	    */
-            
-            int kind = 0;
-            bool skip_this = true;
-            if( Access & Symbol.ACCESS_STATIC != 0 ) {
-                kind = Symbol.FLAG_STATIC;
-                skip_this = false;
-            }
-
-            int actual_access = Access & ~Symbol.ACCESS_STATIC;
-            if( actual_access == 0 ) {
-                if( state.CurrentMethod != null ) {
-                    actual_access = Symbol.ACCESS_LOCAL;
-                } else {
-                    actual_access = Symbol.ACCESS_PUBLIC;
-                }
-            }
-            
-            Vector<Type> arg_types = null;
-            if( args != null ) {
-                arg_types = args.getTypes( state );
-            }
-
-	    String n = name.Name;
-            m = cast<Container>( state.declareMethod( this, n, kind, actual_access, type.parseType(state), arg_types, null ) );
-
-	    // m.IsEmpty = is_empty;
-
-	    // m.IsPIC = state.WantPIC;
-
-	   
-	    if( n.Length > 3 ) {
-		if( n.startsWith( "get" ) || n.startsWith( "set" ) ) {
-		    // IO.Std.err.println( "AAAAAA: declaring accessor method: " + n.substring(3) );
-		    
-		    // insert an entry in the symbol table for the accessor name to prevent symbol table look ups for it
-		    // finding symbols in outer scopes before accessor methods are searched in Identifier.getType():
-		    /* Symbol s =*/
-		    state.declareAccessor( this, n.substring(3), n );
-		    // IO.Std.err.println( "declared accessor: " + s + " because: " + m.HumanName + ", " + m );
-		} else if( n.Length > 5 &&
-			   (n.startsWith( "opGet" ) || n.startsWith( "opSet" ) ) ) {
-		    state.declareAccessor( this, n.substring(5), n );
+	    try {
+		
+		/*
+		  m = state.nextMethodByIndex( name.Name );
+		  if( m != null ) {
+		  IO.Std.err.println( "MMMMMM: appear to have already parsed: " + m.HumanName );
+		  return;
+		  }
+		*/
+		
+		int kind = 0;
+		bool skip_this = true;
+		if( Access & Symbol.ACCESS_STATIC != 0 ) {
+		    kind = Symbol.FLAG_STATIC;
+		    skip_this = false;
 		}
+		
+		int actual_access = Access & ~Symbol.ACCESS_STATIC;
+		if( actual_access == 0 ) {
+		    if( state.CurrentMethod != null ) {
+			actual_access = Symbol.ACCESS_LOCAL;
+		    } else {
+			actual_access = Symbol.ACCESS_PUBLIC;
+		    }
+		}
+		
+		Vector<Type> arg_types = null;
+		if( args != null ) {
+		    arg_types = args.getTypes( state );
+		}
+		
+		String n = name.Name;
+		m = cast<Container>( state.declareMethod( this, n, kind, actual_access, type.parseType(state), arg_types, null ) );
+		
+		// m.IsEmpty = is_empty;
+		
+		// m.IsPIC = state.WantPIC;
+		
+		
+		if( n.Length > 3 ) {
+		    if( n.startsWith( "get" ) || n.startsWith( "set" ) ) {
+			// IO.Std.err.println( "AAAAAA: declaring accessor method: " + n.substring(3) );
+			
+			// insert an entry in the symbol table for the accessor name to prevent symbol table look ups for it
+			// finding symbols in outer scopes before accessor methods are searched in Identifier.getType():
+			/* Symbol s =*/
+			state.declareAccessor( this, n.substring(3), n );
+			// IO.Std.err.println( "declared accessor: " + s + " because: " + m.HumanName + ", " + m );
+		    } else if( n.Length > 5 &&
+			       (n.startsWith( "opGet" ) || n.startsWith( "opSet" ) ) ) {
+			state.declareAccessor( this, n.substring(5), n );
+		    }
+		}
+		
+		
+		state.beginCompileMethod( this, m, m.DecoratedName );
+		body.applyPragmas(state);
+		state.endCompileMethod(m);
+		
+		/*
+		  
+		  state.beginParseMethodArgs( this, m );
+		  
+		  // IO.Std.err.println( "method scope: " + m.Scope );
+		  
+		  if( args != null ) {
+		  args.declareSymbols( state, skip_this );
+		  }
+		  
+		  state.endParseMethodArgs( m );
+		*/
+		// IO.Std.err.println( "method def parsed: " + m );
+	    } catch( AbortCompilingThisMethodException ae ) {
+		error( "" + name + ": unrecoverable error" );
+		if( state.WantVeryVerbose ) {
+		    IO.Std.err.println( "cause: " + ae );
+		}
+	    } catch( AbortCompilingThisProjectException be ) {
+		error( "" + name + ": unrecoverable error" );
+		if( state.WantVeryVerbose ) {
+		    IO.Std.err.println( "cause: " + be );
+		}
+		throw be
 	    }
-
-
-            state.beginCompileMethod( this, m, m.DecoratedName );
-	    body.applyPragmas(state);
-	    state.endCompileMethod(m);
-
-	    if( state.WantVirtual ) {
-		m.IsFinal = false;
-		warn( "force not final: " + m.HumanName );
-	    }
-
-
-            /*
-
-            state.beginParseMethodArgs( this, m );
-
-            // IO.Std.err.println( "method scope: " + m.Scope );
-
-            if( args != null ) {
-                args.declareSymbols( state, skip_this );
-            }
-
-            state.endParseMethodArgs( m );
-            */
-            // IO.Std.err.println( "method def parsed: " + m );
         }
 
 	int compileArguments( CompileState state, IRBlock into, bool include_this ) {
@@ -2034,7 +2046,14 @@ namespace Parse {
 		    IO.Std.err.println( "cause: " + nie );
 		}
 		success = false;
+	    } catch( AbortCompilingThisProjectException be ) {
+		error( "" + name + ": unrecoverable error" );
+		if( state.WantVeryVerbose ) {
+		    IO.Std.err.println( "cause: " + be );
+		}
+		throw be
 	    }
+
 
 	    // IO.Std.err.println( "method def: compile B last is return: " + last_return );
 	    

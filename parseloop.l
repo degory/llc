@@ -1,3 +1,6 @@
+#C
+
+// Copyright 2004-2010 <degs@giantblob.com> all rights reserved
 
 namespace Parse {
     use System.Object;
@@ -431,6 +434,10 @@ namespace Parse {
              
             // MethodCall *elements_call = new MethodCall( line_number, expr, new Identifier( line_number, "elements" ), 0 );
             t = expr.getType(state);
+
+	    if( t == undefined_type ) {
+		return;
+	    }
 
 	    Type et;
 	    LLVM.Type let;

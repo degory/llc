@@ -1,4 +1,6 @@
-// Copyright (C) 2009 degs <junk@giantblob.com> all rights reserved
+#C
+
+// Copyright (C) 2004-2010 degs <junk@giantblob.com> all rights reserved
 
 import vector;
 import container;

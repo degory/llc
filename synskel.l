@@ -1,5 +1,6 @@
+#C
 
-
+// Copyright 2004-2010 <degs@giantblob.com> all rights reserved
 
 namespace Parse {
     use System.Object;

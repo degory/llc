@@ -1,4 +1,6 @@
-// copyright (C) 2004-2009 degs <junk@giantblob.com> all rights reserved
+#C
+
+// Copyright 2004-2010 <degs@giantblob.com> all rights reserved
 
 import args;
 import stream;
@@ -37,7 +39,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1249;
+	const int BUILD = 1251;
 
 	CompileState state;
 
@@ -130,6 +132,9 @@ namespace Parse {
                             i = i + 1;
 			    state.RuntimeDir = args[i];
                         }	
+
+		    case 'X':
+			state.WantPrint = true;
 
 		    case 'D':
 			state.WantPrintDeps = true;
@@ -504,6 +509,10 @@ namespace Parse {
 	    } catch( ParseException pe ) {
 		ParseTree.newline();
 		IO.Std.err.println( "*** unrecoverable parse error ***" );
+		return 1;
+	    } catch( AbortCompilingThisProjectException ae ) {
+		ParseTree.newline();
+		IO.Std.err.println( "*** unrecoverable compile error ***" );
 		return 1;
 	    } catch( Exception se ) {
 		ParseTree.newline();

@@ -1,4 +1,6 @@
-// copyright (C) 2009 degs <junk@giantblob.com> all rights reserved
+#C
+
+// copyright 2004-2010 degs <junk@giantblob.com> all rights reserved
 
 import stream;
 import vector;
@@ -255,18 +257,18 @@ namespace Parse {
 
         void init( String current_file, IO.Reader i ) {
             super.init();
-	    want_new_syntax = false;
+	    want_new_syntax = true;
 	    int t = i.read();
 	    if( t == cast int('#') ) {
 		// IO.Std.err.println( "reading syntax marker..." );
 		int u = i.read();
-		if( u == cast int('L') ) {
-		    // want_new_syntax = false;
+		if( u == cast int('C') || u == cast int('L') ) {
+		    want_new_syntax = false;
 		} else if( u == cast int('K') ) {
 		    // IO.Std.err.println( "new syntax selected" );
 		    want_new_syntax = true;
 		} else {
-		    throw new Exception( "unexpected syntax type marker" );
+		    throw new Exception( "unexpected syntax type marker '#" + cast char(u) + "'" );
 		}
 	    } else if( t != -1 ) {
 		i.unRead( t );

@@ -1,3 +1,5 @@
+#C
+
 // copyright (C) 2009 degs <junk@giantblob.com> all rights reserved
 
 import stream;

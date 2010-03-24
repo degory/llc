@@ -6,7 +6,8 @@
 #		t is copied as //t if -t is set
 #	other lines are interpreted to call jay procedures
 
-.// copyright (C) 2009 degs <junk@giantblob.com>
+.#C
+.// copyright (C) 2004-2010 degs <junk@giantblob.com>
 .// created by jay 0.8, jay is copyright (c) 1998 Axel.Schreiner@informatik.uni-osnabrueck.de
 .
 .import stream;

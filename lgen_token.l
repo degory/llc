@@ -1,4 +1,6 @@
-// copyright 2009 degs <junk@giantblob.com> all rights reserved
+#C
+
+// Copyright 2004-2010 <degs@giantblob.com> all rights reserved
 
 import stream;
 import vector;

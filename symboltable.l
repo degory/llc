@@ -1,4 +1,6 @@
-// copyright (C) 2009 degs <junk@giantblob.com> all rights reserved
+#C
+
+// copyright (C) 2004-2010 degs <junk@giantblob.com> all rights reserved
 
 namespace Parse { 
     use System.Object;

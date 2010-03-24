@@ -1,4 +1,6 @@
-// Copyright (C) Degs 2009 all rights reserved
+#C
+
+// Copyright 2004-2010 <degs@giantblob.com> all rights reserved
 
 import map;
 import stream;

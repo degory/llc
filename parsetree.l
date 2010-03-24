@@ -1,4 +1,6 @@
-// copyright (C) 2009 degs <junk@giantblob.com> all rights reserved
+#C
+
+// Copyright 2004-2010 <degs@giantblob.com> all rights reserved
 
 import type;
 import symbol;
@@ -206,6 +208,13 @@ namespace Parse {
 	    super.init( message );
 	}
     }
+
+    class AbortCompilingThisProjectException extends Exception {
+	void init( String message ) {
+	    super.init( message );
+	}
+    }
+
 
     class ExceptionDescriptor extends Object {
 	public EDType type;

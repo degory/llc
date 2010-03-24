@@ -1,4 +1,7 @@
-// Copyright (C) 2009 degs <junk@giantblob.com> all rights reserved
+#C
+
+// Copyright 2004-2010 <degs@giantblob.com> all rights reserved
+
 
 import stream;
 import oset;
@@ -2809,7 +2812,7 @@ namespace Parse {
 
 	    if( pass > CompilePass.CHECK_TEMPLATES ) {
 		IO.Std.err.println( "find generic " + c + " " + arguments + ": wrong pass should have been done earlier" );
-		throw new System.Exception( "find generic " + c + " " + arguments + ": wrong pass should have been done earlier" ); 
+		throw new AbortCompilingThisMethodException( "find generic " + c + " " + arguments + ": wrong pass should have been done earlier" ); 
 	    }
 
 	    //	    if( !find_only ) {
