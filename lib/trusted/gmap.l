@@ -16,19 +16,19 @@ namespace Generic is
     use System.String;
     use System.StringBuffer;
 
-    /// Iterates over a Map<K,T> and returns each Pair<K,T> comprising the map in turn. Returns values in no particular order 
+    /// Iterates over a Map<K,V> and returns each Pair<K,V> comprising the map in turn. Returns values in no particular order 
     /// \param K the key type
-    /// \param T the value type
-    class MapIterator<K,T> do Iterator<Pair<K,T>> is
-	Map<K,T> _map;            // the Map we're iterating over
-	LinkedListIterator<MapPair<K,T>> _j;   // iterator over the current hash chain
-	MapPair<K,T> _next; // the map value that we will return as nextElement()	
+    /// \param V the value type
+    class MapIterator<K,V> do Iterator<Pair<K,V>> is
+	Map<K,V> _map;            // the Map we're iterating over
+	LinkedListIterator<MapPair<K,V>> _j;   // iterator over the current hash chain
+	MapPair<K,V> _next; // the map value that we will return as nextElement()	
 	int _i;              // the index of the hash chain we're currently iterating over
 	bool _more_elements; // is _next valid? or have we already enumerated all values in Map
 
 	/// Construct a new MapIterator over map m
 	/// \param m the Map to iterate over
-	void init( Map<K,T> m ) is
+	void init( Map<K,V> m ) is
 	    super.init();
 	    _map = m;
 	    _i = 0-1;
@@ -40,7 +40,7 @@ namespace Generic is
 	void _go_next() is
 	    // IO.Std.out.println( "_go_next: " + _map );
 	    _more_elements = true;
-	    ListNode<MapPair<K,T>> l;
+	    ListNode<MapPair<K,V>> l;
 
 	    // try to find a non-null hash chain that has some elements in it
 	    while _j == null || !_j.hasMoreElements() do
@@ -70,8 +70,8 @@ namespace Generic is
 	si
 
 	/// Return the next value in the Map. Behaviour is undefined if nextElement() is called after hasMoreElements() has returned false
-	MapPair<K,T> nextElement() is
-	    MapPair<K,T> result = _next;
+	MapPair<K,V> nextElement() is
+	    MapPair<K,V> result = _next;
 	    _go_next();
 	    return result;
 	si
@@ -80,11 +80,11 @@ namespace Generic is
     /// Holds a key-value pair. 
     /// \param the key type
     /// \param the value type
-    class MapPair<K,T> isa Pair<K,T> is
+    class MapPair<K,V> isa Pair<K,V> is
 	/// Construct a new MapPair
 	/// \param k the key
 	/// \param v the value
-	void init( K k, T v ) is
+	void init( K k, V v ) is
 	    super.init();
 	    key = k;
 	    value = v;
@@ -100,7 +100,7 @@ namespace Generic is
 
 	/// Implements inequality operators.
 	/// \param v the MapPair to compare to for ordering
-	int opCompare( MapPair<K,T> v ) is
+	int opCompare( MapPair<K,V> v ) is
 	    return key.opCompare(v.key);
 	si
 
@@ -112,13 +112,13 @@ namespace Generic is
 	/*       
     /// Iterates over a Map returning each key in the map in turn. Returns keys in no particular order
     /// \param K the key type
-    /// \param T the value type
-    class MapKeyIterator<K,T> do Iterator<K> is
-	MapIterator<K,T> _i;
+    /// \param V the value type
+    class MapKeyIterator<K,V> do Iterator<K> is
+	MapIterator<K,V> _i;
 	
 	/// Construct a new MapKeyIterator
 	/// \param i the underlying MapIterator that iterates over the MapPairs comprising the Map
-	void init( MapIterator<K,T> i ) is
+	void init( MapIterator<K,V> i ) is
 	    super.init();
 	    _i = i;
 	si
@@ -134,13 +134,13 @@ namespace Generic is
 
     /// Iterates over a Map returning each value in the Map in turn. Returns values in no particular order
     /// \param K the key type
-    /// \param T the value type
-    class MapValueIterator<K,T> do Iterator<T> is
-	MapIterator<K,T> _i;
+    /// \param V the value type
+    class MapValueIterator<K,V> do Iterator<V> is
+	MapIterator<K,V> _i;
 
 	/// Construct a new MapValueIterator
 	/// \param i the underlying MapIterator that iterates over the MapPairs comprising the Map
-	void init( MapIterator<K,T> i ) is
+	void init( MapIterator<K,V> i ) is
 	    _i = i;
 	si
 
@@ -148,7 +148,7 @@ namespace Generic is
 	    return _i.hasMoreElements();
 	si
 
-	T nextElement() is
+	V nextElement() is
 	    return _i.nextElement().value;
 	si
     si
@@ -156,9 +156,9 @@ namespace Generic is
 
     /// An associative array implemented as a hash table. 
     /// \param K type of keys in the Map. K must implement int hash() method and =~ operator (bool opEquals(K)). 
-    /// \param T type of values in the Map.
-    class Map<K,T> do Dict<K,T> is
-	public ListNode<MapPair<K,T>>[] _values;
+    /// \param V type of values in the Map.
+    class Map<K,V> do Dict<K,V> is
+	public ListNode<MapPair<K,V>>[] _values;
 
 	/// Construct a new Map
 	/// \param size number of slots in the Map's hash table. Size should be prime. The hash table size is
@@ -171,7 +171,7 @@ namespace Generic is
 		throw new System.Exception( "oops: map length is " + size );
 	    fi
 
-	    _values = new ListNode<MapPair<K,T>>[size];
+	    _values = new ListNode<MapPair<K,V>>[size];
 	si
 
 	/// Construct a new Map with default hash table size
@@ -191,27 +191,27 @@ namespace Generic is
 	    fi
 	si
 
-	/// Indexed accessor: set T[K key] = value
+	/// Indexed accessor: set V[K key] = value
 	/// \param key the key to set
 	/// \param value the value to give this key
-	set T[K key] = value is
+	set V[K key] = value is
 	    int k;
 	    int h;
-	    ListNode<MapPair<K,T>> chain;
+	    ListNode<MapPair<K,V>> chain;
 	    hashOf(key,k,h);
 
 	    // IO.Std.out.print( "Map.put(" + key + "," + value + ")\n" );
 
-	    MapPair<K,T> match = _find_pair( key, h, k, false);
+	    MapPair<K,V> match = _find_pair( key, h, k, false);
 
 	    if match == null then
-		match = new MapPair<K,T>( key, value );
+		match = new MapPair<K,V>( key, value );
 
 		// IO.Std.out.print( "putting MapPair " + match + " at " + h + "\n" );
 
 		chain =_values[h];
 
-		ListNode<MapPair<K,T>> c = new ListNode<MapPair<K,T>>(match,chain);
+		ListNode<MapPair<K,V>> c = new ListNode<MapPair<K,V>>(match,chain);
 		// IO.Std.out.print( "putting ListNode " + c + " at " + h + "\n" );
 	  
 		_values[h] = c;
@@ -220,13 +220,13 @@ namespace Generic is
 	    fi
 	si
 
-	/// Indexed accessor: get T[K key]
+	/// Indexed accessor: get V[K key]
 	/// \param key the key to get
 	/// \return the value associated with key
-	get T[K key] is
+	get V[K key] is
 	    int k;
 	    int h;
-	    MapPair<K,T> match;
+	    MapPair<K,V> match;
 
 	    if key == null then
 		return null;
@@ -243,13 +243,13 @@ namespace Generic is
 	    fi
 	si
 
-	/// Remove and value associated with key from the Map if it is present, otherwise return T.none
-	/// \key key to remove
-	/// \return value of key removed if present, otherwise T.none
-	T remove( K key ) is
+	/// Remove and value associated with key from the Map if it is present, otherwise return V.none
+	/// \param key key to remove
+	/// \return value of key removed if present, otherwise V.none
+	V remove( K key ) is
 	    int k;
 	    int h;
-	    MapPair<K,T> match;
+	    MapPair<K,V> match;
 
 	    if key == null then
 		return null;
@@ -269,7 +269,7 @@ namespace Generic is
  	bool contains( K key ) is
 	    int k;
 	    int h;
-	    MapPair<K,T> match;
+	    MapPair<K,V> match;
 
 	    if key == null then
 		return null;
@@ -299,7 +299,7 @@ namespace Generic is
 	    int result = 0;
 
 	    for int i = 0; i < _values.length; i = i + 1 do
-		ListNode<MapPair<K,T>> l = _values[i];
+		ListNode<MapPair<K,V>> l = _values[i];
 		if l != null then
 		    result = result + l.Length;
 		fi
@@ -316,12 +316,12 @@ namespace Generic is
 	si
 
 	/// Internal method
-	MapPair<K,T> _find_pair( K key, int h, int k, bool remove ) is
-	    ListNode<MapPair<K,T>> head = _values[h], prev = null;
+	MapPair<K,V> _find_pair( K key, int h, int k, bool remove ) is
+	    ListNode<MapPair<K,V>> head = _values[h], prev = null;
 
 	    while head != null do
 		// IO.Std.out.println( "loop..." );
-		MapPair<K,T> match = head.Value;
+		MapPair<K,V> match = head.Value;
 		// IO.Std.out.println( "match: " + match );
 		if match == null then
 		    throw new System.Exception( "oops: null map pair for key " + k + " chain " + h );
@@ -349,7 +349,7 @@ namespace Generic is
 	String toString() is
 	    var b = new StringBuffer();
 	    bool seen_any;
-	    foreach MapPair<K,T> i; new MapIterator<K,T>(this) do
+	    foreach MapPair<K,V> i; new MapIterator<K,V>(this) do
 	        if seen_any then
 		    b.append( ',' );
 		else
@@ -361,38 +361,38 @@ namespace Generic is
 	    return b;
 	si
 
-	/// Accessor: get PairKeyIterator<K,T> Keys
+	/// Accessor: get PairKeyIterator<K,V> Keys
 	/// Get a new Iterator that returns each key in the Map in turn
-	get PairKeyIterator<K,T> Keys is
+	get PairKeyIterator<K,V> Keys is
 	    return keys();
 	si
 
 	/// Return a new Iterator that returns each key in the Map in turn
-	PairKeyIterator<K,T> keys() is
-	    return new PairKeyIterator<K,T>(pairs());
+	PairKeyIterator<K,V> keys() is
+	    return new PairKeyIterator<K,V>(pairs());
 	si
 
-	/// Accessor: get Iterator<Pair<K,T>> Pairs
+	/// Accessor: get Iterator<Pair<K,V>> Pairs
 	/// Get a new Iterator that returns each key-value pair in the Map in turn
-	get MapIterator<K,T> Pairs is
+	get MapIterator<K,V> Pairs is
 	    return pairs();
 	si
 
 	/// Return a new Iterator that returns each key-value pair in the Map in turn
-	MapIterator<K,T> pairs() is
-	    return new MapIterator<K,T>(this);
+	MapIterator<K,V> pairs() is
+	    return new MapIterator<K,V>(this);
 	si
 
-	/// Accessor: get PairValueIterator<K,T> Iterator
+	/// Accessor: get PairValueIterator<K,V> Iterator
 	/// Get a new Iterator that returns each value in the Map in turn
-	get PairValueIterator<K,T> Iterator is
+	get PairValueIterator<K,V> Iterator is
 	    return elements();
 	si
 
 	/// Return a new Iterator that returns each value in the Map in turn
-	PairValueIterator<K,T> elements() is
+	PairValueIterator<K,V> elements() is
 	    // IO.Std.out.print( "Map.elements for " + this + "\n" );
-	    return new PairValueIterator<K,T>(pairs());
+	    return new PairValueIterator<K,V>(pairs());
 	si
     si
 si

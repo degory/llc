@@ -2299,8 +2299,9 @@ namespace Parse {
             if( current_class.Scope.findMethodDecorated( decorate ) != null ) {
                 from.error( "duplicate method definition " + human );
             }
-
-            Container override = current_class.findMethod( name, args, false );
+	    
+	    var q = new Quality();
+            Container override = current_class.findBestMethod( name, args, q );
             if( override != null ) {
                 if( !override.matches( args, true ) ) {
                     String this_args = ParseTree.dumpArguments( args );

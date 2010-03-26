@@ -82,7 +82,7 @@ namespace System {
 	}
 
 	/// locate a class in any shared object from its vtable function name and return a Class object representing it
-	/// \param vtable_name the decorated get vtable function name for the class name to load
+	/// \param vtable_function the decorated get vtable function name for the class name to load
 	/// \return a Class object representing the requested class, if present in the shared object or null otherwise
 	/// \throw LibraryException if the vtable cannot be found
 	static Class findClassFromVTableNameAll( String vtable_function ) {

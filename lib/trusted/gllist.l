@@ -191,6 +191,14 @@ namespace Generic is
 	        return "";
 	    fi
 	si
+
+	Slice<T> slice(int from, int to) is
+	    return new Slice<T>(this, from, to);
+	si
+
+	get Slice<T>[Range<int> r] is
+	    return new Slice<T>(this, r.from, r.to);
+	si
     si
 
     /// Internal linked list implementation for LinkedList<T>

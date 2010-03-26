@@ -320,7 +320,7 @@ namespace IO {
 	}
 
 	/// Get the class identified by a given tag
-	/// \param the tag to get the class for
+	/// \param n the tag to get the class for
 	/// \return the class identified by this tag
 	static Class getClassForTag(String n) { 
 	    lazyInit();
@@ -460,7 +460,7 @@ namespace IO {
 	}
 
 	/// Check next token is an OPEN token for a particular tag and discard it
-	/// \param expected tag
+	/// \param tag expected tag
 	public void open( String tag ) {
 	    // IO.Std.err.println( "read open:" + tag );
 	    if( parser.CurrentToken == SerialToken.OPEN && parser.CurrentString.equals(tag) ) {
@@ -579,7 +579,7 @@ namespace IO {
 	/// \param t template object used to determine vtable for new array
 	/// \param offset offset in bytes of first element relative to this
 	/// \param length number of element in array
-	/// \type type of array elements
+	/// \param type type of array elements
 	/// \return an object that can be cast to the appropriate array type
 	Object readArray( Object t, int offset, int length, int type ) {
 	    word ptr result;
@@ -1350,7 +1350,7 @@ namespace IO {
 	/// Write a list of values to the serialization stream
 	/// \param p pointer to the list of values to write
 	/// \param type type of each element
-	/// \length number of elements to write
+	/// \param length number of elements to write
 	void writeElements( char ptr p, int type, int length ) {
 	    IO.Std.err.println( "writeElements(" + cast long(p) + "," + type + "," + length + ")..." );
 

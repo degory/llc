@@ -12,6 +12,8 @@ namespace System is
     use Generic.List;
     use Generic.Iterable;
     use Generic.Iterator;
+    use Generic.Range;
+    use Generic.Slice;
 
     @NoWarnUnsafe, NoMarkUnsafe;
    
@@ -60,15 +62,6 @@ namespace System is
 		    result.append( c );
 		    i = i + 1;
 		fi
-	    od
-	    return result;
-	si
-
-	/// Append every object int the supplied array into a new StringBuffer and return it
-	static StringBuffer cat( Object[] args ) is
-	    StringBuffer result = new StringBuffer(``);
-	    for int i = 0; i < args.length; i = i + 1 do
-		result.append( args[i] );
 	    od
 	    return result;
 	si
@@ -653,7 +646,11 @@ namespace System is
 	    return result;
 	si
 
-	get StringBuffer[RangeIterator<int> r] is
+        Slice<char> slice( int from, int to ) is
+	    return new Slice<char>(this, from, to);
+	si
+
+	get String[Range<int> r] is
 	    return substring(r.from, r.to+1);
         si
 

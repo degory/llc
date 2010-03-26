@@ -55,7 +55,7 @@ namespace Generic is
 	
 	/// Insert a value into this list at appropriate position
 	/// \param v value to insert
-	/// \compare compare sort order to apply
+	/// \param compare sort order to apply
 	void insert( T v, int proc(T,T) compare ) is
 	    if compare(v,value) <= 0 then
 		throw new ListBoundsException( "value sorts before head of this list" );

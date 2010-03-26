@@ -2121,8 +2121,19 @@ namespace Parse {
 
 
 	Container findImplementedMethod( Container interface_method ) {
-	    // IO.Std.err.println( "look for " + interface_method.HumanName + " in " + this.HumanName + "..." );
 	    Container result = members.findMethod( interface_method.Name, interface_method.ArgTypes, true );
+
+	    /*
+	    // IO.Std.err.println( "look for " + interface_method.HumanName + " in " + this.HumanName + "..." );
+
+
+	    if( result != null ) {
+		IO.Std.err.println( "have: " + result );
+	    }
+
+	    return result;
+	    */
+
 	    if( result != null ) {
 		// IO.Std.err.println( "found here" );
 		return result;

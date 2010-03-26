@@ -162,12 +162,12 @@ namespace Generic is
 	    return true;
         si
 
-	ArrayRange<T> range(int from, int to) is
-	    return new ArrayRange<T>(this, from, to); 
+	Slice<T> slice(int from, int to) is
+	    return new Slice<T>(this, from, to); 
 	si	   
 
-	get ArrayRange<T>[System.RangeIterator<int> r] is
-	    return new ArrayRange<T>(this, r.from, r.to);
+	get Slice<T>[Range<int> r] is
+	    return new Slice<T>(this, r.from, r.to);
 	si
     si
 
@@ -193,7 +193,8 @@ namespace Generic is
 	si
     si
 
-    class ArrayRange<T> do List<T>, Iterator<T> is
+	/*
+    class ArraySlice<T> do List<T>, Iterator<T> is
         T[] a;
         int i;
 	int from, to;
@@ -287,13 +288,14 @@ namespace Generic is
 	    return Length > 0;
 	si
 
-	get ArrayRange<T> Iterator is
-	    return new ArrayRange<T>(a, from, to);
+	get ArraySlice<T> Iterator is
+	    return new ArraySlice<T>(a, from, to);
 	si
 
-	ArrayRange<T> elements() is
-	    return new ArrayRange<T>(a, from, to);
+	ArraySlice<T> elements() is
+	    return new ArraySlice<T>(a, from, to);
 	si
 
     si	
+	*/
 si

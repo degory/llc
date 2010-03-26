@@ -1,6 +1,7 @@
 #K
 
 import gbag;
+import gslice;
 
 namespace Generic is
     /// Interface. An ordered list of values accessible with array syntax
@@ -19,5 +20,20 @@ namespace Generic is
 	/// \param index index of value to set
 	/// \param v new value
 	set T[int index] = v;
+
+	/// Get a slice of this List<T>
+	/// \param from index of first element to include in slice
+	/// \param to index of last element to include in slice
+	/// \return a read only view of a list consisting of elements from..to.
+	Slice<T> slice(int from, int to);
+
+	/// Get a read only subsection of this List<T> 
+	/// \param range range of elements to include in slice
+	/// \return a read only view of a list consisting of elements from..to.
+	/// \attention implementations may return either a read only view of the
+	/// underlying list or a copy. If !isa<Slice<T>>(result) then caller may
+	/// assume that either the result is a copy or the underlying object is
+	/// immutable.
+        get List<T>[Range<int> r];
     si
 si

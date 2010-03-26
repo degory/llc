@@ -1358,7 +1358,6 @@ namespace IO {
 
 	/// Touch the file at the current path. If the file exists its last modified time is set to the current time. If the file doesn't exist then
 	/// it is created and its creation time is set to the current time.
-	/// \param file path to the file to touch
 	/// \throw IOException
 	void touch() {
 	    touch( path );
@@ -1437,7 +1436,6 @@ namespace IO {
 
 	/// Read a symbolic link and return the path it refers to.
 	/// \param file path to the link to read
-	/// \param quiet if true do not throw IOException if the link cannot be read but instead return null
 	/// \return if file refers to a symbollic link, return the referenced path; if file refers to a regular
 	/// file return its path otherwise return null
 	static System.String readLinkQuiet( System.String file ) {

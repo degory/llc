@@ -161,6 +161,7 @@ namespace Util is
 	/// \param name path to program to execute
 	/// \param args program arguments in an array of Strings
 	/// \param env program environment in an array of Strings
+	/// \param want_wait if true wait for child to exit before returning, otherwise return immediately
 	/// \return child exit status if wait, otherwise zero
 	int run( System.String name, System.String[] args, System.String[] env, bool want_wait ) is
 	    native.GC_disable();

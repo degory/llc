@@ -399,19 +399,12 @@ namespace Generic is
 	    return result;
 	si
 
-	get Object ptr ObjectValuesPointer is
-	    if !T.isobject then
-		return null;
-            fi
-	    return cast Object ptr(_values);
+        Slice<T> slice(int from, int to) is
+	    return new Slice<T>(this, from, to);
 	si
 
-	get int ObjectValuesLength is
-	    return _length;
-	si
-
-	get int MemoryUse is 
-	    return ObjectSize + T.sizeof * _allocated_length;
+	get Slice<T>[Range<int> r] is
+	    return new Slice<T>(this, r.from, r.to);
 	si
     si
 si

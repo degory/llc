@@ -17,6 +17,7 @@ namespace Generic is
 
         /// Sort a slice of the supplied List
         /// \param values the List<T> of values to sort
+	/// \param compare the sort order to apply
         /// \param p first element in the range to sort, inclusive
         /// \param r last element in the range to sort, inclusive
 	static void sort(List<T> values, int proc(T,T) compare, int p, int r) is

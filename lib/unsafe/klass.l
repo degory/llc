@@ -123,7 +123,7 @@ namespace System is
 	si
 
         /// Is this Class the same class as the class of supplied Object or one of its super classes?
-        /// \param c Object to compare
+        /// \param o Object to compare
 	bool likeMe( Object o ) is
 	    if this == null || o == null then
 		return false;

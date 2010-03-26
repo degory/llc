@@ -1,5 +1,6 @@
 #K
 
+import grange;
 import primword;
 import primlong;
 
@@ -7,6 +8,7 @@ pragma NoMarkUnsafe, NoWarnUnsafe;
 
 namespace System is
     use Generic.Iterator;
+    use Generic.Range;
 
     /// Object wrapper around primitive int type
     class Int is
@@ -101,31 +103,10 @@ namespace System is
 	    return i + 1;
 	si
 
-	static RangeIterator<int> opRange(int from, int to) is
-	    return new RangeIterator<int>(from, to);
+	static Range<int> opRange(int from, int to) is
+	    return new Range<int>(from, to);
 	si	
     si
-
-    class RangeIterator<T> do Iterator<T> is
-        bool done;
-        public T i, from, to;
-
-	void init( T from, T to ) is
-	    i = from;
-            this.from = from;
-	    this.to = to;	    
-	si
-
-	bool hasMoreElements() is
-	    return i <= to;
-	si
-
-	T nextElement() is
-	    T result = i;
-	    i = i.next();
-	    return result;	 
-	si
-    si				
 
     class Bool is
 	public static Bool False = new Bool(false);
@@ -300,9 +281,8 @@ namespace System is
 	    return i + 1c;
 	si
 
-	static RangeIterator<char> opRange(char from, char to) is
-	    return new RangeIterator<char>(from, to);
+	static Range<char> opRange(char from, char to) is
+	    return new Range<char>(from, to);
 	si	
-
     si
 si
