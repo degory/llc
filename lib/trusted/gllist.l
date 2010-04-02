@@ -199,6 +199,17 @@ namespace Generic is
 	get Slice<T>[Range<int> r] is
 	    return new Slice<T>(this, r.from, r.to);
 	si
+
+        LinkedList<T> copy() is
+	    var result = new LinkedList<T>();
+            if tail != null then
+		tail = tail.copy();
+	    fi
+	si
+
+	get LinkedList<T> Freeze is
+   	    return copy();
+	si
     si
 
     /// Internal linked list implementation for LinkedList<T>
@@ -334,6 +345,14 @@ namespace Generic is
 
 	LinkedListIterator<T> elements() is
 	    return new LinkedListIterator<T>(this);
+	si
+
+	ListNode<T> copy() is
+	    if tail != null then
+	        return new ListNode<T>(value, tail.copy());
+	    else
+	        return new ListNode<T>(value, null);
+	    fi
 	si
     si
 si

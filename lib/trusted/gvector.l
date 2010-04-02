@@ -364,6 +364,10 @@ namespace Generic is
 	    return result;
 	si
 
+	get Vector<T> Freeze is
+	    return copy();
+	si
+
 	/// Internal method supporting copy()
 	void completeCopy() is
 	    T ptr v = cast T ptr(native.GC_malloc( _allocated_length * T.sizeof + 1 ));

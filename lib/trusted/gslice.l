@@ -131,5 +131,16 @@ namespace Generic is
 	Slice<T> elements() is
 	    return new Slice<T>(a, from, to);
 	si
+
+	get List<T> Freeze is
+	    var result = new Vector<T>(Length);
+	    i = 0;
+
+            foreach var v; this do
+	        result.add(v);
+	    od
+
+	    return result;
+        si
     si	
 si

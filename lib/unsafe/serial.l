@@ -2,6 +2,7 @@
 
 // Copyright 2004-2010 <degs@giantblob.com> all rights reserved
 
+import gmap;
 
 namespace IO {
     use System.Object;

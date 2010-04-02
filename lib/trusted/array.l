@@ -126,7 +126,7 @@ namespace Generic is
 	si
 
 	get T ptr Address is
-	    return cast T ptr(cast word(this) + 16w);
+	    return cast T ptr(cast T[](this).address);
         si
 
 	get Object ptr ObjectValuesPointer is
@@ -168,6 +168,19 @@ namespace Generic is
 
 	get Slice<T>[Range<int> r] is
 	    return new Slice<T>(this, r.from, r.to);
+	si
+
+        T[] copy() is
+	    var result = new T[length];
+	    for var i = 0; i < length; i = i + 1 do
+	        result[i] = this[i];
+	    od
+
+	    return result;
+	si
+
+	get T[] Freeze is
+	    return copy();
 	si
     si
 

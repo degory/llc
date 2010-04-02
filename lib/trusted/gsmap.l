@@ -370,16 +370,17 @@ class SortedMap<K,V> do Dict<K,V> is
             return;
 	fi
 
-	b.append( n );
-
 	b.append('(');
 
+	b.append( n );
+
         if n.left != null then
-            toString(n.left, b);
 	    b.append(',');
+            toString(n.left, b);
         fi
 
         b
+	    .append(',')
 	    .append(n.key)
 	    .append("=>")
 	    .append(n.value);

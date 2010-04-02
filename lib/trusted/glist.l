@@ -35,5 +35,10 @@ namespace Generic is
 	/// assume that either the result is a copy or the underlying object is
 	/// immutable.
         get List<T>[Range<int> r];
+
+        /// Get a copy of this List<T> that will not change if the original list
+	/// is altered. If the original list is immutable then this method
+	/// may simply return the same list
+	get List<T> Freeze;
     si
 si
