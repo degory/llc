@@ -1,3 +1,4 @@
+#C
 import args;
 import stream;
 

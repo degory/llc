@@ -1,3 +1,5 @@
+include target
+
 ifeq ($(LC),)
 	LC:=lc
 endif
@@ -15,7 +17,7 @@ ifeq ($(RUNTIME),)
 endif
 
 ifeq ($(LFLAGS),)
-	LFLAGS:=-p test -w -R$(RUNTIME)
+	LFLAGS:=-p test -R$(RUNTIME)
 endif
 
 ifeq ($(LFLAGSBC),)
@@ -23,7 +25,7 @@ ifeq ($(LFLAGSBC),)
 endif
 
 ifeq ($(LFLAGSNATIVE),)
-	LFLAGSNATIVE:=$(LFLAGS) -CN
+	LFLAGSNATIVE:=$(LFLAGS) -FN
 endif
 
 
@@ -59,6 +61,7 @@ all: $(INSTALL_OBJS)
 
 install: $(INSTALL_OBJS)
 	echo "Installing in $(PREFIX)/"
+	echo "Target is $(TARGET)"
 	#mkdir -p safe
 	#cp safe/lc-previous-1 safe/lc-previous-2 || true
 	#cp safe/lc-previous safe/lc-previous-1 || true
@@ -87,10 +90,10 @@ clean:
 	rm $(CLEAN) || true
 
 lc.d:
-	$(LC) $(MODEL) $(LFLAGS) -D -w -p test -o lc -s llvm main.l
+	$(LC) $(MODEL) $(LFLAGS) -D -p test -o lc -s llvm main.l
 
 lang.d:
-	$(LC) $(MODEL) $(LFLAGS) -D -w -u lib.l -o lang
+	$(LC) $(MODEL) $(LFLAGS) -D -u lib.l -o lang
 
 include lc.d
 
@@ -99,11 +102,11 @@ include lang.d
 lang: lang.bc lang.lh
 
 lang.bc: $(lang_DEPS)
-	$(LC) -V -f $(MODEL) $(LFLAGSBC) -CE -w -u lib.l -o lang
+	$(LC) -V -f $(MODEL) $(LFLAGSBC) -FE -u lib.l -o lang
 
 lang.so: $(lang_DEPS)
 	rm /tmp/lcache-test/* || true
-	$(LC) -V -f $(MODEL) $(LFLAGSNATIVE) -CPE -w -u lib.l -o lang
+	$(LC) -V -f $(MODEL) $(LFLAGSNATIVE) -FPE -u lib.l -o lang
 	mv lang lang.so
 
 lang.lh: lang.bc
@@ -123,7 +126,7 @@ dummy.o: dummy.c
 	gcc $(MODEL) -c dummy.c
 
 lc.bc:	$(lc_DEPS) 
-	$(LC) -f $(MODEL) $(LFLAGSBC) -w -p test -o lc -s llvm main.l -o lc
+	$(LC) -f $(MODEL) $(LFLAGSBC) -p test -o lc -s llvm main.l -o lc
 
 fcgi.o: fcgi.c
 	gcc $(MODEL) -c fcgi.c 

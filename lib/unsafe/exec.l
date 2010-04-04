@@ -126,7 +126,7 @@ namespace Util is
 	    fi
 
 	    native.execvp( name, args );
-	    native.fprintf( native.__get_stderr(), `Content-type: text/plain\r\n\r\nexec failed '%s'\n`, name );
+	    // native.fprintf( native.__get_stderr(), `Content-type: text/plain\r\n\r\nexec failed '%s'\n`, name );
 
 	    throwUnixError("execvp: " + name );
 	si

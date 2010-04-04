@@ -1,3 +1,4 @@
+#C
 namespace Test23 {
     class Main {
 	void init() {

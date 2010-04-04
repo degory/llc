@@ -1,3 +1,4 @@
+#C
 namespace Test32 { 
     class Main {
 	static int a, b, c;
