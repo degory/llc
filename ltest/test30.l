@@ -1,3 +1,4 @@
+#C
 import vector;
 
 namespace Test30 {

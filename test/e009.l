@@ -1,3 +1,4 @@
+#C
 
 namespace E001 { 
     class Main {

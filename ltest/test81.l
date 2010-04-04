@@ -1,3 +1,4 @@
+#C
 // operator call should prevent method inlining
 // string constant should be inlineable
 

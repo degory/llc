@@ -1,3 +1,4 @@
+#C
 
 namespace Test3 {
     class Main extends System.Object {

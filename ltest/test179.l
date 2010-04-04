@@ -1,3 +1,4 @@
+#C
 
 import stream;
 import compiler;

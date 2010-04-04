@@ -1,3 +1,4 @@
+#C
 namespace Test49 {
     class Main extends System.Object {
 	void init() {
