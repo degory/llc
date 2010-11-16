@@ -2,6 +2,7 @@ import environment;
 import object;
 import genum;
 import primtype;
+import gpointer;
 import array;
 import gproc;
 import iterator;

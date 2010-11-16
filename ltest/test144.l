@@ -17,27 +17,26 @@ namespace Test144 is
 		    number = number + 1;
 		od
 	    od
-	end
-    end
+	si
+    si
 
-    class Test extends System.Object is
+    class Test isa System.Object is
     	String name;
 
         void init( String name ) is
 	    this.name = name;
-	end
+	si
 
 	void throwException() is
 	    throw new System.Exception( "exception in dispose" );
-	end
+	si
 
 	void dispose() is
-	// try 
+	    try 
 		throwException();
-//    catch System.Exception se
-//	        IO.Std.err.println( "caught: " + se );
-//    yrt
-	end
-
-    end
-end
+            catch System.Exception se
+	        IO.Std.err.println( "caught: " + se );
+            yrt
+	si
+    si
+si

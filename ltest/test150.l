@@ -19,6 +19,6 @@ namespace Test150 is
 	    foreach int j; l.elements() do
 	        IO.Std.err.println( "have: " + j );
 	    od
-	end
-    end
-end
+	si
+    si
+si

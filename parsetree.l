@@ -287,6 +287,7 @@ namespace Parse {
             iterator_type,
 	// generic_iterator_type = null,
             array_type,
+	    pointer_type,
 	    class_type,
 	    type_type,
 	    proc_type,
@@ -1028,6 +1029,16 @@ namespace Parse {
 
 		return type;
 
+	    case Type.POINTER:
+	        sub_type = type.SubType;
+		args = new Vector<Type>();
+		args.add(sub_type);
+		type = state.findGeneric( pointer_type.Clazz, args, false );
+
+		// type = pointer_type;
+		// IO.Std.err.println( "boxed pointer " + type + " has generic type: " + type );
+		return type;
+
 
 	    case Type.VECTOR:
 		sub_type = type.SubType;
@@ -1102,6 +1113,7 @@ namespace Parse {
 	    // type_type = defineStandardClassType( state, "Type", "Object" );
 	    class_type = defineStandardClassType( state, "Class", "Object" );
 	    enum_type = defineStandardClassType( state, "Enum", "Object" );
+	    pointer_type = defineStandardClassType( state, "Pointer", "Object" );
 	    // enum_type.Clazz.turnIntoStruct();
             state.exitNameSpace( system );
             

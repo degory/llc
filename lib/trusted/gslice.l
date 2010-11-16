@@ -1,5 +1,6 @@
 import glist;
 import giterator;
+import gvector;
 
 namespace Generic is
     use System.BoundsException;

@@ -2813,6 +2813,7 @@ namespace Parse {
 
 	    if( pass > CompilePass.CHECK_TEMPLATES ) {
 		IO.Std.err.println( "find generic " + c + " " + arguments + ": wrong pass should have been done earlier" );
+		IO.Std.err.println( "called from: " + new Exception("find generic failed") );
 		throw new AbortCompilingThisMethodException( "find generic " + c + " " + arguments + ": wrong pass should have been done earlier" ); 
 	    }
 

@@ -744,6 +744,7 @@ namespace Parse {
 	void checkTemplates( CompileState state ) {
 	    // IO.Std.err.println( "pointer type expression " + this + " could be a template" );
 	    type.checkTemplates( state );
+	    ParseTree.getBoxType(state,parseType(state));
 	}
 
 	void clear( CompileState state ) {

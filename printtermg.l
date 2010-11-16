@@ -162,6 +162,7 @@ namespace PrintTerm {
 
             tout.close();
 
+	    oout.println( "#C" );
             oout.println( "class Op {" );
             oout.println( "    public const int" );
 
