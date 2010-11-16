@@ -1,3 +1,5 @@
+#C
+
 namespace T002 {
     class Main {
 	void init() {

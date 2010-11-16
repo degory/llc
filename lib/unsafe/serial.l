@@ -2,6 +2,8 @@
 
 // Copyright 2004-2010 <degs@giantblob.com> all rights reserved
 
+import gmap;
+import stream;
 
 namespace IO {
     use System.Object;
