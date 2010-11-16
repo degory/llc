@@ -18,6 +18,6 @@ namespace Test149 is
 	    while i.hasMoreElements() do
 	        IO.Std.err.println( "have: " + i.nextElement() );
 	    od
-	end
-    end
-end
+	si
+    si
+si

@@ -1,3 +1,4 @@
+#C
 import stream;
 
 namespace Test47 {

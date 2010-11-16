@@ -9,12 +9,12 @@ namespace Test153 is
 
     interface Whatever is
         void test();
-    end
+    si
 
-    class Test extends Vector<int> implements Whatever is
+    class Test isa Vector<int> do Whatever is
         void init() is
 	    super.init();
-        end
+        si
   
         void test() is
 	    IO.Std.err.println( "test..." );
@@ -34,6 +34,6 @@ namespace Test153 is
 	    foreach int j; l.elements() do
 	        IO.Std.err.println( "have: " + j );
 	    od
-	end
-    end
-end
+	si
+    si
+si

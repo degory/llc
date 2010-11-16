@@ -24,10 +24,10 @@ namespace Test141 is
 		IO.Std.err.println( "t[" + i + "]: " + t[i] );
 		IO.Std.err.println( "t.Prop[" + i + "]: " + t.Prop[i] );
 	    od
-	end
-    end
+	si
+    si
 
-    class Test extends Object is
+    class Test isa Object is
 	String name;
 	int value;
 	int[] array;
@@ -41,52 +41,52 @@ namespace Test141 is
 	    Value = 123;
 
 	    Name = Class.Name + Value;
-	end
+	si
 
 	get int Length is
 	    return array.length;
-	end
+	si
 
 	get int Value is
 	    return value;
-	end
+	si
 
 	set int Value = v is
 	    value = v;
-	end
+	si
 
         get String Name is
 	    return name;
-	end
+	si
 
         set String Name = n is
 	    name = n;
-	end
+	si
 
         get int[int index] is
 	    return array[index];
-	end
+	si
 
         set int[int index] = v is
 	    array[index] = v;
-	end
+	si
 
         get int Prop[int index] is
 	    return prop[index];
-        end
+        si
 
 	set int Prop[int index] = v is
 	    prop[index] = v;
-	end
+	si
 
         get int[] Prop is
 	    Std.err.println( "get prop array" );
 	    return prop;
-	end
+	si
 
         set int[] Prop = p is
 	    Std.err.println( "set prop array" );
 	    prop = p;
-	end
-    end
-end
+	si
+    si
+si

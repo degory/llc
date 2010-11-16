@@ -2,7 +2,7 @@
 
 // Copyright 2004-2010 <degs@giantblob.com> all rights reserved
 
-
+/*
 import "LLVMAnalysis";
 import "LLVMArchive";
 import "LLVMBitReader";
@@ -25,6 +25,9 @@ import "LLVMJIT";
 import "LLVMLinker";
 import "LLVMInstCombine";
 import "LLVMInterpreter";
+import "/usr/lib/lang/linux-x86-32/unsafe/jit.o";
+*/
+import "LLVM-2.7svn";
 import "/usr/lib/lang/linux-x86-32/unsafe/jit.o";
 
 namespace System {

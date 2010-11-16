@@ -39,6 +39,7 @@ namespace PrintTerm {
         int next_terminal;
 
         bool readEntry() {
+            int i;
             bool size1 = cast<char>(f.read()) == '1';
             bool size4 = cast<char>(f.read()) == '1';
 	    bool size8 = cast<char>(f.read()) == '1';
@@ -137,6 +138,7 @@ namespace PrintTerm {
         }
 
         void init() {
+            int i;
             list = new Vector<Terminal>();
             f = IO.Std.in;
             Terminal t, s0_3a, s1_3a, s4_3a, s8_3a, s0_2a, s1_2a, s4_2a, s8_2a;
@@ -147,7 +149,7 @@ namespace PrintTerm {
             while( readEntry() )
                 ;
 
-            for( int i = 0; i < list.Length; i = i + 1 ) {
+            for( i = 0; i < list.Length; i = i + 1 ) {
                 t = list[i];
                 if( t != null ) {
                     if( i & 4 != 0 ) {
@@ -160,6 +162,7 @@ namespace PrintTerm {
 
             tout.close();
 
+	    oout.println( "#C" );
             oout.println( "class Op {" );
             oout.println( "    public const int" );
 

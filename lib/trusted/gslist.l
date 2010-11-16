@@ -31,6 +31,17 @@ namespace Generic is
                 cast SortedListNode<T>(list).insert(v,compare);
 	    fi
 	si
+
+	SortedList<T> copy() is
+	    var result = new SortedList<T>();
+            if tail != null then
+                tail = tail.copy();
+            fi
+        si
+
+        get SortedList<T> Freeze is
+   	    return copy();
+        si
     si
 
     /// A node in a sorted linked list
@@ -69,5 +80,14 @@ namespace Generic is
 		cast SortedListNode<T>(tail).insert( v, compare );
 	    fi
 	si
+
+	SortedListNode<T> copy() is
+            if tail != null then
+                return new SortedListNode(value, tail.copy());
+            else
+                return new SortedListNode(value, null);
+            fi
+        si
+
     si
 si

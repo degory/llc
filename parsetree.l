@@ -287,6 +287,7 @@ namespace Parse {
             iterator_type,
 	// generic_iterator_type = null,
             array_type,
+	    pointer_type,
 	    class_type,
 	    type_type,
 	    proc_type,
@@ -1028,6 +1029,16 @@ namespace Parse {
 
 		return type;
 
+	    case Type.POINTER:
+	        sub_type = type.SubType;
+		args = new Vector<Type>();
+		args.add(sub_type);
+		type = state.findGeneric( pointer_type.Clazz, args, false );
+
+		// type = pointer_type;
+		// IO.Std.err.println( "boxed pointer " + type + " has generic type: " + type );
+		return type;
+
 
 	    case Type.VECTOR:
 		sub_type = type.SubType;
@@ -1102,6 +1113,7 @@ namespace Parse {
 	    // type_type = defineStandardClassType( state, "Type", "Object" );
 	    class_type = defineStandardClassType( state, "Class", "Object" );
 	    enum_type = defineStandardClassType( state, "Enum", "Object" );
+	    pointer_type = defineStandardClassType( state, "Pointer", "Object" );
 	    // enum_type.Clazz.turnIntoStruct();
             state.exitNameSpace( system );
             
@@ -2200,6 +2212,10 @@ namespace Parse {
 	    Type tl = left_value.getType( state );
 	    Type tr = right_value.getType( state );
 
+	    if( tl == undefined_type || tr == undefined_type ) {
+		return;
+	    }
+
 	    /*	    
 	    IO.Std.err.println( "assign left value:  " + left_value + " type: " + tl );
 	    IO.Std.err.println( "assign right value: " + right_value + " type: " + tr );
@@ -2310,6 +2326,11 @@ namespace Parse {
 		left_value.wantSetProperty( state, set_value );
 	    } 
 
+	    if( left_value.getType(state) == undefined_type || right_value.getType(state) == undefined_type ) {
+		type = undefined_type;
+		return;
+	    }
+
             type = left_value.getType( state );
 	    // IO.Std.err.println( "vector access calc type: " + type );
 
@@ -2387,6 +2408,10 @@ namespace Parse {
 		return QuietErrorValue(getType(state).getLLVMType(state));
 	    }
 
+	    if( getType(state) == undefined_type ) {
+		return ErrorValue();
+	    }
+
             cl = left_value.compileValue(state, into);
             cr = right_value.compileValue(state, into);
 
@@ -2453,6 +2478,9 @@ namespace Parse {
 
         LLVM.Value compileValue( CompileState state, IRBlock into ) {
 	    getType(state);
+	    if( type == undefined_type ) {
+		return ErrorValue();
+	    }
 	    if( method_call == null ) {
 		// IO.Std.err.println( "no method call: " + this + ", type: " + type );
 		// cannot throw null, compileAddress ensures non-null:

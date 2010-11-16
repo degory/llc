@@ -1555,8 +1555,8 @@ namespace Parse {
 		}
 	    } else {
 		IO.Std.err.println( "link bitcode object files" );
-		exe = "llvm-ldh";
-		v.add( "llvm-ldh" );
+		exe = "/usr/local/bin/llvm-ld";
+		v.add( "llvm-ld" );
 
 		if( OptimizeLevel == 0 ) {
 		    IO.Std.err.println( "linking with -disable-opt" );
@@ -2813,6 +2813,7 @@ namespace Parse {
 
 	    if( pass > CompilePass.CHECK_TEMPLATES ) {
 		IO.Std.err.println( "find generic " + c + " " + arguments + ": wrong pass should have been done earlier" );
+		IO.Std.err.println( "called from: " + new Exception("find generic failed") );
 		throw new AbortCompilingThisMethodException( "find generic " + c + " " + arguments + ": wrong pass should have been done earlier" ); 
 	    }
 

@@ -58,6 +58,10 @@ namespace Parse {
             StringBuffer buffer = new StringBuffer( state.CacheDir );
             buffer.append( this_class );
             buffer.append( ".depend" );
+	    if( !IO.File.exists(buffer) ) {
+	        return true;
+	    }
+
 	    // IO.Std.err.println( "checkHashList: " + buffer );
             try {
                 IO.Reader f = IO.File.openRead( buffer );
@@ -128,6 +132,10 @@ namespace Parse {
 	    }
 
 	    // have an existing object file and it's newer than the source so we may not need to compile it.
+
+	    if( !IO.File.exists(state.CacheDir + class_name + ".hash") ) {
+	        return true;
+	    }
 	    
 	    // read the hash of the class definition in:
 	    try {

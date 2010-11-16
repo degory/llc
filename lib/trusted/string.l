@@ -2,13 +2,13 @@
 import object;
 import integer;
 
-import gset;
+import gsmap;
 import giterator;
 
 import serial;
 
 namespace System is
-    use Generic.Map;
+    use Generic.SortedMap;
     use Generic.List;
     use Generic.Iterable;
     use Generic.Iterator;
@@ -24,7 +24,7 @@ namespace System is
         protected char ptr _buffer;
 	protected int _length;
 
-        static Map<String,String> pool = new Map<String,String>(65419);
+        static SortedMap<String,String> pool = new SortedMap<String,String>();
 
 	/// Return a formatted copy of supplied string with supplied arguments substituted for '%'
 	static StringBuffer format( String s, Object[] args ) is

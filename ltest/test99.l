@@ -33,6 +33,6 @@ namespace Test99 is
 	    else
 		IO.Std.err.println( "c =~ 0 (expected)" );
 	    fi
-	end
-    end
-end
+	si
+    si
+si

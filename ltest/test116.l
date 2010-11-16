@@ -1,3 +1,4 @@
+#C
 
 namespace Test116 {
     class Main {

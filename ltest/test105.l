@@ -1,3 +1,4 @@
+#C
 
 import stream;
 import thread;
@@ -9,7 +10,7 @@ namespace Test105 {
 
 	    t.start();
 
-	    native.sleep( 100 );
+	    native.sleep( 5 );
 	}
     }
 

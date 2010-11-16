@@ -7,22 +7,22 @@ pragma NoWarnUnsafe, NoMarkUnsafe;
 namespace Test148 is
     class Iterator<T> is
 	bool hasMoreElements() is
-	end
+	si
 
 	T nextElement() is
-	end
-    end
+	si
+    si
 
 
     class List<T> is
         void add(T v) is
-	end
+	si
 
 	Iterator<T> elements() is
-	end
-    end
+	si
+    si
 
-    class VectorIterator<T> extends System.Object implements Iterator<T> is
+    class VectorIterator<T> isa System.Object implements Iterator<T> is
 	private Vector<T> _v;
 	private int _i;
  
@@ -30,12 +30,12 @@ namespace Test148 is
 	    super.init();
 	    _v = v;
 	    _i = 0;
-	end
+	si
 
 	bool hasMoreElements() is
 	    // IO.Std.err.println( this.Class.Name + ": has more index: " + _i + " versus length: " + _v.getLength() );
 	    return _i < _v.getLength();
-	end
+	si
 
 	T nextElement() is
 	    T result;
@@ -45,10 +45,10 @@ namespace Test148 is
 	    _i = _i + 1;
 
 	    return result;
-	end
-    end
+	si
+    si
 
-    class VectorReverseIterator<T> extends System.Object implements Iterator<T> is
+    class VectorReverseIterator<T> isa System.Object do Iterator<T> is
 	private Vector<T> _v;
 	private int _i;
 
@@ -56,11 +56,11 @@ namespace Test148 is
 	    super.init();
 	    _v = v;
 	    _i = v.getLength() - 1;
-	end
+	si
 
 	bool hasMoreElements() is
 	    return _i >= 0;
-	end
+	si
 
 	T nextElement() is
 	    T result;
@@ -69,16 +69,16 @@ namespace Test148 is
 	    _i = _i - 1;
 
 	    return result;
-	end
-    end
+	si
+    si
 
-    class VectorException extends System.Exception is
+    class VectorException isa System.Exception is
 	void init( System.String message ) is
 	    super.init( message );
-	end
-    end
+	si
+    si
 
-    class Vector<T> extends System.Object implements List<T> is
+    class Vector<T> isa System.Object do List<T> is
 	private int _length;
 	private int _allocated_length;
 	private T ptr _values;
@@ -94,21 +94,21 @@ namespace Test148 is
 	    _allocated_length = 0;
 	    _values = null;
 	    reserve( l );
-	end
+	si
 
 	void init() is
 	    init( DEFAULT_SIZE );
-	end
+	si
 
 	get int Length is
 	    return _length;
-	end
+	si
 
 	void add( T o ) is
 	    reserve( _length + 1 );
 	    [_values + _length] = o;
 	    _length = _length + 1;
-	end
+	si
 
 	T pop() is
 	    if _length > 0 then
@@ -118,7 +118,7 @@ namespace Test148 is
 	    else
 		throw new VectorException( "Vector.pop() performed on empty Vector" ); 
 	    fi
-        end
+        si
 
 	get T Top is
 	    if _length > 0 then
@@ -126,7 +126,7 @@ namespace Test148 is
 	    else
 		throw new VectorException( "Vector.top() performed on empty Vector" ); 
 	    fi
-	end
+	si
 
 	get T[] Array is
 	    T[] result = new T[_length];
@@ -134,7 +134,7 @@ namespace Test148 is
 		result[i] = [_values + i];
 	    od
 	    return result;
-	end
+	si
 
 	set T Top = o is
 	    if _length > 0 then
@@ -142,11 +142,11 @@ namespace Test148 is
 	    else
 		throw new VectorException( "Vector.putTop() performed on empty Vector" );
 	    fi
-	end
+	si
 
 	void putTop( T o ) is
 	    Top = o;
-	end
+	si
 
 	// indexed property get - allows ... some_vector[i] ...
 	get T[int i] is
@@ -157,7 +157,7 @@ namespace Test148 is
 		throw new VectorException( "Vector.get() outside Vector bounds" );
 		return null;
 	    fi
-	end
+	si
 
 	// indexed property set - allows some_vector[i] = ....
 	set T[int i] = o is
@@ -172,7 +172,7 @@ namespace Test148 is
 	    if i >= _length then
 		_length = i + 1;
 	    fi
-	end
+	si
 
 	T removeIndex( int i ) is
 	    if i < 0 || i >= _length then
@@ -189,31 +189,31 @@ namespace Test148 is
 	    _length = _length - 1;
 
 	    return result;
-	end
+	si
 
 	T pull() is
 	    return removeIndex(0);
-	end
+	si
 
 	VectorIterator<T> elements() is
 	    return new VectorIterator<T>( this );
-	end
+	si
 
 	VectorReverseIterator<T> reverseElements() is
 	    return new VectorReverseIterator<T>( this );
-	end
+	si
 
 	set int Length = l is
 	    reserve(l);
 	    _length = l;
-	end
+	si
 
 	void lengthen( int l ) is
 	    reserve(l);
 	    if l > _length then
 		_length = l;
 	    fi
-	end
+	si
 
 	void reserve( int l ) is
 	    int i;
@@ -249,13 +249,13 @@ namespace Test148 is
 	    
 		_allocated_length = l;
 	    fi
-	end
+	si
 
 	Vector<T> copy() is
 	    Vector<T> result = cast Vector<T>(clone());
 	    result.completeCopy();
 	    return result;
-	end
+	si
 
 	void completeCopy() is
 	    T ptr v = cast T ptr(native.GC_malloc( _allocated_length * T.sizeof ));
@@ -264,7 +264,7 @@ namespace Test148 is
 		[v + 1] = [_values + 1];
 	    od
 	    _values = v;
-	end
+	si
 
 	System.String toString() is
 	    System.StringBuffer result;
@@ -286,8 +286,8 @@ namespace Test148 is
 	    result.append(']');
 
 	    return result;
-	end
-    end
+	si
+    si
 
     class Main is
         void init() is 
@@ -301,7 +301,7 @@ namespace Test148 is
 	    foreach int j; t.elements() do
 	        IO.Std.err.println( "have: " + j );
 	    od
-	end
-    end
-end
+	si
+    si
+si
 

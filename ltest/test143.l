@@ -9,6 +9,6 @@ namespace Test143 is
 	    for ; i < 10; i = i + 1 do
 	        IO.Std.err.println( "have: " + i );
 	    od
-        end
-    end
-end
+        si
+    si
+si

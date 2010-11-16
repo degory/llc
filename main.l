@@ -39,7 +39,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1252;
+	const int BUILD = 1257;
 
 	CompileState state;
 
@@ -79,10 +79,9 @@ namespace Parse {
 
 	    Gen.Machine.initOpNames();
             
-
 	    state.OptimizeLevel = 1;
 	    state.Want64BitTarget = true;
-	    state.WantSharedStandardLibrary = true;
+	    state.WantSharedStandardLibrary = false;
 	    state.WantRegVars = false;
 	    state.WantWarnResolve = false;
 	    state.WantWarnInit = true;
@@ -183,10 +182,10 @@ namespace Parse {
 		    case 'u':
 			state.WantLinkLibraries = false;
 
-		    case 'W':
+		    case 'N':
 			state.WantSharedStandardLibrary = true;
 
-		    case 'w':
+		    case 'n':
 			state.WantSharedStandardLibrary = false;
 
 		    case 'm':
@@ -207,7 +206,7 @@ namespace Parse {
 			    return 1;
 			}			
 
-		    case 'C':
+		    case 'F':
 			j = 2;
 			if( name.Length == 2 ) {
 			    i = i + 1;
@@ -392,13 +391,9 @@ namespace Parse {
                 }
             }
 
-	    /*
-	    if( state.WantNativeObjectFiles ) {
-		IO.Std.err.println( "OOOO: want native object files" );
-	    } else {
-		IO.Std.err.println( "OOOO: want bitcode object files" );
+	    if( state.WantNativeLibraryFiles ) {
+		state.WantSharedStandardLibrary = true;
 	    }
-	    */
 
 	    if( max_heap > 0 ) {
 		System.GC.MaxHeapSize = max_heap * 1024 * 1024;
@@ -524,60 +519,65 @@ namespace Parse {
         }
 
 	void usage( String name ) {
-	    IO.Std.err.println( "L-compiler build " + BUILD + " (C) 2004-2010 <degs@giantblob.com>" );
-	    IO.Std.err.println( "    host: " + System.Environment.NAME );
-	    IO.Std.err.println( "    target: " + Gen.Machine.NAME );
-	    IO.Std.err.println( "    cache: " + CompileState.Instance.CacheDir );
-	    IO.Std.err.println();
-	    IO.Std.err.println( "usage: " + name + " [options] source-file..." );
-	    IO.Std.err.println( "    -o <file name>   write the output executable to <file name>" );
-	    IO.Std.err.println( "    -l <directory>   add <directory> to path to search for source files" );
-	    IO.Std.err.println( "    -L <library>     link executable against <library>" );
-	    IO.Std.err.println( "    -p <name>        set the project name - object files will be stored in /tmp/lcache-<name>" );
-	    IO.Std.err.println( "    -j <jobs>        set number of parallel compile processes" );
-	    IO.Std.err.println( "    -v               verbose output" );
-	    IO.Std.err.println( "    -V               very verbose output" );
-            IO.Std.err.println( "    -S               create sandboxed executable" );
-	    IO.Std.err.println( "    -s               output code generation statistics" );
-	    IO.Std.err.println( "    -d               do not generate debugging information" );
-	    IO.Std.err.println( "    -M <heap size>   limit compiler heap size to <heap size> megabytes" );
-	    IO.Std.err.println( "    -O1              shorthand for -OCVIBRZ" );
-	    IO.Std.err.println( "    -O<code options> code generation options" );
-	    IO.Std.err.println( "    -W<warn options> warning message options" );
-	    IO.Std.err.println();
-	    IO.Std.err.println( "code generation options:" );
-	    IO.Std.err.println( "    A                check array subscripts are within bounds (default)" );
-	    IO.Std.err.println( "    a                do not check array subscripts" );
-	    IO.Std.err.println( "    B                faster bounds check sequence" );
-            IO.Std.err.println( "    b                regular bounds check sequence (default)" );
-	    IO.Std.err.println( "    C                coalesce redundant register moves" );
-	    IO.Std.err.println( "    c                do not coalesce redundant register moves (default)" );
-	    IO.Std.err.println( "    I                inline methods where possible" );
-	    IO.Std.err.println( "    i                do not inline methods (default)" );
-	    IO.Std.err.println( "    R                eliminate redundant return jumps" );
-	    IO.Std.err.println( "    r                always jump to epilog on return (default)" );
-	    IO.Std.err.println( "    S                build executable linked against shared standard library (default)" );
-	    IO.Std.err.println( "    s                build statically linked executable" );
-	    IO.Std.err.println( "    P                pack instance variables (default)" );
-	    IO.Std.err.println( "    p                do not pack instance variables" );
-	    IO.Std.err.println( "    Q                generate profiler calls on method entry and exit" );
-	    IO.Std.err.println( "    q                do not generate profiler calls (default)" );
-	    IO.Std.err.println( "    V                enable register variables" );
-	    IO.Std.err.println( "    v                disable register variables (default)" );
-	    IO.Std.err.println( "    Z                use stack red zone" );
-	    IO.Std.err.println( "    z                do not use stack red zone" );
+	    IO.Std.out.println( "L-compiler build " + BUILD + " (C) 2004-2010 <degs@giantblob.com>" );
+	    IO.Std.out.println( "    host: " + System.Environment.NAME );
+	    IO.Std.out.println( "    target: " + Gen.Machine.NAME );
+	    IO.Std.out.println( "    cache: " + CompileState.Instance.CacheDir );
+	    IO.Std.out.println();
+	    IO.Std.out.println( "usage: " + name + " [options] source-file..." );
+	    IO.Std.out.println( "    -o <file name>     write the output executable to <file name>" );
+	    IO.Std.out.println( "    -s <directory>     add <directory> to path to search for source files" );
+	    IO.Std.out.println( "    -L <library>       link executable against <library>" );
+	    IO.Std.out.println( "    -p <name>          set the project name - object files will be stored in /tmp/lcache-<name>" );
+	    IO.Std.out.println( "    -j <jobs>          set number of parallel compile processes" );
+	    IO.Std.out.println( "    -v                 verbose output" );
+	    IO.Std.out.println( "    -V                 very verbose output" );
+            IO.Std.out.println( "    -S                 create sandboxed executable" );
+	    IO.Std.out.println( "    -d                 do not generate debugging information" );
+	    IO.Std.out.println( "    -C<output options> code generation options" );
+	    IO.Std.out.println( "    -W<warn options>   warning message options" );
+	    IO.Std.out.println( "    -R<check options>  run-time check options" );
+	    IO.Std.out.println();
+	    IO.Std.out.println( "output options:" );
+	    IO.Std.out.println( "    N                create native code executable" );
+	    IO.Std.out.println( "    n                create bitcode executable (default)" );
+	    IO.Std.out.println( "    B                cache native object files" );
+	    IO.Std.out.println( "    b                cache bitcode object files (default)" );
+	    IO.Std.out.println( "    P                output PIC (position independent code)" );
+	    IO.Std.out.println( "    c                do not output PIC (default)" );
+	    IO.Std.out.println( "    N                create native code executable" );
+	    IO.Std.out.println( "    n                create bitcode executable (default)" );
+	    IO.Std.out.println( "    B                cache native object files" );
+	    IO.Std.out.println( "    b                cache bitcode object files (default)" );
+	    IO.Std.out.println( "    P                output PIC (position independent code)" );
+	    IO.Std.out.println( "    c                do not output PIC (default)" );
+	    IO.Std.out.println( "    E                export all symbols from executable" );
+	    IO.Std.out.println( "    e                do not export symbols from executable (default)" );
+	    IO.Std.out.println( "    L                link against native code shared library" );
+	    IO.Std.out.println( "    l                link against bitcode library (default)" );
+	    IO.Std.out.println();
 
-	    IO.Std.err.println();
-	    IO.Std.err.println( "warning message options:" );
-	    IO.Std.err.println( "    H                warn when definitions may hide other symbols" );
-	    IO.Std.err.println( "    h                do not warn when definitions may hide other symbols" );
-	    IO.Std.err.println( "    M                warn for unsafe constructs per class" );
-	    IO.Std.err.println( "    m                do not warn for unsafe constructs per class" );
-	    IO.Std.err.println( "    R                warn when method resolution is poor match" );
-	    IO.Std.err.println( "    r                do not warn method resolution is poor match" );
-	    IO.Std.err.println( "    S                warn for every unsafe construct encountered" );
-	    IO.Std.err.println( "    s                do not warn for every unsafe construct" );
-	    IO.Std.err.flush();
+	    IO.Std.out.println( "check generation options:" );
+	    IO.Std.out.println( "    A                check array subscripts are within bounds (default)" );
+	    IO.Std.out.println( "    a                do not check array subscripts" );
+	    IO.Std.out.println( "    N                check object references for null (default)" );
+	    IO.Std.out.println( "    n                do not check for nulls (default)" );
+	    IO.Std.out.println( "    C                type check object down casts (default)" );
+	    IO.Std.out.println( "    c                do not type check object down casts" );
+	    IO.Std.out.println();
+	    IO.Std.out.println( "warning message options:" );
+	    IO.Std.out.println( "    H                warn when definitions may hide other symbols" );
+	    IO.Std.out.println( "    h                do not warn when definitions may hide other symbols" );
+	    IO.Std.out.println( "    M                warn for unsafe constructs per class" );
+	    IO.Std.out.println( "    m                do not warn for unsafe constructs per class" );
+	    IO.Std.out.println( "    R                warn when method resolution is poor match" );
+	    IO.Std.out.println( "    r                do not warn method resolution is poor match" );
+	    IO.Std.out.println( "    S                warn for every unsafe construct encountered" );
+	    IO.Std.out.println( "    s                do not warn for every unsafe construct" );
+	    IO.Std.out.println( "    I                warn if constructor does not call this or superclass constructor" );
+	    IO.Std.out.println( "    i                do not warn if constructor does not call this or superclass constructor" );
+
+	    IO.Std.out.flush();
 	}
 
 	static String fixedPoint( int n ) {
