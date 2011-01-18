@@ -80,7 +80,7 @@ namespace Parse {
 	    Gen.Machine.initOpNames();
             
 	    state.OptimizeLevel = 1;
-	    state.Want64BitTarget = true;
+	    state.Want64BitTarget = System.Environment.WORD_BITS == 64;
 	    state.WantSharedStandardLibrary = false;
 	    state.WantRegVars = false;
 	    state.WantWarnResolve = false;
