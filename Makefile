@@ -24,6 +24,7 @@ ifeq ($(JOBS),)
 	JOBS:=1
 endif
 
+
 LFLAGS:=-j$(JOBS) $(LFLAGS)
 
 ifeq ($(WANT_NATIVEOBJS),1)
@@ -43,6 +44,10 @@ LFLAGSEXE:=$(LFLAGS) -FN
 
 # Native library. As native executable but position independant code, export all symbols:
 LFLAGSSO:=$(LFLAGSEXE) -FNPE
+
+ifeq ($(WANT_LINKSOLIB),1)
+	LFLAGSEXE:=$(LFLAGSEXE) -N
+endif
 
 ifeq ($(LLVM_CC),)
 	LLVM_CC:=/usr/local/bin/gcc
@@ -127,6 +132,7 @@ lang.so: $(lang_DEPS)
 lang.lh: lang.bc
 
 lc: $(lc_DEPS) llvmc.o llvmc.so dummy.o
+	rm -f lang.lh 2>/dev/null # don't link against any lang.so in current directory
 	$(LC) -f $(MODEL) $(LFLAGSEXE) -o lc -s llvm -lllvmc.o -lLLVM-2.8 main.l
 
 # -lLLVMAnalysis -lLLVMArchive -lLLVMBitReader -lLLVMBitWriter -lLLVMCore -lLLVMExecutionEngine -lLLVMipa -lLLVMMC -lLLVMSupport -lLLVMSystem -lLLVMTarget -lLLVMTransformUtils main.l

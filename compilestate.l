@@ -1507,6 +1507,14 @@ namespace Parse {
 	    return compile_class_count;
 	}
 
+        String RealPath(String p) {
+	    char ptr s = p.toCString();
+	    s = cast char ptr(native.realpath(s,null));
+
+	    IO.Std.err.println( "real path '" + p + "' -> '" + s + "'" );
+	    return new String(s);
+	}
+
 	void linkObjectFiles() {
 
 	    StringBuffer b = new StringBuffer();
@@ -1803,14 +1811,14 @@ namespace Parse {
 		if( WantVeryVerbose ) {
 		    ParseTree.message( "add shared library: " + dir + name + ".so" );
 		}
-		addLibrary( dir + name + ".so" );
+		addLibrary( RealPath(dir + name + ".so") );
 	    } else if( want_native_library_files && IO.File.exists( dir + name + ".so" ) ) {
-		addLibrary( dir + name + ".so"  );
+		addLibrary( RealPath(dir + name + ".so")  );
 	    } else {
 		if( WantVeryVerbose ) {
 		    ParseTree.message( "add bitcode library: " + dir + name + ".bc" );
 		}
-		addLibrary( dir + name + ".bc" );
+		addLibrary( RealPath(dir + name + ".bc") );
 	    }
 	}
 
