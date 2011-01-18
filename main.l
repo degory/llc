@@ -1,6 +1,6 @@
 #C
 
-// Copyright 2004-2010 <degs@giantblob.com> all rights reserved
+// Copyright 2004-2011 <degs@giantblob.com> all rights reserved
 
 import args;
 import stream;
@@ -519,64 +519,51 @@ namespace Parse {
         }
 
 	void usage( String name ) {
-	    IO.Std.out.println( "L-compiler build " + BUILD + " (C) 2004-2010 <degs@giantblob.com>" );
+	    IO.Std.out.println( "L-compiler build " + BUILD + " (C) 2004-2011 <degs@giantblob.com>" );
 	    IO.Std.out.println( "    host: " + System.Environment.NAME );
 	    IO.Std.out.println( "    target: " + Gen.Machine.NAME );
 	    IO.Std.out.println( "    cache: " + CompileState.Instance.CacheDir );
 	    IO.Std.out.println();
 	    IO.Std.out.println( "usage: " + name + " [options] source-file..." );
+	    IO.Std.out.println( "    -h, -H, -?         display this message" );
 	    IO.Std.out.println( "    -o <file name>     write the output executable to <file name>" );
 	    IO.Std.out.println( "    -s <directory>     add <directory> to path to search for source files" );
-	    IO.Std.out.println( "    -L <library>       link executable against <library>" );
-	    IO.Std.out.println( "    -p <name>          set the project name - object files will be stored in /tmp/lcache-<name>" );
-	    IO.Std.out.println( "    -j <jobs>          set number of parallel compile processes" );
-	    IO.Std.out.println( "    -v                 verbose output" );
-	    IO.Std.out.println( "    -V                 very verbose output" );
-            IO.Std.out.println( "    -S                 create sandboxed executable" );
+	    IO.Std.out.println( "    -l <library>       link executable against <library>" );
+	    IO.Std.out.println( "    -j <N>             compile intermediate code using N threads" );
+	    IO.Std.out.println( "    -f                 force link output" );
+	    IO.Std.out.println( "    -R <directory>     use L runtime library in <directory>" );
+	    IO.Std.out.println( "    -X                 pretty print" );
+	    IO.Std.out.println( "    -D                 output import dependancies in make format" );
+            IO.Std.out.println( "    -p <name>          set project name" );
+	    IO.Std.out.println( "    -v -V              verbose/very verbose output" );
+	    IO.Std.out.println( "    -T                 disallow unsafe code" );
+	    IO.Std.out.println( "    -S                 single file assembly output" );
+	    IO.Std.out.println( "    -N -n              do/do not link against shared L runtime library" );
+	    IO.Std.out.println( "    -U -u              do/do not link against libraries" );
+	    IO.Std.out.println( "    -m64 -m32          select 64/32 bit output" );
 	    IO.Std.out.println( "    -d                 do not generate debugging information" );
-	    IO.Std.out.println( "    -C<output options> code generation options" );
+	    IO.Std.out.println( "    -F<output options> code generation options" );
 	    IO.Std.out.println( "    -W<warn options>   warning message options" );
-	    IO.Std.out.println( "    -R<check options>  run-time check options" );
+	    IO.Std.out.println( "    -C<check options>  run-time check options" );
 	    IO.Std.out.println();
 	    IO.Std.out.println( "output options:" );
-	    IO.Std.out.println( "    N                create native code executable" );
-	    IO.Std.out.println( "    n                create bitcode executable (default)" );
-	    IO.Std.out.println( "    B                cache native object files" );
-	    IO.Std.out.println( "    b                cache bitcode object files (default)" );
-	    IO.Std.out.println( "    P                output PIC (position independent code)" );
-	    IO.Std.out.println( "    c                do not output PIC (default)" );
-	    IO.Std.out.println( "    N                create native code executable" );
-	    IO.Std.out.println( "    n                create bitcode executable (default)" );
-	    IO.Std.out.println( "    B                cache native object files" );
-	    IO.Std.out.println( "    b                cache bitcode object files (default)" );
-	    IO.Std.out.println( "    P                output PIC (position independent code)" );
-	    IO.Std.out.println( "    c                do not output PIC (default)" );
-	    IO.Std.out.println( "    E                export all symbols from executable" );
-	    IO.Std.out.println( "    e                do not export symbols from executable (default)" );
-	    IO.Std.out.println( "    L                link against native code shared library" );
-	    IO.Std.out.println( "    l                link against bitcode library (default)" );
+	    IO.Std.out.println( "    -FN -Fn            generate native/bitcode executable" );
+	    IO.Std.out.println( "    -FB -Fb            generate native/bitcode object files" );
+	    IO.Std.out.println( "    -FP -Fp            generate position independant/absolute code" );
+	    IO.Std.out.println( "    -FE -Fe            export/do not export all symbols from exectuable" );
+	    // IO.Std.out.println( "    -FL -Fl            probably not functional" );
 	    IO.Std.out.println();
-
 	    IO.Std.out.println( "check generation options:" );
-	    IO.Std.out.println( "    A                check array subscripts are within bounds (default)" );
-	    IO.Std.out.println( "    a                do not check array subscripts" );
-	    IO.Std.out.println( "    N                check object references for null (default)" );
-	    IO.Std.out.println( "    n                do not check for nulls (default)" );
-	    IO.Std.out.println( "    C                type check object down casts (default)" );
-	    IO.Std.out.println( "    c                do not type check object down casts" );
+	    IO.Std.out.println( "    -CA -Ca          check/do not check array subscripts are within bounds" );
+	    IO.Std.out.println( "    -CN -Cn          check/do not check dereferences are not null" );
+	    IO.Std.out.println( "    -CC -Cc          check/do not type check object down casts" );
 	    IO.Std.out.println();
 	    IO.Std.out.println( "warning message options:" );
-	    IO.Std.out.println( "    H                warn when definitions may hide other symbols" );
-	    IO.Std.out.println( "    h                do not warn when definitions may hide other symbols" );
-	    IO.Std.out.println( "    M                warn for unsafe constructs per class" );
-	    IO.Std.out.println( "    m                do not warn for unsafe constructs per class" );
-	    IO.Std.out.println( "    R                warn when method resolution is poor match" );
-	    IO.Std.out.println( "    r                do not warn method resolution is poor match" );
-	    IO.Std.out.println( "    S                warn for every unsafe construct encountered" );
-	    IO.Std.out.println( "    s                do not warn for every unsafe construct" );
-	    IO.Std.out.println( "    I                warn if constructor does not call this or superclass constructor" );
-	    IO.Std.out.println( "    i                do not warn if constructor does not call this or superclass constructor" );
-
+	    IO.Std.out.println( "    -WH -Wh          warn/do not warn when definitions may hide other symbols" );
+	    IO.Std.out.println( "    -WM -Wm          warn/do not warn for unsafe constructs per class" );
+	    IO.Std.out.println( "    -WR -Wr          warn/do not warn when method resolution is poor match" );
+	    IO.Std.out.println( "    -WS -Ws          warn/do not warn for every unsafe construct encountered" );
+	    IO.Std.out.println( "    -WI -Wi          warn/do not warn if constructor does not call this or superclass constructor" );
 	    IO.Std.out.flush();
 	}
 
