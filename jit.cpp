@@ -123,9 +123,9 @@ extern "C" {
     }
 
     if( main_module == 0 ) {
-      if( !llvm::DwarfExceptionHandling ) {
+      if( !llvm::JITExceptionHandling ) {
 	std::cerr << "JIT DWARF exception handling initially disabled, enabling now...\n";
-        llvm::DwarfExceptionHandling = true;
+        llvm::JITExceptionHandling = true;
       } else {
 	std::cerr << "JIT DWARF exception handling already enabled\n";	
       }

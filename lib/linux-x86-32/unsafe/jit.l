@@ -27,7 +27,7 @@ import "LLVMInstCombine";
 import "LLVMInterpreter";
 import "/usr/lib/lang/linux-x86-32/unsafe/jit.o";
 */
-import "LLVM-2.7svn";
+import "LLVM-2.8";
 import "/usr/lib/lang/linux-x86-32/unsafe/jit.o";
 
 namespace System {

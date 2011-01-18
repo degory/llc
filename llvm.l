@@ -68,9 +68,6 @@ namespace LLVM {
 	LLVMReturnStatusAction  /* verifier will just return 1 */
     }
 
-
-
-
     enum LLVMAttribute {
 	LLVMZExtAttribute       = 1<<0,
 	    LLVMSExtAttribute       = 1<<1,
@@ -1038,9 +1035,35 @@ namespace Gen {
 	}
 
 	void Verify() {
+/*
+            if( function == null ) {
+		//
+		return;
+	    }
+
+	    IO.Std.err.println( "verify from: " + new System.Backtrace() );
+	    Calls.LLVMDumpValue(function);
+	    //if( Calls.LLVMVerifyFunction( function, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction ) != 0 ) {
+	//	IO.Std.err.println( "borken from: " + new System.Backtrace() );
+	    //}
+*/
+	}
+
+	void Verify2() {
+/* 
+           if( function == null ) {
+		//
+		return;
+	    }
+
+	    IO.Std.err.println( "verify2 from: " + new System.Backtrace() ); IO.Std.err.flush();
+	    Calls.LLVMDumpValue(function);
 	    if( Calls.LLVMVerifyFunction( function, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction ) != 0 ) {
 		IO.Std.err.println( "borken from: " + new System.Backtrace() );
+	    } else {
+		IO.Std.err.println( "verify2 OK" ); IO.Std.err.flush();
 	    }
+*/
 	}
 
         Value RetVoid() { return Calls.LLVMBuildRetVoid(builder); }
@@ -1048,11 +1071,13 @@ namespace Gen {
 
 	// Jump without starting a new block. Not legal IR unless immediately followed by a new reachable block
 	Value _Br(BasicBlock Dest) {
+	    Verify();	    
 	    return Calls.LLVMBuildBr(builder, Dest);
 	}
 
 	// jump to either t or f without starting a new block. Not legal IR unless immediately followed by a new reachable block
         Value _CondBr(Value c, BasicBlock t, BasicBlock f) {
+	    Verify();
 	    if( c == null ) {
 		IO.Std.err.println( "_CondBr: c is null\n" ); IO.Std.err.flush();
 	    }
@@ -1071,6 +1096,7 @@ namespace Gen {
 	// create a new block in the current function. This block can be the target of jumps/branches but
 	// no instructions are generated into it until it's made the current block with Label()
 	BasicBlock Block() {
+	    Verify();
 
 	    // LLVM.Calls.LLVMDeleteBasicBlock(bb);
 
@@ -1079,18 +1105,27 @@ namespace Gen {
 	}
 
 	BasicBlock BlockAtEnd() {
+	    // IO.Std.err.println( "block at end..." );
+	    Verify();
 	    var result = Block();
 	    addBlockAtEnd(result);
 	    return result;
 	}
 
 	BasicBlock BlockAtEnd(String name) {
+	    // IO.Std.err.println( "block at end " + name + "..." );
+	    Verify();
 	    var result = Block(name);
 	    addBlockAtEnd(result);
 	    return result;
 	}
 
 	void addBlockAtEnd(BasicBlock b) {
+	    // IO.Std.err.println( "block at end:" );
+	    // IO.Std.err.flush();
+	    // Calls.LLVMDumpValue(b);
+
+	    Verify();
 	    if( at_end == null ) {
 		at_end = new Vector<BasicBlock>();
 	    }
@@ -1099,15 +1134,18 @@ namespace Gen {
 	}
 
 	get BasicBlock CurrentBlock {
+	    Verify();
 	    return current_block;
 	}
 
 	set BasicBlock CurrentBlock = b {
+	    Verify();
 	    current_block = b;
 	    PositionEnd(current_block);
 	}
 
 	BasicBlock Block(String name) {
+	    Verify();
 
 	    // LLVM.Calls.LLVMDeleteBasicBlock(bb);
 
@@ -1116,29 +1154,52 @@ namespace Gen {
 	}
 
 	void AtEnd() {
+/*
+	    IO.Std.err.println( "add at end blocks..." );
+	    IO.Std.err.println( "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+	    IO.Std.err.flush();
+*/
+	    Verify2();
 	    if( at_end != null ) {
 		BasicBlock last = null;
 		foreach( var b; at_end.Iterator ) {
+		    // IO.Std.err.println( "adding an at end block...." ); IO.Std.err.flush();
+		    // Calls.LLVMDumpValue( cast LLVM.Value(b) );
 		    Label( b );
+
+		    Verify();
 		    last = b;
 		}
-
+/*
+		IO.Std.err.println( "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY" );
+		IO.Std.err.println( "added all at end blocks" );
+*/
 		if( last != null && !Calls.LLVMHasTerminator(last) ) {
+		    // IO.Std.err.println( "need to add unreachable..." );
 		    var c = CurrentBlock;
 		    CurrentBlock = last;
 		    Unreachable();
 		    CurrentBlock = last;
+		// } else {
+		    // IO.Std.err.println( "function should be valid without unreachable" );
 		}
 		at_end = null;
 	    }
+/*
+	    IO.Std.err.println( "ZZZZZZZZZZZZZZZZZZZZZZZZ" );
+	    IO.Std.err.println( "function complete" );
+	    Verify2();
+*/
 	}
 
 	// jump to the given block if the current block has no terminator instruction. Make the given block
 	// the new current block
 	void Label( BasicBlock bb ) {
-	    // IO.Std.err.print( "function initially: " ); IO.Std.err.flush();
-	    // Calls.LLVMDumpValue( function );
-
+	    Verify();
+/*
+	    IO.Std.err.print( "function initially: " ); IO.Std.err.flush();
+	    Calls.LLVMDumpValue( function );
+*/
 	    /*
 	    if( current_block != null ) {
 		IO.Std.err.print( "current block: " ); IO.Std.err.flush();
@@ -1162,6 +1223,8 @@ namespace Gen {
 	    // Verify();
 	    // IO.Std.err.println( "function now:"); IO.Std.err.flush();
 	    // Calls.LLVMDumpValue(function);
+	    Verify();
+
 	}
 
 
@@ -1170,6 +1233,7 @@ namespace Gen {
 	    // IO.Std.err.println( "jump label" );
 	    var result = _Br(dest);
 	    Label(next);	  
+	    Verify();
 
 	    return result;
 	}
@@ -1180,6 +1244,7 @@ namespace Gen {
 	    // IO.Std.err.println( "branch-label" );
 	    Value result = _CondBr(c, t, next);
 	    Label(next);
+	    Verify();
 
 	    return result;
 	}
@@ -1189,6 +1254,7 @@ namespace Gen {
 	    // IO.Std.err.println( "jump" );
 	    BasicBlock f = Block();
 	    var result = JumpLabel(dest, f);
+	    Verify();
 
 	    return result;
 	}
@@ -1200,12 +1266,11 @@ namespace Gen {
 	    BasicBlock f = Block();
 	    var result = BranchLabel(c, t, f);
 
-	    /*
-	    IO.Std.err.println( "after branch: " ); IO.Std.err.flush();
-	    Calls.LLVMDumpValue(result);
-	    IO.Std.err.println( "function is: " ); IO.Std.err.flush();
-	    Calls.LLVMDumpValue(function);
-	    */
+	    // IO.Std.err.println( "after branch: " ); IO.Std.err.flush();
+	    // Calls.LLVMDumpValue(result);
+	    // IO.Std.err.println( "function is: " ); IO.Std.err.flush();
+	    // Calls.LLVMDumpValue(function);
+	    Verify();
 
 	    return result;
 	}
@@ -1213,10 +1278,12 @@ namespace Gen {
 
 
         Value Switch(Value V, BasicBlock Else, int NumCases) {
+	    Verify();
 	    return Calls.LLVMBuildSwitch(builder, V, Else, NumCases); 
 	}
 
 	void AddCase(Value switch_, Value on_value, BasicBlock dest) {
+	    Verify();
 	    Calls.LLVMAddCase(switch_, on_value, dest);
 	}
 
@@ -1225,152 +1292,189 @@ namespace Gen {
 	}
 
         Value Invoke(Value Fn, Value[] Args, BasicBlock Then, BasicBlock Catch) {
+	    Verify();
 	    return Calls.LLVMBuildInvoke(builder, Fn, Args.address, Args.length,  Then, Catch, `` );
 	}
 
 	Value Unwind() {
+	    Verify();
 	    return Calls.LLVMBuildUnwind(builder);
 	}
 
 	void Unreachable() {
+	    Verify();
 	    Calls.LLVMBuildUnreachable(builder);
 	}
 
         /* Arithmetic */
         Value Add(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildAdd(builder, LHS, RHS, `` );
 	}
 
         Value NSWAdd(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildNSWAdd(builder, LHS, RHS, ``);
 	}
 
         Value FAdd(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildFAdd(builder, LHS, RHS, ``);
 	}
 	
         Value Sub(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildSub(builder, LHS, RHS, ``);
 	}
 
 	Value FSub(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildFSub(builder, LHS, RHS, ``);
 	}
 
 	Value Mul(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildMul(builder, LHS, RHS, ``);
 	}
 
 	Value FMul(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildFMul(builder, LHS, RHS, ``);
 	}
 
 	Value UDiv(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildUDiv(builder, LHS, RHS, ``);
 	}
 
 	Value SDiv(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildSDiv(builder, LHS, RHS, ``);
 	}
 
 	Value ExactSDiv(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildExactSDiv(builder, LHS, RHS, ``);
 	}
 
 	Value FDiv(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildFDiv(builder, LHS, RHS, ``);
 	}
 
 	Value URem(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildURem(builder, LHS, RHS, ``);
 	}
 
 	Value SRem(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildSRem(builder, LHS, RHS, ``);
 	}
 
 	Value FRem(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildFRem(builder, LHS, RHS, ``);
 	}
 
 	Value Shl(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildShl(builder, LHS, RHS, ``);
 	}
 
 	Value LShr(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildLShr(builder, LHS, RHS, ``);
 	}
 
 	Value AShr(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildAShr(builder, LHS, RHS, ``);
 	}
 
 	Value And(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildAnd(builder, LHS, RHS, ``);
 	}
 
 	Value Or(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildOr(builder, LHS, RHS, ``);
 	}
 
 	Value Xor(Value LHS, Value RHS) {
+	    Verify();
 	    return Calls.LLVMBuildXor(builder, LHS, RHS, ``);
 	}
 
 	Value Neg(Value LHS) {
+	    Verify();
 	    return Calls.LLVMBuildNeg(builder, LHS, ``);
 	}
 
 	Value Not(Value LHS) {
+	    Verify();
 	    return Calls.LLVMBuildNot(builder, LHS, ``);
 	}
 
 	Value AllocaEntry(Type Ty, String name) {
+	    Verify();
 	    Calls.LLVMPositionBuilderBefore(builder, entry_jump);
 	    var result = Calls.LLVMBuildAlloca(builder, Ty, name.toCString());
 	    Calls.LLVMPositionBuilderAtEnd(builder, current_block);
+	    Verify();
 	    return result;
 	}
 
 	Value AllocaHere(Type Ty, String name) {
+	    Verify();
 	    return Calls.LLVMBuildAlloca(builder, Ty, name.toCString());
 	}
 
 	Value ArrayAllocaEntry(Type Ty, Value Val) {
+	    Verify();
 	    Calls.LLVMPositionBuilderBefore(builder, entry_jump);
 	    return Calls.LLVMBuildArrayAlloca(builder, Ty, Val, ``);
 	    Calls.LLVMPositionBuilderAtEnd(builder, current_block);
 	}
 
 	Value ArrayAllocaHere(Type Ty, Value Val) {
+	    Verify();
 	    return Calls.LLVMBuildArrayAlloca(builder, Ty, Val, ``);
 	}
 
 	Value Load(Value p) {
+	    Verify();
 	    return Calls.LLVMBuildLoad(builder, p, ``);	    
 	}
 	
 	Value Store(Value v, Value p) {
+	    Verify();
 	    return Calls.LLVMBuildStore(builder, v, p);
 	}
 
 	Value GEP(Value p, Value[] i) {
+	    Verify();
 	    return Calls.LLVMBuildGEP(builder, p, i.address, i.length, ``);
 	}
 
 	Value InBoundsGEP( Value p, Value[] i) {
+	    Verify();
 	    return Calls.LLVMBuildInBoundsGEP(builder, p, i.address, i.length, ``);
 	}
 
 	Value StructGEP( Value p, int i ) {
+	    Verify();
 	    return Calls.LLVMBuildStructGEP(builder, p, i, ``);
 	}        
 
 	Value Phi(Type Ty) {
+	    Verify();
 	    return Calls.LLVMBuildPhi(builder, Ty, ``);
 	}
 
 	void AddIncoming( Value phi, Value[] v, BasicBlock[] b ) {
+	    Verify();
 	    if( v.length != b.length ) {
 		throw new System.Exception( "AddIncoming value.length != block.length" );
 	    }
@@ -1378,6 +1482,7 @@ namespace Gen {
 	}
 
 	Value Call( Value f, Value[] args) {
+	    Verify();
 	    /*
 	    IO.Std.err.print( "call f: " ); IO.Std.err.flush();
 	    Calls.LLVMDumpType(Calls.LLVMTypeOf(f));
@@ -1392,42 +1497,52 @@ namespace Gen {
 	}
 
 	Value PtrToInt( Value v, Type d ) {
+	    Verify();
 	    return Calls.LLVMBuildPtrToInt(builder, v, d, `` );
 	}
 
 	Value IntToPtr( Value v, Type d ) {
+	    Verify();
 	    return Calls.LLVMBuildIntToPtr(builder, v, d, ``);
 	}
 
 	Value BitCast( Value v, Type d ) {
+	    Verify();
 	    return Calls.LLVMBuildBitCast(builder, v, d, ``);
 	}
 
 	Value IntCast( Value v, Type d ) {
+	    Verify();
 	    return Calls.LLVMBuildIntCast(builder, v, d, ``);
 	}
 
 	Value PointerCast( Value v, Type d ) {
+	    Verify();
 	    return Calls.LLVMBuildPointerCast(builder, v, d, ``);
 	}
 
 	Value SExtOrBitCast( Value v, Type d ) {
+	    Verify();
 	    return Calls.LLVMBuildSExtOrBitCast(builder, v, d, ``);
 	}
 
 	Value SExt( Value v, Type d ) {
+	    Verify();
 	    return Calls.LLVMBuildSExt(builder, v, d, ``);
 	}
 
 	Value Trunc( Value v, Type d ) {
+	    Verify();
 	    return Calls.LLVMBuildTrunc(builder, v, d, ``);
 	}
 
 	Value ICmp( LLVMIntPredicate op, Value l, Value r ) {
+	    Verify();
 	    return Calls.LLVMBuildICmp( builder, op, l, r, `` );
 	}
 
 	Value Select( Value b, Value t, Value f ) {
+	    Verify();
 	    return Calls.LLVMBuildSelect(builder, b, t, f, `` );
 	}
     }

@@ -1230,6 +1230,9 @@ namespace Parse {
                     if( !errors_occurred ) {
 			char ptr msg;
 
+			//IO.Std.err.println( "about to verify module: " ); IO.Std.err.flush();
+			// LLVM.Calls.LLVMDumpModule(c.LLVMModule);
+
 			if( LLVM.Calls.LLVMVerifyModule( state.Module, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction, msg.address ) != 0 ) {
 			    error( "failed to module verify " + c.HumanName + ": " + new String(msg) );
 			}
@@ -2114,12 +2117,23 @@ namespace Parse {
 	    // message( human );
 
 	    if( success ) {
+		//IO.Std.err.println( "verify before clean up function: " ); IO.Std.err.flush();
+		// LLVM.Calls.LLVMDumpValue( fg );		
+
+		if( LLVM.Calls.LLVMVerifyFunction( fg, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction ) != 0 ) {
+		    error( "failed to function verify before clean up: " + human );
+		    IO.Std.err.println( "VVVV: BB failed to function verify: " + human ); IO.Std.err.flush();
+		    
+		    LLVM.Calls.LLVMDumpValue( fg );
+		}
+
 		LLVM.Calls.LLVMCleanUpFunction(fg);
 		if (!didErrorsOccur() ) {
+		    // IO.Std.err.println( "about to verify cleaned up function: " ); IO.Std.err.flush();
 		    // LLVM.Calls.LLVMDumpValue( fg );
 		    
 		    if( LLVM.Calls.LLVMVerifyFunction( fg, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction ) != 0 ) {
-			error( "failed to function verify: " + human );
+			error( "failed to function verify after clean up: " + human );
 			IO.Std.err.println( "VVVV: AA failed to function verify: " + human ); IO.Std.err.flush();
 			
 			LLVM.Calls.LLVMDumpValue( fg );

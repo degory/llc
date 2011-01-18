@@ -58,7 +58,7 @@ extern "C"
 	}
 	
 	int count = 0;
-	for( pred_const_iterator PI = pred_begin(BB), E = pred_end(BB); PI != E; ++PI) {
+	for( const_pred_iterator PI = pred_begin(BB), E = pred_end(BB); PI != E; ++PI) {
 	  count ++;
 	}
 	
