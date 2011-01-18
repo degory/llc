@@ -12,22 +12,37 @@ else
 	TARGET:=linux-x86-64
 endif
 
+ifeq ($(PROJECT),)
+	PROJECT:=test
+endif
+
 ifeq ($(RUNTIME),)
-	RUNTIME=/usr/lib/lang
+	RUNTIME:=/usr/lib/lang
 endif
 
-ifeq ($(LFLAGS),)
-	LFLAGS:=-p test -R$(RUNTIME)
+ifeq ($(JOBS),)
+	JOBS:=1
 endif
 
-ifeq ($(LFLAGSBC),)
+LFLAGS:=-j$(JOBS) $(LFLAGS)
+
+ifeq ($(WANT_NATIVEOBJS),1)
+	LFLAGSBC:=-p $(PROJECT) -R$(RUNTIME) $(LFLAGS)
+	LFLAGS:=$(LFLAGSBC) -FB
+else
+	LFLAGS:=-p $(PROJECT) -R$(RUNTIME) $(LFLAGS)
 	LFLAGSBC:=$(LFLAGS)
 endif
 
-ifeq ($(LFLAGSNATIVE),)
-	LFLAGSNATIVE:=$(LFLAGS) -FN
-endif
 
+# BC library. Like BC executable, never native objects but export all symbols:
+LFLAGSBCLIB:=$(LFLAGSBC) -FE
+
+# Native executable. Maybe native objects, always native excutable, export nothing:
+LFLAGSEXE:=$(LFLAGS) -FN
+
+# Native library. As native executable but position independant code, export all symbols:
+LFLAGSSO:=$(LFLAGSEXE) -FNPE
 
 ifeq ($(LLVM_CC),)
 	LLVM_CC:=/usr/local/bin/gcc
@@ -42,9 +57,9 @@ ifeq ($(PREFIX),)
 endif
 
 ifeq ($(NOLLVMCC),)
-	CLEAN:=lc lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o lc.bc lc.lh jit.o dummy.o llvmc.o llvmc.so lang lang.bc lang.lh lrt-exception.o lrt-unwind.o lrt-throw.o /tmp/lcache-test/* || true
+	CLEAN:=lc lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o lc.bc lc.lh jit.o dummy.o llvmc.o llvmc.so lang lang.bc lang.lh lrt-exception.o lrt-unwind.o lrt-throw.o /tmp/lcache-$(PROJECT)/* || true
 else
-	CLEAN:=lc lrt-llvm-$(LRT_VERSION).bc lc.bc lc.lh llvmc.so lang lang.bc lang.lh /tmp/lcache-test/* || true
+	CLEAN:=lc lrt-llvm-$(LRT_VERSION).bc lc.bc lc.lh llvmc.so lang lang.bc lang.lh /tmp/lcache-$(PROJECT)/* || true
 endif
 
 
@@ -102,17 +117,17 @@ include lang.d
 lang: lang.bc lang.lh
 
 lang.bc: $(lang_DEPS)
-	$(LC) -V -f $(MODEL) $(LFLAGSBC) -FE -u lib.l -o lang
+	$(LC) -V -f $(MODEL) $(LFLAGSBCLIB) -u lib.l -o lang
 
 lang.so: $(lang_DEPS)
-	rm /tmp/lcache-test/* || true
-	$(LC) -V -f $(MODEL) $(LFLAGSNATIVE) -FPE -u lib.l -o lang
+	rm /tmp/lcache-$(PROJECT)/* || true
+	$(LC) -V -f $(MODEL) $(LFLAGSSO) -u lib.l -o lang
 	mv lang lang.so
 
 lang.lh: lang.bc
 
 lc: $(lc_DEPS) llvmc.o llvmc.so dummy.o
-	$(LC) -f $(MODEL) $(LFLAGSNATIVE) -p test -o lc -s llvm -lllvmc.o -lLLVM-2.8 main.l
+	$(LC) -f $(MODEL) $(LFLAGSEXE) -o lc -s llvm -lllvmc.o -lLLVM-2.8 main.l
 
 # -lLLVMAnalysis -lLLVMArchive -lLLVMBitReader -lLLVMBitWriter -lLLVMCore -lLLVMExecutionEngine -lLLVMipa -lLLVMMC -lLLVMSupport -lLLVMSystem -lLLVMTarget -lLLVMTransformUtils main.l
 
@@ -125,8 +140,8 @@ llvmc.so: llvmc.cpp
 dummy.o: dummy.c
 	gcc $(MODEL) -c dummy.c
 
-lc.bc:	$(lc_DEPS) 
-	$(LC) -f $(MODEL) $(LFLAGSBC) -p test -o lc -s llvm main.l -o lc
+lcbc:	$(lc_DEPS) 
+	$(LC) -f $(MODEL) $(LFLAGSBC) -o lcbc -s llvm main.l -o lc
 
 fcgi.o: fcgi.c
 	gcc $(MODEL) -c fcgi.c 

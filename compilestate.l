@@ -1547,7 +1547,9 @@ namespace Parse {
 		}
 
 		if( WantPIC ) {
+		    IO.Std.err.println( "shared library" );
 		    v.add( "-shared" );
+		    v.add( "-fpic" );
 		}
 
 		if( WantOneFile ) {
@@ -1590,6 +1592,7 @@ namespace Parse {
 	    v.add( "--export-dynamic" );
 
 	    if( !WantLinkLibraries ) {
+		IO.Std.err.println( "Do no link libraries" );
 		v.add( "-L/usr/lang/lib/" + TargetID + "/" );
 		v.add( "-L/usr/lang/lib/" );
 
@@ -1600,6 +1603,7 @@ namespace Parse {
 		v.add( executable_name );
 
 	    } else {
+		IO.Std.err.println( "Will link libraries" );
 		v.add( "-L/usr/lang/lib/" + TargetID + "/" );
 		v.add( "-L/usr/lang/lib/" );
 
@@ -1851,13 +1855,24 @@ namespace Parse {
 	    }
 	    
 	    Util.Process assembler = new Util.Process();
+            String[] args;
+
+            if( WantPIC ) {
+		args = { "/usr/bin/as", cast System.String(assembler_file), "-o", object_file };
+	    } else { 
+		args = { "/usr/bin/as", cast System.String(assembler_file), "-o", object_file };
+	    }
+
 	    int result = assembler.run(
 				       "/usr/bin/as",
+				       args,
+				       /*
 				       {
 					   "/usr/bin/as",
 					   cast<System.String>(assembler_file),
 					   "-o", object_file
 				       },
+				       */
 				       null
 				       );
 
@@ -1888,7 +1903,7 @@ namespace Parse {
 				 {
 				     "llc",
 				     relocate,
-				     "-f",
+				     // "-f",
 				     bitcode_file,
 				     "-o",
 				     cast<System.String>(assembler_file)
