@@ -39,7 +39,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1258;
+	const int BUILD = 1260;
 
 	CompileState state;
 
@@ -80,7 +80,7 @@ namespace Parse {
 	    Gen.Machine.initOpNames();
             
 	    state.OptimizeLevel = 1;
-	    state.Want64BitTarget = true;
+	    state.Want64BitTarget = System.Environment.WORD_BITS == 64;
 	    state.WantSharedStandardLibrary = false;
 	    state.WantRegVars = false;
 	    state.WantWarnResolve = false;

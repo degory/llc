@@ -89,7 +89,7 @@ lc.zip: $(INSTALL_OBJS)
 clean:
 	rm $(CLEAN) || true
 
-lc.d:
+lc.d:	operation.l syntaxl.l syntaxk.l
 	$(LC) $(MODEL) $(LFLAGS) -D -p test -o lc -s llvm main.l
 
 lang.d:
@@ -112,7 +112,7 @@ lang.so: $(lang_DEPS)
 lang.lh: lang.bc
 
 lc: $(lc_DEPS) llvmc.o llvmc.so dummy.o
-	$(LC) -f $(MODEL) $(LFLAGSNATIVE) -p test -o lc -s llvm -lllvmc.o -lLLVM-2.7svn main.l
+	$(LC) -f $(MODEL) $(LFLAGSNATIVE) -p test -o lc -s llvm -lllvmc.o -lLLVM-2.8 main.l
 
 # -lLLVMAnalysis -lLLVMArchive -lLLVMBitReader -lLLVMBitWriter -lLLVMCore -lLLVMExecutionEngine -lLLVMipa -lLLVMMC -lLLVMSupport -lLLVMSystem -lLLVMTarget -lLLVMTransformUtils main.l
 
@@ -138,7 +138,7 @@ lrt-llvm-$(LRT_VERSION).bc: lrt-exception.o lrt-unwind.o lrt-throw.o
 	llvm-ld -disable-opt -o lrt-llvm-$(LRT_VERSION) lrt-exception.o lrt-unwind.o lrt-throw.o
 
 lrt-llvm-$(LRT_VERSION).o: lrt-llvm-$(LRT_VERSION).bc
-	llc -f lrt-llvm-$(LRT_VERSION).bc
+	llc lrt-llvm-$(LRT_VERSION).bc
 	gcc -c lrt-llvm-$(LRT_VERSION).s
 
 lrt-exception.o: lrt-exception.c
@@ -171,5 +171,10 @@ syntaxl.l: syntax-l.jay skeleton-l
 syntaxk.l: syntax-k.jay skeleton-k
 	jay/jay -v syntax-k.jay <skeleton-k >syntaxk.l
 
+printtermg: printtermg.l
+	lc printtermg.l
+
+operation.l: ops printtermg
+	./printtermg <ops
 
 
