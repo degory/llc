@@ -497,6 +497,7 @@ namespace Parse {
 	bool want_export;
 	bool want_print_deps;
 	bool want_color_interface_selectors;
+	bool want_selector_hash_parameter;
 
 	String target_isa;
 
@@ -3089,6 +3090,14 @@ namespace Parse {
 
 	set bool WantColorInterfaceSelectors = c {
 	    want_color_interface_selectors = c;
+	}
+
+        get bool WantSelectorHashParameter {
+	    return want_selector_hash_parameter;
+	}
+
+	set bool WantSelectorHashParameter = h {
+	    want_selector_hash_parameter = h;
 	}
 
 	get bool WantPrintDeps {

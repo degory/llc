@@ -466,6 +466,7 @@ namespace Parse {
 	    return v;
 	}
 
+        // FIXME: some of this is duplicated in MethodDef.compile:
 	LLVM.Type getLLVMFunctionType(CompileState state) {
 	    int l = 0;
 	    if( arg_types != null ) {
@@ -473,7 +474,15 @@ namespace Parse {
 	    }
 
 	    var at = new Generic.Vector<LLVM.Type>(l+1);
+
+	    if( state.WantSelectorHashParameter && ImplementsInterfaceMethod ) {
+		ParseTree.message( "IIIIIIII: adding selector hash parameter to function type for: " + HumanName );
+		// add parameter for selector hash:
+		at.add(LLVM.Calls.LLVMInt32Type());
+	    }
+
 	    if( !IsStatic ) {
+		// add parameter for this:
 		at.add(Owner.Type.getLLVMType(state));
 	    }
 	    

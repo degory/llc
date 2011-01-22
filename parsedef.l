@@ -1801,12 +1801,21 @@ namespace Parse {
 	    }
         }
 
-	int compileArguments( CompileState state, IRBlock into, bool include_this ) {
+	int compileArguments( CompileState state, IRBlock into, bool include_this, bool include_selector_hash ) {
 	    Vector<Type> a = m.ArgTypes;
+
+	    if( include_selector_hash ) {
+		message( "compile method arguments for " + m.HumanName + ", include selector hash parameter" );
+		throw new System.Exception( "oops: include selector hash parameter" );
+	    }
 
 	    int num_args = 0;
 	    if( a != null ) {
 		num_args = a.Length;
+	    }
+
+	    if( include_selector_hash ) {
+		num_args = num_args + 1;
 	    }
 
 	    if( include_this ) {
@@ -1832,6 +1841,11 @@ namespace Parse {
 		} else {
 		    j = i;
 		}
+
+		if( include_selector_hash ) {
+		    j = j - 1;
+		}
+
 
 		LLVM.Value v;
 
@@ -1861,9 +1875,13 @@ namespace Parse {
 		    }
 		    */
 		    v = sy.getLocal(state, into);
-		} else {
+		} else if( j == -1 ) {
+		    // this:
 		    v = into.AllocaEntry( m.Owner.Type.getLLVMType(state), "this" );
 		    state.CurrentMethod.ThisPointer = v;
+		} else {
+		    // selector hash parameter - discard:
+		    continue;
 		}
 
 		// IO.Std.err.println( "store indirect..." );
@@ -2024,7 +2042,7 @@ namespace Parse {
 	    state.endParseMethodBody(m);
 	    // into.WantLineNumbers = state.WantLineNumbers;
 
-	    compileArguments(state, into, !m.IsStatic);
+	    compileArguments(state, into, !m.IsStatic, m.ImplementsInterfaceMethod && state.WantSelectorHashParameter);
 
 	    try {
 		// IO.Std.err.println( "GGGG: start compile body method " + state.CurrentMethod.HumanName + " in class " + state.CurrentClass.HumanName );

@@ -2237,12 +2237,12 @@ namespace Parse {
 	    } else if( symbol.ImplementsInterfaceMethod ) {
 		// need to pass in selector as called method expects to see the additional parameter but
 		// does not matter what value it has:
-		need_pass_selector = !state.WantColorInterfaceSelectors;
+		need_pass_selector = state.WantSelectorHashParameter;
 		if( need_pass_selector ) {
 		    ParseTree.message( "calling method in interface requires interface calling convention: " + symbol.HumanName );
 		}
 	    } else if( symbol.IsInterfaceMethod ) {
-		need_pass_selector = !state.WantColorInterfaceSelectors;
+		need_pass_selector = state.WantSelectorHashParameter;
 		selector_hash = symbol.DecoratedName.hash();
 		if( need_pass_selector ) {
 		    ParseTree.message( "calling method that implements interface method requires interface calling convention: " + symbol.HumanName );

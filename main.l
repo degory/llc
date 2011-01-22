@@ -256,6 +256,12 @@ namespace Parse {
 			    case 'c':
 				state.WantColorInterfaceSelectors = false;
 
+			    case 'S':
+				state.WantSelectorHashParameter = true;
+
+			    case 's':
+				state.WantSelectorHashParameter = false;
+
 			    default:
 				IO.Std.err.println( "unexpected output format option '" + name[j] + "'" );
 				return 1;
