@@ -1975,6 +1975,14 @@ namespace Parse {
 
             state.beginCompileMethod( this, m, decorated );
 
+	    m.checkConsistentCallingConvention( this );
+
+	    /*
+	    if( m.ImplementsInterfaceMethod ) {
+		message( "requires interface calling convention: " + m.HumanName );
+	    }
+	    */
+
 	    // IO.Std.err.println( "GGGG: current method " + state.CurrentMethod.HumanName + " in class " + state.CurrentClass.HumanName );
                       
             // state.beginParseMethodBody(m);            

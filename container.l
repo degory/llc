@@ -81,6 +81,8 @@ namespace Parse {
 	bool want_pack;
 	bool has_if;
 	bool has_static;
+	bool need_interface_calling_convention;
+	bool implements_interface_method;
 
 	LLVM.TypeHandle llvm_opaque_type_handle;
 	LLVM.TypeHandle llvm_struct_type_handle;
@@ -242,6 +244,46 @@ namespace Parse {
 
 	set bool HasIf = i {
 	    has_if = i;
+	}
+
+        get bool IsInterfaceMethod {
+	    return IsMethod && Owner.IsInterface;
+        }
+
+	get bool NeedInterfaceCallingConvention {
+	    return need_interface_calling_convention;
+	}
+
+	set bool NeedInterfaceCallingConvention = n {
+	    need_interface_calling_convention = n;
+	}
+
+        get bool ImplementsInterfaceMethod {
+	    return implements_interface_method;
+	}
+
+	set bool ImplementsInterfaceMethod = i {
+	    implements_interface_method = i;
+	}
+
+        void markImplementsInterfaceMethod() {
+	    ImplementsInterfaceMethod = true;
+
+	    for( var o = this; o != null; o = o.Super ) {
+		NeedInterfaceCallingConvention = true;
+	    }
+	}
+
+	void checkConsistentCallingConvention(ParseTree from) {
+	    if( !ImplementsInterfaceMethod ) {
+		return;
+	    }
+
+	    for( var o = this.Super; o != null; o = o.Super ) {
+		if( !o.ImplementsInterfaceMethod ) {
+		    from.error( "calling convention mismatch: " + HumanName + " implements an interface method but overrides " + o + " does not" );
+		}
+	    }
 	}
 	
 	get bool IsInterface {
@@ -1486,7 +1528,13 @@ namespace Parse {
 	    return result;
 	}
 
-	static void buildInterfaceTables( Generic.Set<Container> interfaces_set, Vector<Symbol> symbol_list ) {
+	static void buildInterfaceTablesHash( Generic.Set<Container> interfaces_set ) {
+	    foreach( var i; interfaces_set.Iterator ) {
+		allocateInterfaceSlotsHash(i);
+	    }
+	}
+
+	static void buildInterfaceTablesColor( Generic.Set<Container> interfaces_set, Vector<Symbol> symbol_list ) {
 	    int j, size = interfaces_set.Length;
 	    if( size == 0 ) {
 		return;
@@ -1552,17 +1600,67 @@ namespace Parse {
 		}
 	    }
 
-	    allocateInterfaceSlots( interfaces, matrix );
+	    allocateInterfaceSlotsColor( interfaces, matrix );
 	}
 
-	static void allocateInterfaceSlots( Vector<Container> interfaces, Gen.MBitSet[] matrix ) {
+	static void allocateInterfaceSlotsColor( Vector<Container> interfaces, Gen.MBitSet[] matrix ) {
 	    var slots = new Vector<Vector<Container>>();
 	    foreach( var ii; interfaces.elements() ) {
-		allocateInterfaceSlots( interfaces, ii, slots, matrix );
+		allocateInterfaceSlotsColor( interfaces, ii, slots, matrix );
 	    }
 	}
 
-	static void allocateInterfaceSlots(
+	static void allocateInterfaceSlotsHash(
+	    Container ii
+	) {
+	    int slot_index = -1;
+
+	    foreach( Symbol s; ii.members.SymbolList.elements() ) {
+		if( s.Owner == ParseTree.object_type.Clazz ) {
+		    IO.Std.err.println( "weird: " + s.HumanName + " in " + ii.HumanName );
+		    continue;
+		}
+
+		if( !s.IsMethod ) {
+		    if( !s.IsType && !s.IsAccessor ) { 
+			IO.Std.err.println( "weird: interface member '" + s.Owner.HumanName + " " + s.HumanName + "' is not a method" );
+		    }
+		    continue;
+		}
+
+		var c = cast Container(s);
+
+		// not sure this is correct in this context:
+		if( !c.IsFinal ) {
+		    continue;
+		}		
+		
+		slot_index = c.DecoratedName.hash();
+		if( slot_index < 0 ) {
+		    slot_index = -slot_index;
+		}
+		slot_index = slot_index & 63;
+
+		c.clearAddressValid();
+		c.IsFinal = false;
+
+		// IO.Std.err.println( "final now: " + c.IsFinal + " for " + c.HumanName );
+
+		c.Address = -(INTERFACE_OFFSET + slot_index);
+		if( CompileState.Instance.WantVeryVerbose ) {
+		    ParseTree.message( "interface slot #" + slot_index + ": " + c.HumanName + " @ " + c.Address );
+		}
+
+		// does this set addresses for all overrides?
+		Container o = c.Override;
+		if( o != null ) {
+		    o.clearAddressValid();
+		    o.Address = c.Address;
+		}
+	    }
+	}
+
+	static void allocateInterfaceSlotsColor(
 	    Vector<Container> interfaces,
 	    Container ii,
 	    Vector<Vector<Container>> slots,
@@ -1640,11 +1738,13 @@ namespace Parse {
 
 		Container o = c.Override;
 		if( o != null ) {
+		    ParseTree.message( "IIIIIIII: setting address for overridden interface method: " + o );
 		    o.clearAddressValid();
 		    o.Address = c.Address;
 		}
 	    }
 	}
+
 
         void buildClassTables( CompileState state, Addresses address ) {
 	    word ref_bits;
@@ -2027,16 +2127,16 @@ namespace Parse {
 		    }
 		    
 		    if( !e.Type.isAssignableFrom( i.Type ) ) {
-			from.error(
-				   i.HumanName + " cannot implement " + e.HumanName + " with incompatible return type" );
+			from.error( i.HumanName + " cannot implement " + e.HumanName + " with incompatible return type" );
 			error = true;
 			continue;
 		    }
-		    
+
+		    i.markImplementsInterfaceMethod();
 		    slots.lengthen(slot+1);
 		    
 		    if( slots[slot] != null ) {
-			IO.Std.err.println( "overriding already implemented: " + slots[slot].HumanName + " with " + i.HumanName );
+			ParseTree.message( "IIIIIIII: possible interface selector collision: " + slots[slot].HumanName + " and " + i.HumanName + " both at " + slot );
 		    }
 		    
 		    // IO.Std.err.println( "BBBB: implement slot #" + slot + ": " + i.HumanName );

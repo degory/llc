@@ -41,6 +41,7 @@ namespace Parse {
 	    libraries.add( l );
 	}
 
+	// FIXME: not sure this is a hash, think it's method index:
 	get int Hash[String name] {
 	    foreach( var l; libraries.Iterator ) {
 		int h = l.Hash[name];

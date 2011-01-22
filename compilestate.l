@@ -496,6 +496,7 @@ namespace Parse {
 	bool want_pic;
 	bool want_export;
 	bool want_print_deps;
+	bool want_color_interface_selectors;
 
 	String target_isa;
 
@@ -892,6 +893,15 @@ namespace Parse {
 	    return v;
 	}
 
+        int getCachedSlotIndex(Container c) {
+	    var r = need_compile.Hash[c.DecoratedName];
+	    if( r < 0 ) {
+		ParseTree.message( "IIIIIIIIIIIIIIII: found existing interface slot " + c.HumanName + " @ " + r );
+	    }
+
+	    return r;
+	}
+
 	get LoopStack Loops {
 	    return loop_stack;
 	}
@@ -1159,7 +1169,7 @@ namespace Parse {
 	    var hash = c.Hash;
 	    var name = c.DecoratedName;
 
-	    if( s != CompileStatus.LIBRARY ) {
+	    if( c.IsInterface || s != CompileStatus.LIBRARY ) {
 		// IO.Std.err.println( "writing to " + library_hash_file + ": '" + name + ' ' + hash + ' ' + "'" );
 		library_hash_file.print( name + ' ' + hash + ' ' );
 
@@ -1175,6 +1185,10 @@ namespace Parse {
 			library_hash_file.print( u );
 		    }
 		}
+	    }
+
+            if( c.IsInterface ) {
+		return;
 	    }
 
 	    if( s == CompileStatus.STALE ) {
@@ -1346,7 +1360,14 @@ namespace Parse {
 		ParseTree.message( "build interface tables..." );
 	    }
 
-	    Container.buildInterfaceTables( interfaces_set, master_class_list.SymbolList );
+/*
+	    if( WantColorInterfaceSelectors ) {
+		Container.buildInterfaceTablesColor( interfaces_set, master_class_list.SymbolList );
+	    } else {
+		Container.buildInterfaceTablesHash( interfaces_set );
+	    }
+*/
+            Container.buildInterfaceTablesColor( interfaces_set, master_class_list.SymbolList );
 
 	    // symbol table is complete and it is now possible to compile methods in any order
 	    // and we can attempt to prepare intermediate code versions of methods for inlining:
@@ -1741,7 +1762,7 @@ namespace Parse {
 		}
 
 		if( name.endsWith(".l") || name.endsWith(".lh") ) {
-		    // IO.Std.err.println( "l or ll extension, try open '" + name + "' directly" );
+		    // IO.Std.err.println( "l or lh extension, try open '" + name + "' directly" );
 		    in = tryOpen( s, name, "" );
 		    if( in != null ) {
 			file_name = name;
@@ -3061,6 +3082,14 @@ namespace Parse {
         get int State {
             return state[sp].State;
         }
+
+	get bool WantColorInterfaceSelectors {
+	    return want_color_interface_selectors;
+	}
+
+	set bool WantColorInterfaceSelectors = c {
+	    want_color_interface_selectors = c;
+	}
 
 	get bool WantPrintDeps {
 	    return want_print_deps;

@@ -2219,6 +2219,9 @@ namespace Parse {
 
 	    LLVM.BasicBlock handler;
 
+	    var need_pass_selector = false;
+	    var selector_hash = 0;
+
 	    if( isError(from) ) {
 		return ErrorValue();
 	    }
@@ -2227,6 +2230,36 @@ namespace Parse {
 		if( isError(a) ) {
 		    return ErrorValue();
 		}
+	    }
+
+	    if( symbol == null ) {
+		// do nothing - proc call, known to be OK
+	    } else if( symbol.ImplementsInterfaceMethod ) {
+		// need to pass in selector as called method expects to see the additional parameter but
+		// does not matter what value it has:
+		need_pass_selector = !state.WantColorInterfaceSelectors;
+		if( need_pass_selector ) {
+		    ParseTree.message( "calling method in interface requires interface calling convention: " + symbol.HumanName );
+		}
+	    } else if( symbol.IsInterfaceMethod ) {
+		need_pass_selector = !state.WantColorInterfaceSelectors;
+		selector_hash = symbol.DecoratedName.hash();
+		if( need_pass_selector ) {
+		    ParseTree.message( "calling method that implements interface method requires interface calling convention: " + symbol.HumanName );
+		}
+	    } else if( offset < 0 ) {
+		ParseTree.message( "oops: calling interface method but not marked as such: " + symbol.HumanName );
+	    }
+
+	    if( need_pass_selector ) {
+		var na = new LLVM.Value[args.length + 1];
+		na[0] = LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(), cast long(selector_hash), 0 );
+
+		for( i = 0; i < args.length; i = i + 1 ) {
+		    na[i+1] = args[i];
+		}
+
+		args = na;
 	    }
 
 	    /*
@@ -3306,6 +3339,7 @@ namespace Parse {
 		    arg_values = ExpressionList.compilePush( arguments, state, null, null, argument_types, into, false, false );
 		    // IO.Std.err.println( "CCCC: static call, arg types: " + argument_types );
 
+		    // message( "static method does not require interface calling convention: " + symbol.HumanName );
 		    return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, null, arg_values );
                     
                 case Symbol.INSTANCE_METHOD:
@@ -3343,6 +3377,7 @@ namespace Parse {
 								);
 			// IO.Std.err.println( "CCCC: static dynamic call, arg types: " + argument_types );
 
+			// message( "super call virtual method may require interface calling convention: " + symbol.HumanName );
 			return compileCall( state, into, t, o, symbol, symbol.DecoratedName, 0, null, arg_values );
                     } else if( cast<Container>(symbol).CallAsFinal ) {
                         if( no_discard ) {
@@ -3365,8 +3400,10 @@ namespace Parse {
 			// IO.Std.err.println( "CCCC: static dynamic call, arg types: " + argument_types );
 
 			// this cannot be null here:
+
+			// message( "static call of dynamic method may require interface calling convention: " + symbol.HumanName );
 			return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, null, arg_values );
-                    }  else {
+                    } else {
                         if( no_discard ) {
                             o = Op.DYNAMIC_CALL;
                         } else {
@@ -3385,6 +3422,7 @@ namespace Parse {
 
 			// IO.Std.err.println( "CCCC: actual dynamic call, arg types: " + argument_types );
 
+			// message( "virtual method may require interface calling convention: " + symbol.HumanName );
 			return compileCall( state, into, t, o, symbol, null, symbol.Address, null, arg_values );
                     }
                     
@@ -3413,6 +3451,7 @@ namespace Parse {
 		    addNullCheck( state, into, from, line_number );
 		    arg_values = ExpressionList.compilePush( arguments, state, from, null, argument_types, into, true, false );
 
+		    // message( "proc reference does not require interface calling convention" );
 		    return compileCall( state, into, from, o, null, null, 0, rt.getLLVMType(state), arg_values );
 		} else
                 switch ( symbol.Kind ) {
@@ -3479,7 +3518,8 @@ namespace Parse {
 		    
 		    arg_values = ExpressionList.compilePush( arguments, state, null, null, argument_types, into, false, false );
 		    IO.Std.err.println( "CCCC: static call, arg types: " + argument_types );
-		    
+
+		    // message( "static method does not require interface calling convention: " + symbol.HumanName );
 		    return compileCall( state, into, null, o, symbol, symbol.DecoratedName, 0, null, arg_values );
 			/*
                     }
@@ -3516,6 +3556,7 @@ namespace Parse {
 			arg_values = ExpressionList.compilePush( arguments, state, from, symbol.Owner.Type, argument_types, into, true, false );
 			// IO.Std.err.println( "CCCC: static dynamic call, arg types: " + argument_types );
 
+			// message( "super call of dynamic method may require interface calling convention: " + symbol.HumanName );
 			return compileCall( state, into, from, o, symbol, symbol.DecoratedName, 0, null, arg_values );
                     } else if( cast<Container>(symbol).CallAsFinal ) {
                         if( no_discard ) {
@@ -3533,6 +3574,7 @@ namespace Parse {
 			arg_values = ExpressionList.compilePush( arguments, state, from, symbol.Owner.Type, argument_types, into, true, false );
 			// IO.Std.err.println( "CCCC: final dynamic call, arg types: " + argument_types );
 
+			// message( "static call of dynamic method may require interface calling convention: " + symbol.HumanName );
 			return compileCall( state, into, from, o, symbol, symbol.DecoratedName, 0, null, arg_values );
                     } else {
 
@@ -3547,6 +3589,7 @@ namespace Parse {
 			arg_values = ExpressionList.compilePush( arguments, state, from, symbol.Owner.Type, argument_types, into, true, false );
 			// IO.Std.err.println( "CCCC: actual dynamic call, arg types: " + argument_types );
 
+			// message( "virtual method may require interface calling convention: " + symbol.HumanName );
 			return compileCall( state, into, from, o, symbol, null, symbol.Address, null, arg_values );
                     }
                     

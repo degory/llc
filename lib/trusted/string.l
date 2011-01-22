@@ -124,13 +124,16 @@ namespace System is
 	int hash() is
 	    int result, i;
 	    i = 0;
-	    result = 0;
+	    result = 5381;
 
 	    while i < _length do
-		result = result * 4 + cast int([_buffer + i]);
+	        // result = result * 4 + cast int([_buffer + i]);
+	        result = cast int([_buffer+i]) + (result << 6) + (result << 16) - result;
 		i = i + 1;
 	    od
-	
+
+   	    // native.printf( `hash %s -> %d\n`, toCString(), result );
+
 	    return result;
 	si
 

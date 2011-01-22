@@ -791,6 +791,7 @@ namespace Parse {
                 }
 
             case '~': return Token.NOT;
+	    case '^': return Token.XOR;
 
             case '{':
 		// generic_state = MAYBE_IN_TYPE;

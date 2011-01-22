@@ -208,6 +208,7 @@ namespace Parse {
 						   true,
 						   false );
 		
+		// message( "constructor call does not require interface calling convention: " + method.HumanName );
 		compileCall( state, into, null, Op.STATIC_CALL_DISCARD, method, method.DecoratedName, 0, null, args );
 		// addDummyExceptionHandlerJump( state, line_number, into );
 		    //} else {

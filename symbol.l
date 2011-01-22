@@ -161,6 +161,14 @@ namespace Parse {
 	    return kind & FLAG_METHOD != 0;
 	}
 
+	get bool IsInterfaceMethod {
+	    return false;
+	}
+
+	get bool ImplementsInterfaceMethod {
+	    return false;
+	}
+
 	/*
 	get bool IsPIC {
 	    return false;

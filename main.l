@@ -92,6 +92,7 @@ namespace Parse {
 	    state.WantLinkLibraries = true;
 	    state.WantNativeExecutable = false;
 	    state.WantNativeObjectFiles = false;
+	    state.WantColorInterfaceSelectors = true;
 
 	    bool set_executable_name = false;
 	    bool want_stats = false;
@@ -248,6 +249,12 @@ namespace Parse {
 
 			    case 'l':
 				state.WantNativeLibraryFiles = false;
+
+			    case 'C':
+				state.WantColorInterfaceSelectors = true;
+
+			    case 'c':
+				state.WantColorInterfaceSelectors = false;
 
 			    default:
 				IO.Std.err.println( "unexpected output format option '" + name[j] + "'" );
