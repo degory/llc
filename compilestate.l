@@ -3256,6 +3256,7 @@ namespace Parse {
 
 	set bool WantBoundsCheck = b {
 	    WarnFlag[WANT_BOUNDS_CHECK] = b;
+            // opSetWarnFlag(WANT_BOUNDS_CHECK,b);
 	}
 
 
@@ -3372,6 +3373,7 @@ namespace Parse {
 
 	set bool WantNullCheck = z {
 	    WarnFlag[WANT_NULL_CHECK] = z;
+	    //opSetWarnFlag(WANT_NULL_CHECK, z);
 	}
         get bool WantVirtual {
 	    return WarnFlag[WANT_VIRTUAL];

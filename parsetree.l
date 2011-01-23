@@ -1595,9 +1595,9 @@ namespace Parse {
 		    }
 		}
 	    } else if( n =~ "NoBoundsCheck" ) {
-		state.WantNullCheck = false;
-	    } else if( n =~ "NoNullCheck" ) {		
 		state.WantBoundsCheck = false;
+	    } else if( n =~ "NoNullCheck" ) {		
+		state.WantNullCheck = false;
 	    } else if( !warned ) {
 		warn( "ignoring undefined pragma " + name );
 	    }
@@ -2209,11 +2209,14 @@ namespace Parse {
 
         void compile( CompileState state, IRBlock into ) {
 	    left_value.wantSetProperty( state, right_value );
+
 	    Type tl = left_value.getType( state );
 	    Type tr = right_value.getType( state );
 
 	    if( tl == undefined_type || tr == undefined_type ) {
-		return;
+		if( !left_value.isProperty(state) ) {
+		    return;
+		}
 	    }
 
 	    /*	    
@@ -2224,10 +2227,13 @@ namespace Parse {
 	    if( !left_value.isProperty(state) && !left_value.isLeftValue(state) ) {
 		error( "cannot assign to non lvalue " + left_value.dump(state) );
 	    }
-	    
+
+	    // var s = left_value.toString();
+
 	    if( left_value.isProperty(state) ) {
 		left_value.compileValue( state, into );
 	    } else {
+
 		if( !tl.isAssignableFrom( tr ) && tl.TypeKind != Type.ERROR ) {
 		    /*
 		      IO.Std.err.println( "assign left value:  " + left_value + " type: " + tl );
@@ -2318,6 +2324,11 @@ namespace Parse {
 	    want_set_value = true;
 	    this.set_value = set_value;
 	}
+
+	bool isIndexer(CompileState state) {
+	    // FIXME: not really correct
+	    return method_call != null;
+	}
         
         void calcType( CompileState state ) {
 	    left_value.wantIndexer( state, right_value );
@@ -2344,7 +2355,6 @@ namespace Parse {
 		// built in array access:
 		type = type.SubType;
 	    } else if( left_value.isIndexer(state) ) {
-
 		if( want_set_value ) {
 		    // method call will check supplied type, do not use type
 		    // of left value as it will be 'void':
@@ -2390,6 +2400,13 @@ namespace Parse {
 	    // IO.Std.err.println( "vector access type is " + type + " element size is " + type.getRegSize() );
         }
 
+	String toString() {
+	    var b = new StringBuffer();
+	    dump( CompileState.Instance, b );
+
+	    return b;
+	}
+
         void dump( CompileState state, StringBuffer buffer ) {
             left_value.dump( state, buffer );
             buffer.append('[');
@@ -2426,8 +2443,6 @@ namespace Parse {
 		var existing_block = false;
 
 		var l = getThrowBoundsBlock( state, into, existing_block );
-
-		// warn( "bounds check: " + this );
 
 		// IO.Std.err.print( "left: " ); IO.Std.err.flush();
 		// LLVM.Calls.LLVMDumpValue( cl ); native.__flush_stdout();
@@ -2478,11 +2493,12 @@ namespace Parse {
 
         LLVM.Value compileValue( CompileState state, IRBlock into ) {
 	    getType(state);
-	    if( type == undefined_type ) {
-		return ErrorValue();
-	    }
+
 	    if( method_call == null ) {
-		// IO.Std.err.println( "no method call: " + this + ", type: " + type );
+		if( type == undefined_type ) {
+		    return ErrorValue();
+		}
+
 		// cannot throw null, compileAddress ensures non-null:
 		return makeLoadIndirect( state, line_number, into, false, compileAddress(state, into) );
 	    } else {
