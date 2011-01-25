@@ -2207,7 +2207,7 @@ namespace Parse {
 	    LLVM.BasicBlock handler;
 
 	    var need_pass_selector = false;
-	    var selector_hash = 0;
+	    LLVM.Value selector_hash;
 
 	    if( isError(from) ) {
 		return ErrorValue();
@@ -2227,14 +2227,18 @@ namespace Parse {
 		need_pass_selector = state.WantSelectorHashParameter;
 	    } else if( symbol.IsInterfaceMethod ) {
 		need_pass_selector = state.WantSelectorHashParameter;
-		selector_hash = symbol.DecoratedName.hash();
+		selector_hash = symbol.getInterfaceMethodSelectorID(state);
 	    } else if( offset < 0 ) {
 		ParseTree.message( "oops: may need calling interface method but not marked as such: " + symbol.HumanName );
 	    }
 
 	    if( need_pass_selector ) {
 		var na = new LLVM.Value[args.length + 1];
-		na[0] = LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(), cast long(selector_hash), 0 );
+		if( selector_hash != null ) {
+		    na[0] = selector_hash;
+		} else {
+		    na[0] = LLVM.Calls.LLVMConstNull(LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0));
+		}
 
 		for( i = 0; i < args.length; i = i + 1 ) {
 		    na[i+1] = args[i];

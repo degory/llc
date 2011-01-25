@@ -479,7 +479,7 @@ namespace Parse {
 	    if( state.WantSelectorHashParameter && NeedInterfaceCallingConvention ) {
 		// ParseTree.message( "IIIIIIII: adding selector hash parameter to function type for: " + HumanName );
 		// add parameter for selector hash:
-		at.add(LLVM.Calls.LLVMInt32Type());
+		at.add(LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0));
 	    }
 
 	    if( !IsStatic ) {
@@ -1774,7 +1774,7 @@ namespace Parse {
 			IO.Std.err.println( "weird: interface member '" + e.HumanName + "' is final" );			
 		    } 
 
-		    emitInterfaceSelector( state, e );
+		    // emitInterfaceSelector( state, e );
 
 		    i = findImplementedMethod(e);
 		    if( i == null ) { 
@@ -2082,8 +2082,8 @@ namespace Parse {
 	    //LLVM.Calls.LLVMAddTypeName( state.Module, HumanName.toCString(), Type.getLLVMType(state) );
 	}
 
-	void emitInterfaceSelector( CompileState state, Container s ) {
-	    var name = ("__selector_" + s.DecoratedName).toCString();
+	LLVM.Value getInterfaceMethodSelectorID(CompileState state) {
+	    var name = ("__selector_" + DecoratedName).toCString();
 
 	    var g = LLVM.Calls.LLVMGetNamedGlobal(
 						  state.Module,
@@ -2093,38 +2093,27 @@ namespace Parse {
 	    if( g == null ) {
 		g = LLVM.Calls.LLVMAddGlobal(
 					     state.Module,
-					     LLVM.Calls.LLVMInt32Type(),
+					     LLVM.Calls.LLVMInt8Type(),
 					     name
 					     );
 
 		state.maybeLinkOnce(g,false);
 
-		/*
-		LLVM.Calls.LLVMSetLinkage(
-					  g,
-					  LLVM.LLVMLinkage.LLVMWeakAnyLinkage
-					  );
-					 
-		*/
-		int a = 0;
-		if( s.IsAddressValid ) {
-		    a = s.Address;
-		    // IO.Std.err.println( "selector offset: " + s.HumanName + " @ " + a );
-		} else {
-		    // IO.Std.err.println( "selector offset: " + s.HumanName + " @ unknown" );
-		}
-
 		LLVM.Calls.LLVMSetInitializer(
 					      g,
 					      LLVM.Calls.LLVMConstInt(
-								      LLVM.Calls.LLVMInt32Type(),
-								      cast long(a),
+								      LLVM.Calls.LLVMInt8Type(),
+								      0L,
 								      0
 								      )
 					      );
 
 		// LLVM.Calls.LLVMDumpValue( g );
 	    }
+	}
+
+	void emitInterfaceSelector( CompileState state ) {
+	    getInterfaceMethodSelectorID(state);
 	}
 
 	bool emitInterfaceTables( CompileState state, ParseTree from, Generic.Vector<LLVM.Value> buffer ) {
@@ -2163,7 +2152,7 @@ namespace Parse {
 			IO.Std.err.println( "weird: interface member '" + e.HumanName + "' is final" );			
 		    } 
 
-		    emitInterfaceSelector( state, e );
+		    e.emitInterfaceSelector( state );
 
 		    i = findImplementedMethod(e);
 		    if( i == null ) { 
