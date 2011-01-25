@@ -1804,10 +1804,11 @@ namespace Parse {
 	int compileArguments( CompileState state, IRBlock into, bool include_this, bool include_selector_hash ) {
 	    Vector<Type> a = m.ArgTypes;
 
+	    /*
 	    if( include_selector_hash ) {
-		message( "compile method arguments for " + m.HumanName + ", include selector hash parameter" );
-		throw new System.Exception( "oops: include selector hash parameter" );
+		message( "YYYYYYYY: compile method arguments for " + m.HumanName + ", include selector hash parameter" );
 	    }
+	    */
 
 	    int num_args = 0;
 	    if( a != null ) {
@@ -1886,9 +1887,7 @@ namespace Parse {
 
 		// IO.Std.err.println( "store indirect..." );
 
-		addStoreIndirect( state, line_number, into, false, v, LLVM.Calls.LLVMGetParam( f, i ) );
-
-		
+		addStoreIndirect( state, line_number, into, false, v, LLVM.Calls.LLVMGetParam( f, i ) );		
 	    }
 
 	    return 0;
@@ -1995,12 +1994,6 @@ namespace Parse {
 
 	    m.checkConsistentCallingConvention( this );
 
-	    /*
-	    if( m.ImplementsInterfaceMethod ) {
-		message( "requires interface calling convention: " + m.HumanName );
-	    }
-	    */
-
 	    // IO.Std.err.println( "GGGG: current method " + state.CurrentMethod.HumanName + " in class " + state.CurrentClass.HumanName );
                       
             // state.beginParseMethodBody(m);            
@@ -2042,7 +2035,7 @@ namespace Parse {
 	    state.endParseMethodBody(m);
 	    // into.WantLineNumbers = state.WantLineNumbers;
 
-	    compileArguments(state, into, !m.IsStatic, m.ImplementsInterfaceMethod && state.WantSelectorHashParameter);
+	    compileArguments(state, into, !m.IsStatic, m.NeedInterfaceCallingConvention && state.WantSelectorHashParameter);
 
 	    try {
 		// IO.Std.err.println( "GGGG: start compile body method " + state.CurrentMethod.HumanName + " in class " + state.CurrentClass.HumanName );

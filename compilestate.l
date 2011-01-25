@@ -1370,8 +1370,15 @@ namespace Parse {
 */
             Container.buildInterfaceTablesColor( interfaces_set, master_class_list.SymbolList );
 
+
+	    // mark all methods that need interface calling convention:
+            foreach( Container d; to_build_tables_list.elements() ) {
+                d.markImplementedInterfaceMethods( this );
+            }
 	    // symbol table is complete and it is now possible to compile methods in any order
 	    // and we can attempt to prepare intermediate code versions of methods for inlining:
+
+
 
 
 	    // actually compile:

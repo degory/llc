@@ -39,7 +39,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1260;
+	const int BUILD = 1262;
 
 	CompileState state;
 
@@ -404,9 +404,9 @@ namespace Parse {
                 }
             }
 
-	    if( state.WantNativeLibraryFiles ) {
-		state.WantSharedStandardLibrary = true;
-	    }
+	    // if( state.WantNativeLibraryFiles ) {
+	    //	state.WantSharedStandardLibrary = true;
+	    // }
 
 	    if( max_heap > 0 ) {
 		System.GC.MaxHeapSize = max_heap * 1024 * 1024;

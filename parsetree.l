@@ -588,29 +588,25 @@ namespace Parse {
 				       LLVM.Value f,
 				       LLVM.Value[] args ) {
 
+
+	    LLVM.Value v;
+
 	    if( state.InExceptionHandler ) {		
 		LLVM.BasicBlock l = into.Block();
 
 		LLVM.BasicBlock landing_pad = state.TopException.landing_pad;
 		if( landing_pad == null ) {
 		    throw new System.Exception( "call or invoke: in exception handler but no landing pad set" );
-		    /*
-		} else {
-		    IO.Std.err.print( "TTTT: invoke f: " ); IO.Std.err.flush();
-		    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(f) );
-
-		    IO.Std.err.print( "TTTT: handler: " ); IO.Std.err.flush();
-		    LLVM.Calls.LLVMDumpValue( LLVM.Calls.LLVMBasicBlockAsValue(handler) );
-		    */ 
 		}
 
-		var v = into.Invoke( f, args, l, landing_pad );
+		v = into.Invoke( f, args, l, landing_pad );
 
 		into.Label(l);
-		return v; 
 	    } else {
-		return into.Call( f, args );
+		v = into.Call( f, args );
 	    }
+
+	    return v;
 	}
 
 	LLVM.Value makeAllocateArray( CompileState state, IRBlock into, Type t, LLVM.Value element_count ) {

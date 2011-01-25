@@ -279,6 +279,7 @@ namespace Parse {
 		return;
 	    }
 
+	    // FIXME: won't work, already set before tested
 	    for( var o = this.Super; o != null; o = o.Super ) {
 		if( !o.ImplementsInterfaceMethod ) {
 		    from.error( "calling convention mismatch: " + HumanName + " implements an interface method but overrides " + o + " does not" );
@@ -475,8 +476,8 @@ namespace Parse {
 
 	    var at = new Generic.Vector<LLVM.Type>(l+1);
 
-	    if( state.WantSelectorHashParameter && ImplementsInterfaceMethod ) {
-		ParseTree.message( "IIIIIIII: adding selector hash parameter to function type for: " + HumanName );
+	    if( state.WantSelectorHashParameter && NeedInterfaceCallingConvention ) {
+		// ParseTree.message( "IIIIIIII: adding selector hash parameter to function type for: " + HumanName );
 		// add parameter for selector hash:
 		at.add(LLVM.Calls.LLVMInt32Type());
 	    }
@@ -1754,6 +1755,48 @@ namespace Parse {
 	    }
 	}
 
+	void markImplementedInterfaceMethods( CompileState state ) {
+	    var implemented = new Vector<Container>();
+	    populateAllImplementedInterfaces( implemented );
+
+	    Container i;
+
+	    foreach( Container c; implemented.elements() ) {
+		foreach( Symbol s; c.members.SymbolList.elements() ) {
+		    if( !s.IsMethod ) {
+			continue;
+		    }
+
+		    Container e = cast Container(s);
+		    // IO.Std.err.println( "looking for method: " + s.HumanName + "..." );
+
+		    if( e.IsFinal ) {
+			IO.Std.err.println( "weird: interface member '" + e.HumanName + "' is final" );			
+		    } 
+
+		    emitInterfaceSelector( state, e );
+
+		    i = findImplementedMethod(e);
+		    if( i == null ) { 
+			continue;
+		    }
+		    
+		    if( i.IsStatic ) {
+			// error but will report later:
+			continue;
+		    }
+		    
+		    if( !e.Type.isAssignableFrom( i.Type ) ) {
+			// error but will report later:
+			continue;
+		    }
+
+		    i.markImplementsInterfaceMethod();
+		}
+	    }
+
+	}
+
 
         void buildClassTables( CompileState state, Addresses address ) {
 	    word ref_bits;
@@ -2141,7 +2184,6 @@ namespace Parse {
 			continue;
 		    }
 
-		    i.markImplementsInterfaceMethod();
 		    slots.lengthen(slot+1);
 		    
 		    if( slots[slot] != null ) {

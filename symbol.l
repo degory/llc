@@ -169,6 +169,10 @@ namespace Parse {
 	    return false;
 	}
 
+	get bool NeedInterfaceCallingConvention {
+	    return false;
+	}
+
 	/*
 	get bool IsPIC {
 	    return false;

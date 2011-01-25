@@ -1,5 +1,5 @@
 include target
-
+LFLAGS:=$(WANT_LFLAGS)
 
 LRT_VERSION:=0.2
 
@@ -123,9 +123,11 @@ include lang.d
 lang: lang.bc lang.lh
 
 lang.bc: $(lang_DEPS)
+	echo build lang.bc $(LFLAGSBCLIB)
 	$(LC) -V -f $(MODEL) $(LFLAGSBCLIB) -u lib.l -o lang
 
 lang.so: $(lang_DEPS)
+	echo build lang.so $(LFLAGSSO)
 	rm /tmp/lcache-$(PROJECT)/* || true
 	$(LC) -V -f $(MODEL) $(LFLAGSSO) -u lib.l -o lang
 	mv lang lang.so
