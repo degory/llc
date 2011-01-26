@@ -190,7 +190,8 @@ namespace Parse {
         THROW_NULL,
         THROW_BOUNDS,
         THROW_CAST,
-	GET_L_EXCEPTION
+        GET_L_EXCEPTION,
+	COLLISION_THUNK
     }
 
 
@@ -760,7 +761,7 @@ namespace Parse {
 		// IO.Std.err.println( "returning module for: " + CurrentClass.HumanName );
 		return CurrentClass.LLVMModule;
 	    } else {
-		IO.Std.err.println( "oops: LLVM module requested outside of class" );
+		IO.Std.err.println( "oops: LLVM module requested outside of class from: " + new System.Backtrace() );
 		return module;
 	    }
 	}
@@ -830,7 +831,10 @@ namespace Parse {
 
 	    case RuntimeFunction.GET_L_EXCEPTION:
 		name = `__get_l_exception`;
-		
+/*
+	    case RuntimeFunction.COLLISION_THUNK:
+		name = `__collision_thunk`;
+*/		
 	    default:
 		throw new System.Exception( "unknown runtime function #" + cast int(f) );
 	    }
@@ -863,7 +867,8 @@ namespace Parse {
 
 		case RuntimeFunction.THROW_NULL,
 		    RuntimeFunction.THROW_BOUNDS,
-		    RuntimeFunction.THROW_CAST:
+		    RuntimeFunction.THROW_CAST: /*,
+						  RuntimeFunction.COLLISON_THUNK: */
 		    ret = LLVM.Calls.LLVMVoidType();
 		    args = new LLVM.Type[0];
 
@@ -1361,15 +1366,13 @@ namespace Parse {
 		ParseTree.message( "build interface tables..." );
 	    }
 
-/*
 	    if( WantColorInterfaceSelectors ) {
 		Container.buildInterfaceTablesColor( interfaces_set, master_class_list.SymbolList );
 	    } else {
 		Container.buildInterfaceTablesHash( interfaces_set );
 	    }
-*/
-            Container.buildInterfaceTablesColor( interfaces_set, master_class_list.SymbolList );
 
+            // Container.buildInterfaceTablesColor( interfaces_set, master_class_list.SymbolList );
 
 	    // mark all methods that need interface calling convention:
             foreach( Container d; to_build_tables_list.elements() ) {
@@ -1377,9 +1380,6 @@ namespace Parse {
             }
 	    // symbol table is complete and it is now possible to compile methods in any order
 	    // and we can attempt to prepare intermediate code versions of methods for inlining:
-
-
-
 
 	    // actually compile:
 
