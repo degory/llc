@@ -2207,7 +2207,7 @@ namespace Parse {
 	    LLVM.BasicBlock handler;
 
 	    var need_pass_selector = false;
-	    var selector_hash = 0;
+	    LLVM.Value selector_id;
 
 	    if( isError(from) ) {
 		return ErrorValue();
@@ -2221,20 +2221,28 @@ namespace Parse {
 
 	    if( symbol == null ) {
 		// do nothing - proc call, known to be OK
+	    } else if( symbol.IsInterfaceMethod ) {
+		need_pass_selector = state.WantSelectorHashParameter;
+		if( need_pass_selector ) {
+		    selector_id = symbol.getInterfaceMethodSelectorID(state);
+		    // IO.Std.err.println( "IIIIIIII: pass selector id: " ); IO.Std.err.flush();
+		    // LLVM.Calls.LLVMDumpValue(selector_id);
+		}
 	    } else if( symbol.NeedInterfaceCallingConvention ) {
 		// need to pass in selector as called method expects to see the additional parameter but
 		// does not matter what value it has:
 		need_pass_selector = state.WantSelectorHashParameter;
-	    } else if( symbol.IsInterfaceMethod ) {
-		need_pass_selector = state.WantSelectorHashParameter;
-		selector_hash = symbol.DecoratedName.hash();
 	    } else if( offset < 0 ) {
 		ParseTree.message( "oops: may need calling interface method but not marked as such: " + symbol.HumanName );
 	    }
 
 	    if( need_pass_selector ) {
 		var na = new LLVM.Value[args.length + 1];
-		na[0] = LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt32Type(), cast long(selector_hash), 0 );
+		if( selector_id != null ) {
+		    na[0] = selector_id;
+		} else {
+		    na[0] = LLVM.Calls.LLVMConstNull(LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0));
+		}
 
 		for( i = 0; i < args.length; i = i + 1 ) {
 		    na[i+1] = args[i];

@@ -170,6 +170,11 @@ WORD __proc_thunk0(proc *p) {
   return (*p)();
 }
 
+void __collision_thunk(void) {
+  fprintf( stderr, "selector collision" );
+  exit(1);
+}
+
 /*	
 .global __proc_thunk5
 __proc_thunk5:

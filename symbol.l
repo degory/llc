@@ -265,6 +265,10 @@ namespace Parse {
 	LLVM.Value getFunctionGlobal(CompileState state) {
 	    throw new System.Exception( "Symbol is not a function: " + HumanName );
 	}
+
+	LLVM.Value getInterfaceMethodSelectorID(CompileState state) {
+	    throw new System.Exception( "Symbol is not a method: " + HumanName );
+	}
         
         get int Access {
             return access;

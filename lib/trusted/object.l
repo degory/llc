@@ -57,6 +57,12 @@ namespace System is
 	    throw new System.Exception("internal error: Object._implements() called");
 	si
 
+	// DO NOT MOVE: runtime depends on the _interface_table() method occupying the third slot in the vtable
+        void _interface_table() is
+	    @Virtual;
+	    throw new System.Exception("internal error: Object._interface_table() called");
+        si
+
         /// Override dispose() to deallocate any resources held by this object. Can be called explicitly as well as by garbage collector when Object is
 	/// deallocated. As a result, implementers should be prepared for dispose() to be called repeatedly
 	void dispose() is
