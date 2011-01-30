@@ -1235,6 +1235,7 @@ namespace Parse {
 
 			if( LLVM.Calls.LLVMVerifyModule( state.Module, LLVM.LLVMVerifierFailureAction.LLVMPrintMessageAction, msg.address ) != 0 ) {
 			    error( "failed to module verify " + c.HumanName + ": " + new String(msg) );
+			    LLVM.Calls.LLVMDumpModule(c.LLVMModule);
 			}
 
 		        // IO.Std.err.println( "assembling: " + c.getHumanName() );

@@ -1646,8 +1646,10 @@ namespace Parse {
 
 		if( WantNativeObjectFiles ) {
 		    v.add( RuntimeDir + TargetID + "/lrt-llvm-" + RUNTIME_VERSION + ".o" );
+		    v.add( RuntimeDir + TargetID + "/lrt-ithunk-" + RUNTIME_VERSION + ".o" );
 		} else {
 		    v.add( RuntimeDir + TargetID + "/lrt-llvm-" + RUNTIME_VERSION + ".bc" );
+		    v.add( RuntimeDir + TargetID + "/lrt-ithunk-" + RUNTIME_VERSION + ".so" );
 		}
 
 		v.add( "-o" );

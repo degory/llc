@@ -138,7 +138,6 @@ namespace Parse {
             // this.arguments = arguments;
         }
 
-	/*
 	static Container collision_thunk;
 
 	static Container getCollisionThunk() {
@@ -148,7 +147,6 @@ namespace Parse {
 
 	    return collision_thunk;
 	}
-	*/
 
         void init() {
             super.init();
@@ -518,6 +516,7 @@ namespace Parse {
 
 	    v = LLVM.Calls.LLVMGetNamedGlobal(state.Module, name);
 	    if( v == null ) {
+		// IO.Std.err.println( "creating ctable " + DecoratedName + ", vtable size: " + VTableSize + ", itable offset: " + IFaceOffset + ", total: " + (VTableSize + IFaceOffset + RESERVE_SLOTS));
 		v = LLVM.Calls.LLVMAddGlobal(state.Module, LLVM.Calls.LLVMArrayType(LLVM.Calls.LLVMVTableFunctionType(), VTableSize + IFaceOffset + RESERVE_SLOTS), name);
 		// LLVM.Calls.LLVMSetLinkage(v, LLVM.LLVMLinkage.LLVMDLLImportLinkage);
 	    }
@@ -2009,7 +2008,7 @@ namespace Parse {
 
 	    LLVM.Value selector_id_method_table = null;
 	    var error = emitInterfaceTables( state, from, buffer, selector_id_method_table );
-
+	    // IO.Std.err.println( "interface ctable " + DecoratedName + ", vtable size: " + VTableSize + ", itable offset: " + IFaceOffset + ", total: " + (VTableSize + IFaceOffset + RESERVE_SLOTS) + ", actual: " + buffer.Length);
 	    // Class object:
 	    buffer.add(
 		       LLVM.Calls.LLVMConstPointerCast(
@@ -2017,6 +2016,8 @@ namespace Parse {
 						       LLVM.Calls.LLVMVTableFunctionType()
 						       )
 		       );
+
+	    // IO.Std.err.println( "added class object: " + buffer.Length );
 
 	    // name
 	    buffer.add(
@@ -2026,6 +2027,7 @@ namespace Parse {
 						   )
 		       );
 
+	    // IO.Std.err.println( "added name: " + buffer.Length );
 	    // size
 
 	    LLVM.Value cs = LLVM.Calls.LLVMConstPointerCast(
@@ -2039,6 +2041,8 @@ namespace Parse {
 		       cs		       
 		       );
 	    
+	    // IO.Std.err.println( "added size: " + buffer.Length );
+
 	    // super class vtable 
 	    if( Super != null ) {
 		buffer.add(
@@ -2047,8 +2051,10 @@ namespace Parse {
 							   LLVM.Calls.LLVMVTableFunctionType()
 							   )
 			   );
+		// IO.Std.err.println( "added super class vtable: " + buffer.Length );
 	    } else {
 		buffer.add( LLVM.Calls.LLVMConstPointerNull( LLVM.Calls.LLVMVTableFunctionType() ) );
+		// IO.Std.err.println( "added null super class vtable: " + buffer.Length );
 	    }
 
 	    // type table:
@@ -2058,8 +2064,11 @@ namespace Parse {
 						       LLVM.Calls.LLVMVTableFunctionType()
 						       )
 		       );
+	    // IO.Std.err.println( "added type table: " + buffer.Length );
 
 	    error = error | emitClassTables( state, this, buffer, selector_id_method_table );
+
+	    // IO.Std.err.println( "added regular vtable slots: " + buffer.Length );
 
 	    var v = buffer.Array;
 
@@ -2076,6 +2085,7 @@ namespace Parse {
 	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf( a ) );
 	    */
 	    var ct = getCTableGlobal(state);
+	    IO.Std.err.println( "initializing ctable " + DecoratedName + ", vtable size: " + VTableSize + ", itable offset: " + IFaceOffset + ", total: " + (VTableSize + IFaceOffset + RESERVE_SLOTS) + ", actual: " + v.length);
 
 	    /*
 	    IO.Std.err.print( "ctable global variable is:   " ); IO.Std.err.flush();
@@ -2203,11 +2213,11 @@ namespace Parse {
 		    collisions.add(i);
 
 		    slots.lengthen(slot+1);
-		    
+
 		    if( slots[slot] != null ) {
-			ParseTree.message( "IIIIIIII: possible interface selector collision: " + slots[slot].HumanName + " and " + i.HumanName + " both at " + slot );
-			// slots[slot] = getCollisionThunk();
-		    } else {     
+			ParseTree.message( "IIIIIIII: interface selector collision: " + slots[slot].HumanName + " and " + i.HumanName + " both at " + slot );
+			slots[slot] = getCollisionThunk();
+		    } else {    
 		    // IO.Std.err.println( "BBBB: implement slot #" + slot + ": " + i.HumanName );
 			slots[slot] = i;
 		    }
@@ -2232,23 +2242,30 @@ namespace Parse {
 	    foreach( Container d; slots.reverseElements() ) {
 		if( d == null ) {
 		    buffer.add( LLVM.Calls.LLVMConstPointerNull(LLVM.Calls.LLVMVTableFunctionType()) );
-		} /* else if( d == CollisionThunk ) {
+		} else if( d == CollisionThunk ) {
 		    buffer.add(
-			       LLVM.Calls.LLVMConstPointerCast(
-							       state.getRuntimeFunction(RuntimeFunction.COLLISION_THUNK),
+			       LLVM.Calls.LLVMConstPointerNull(
 							       LLVM.Calls.LLVMVTableFunctionType()
 							       )
 			       );
-	       } */ else {
+
+		    // LLVM.Calls.LLVMConstPointerCast(
+		    //					       state.getRuntimeFunction(RuntimeFunction.COLLISION_THUNK),
+		    //						       LLVM.Calls.LLVMVTableFunctionType()
+		    //					       )
+		    //	       );
+
+		} else {
+	  
 
 		    // IO.Std.err.println( "" + d.HumanName + " @ " + d.Address );
 		    /*
 		    if( d.owner != this ) {
 			Machine.emitExtern( state.Output,
 					    d.DecoratedName );
-		    }
+					    }
 		    */
-
+		    
 		    buffer.add(
 			       LLVM.Calls.LLVMConstPointerCast(
 							       d.getFunctionGlobal(state),
@@ -2412,7 +2429,7 @@ namespace Parse {
 		// IO.Std.err.println( "BBBB: parent methods @ " + buffer.Length );		
                 error = error | parent.emitClassTables( state, for_class, buffer, selector_id_table );
             }
-
+	    // IO.Std.err.println( "added super class slots: " + buffer.Length );
 	    int slot = 0;
 
 	    // IO.Std.err.println( "BBBB: first non override method @ " + buffer.Length );
@@ -2439,10 +2456,10 @@ namespace Parse {
 			// FIXME: shouldn't emit ctable for structs at all
 			if( !for_class.IsStruct ) {
 			    if( current.Address == IMPLEMENTS_OFFSET ) {
-				/*
-				  IO.Std.err.FlushOnPrintln = true;
-				  IO.Std.err.println( "overriding: " + current.HumanName + " with __implements_ " + for_class.HumanName );
-				*/
+
+				// IO.Std.err.FlushOnPrintln = true;
+				// IO.Std.err.println( "overriding: " + current.HumanName + " with __implements_ " + for_class.HumanName );
+
 				var f = for_class.getImplementsFunction(state);
 				f = LLVM.Calls.LLVMConstPointerCast(
 								    f,
@@ -2464,6 +2481,8 @@ namespace Parse {
 									);
 				}
 				buffer.add( f );
+
+				// IO.Std.err.println( "overriding: " + current.HumanName + " with __sit_ " + for_class.HumanName );
 
 				if( selector_id_table != null ) {
 				    IO.Std.err.print( "ZZZZZZZZ: add __sit_ to vtable: " ); IO.Std.err.flush();
@@ -2496,6 +2515,9 @@ namespace Parse {
 
 				slot = slot + 1;
                                 // Machine.emitDefPointer( state.Output, candidate.DecoratedName );
+
+				// IO.Std.err.println( "emit vtable slot for " + candidate.DecoratedName + ": " + buffer.Length );
+
                             }
                         }
                     }

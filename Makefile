@@ -66,13 +66,13 @@ ifeq ($(PREFIX),)
 endif
 
 ifeq ($(NOLLVMCC),)
-	CLEAN:=lc lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o lc.bc lc.lh jit.o dummy.o llvmc.o llvmc.so lang lang.bc lang.lh lrt-exception.o lrt-unwind.o lrt-throw.o /tmp/lcache-$(PROJECT)/* || true
+	CLEAN:=lc lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o lc.bc lc.lh jit.o dummy.o llvmc.o llvmc.so lang lang.bc lang.lh lrt-exception.o lrt-unwind.o lrt-throw.o /tmp/lcache-$(PROJECT)/* lrt-ithunk-$(LRT_VERSION).o lrt-ithunk-$(LRT_VERSION).so || true
 else
 	CLEAN:=lc lrt-llvm-$(LRT_VERSION).bc lc.bc lc.lh llvmc.so lang lang.bc lang.lh /tmp/lcache-$(PROJECT)/* || true
 endif
 
 
-INSTALL_OBJS:=lc jit.o dummy.o llvmc.so fcgi.o lang.bc lang.so lang.lh lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o
+INSTALL_OBJS:=lc jit.o dummy.o llvmc.so fcgi.o lang.bc lang.so lang.lh lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o lrt-ithunk-$(LRT_VERSION).o lrt-ithunk-$(LRT_VERSION).so
 
 LRT_CFLAGS:=-DB64 -g -O1 -DLLVM
 
@@ -97,6 +97,8 @@ install: $(INSTALL_OBJS)
 	cp $(CP_FLAGS) dummy.o lang.so lang.bc lang.lh $(PREFIX)/lib/lang/$(TARGET)/trusted/
 	cp $(CP_FLAGS) lrt-llvm-$(LRT_VERSION).bc $(PREFIX)/lib/lang/$(TARGET)/
 	cp $(CP_FLAGS) lrt-llvm-$(LRT_VERSION).o $(PREFIX)/lib/lang/$(TARGET)/
+	cp $(CP_FLAGS) lrt-ithunk-$(LRT_VERSION).o $(PREFIX)/lib/lang/$(TARGET)/
+	cp $(CP_FLAGS) lrt-ithunk-$(LRT_VERSION).so $(PREFIX)/lib/lang/$(TARGET)/
 #	cp $(CP_FLAGS) lang.so $(PREFIX)/lib/lang/$(TARGET)/trusted/
 
 
@@ -166,7 +168,13 @@ lrt-llvm-$(LRT_VERSION).bc: lrt-exception.o lrt-unwind.o lrt-throw.o
 
 lrt-llvm-$(LRT_VERSION).o: lrt-llvm-$(LRT_VERSION).bc
 	llc lrt-llvm-$(LRT_VERSION).bc
-	gcc -c lrt-llvm-$(LRT_VERSION).s
+	gcc -c lrt-llvm-$(LRT_VERSION).s 
+
+lrt-ithunk-$(LRT_VERSION).o: lrt-ithunk-$(TARGET).s
+	gcc $(MODEL) -c lrt-ithunk-$(TARGET).s -o lrt-ithunk-$(LRT_VERSION).o
+
+lrt-ithunk-$(LRT_VERSION).so: lrt-ithunk-$(LRT_VERSION).o	
+	gcc $(MODEL) -shared lrt-ithunk-$(LRT_VERSION).o -o lrt-ithunk-$(LRT_VERSION).so
 
 lrt-exception.o: lrt-exception.c
 	$(LLVM_CC) $(MODEL) $(LRT_CFLAGS) -emit-llvm -c lrt-exception.c

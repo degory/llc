@@ -1,7 +1,7 @@
 
 L Compiler build requirements:
 - Create target file to describe locations of LLVM GCC, regular GCC etc
-- LLVM GCC installed
+- LLVM GCC installed (apt-get llvm-gcc-4.2)
 - L compiler binaries installed (unzip lc.zip into /usr)
 - LLVM 2.8 is installed and executables are on path (apt-get llvm-2.8)
 - llvm-ld located in exactly /usr/local/bin/llvm
