@@ -71,8 +71,7 @@ else
 	CLEAN:=lc lrt-llvm-$(LRT_VERSION).bc lc.bc lc.lh llvmc.so lang lang.bc lang.lh /tmp/lcache-$(PROJECT)/* || true
 endif
 
-
-INSTALL_OBJS:=lc jit.o dummy.o llvmc.so fcgi.o lang.bc lang.so lang.lh lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o lrt-ithunk-$(LRT_VERSION).o lrt-ithunk-$(LRT_VERSION).so
+INSTALL_OBJS:=jit.o dummy.o llvmc.so fcgi.o lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o lrt-ithunk-$(LRT_VERSION).o lrt-ithunk-$(LRT_VERSION).so lc lang.bc lang.so lang.lh
 
 LRT_CFLAGS:=-DB64 -g -O1 -DLLVM
 
