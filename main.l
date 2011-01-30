@@ -39,7 +39,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1262;
+	const int BUILD = 1263;
 
 	CompileState state;
 
@@ -92,7 +92,8 @@ namespace Parse {
 	    state.WantLinkLibraries = true;
 	    state.WantNativeExecutable = false;
 	    state.WantNativeObjectFiles = false;
-	    state.WantColorInterfaceSelectors = true;
+	    state.WantColorInterfaceSelectors = false;
+	    state.WantSelectorHashParameter = true;
 
 	    bool set_executable_name = false;
 	    bool want_stats = false;
@@ -261,6 +262,12 @@ namespace Parse {
 
 			    case 's':
 				state.WantSelectorHashParameter = false;
+
+			    case 'T':
+				state.WantForceInterfaceThunk = true;
+
+			    case 't':
+				state.WantForceInterfaceThunk = false;
 
 			    default:
 				IO.Std.err.println( "unexpected output format option '" + name[j] + "'" );
@@ -563,6 +570,7 @@ namespace Parse {
 	    IO.Std.out.println( "    -FN -Fn            generate native/bitcode executable" );
 	    IO.Std.out.println( "    -FB -Fb            generate native/bitcode object files" );
 	    IO.Std.out.println( "    -FP -Fp            generate position independant/absolute code" );
+	    IO.Std.out.println( "    -FC -Fc            use graph coloring/hashing to allocate interface method vtable slots" );
 	    IO.Std.out.println( "    -FE -Fe            export/do not export all symbols from exectuable" );
 	    // IO.Std.out.println( "    -FL -Fl            probably not functional" );
 	    IO.Std.out.println();

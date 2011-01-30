@@ -499,6 +499,7 @@ namespace Parse {
 	bool want_print_deps;
 	bool want_color_interface_selectors;
 	bool want_selector_hash_parameter;
+	bool want_force_interface_thunk;
 
 	String target_isa;
 
@@ -533,7 +534,6 @@ namespace Parse {
 	ProcessPool pool;
 
 	int inline_count;
-
 	int compile_class_count;
 
 	Util.Walk walk_;
@@ -3112,6 +3112,14 @@ namespace Parse {
 
 	set bool WantSelectorHashParameter = h {
 	    want_selector_hash_parameter = h;
+	}
+
+        get bool WantForceInterfaceThunk {
+	    return want_force_interface_thunk;
+        }
+
+	set bool WantForceInterfaceThunk = t {
+	    want_force_interface_thunk = t;
 	}
 
 	get bool WantPrintDeps {

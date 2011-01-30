@@ -490,7 +490,6 @@ namespace Parse {
 	    var at = new Generic.Vector<LLVM.Type>(l+1);
 
 	    if( state.WantSelectorHashParameter && NeedInterfaceCallingConvention ) {
-		// ParseTree.message( "IIIIIIII: adding selector hash parameter to function type for: " + HumanName );
 		// add parameter for selector hash:
 		at.add(LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0));
 	    }
@@ -1762,7 +1761,6 @@ namespace Parse {
 
 		Container o = c.Override;
 		if( o != null ) {
-		    // ParseTree.message( "IIIIIIII: setting address for overridden interface method: " + o );
 		    o.clearAddressValid();
 		    o.Address = c.Address;
 		}
@@ -2148,7 +2146,7 @@ namespace Parse {
 	}
 
 	bool emitInterfaceTables( CompileState state, ParseTree from, Generic.Vector<LLVM.Value> buffer, LLVM.Value ref selector_id_table ) {
-	    IO.Std.err.println( "IIIIIIII: emit interface tables " + HumanName + " expect to need " + iface_offset + " slots" );
+	    // IO.Std.err.println( "IIIIIIII: emit interface tables " + HumanName + " expect to need " + iface_offset + " slots" );
 
 	    bool error;
 
@@ -2160,6 +2158,7 @@ namespace Parse {
 	    }
 	    */
 
+	    var force_interface_thunk = state.WantForceInterfaceThunk;
 	    var collisions = new Vector<Container>();
 	   
 	    var slots = new Vector<Container>();
@@ -2183,7 +2182,6 @@ namespace Parse {
 
 		    Container e = cast Container(s);
 		    var slot = (-e.Address - INTERFACE_OFFSET);
-		    IO.Std.err.println( "looking for method: " + s.HumanName + " at slot " + slot );
 
 		    if( e.IsFinal ) {
 			IO.Std.err.println( "weird: interface member '" + e.HumanName + "' is final" );			
@@ -2213,20 +2211,17 @@ namespace Parse {
 			continue;
 		    }
 
-		    IO.Std.err.println( "IIIIIIII: add to collisions..." );
-
 		    collisions.add(e);
 		    collisions.add(i);
 
 		    slots.lengthen(slot+1);
 
-		    IO.Std.err.FlushOnPrintln = true;
-		    IO.Std.err.println( "IIIIIIII: want color selectors?" );
-		    if( !state.WantColorInterfaceSelectors || slots[slot] != null ) {
-			ParseTree.message( "IIIIIIII: force interface selector collision" );
+		    if( force_interface_thunk || slots[slot] != null ) {
+			if( !force_interface_thunk ) {
+			    from.warn( "interface selector hash collision: " + i.HumanName + " shares slot #" + slot );
+			}
 			slots[slot] = getCollisionThunk();
 		    } else {    
-			IO.Std.err.println( "IIIIIIII: implement slot #" + slot + ": " + i.HumanName );
 			slots[slot] = i;
 		    }
 		}
@@ -2235,8 +2230,6 @@ namespace Parse {
 	    if( error ) {
 		return true;
 	    }
-
-	    IO.Std.err.println( "IIIIIIII: output interface table..." );
 
 	    int total_ctable_size = IFaceOffset + RESERVE_SLOTS + VTableSize;
 	    buffer.reserve(total_ctable_size);
@@ -2288,7 +2281,6 @@ namespace Parse {
 	    }
 
 	    if( collisions.Length > 0 ) {
-		IO.Std.err.println( "IIIIIIII: output collisions table..." );
 		var cv = new LLVM.Value[collisions.Length + 1];
 		var pi8 = LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0);
 		
@@ -2348,11 +2340,7 @@ namespace Parse {
 		/*
 		IO.Std.err.println( "g: " ); IO.Std.err.flush();
 		LLVM.Calls.LLVMDumpValue(g); */
-	    } else {
-		IO.Std.err.println( "IIIIIIII: no collisions table..." );
 	    }
-
-	    IO.Std.err.println( "IIIIIIII: done " + DecoratedName );
 
 	    return false; // no error
 
