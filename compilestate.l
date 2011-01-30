@@ -831,10 +831,12 @@ namespace Parse {
 
 	    case RuntimeFunction.GET_L_EXCEPTION:
 		name = `__get_l_exception`;
-/*
+
 	    case RuntimeFunction.COLLISION_THUNK:
-		name = `__collision_thunk`;
-*/		
+		name = `__ithunk`;
+		//throw new System.Exception( "want collision thunk" );
+
+		
 	    default:
 		throw new System.Exception( "unknown runtime function #" + cast int(f) );
 	    }
@@ -867,8 +869,7 @@ namespace Parse {
 
 		case RuntimeFunction.THROW_NULL,
 		    RuntimeFunction.THROW_BOUNDS,
-		    RuntimeFunction.THROW_CAST: /*,
-						  RuntimeFunction.COLLISON_THUNK: */
+		    RuntimeFunction.THROW_CAST:
 		    ret = LLVM.Calls.LLVMVoidType();
 		    args = new LLVM.Type[0];
 
@@ -877,6 +878,10 @@ namespace Parse {
 		    args = {
 			LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type(),0)
 		    };
+
+		case RuntimeFunction.COLLISION_THUNK:
+		    ret = LLVM.Calls.LLVMVoidType();
+		    args = new LLVM.Type[0];
 		    
 		default:
 		    throw new System.Exception( "unknown runtime function #" + cast int(f) );

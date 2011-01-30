@@ -1762,7 +1762,7 @@ namespace Parse {
 
 		Container o = c.Override;
 		if( o != null ) {
-		    ParseTree.message( "IIIIIIII: setting address for overridden interface method: " + o );
+		    // ParseTree.message( "IIIIIIII: setting address for overridden interface method: " + o );
 		    o.clearAddressValid();
 		    o.Address = c.Address;
 		}
@@ -2085,7 +2085,7 @@ namespace Parse {
 	    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf( a ) );
 	    */
 	    var ct = getCTableGlobal(state);
-	    IO.Std.err.println( "initializing ctable " + DecoratedName + ", vtable size: " + VTableSize + ", itable offset: " + IFaceOffset + ", total: " + (VTableSize + IFaceOffset + RESERVE_SLOTS) + ", actual: " + v.length);
+	    // IO.Std.err.println( "initializing ctable " + DecoratedName + ", vtable size: " + VTableSize + ", itable offset: " + IFaceOffset + ", total: " + (VTableSize + IFaceOffset + RESERVE_SLOTS) + ", actual: " + v.length);
 
 	    /*
 	    IO.Std.err.print( "ctable global variable is:   " ); IO.Std.err.flush();
@@ -2214,8 +2214,8 @@ namespace Parse {
 
 		    slots.lengthen(slot+1);
 
-		    if( slots[slot] != null ) {
-			ParseTree.message( "IIIIIIII: interface selector collision: " + slots[slot].HumanName + " and " + i.HumanName + " both at " + slot );
+		    if( !state.WantColorInterfaceSelectors && slots[slot] != null ) {
+			ParseTree.message( "IIIIIIII: force interface selector collision: " + slots[slot].HumanName + " and " + i.HumanName + " both at " + slot );
 			slots[slot] = getCollisionThunk();
 		    } else {    
 		    // IO.Std.err.println( "BBBB: implement slot #" + slot + ": " + i.HumanName );
@@ -2243,17 +2243,19 @@ namespace Parse {
 		if( d == null ) {
 		    buffer.add( LLVM.Calls.LLVMConstPointerNull(LLVM.Calls.LLVMVTableFunctionType()) );
 		} else if( d == CollisionThunk ) {
+		    /*
 		    buffer.add(
 			       LLVM.Calls.LLVMConstPointerNull(
 							       LLVM.Calls.LLVMVTableFunctionType()
 							       )
 			       );
-
-		    // LLVM.Calls.LLVMConstPointerCast(
-		    //					       state.getRuntimeFunction(RuntimeFunction.COLLISION_THUNK),
-		    //						       LLVM.Calls.LLVMVTableFunctionType()
-		    //					       )
-		    //	       );
+		    */
+		    buffer.add(
+			       LLVM.Calls.LLVMConstPointerCast(
+							       state.getRuntimeFunction(RuntimeFunction.COLLISION_THUNK),
+							       LLVM.Calls.LLVMVTableFunctionType()
+							       )
+			       );
 
 		} else {
 	  
@@ -2483,11 +2485,12 @@ namespace Parse {
 				buffer.add( f );
 
 				// IO.Std.err.println( "overriding: " + current.HumanName + " with __sit_ " + for_class.HumanName );
-
+				/*
 				if( selector_id_table != null ) {
-				    IO.Std.err.print( "ZZZZZZZZ: add __sit_ to vtable: " ); IO.Std.err.flush();
+				    // IO.Std.err.print( "ZZZZZZZZ: add __sit_ to vtable: " ); IO.Std.err.flush();
 				    LLVM.Calls.LLVMDumpValue(f);
 				}
+				*/
 				continue;
 			    }
 			}
