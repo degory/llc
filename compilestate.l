@@ -1623,6 +1623,7 @@ namespace Parse {
 		    if( WantLinkLibraries ) {
 			v.add( RuntimeDir + TargetID + "/trusted/dummy.o" );
 		    }
+
 		}
 
 		if( WantOneFile ) {
@@ -1654,7 +1655,9 @@ namespace Parse {
 		    v.add( RuntimeDir + TargetID + "/lrt-ithunk-" + RUNTIME_VERSION + ".o" );
 		} else {
 		    v.add( RuntimeDir + TargetID + "/lrt-llvm-" + RUNTIME_VERSION + ".bc" );
-		    v.add( RuntimeDir + TargetID + "/lrt-ithunk-" + RUNTIME_VERSION + ".so" );
+
+		    var s = (RuntimeDir + TargetID + "/lrt-ithunk-" + RUNTIME_VERSION + ".so").toCString(); 
+		    v.add( new String( cast char ptr(native.realpath(s)) ) );
 		}
 
 		v.add( "-o" );
