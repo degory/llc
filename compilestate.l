@@ -1542,10 +1542,17 @@ namespace Parse {
 	}
 
         String RealPath(String p) {
+	    if( p == null ) {
+		return null;
+	    }
+
 	    char ptr s = p.toCString();
 	    s = cast char ptr(native.realpath(s,null));
 
-	    IO.Std.err.println( "real path '" + p + "' -> '" + s + "'" );
+	    if( s == null ) {
+		return null;
+	    }
+
 	    return new String(s);
 	}
 
@@ -1655,9 +1662,7 @@ namespace Parse {
 		    v.add( RuntimeDir + TargetID + "/lrt-ithunk-" + RUNTIME_VERSION + ".o" );
 		} else {
 		    v.add( RuntimeDir + TargetID + "/lrt-llvm-" + RUNTIME_VERSION + ".bc" );
-
-		    var s = (RuntimeDir + TargetID + "/lrt-ithunk-" + RUNTIME_VERSION + ".so").toCString(); 
-		    v.add( new String( cast char ptr(native.realpath(s)) ) );
+		    v.add( RealPath(RuntimeDir + TargetID + "/lrt-ithunk-" + RUNTIME_VERSION + ".so") );
 		}
 
 		v.add( "-o" );

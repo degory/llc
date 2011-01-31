@@ -103,7 +103,7 @@ extern "C" {
   
     MemoryBuffer *buffer = MemoryBuffer::getFile(bitcode_name, &error_message);
     if( !buffer ) {
-      std::cerr << "oops: MemoryBuffer::getFile('%s') failed: " << error_message << "\n";
+      std::cerr << "oops: MemoryBuffer::getFile('" << bitcode_name << "') failed: " << error_message << "\n";
       return;
     }
 

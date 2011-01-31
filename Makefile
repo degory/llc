@@ -136,7 +136,7 @@ lang.so: $(lang_DEPS)
 lang.lh: lang.bc
 
 lc: $(lc_DEPS) llvmc.o llvmc.so dummy.o
-	# rm -f lang.lh 2>/dev/null # don't link against any lang.so in current directory
+	rm -f lang.lh 2>/dev/null # don't link against any lang.so in current directory
 	$(LC) -f $(MODEL) $(LFLAGSEXE) -o lc -s llvm -lllvmc.o -lLLVM-2.8 main.l
 
 lc.bc: $(lc_DEPS)
