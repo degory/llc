@@ -402,7 +402,8 @@ namespace Parse {
 	    WANT_VIRTUAL = 8,
 	    WANT_PACK = 9,
 	    WANT_NULL_CHECK = 10,
-	    WANT_BOUNDS_CHECK = 11;
+	    WANT_BOUNDS_CHECK = 11,
+	    WARN_SELECTOR_COLLISION = 12;
 
 	const int
 	    DEFAULT_WARN_FLAGS = 13 | 32; // all warnings enabled, trusted flag not set
@@ -630,6 +631,10 @@ namespace Parse {
 	    
 	    // pool = new ThreadPool(2);
 	    // pool.start();
+	}
+
+        static get String RUNTIME_NAME {
+	    return "liblang";
 	}
 
 	get String RuntimeDir {
@@ -1161,10 +1166,6 @@ namespace Parse {
       		return;
 	    }
 
-	    if( name.endsWith("lang.bc" ) ) {
-		IO.Std.err.println( "arg, from: " + new System.Backtrace() );
-	    }
-
             to_link_set.add( name );
         }
 
@@ -1642,7 +1643,7 @@ namespace Parse {
 	    v.add( "--export-dynamic" );
 
 	    if( !WantLinkLibraries ) {
-		IO.Std.err.println( "Do no link libraries" );
+		IO.Std.err.println( "Do not link libraries" );
 		v.add( "-L/usr/lang/lib/" + TargetID + "/" );
 		v.add( "-L/usr/lang/lib/" );
 
@@ -1661,6 +1662,7 @@ namespace Parse {
 		    v.add( RuntimeDir + TargetID + "/lrt-llvm-" + RUNTIME_VERSION + ".o" );
 		    v.add( RuntimeDir + TargetID + "/lrt-ithunk-" + RUNTIME_VERSION + ".o" );
 		} else {
+		    IO.Std.err.println( "link lrt-ithunk.so..." );
 		    v.add( RuntimeDir + TargetID + "/lrt-llvm-" + RUNTIME_VERSION + ".bc" );
 		    v.add( RealPath(RuntimeDir + TargetID + "/lrt-ithunk-" + RUNTIME_VERSION + ".so") );
 		}
@@ -1818,6 +1820,7 @@ namespace Parse {
 	    //IO.Std.err.println( "input file: '" + file_name + "'" );
 
 	    if( file_name.endsWith(".lh" ) ) {
+		IO.Std.err.println( "visit library hash file: " + file_name );
 		// IO.Std.err.println( "input file is a library hash file..." );
 		addLibraryHashFile( name, in );
 	    } else {
@@ -1857,6 +1860,9 @@ namespace Parse {
 		}
 		addLibrary( RealPath(dir + name + ".so") );
 	    } else if( want_native_library_files && IO.File.exists( dir + name + ".so" ) ) {
+		if( WantVeryVerbose ) {
+		    ParseTree.message( "add shared library: " + dir + name + ".so" );
+		}
 		addLibrary( RealPath(dir + name + ".so")  );
 	    } else {
 		if( WantVeryVerbose ) {
@@ -3346,6 +3352,14 @@ namespace Parse {
 
 	set bool WantWarnResolve = w {
 	    WarnFlag[WARN_RESOLVE] = w;
+	}
+
+        get bool WantWarnSelectorCollision {
+	    return WarnFlag[WARN_SELECTOR_COLLISION];
+	}
+
+	set bool WantWarnSelectorCollision = w {
+	    WarnFlag[WARN_SELECTOR_COLLISION] = w;
 	}
 
 	get bool WantMarkUnsafe {

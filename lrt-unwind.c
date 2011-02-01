@@ -1,6 +1,8 @@
+#define _GNU_SOURCE 1
 #include <stdio.h>
 #include <stdlib.h>
 #include <unwind.h>
+#include <dlfcn.h>
 #include <gc/gc.h>
 
 /* parts taken from https://llvm.org/svn/llvm-project/compiler-rt/trunk/lib/gcc_personality_v0.c (GPL)
@@ -952,3 +954,36 @@ void __throw_exception_broken( void *l_exception ) {
   abort();
 }  
 
+int have_checked_demanglers = 0;
+typedef void *(ft_cxa_demangle)(char *, char *, size_t, int *);
+typedef void *(ft_cplus_demangle_v3)(char *, int);
+
+static ft_cxa_demangle *f_cxa_demangle;
+static ft_cplus_demangle_v3 *f_cplus_demangle_v3;
+
+static void check_demanglers() {
+  void *f;
+
+  f_cxa_demangle = dlsym(RTLD_DEFAULT, "__cxa_demangle");
+  f_cplus_demangle_v3 = dlsym(RTLD_DEFAULT, "cplus_demangle_v3");
+}
+
+char *__demangle_symbol( char *s ) {
+  if( !have_checked_demanglers ) {
+    check_demanglers();
+  }
+
+  if( f_cxa_demangle != 0 ) {
+    int status = 0;
+    char *result = f_cxa_demangle(s, 0, 0, &status);
+    if( status == 0 ) {
+      return result;
+    } else {
+      return 0;
+    }
+  } else if( f_cplus_demangle_v3 != 0 ) {
+    return f_cplus_demangle_v3(s, 0);
+  } else {
+    return 0;
+  }
+}

@@ -84,13 +84,14 @@ namespace Parse {
 	    state.WantSharedStandardLibrary = false;
 	    state.WantRegVars = false;
 	    state.WantWarnResolve = false;
+	    state.WantWarnSelectorCollision = false;
 	    state.WantWarnInit = true;
 	    state.WantPack = false;
 	    state.WantCastCheck = true;
 	    state.WantBoundsCheck = true;
 	    state.WantNullCheck = true;
 	    state.WantLinkLibraries = true;
-	    state.WantNativeExecutable = false;
+	    state.WantNativeExecutable = true;
 	    state.WantNativeObjectFiles = false;
 	    state.WantColorInterfaceSelectors = false;
 	    state.WantSelectorHashParameter = true;
@@ -385,6 +386,12 @@ namespace Parse {
 			    case 'i':
 				state.WantWarnInit = false;
 
+			    case 'C':
+				state.WantWarnSelectorCollision = true;
+
+			    case 'c':
+				state.WantWarnSelectorCollision = false;
+
 			    default:
 				IO.Std.err.println( "unexpected warning option: '" + name[1] + "'" );
 				return 1;
@@ -411,9 +418,9 @@ namespace Parse {
                 }
             }
 
-	    // if( state.WantNativeLibraryFiles ) {
-	    //	state.WantSharedStandardLibrary = true;
-	    // }
+	    if( !state.WantNativeExecutable ) {
+		state.WantNativeLibraryFiles = false;
+	    }
 
 	    if( max_heap > 0 ) {
 		System.GC.MaxHeapSize = max_heap * 1024 * 1024;
@@ -457,11 +464,11 @@ namespace Parse {
 
 	    String last_file;
 	    try {
-		last_file = "lang.l";
+		last_file = CompileState.RUNTIME_NAME + ".l";
 
 		state.initSearchPaths(state.WantSafe);
 
-		state.visitFile( "lang.l" );
+		state.visitFile( CompileState.RUNTIME_NAME + ".l" );
 
 		bool visit_standard_library = state.WantSharedStandardLibrary;
 		
@@ -469,13 +476,15 @@ namespace Parse {
 		    last_file = s;
 		    state.visitFile( s );
 
-		    if( s =~ "lang.lh" ) {
-			visit_standard_library = false;			
+		    if( s =~ CompileState.RUNTIME_NAME + ".lh" ) {
+		        IO.Std.err.println( "linking shared standard library (A)" );
+			visit_standard_library = false;	
 		    }
 		}
 
 		if( visit_standard_library ) {
-		    state.visitFile( "lang.lh" );
+		    IO.Std.err.println( "linking shared standard library (B)" );
+		    state.visitFile( CompileState.RUNTIME_NAME + ".lh" );
 		}
 
 		state.compilePending();

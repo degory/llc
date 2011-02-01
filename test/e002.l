@@ -1,4 +1,5 @@
 
+
 namespace E002 is
     class Main is
 	void init() is

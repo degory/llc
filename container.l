@@ -2217,7 +2217,7 @@ namespace Parse {
 		    slots.lengthen(slot+1);
 
 		    if( force_interface_thunk || slots[slot] != null ) {
-			if( !force_interface_thunk ) {
+			if( !force_interface_thunk && state.WantWarnSelectorCollision ) {
 			    from.warn( "interface selector hash collision: " + i.HumanName + " shares slot #" + slot );
 			}
 			slots[slot] = getCollisionThunk();

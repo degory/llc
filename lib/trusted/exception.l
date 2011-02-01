@@ -96,7 +96,7 @@ namespace System is
 	        char ptr ptr symbols = cast char ptr ptr(native.backtrace_symbols(_backtrace_info,_backtrace_depth));
 
 		for var i = 0; i < _backtrace_depth; i = i + 1 do
-		    b.append( [symbols + i] );
+		    b.append( demangleBacktraceLine([symbols + i]) );
                     b.append( '\n' );
 		od
 
@@ -117,6 +117,42 @@ namespace System is
 	get String Message is
 	    return _message;
 	si
+
+        String demangleBacktraceLine( char ptr p ) is
+	  if p == null then
+	    return "<null>";
+	  fi
+
+          var s = new String(p);
+
+	  var f = s.indexOf('(');
+	  var t = s.lastIndexOf('+');
+
+	  if t < 0 then
+	    t = s.lastIndexOf(')');
+	  fi
+
+	  if f < 0 || t < 0 then
+	    return s;
+	  fi
+
+	  var r = s.substring(f+1,t);
+	  
+	  var q = cast char ptr(native.__demangle_symbol(r.toCString()));
+
+	  if q == null then
+	    // IO.Std.err.println( "demangle '" + r + "' -> null" );
+	    return s;
+	  fi
+
+	  // IO.Std.err.println( "demangle '" + r + "' -> '" + q + "'" );
+
+          var result = s.substring(0,f+1) + q + s.substring(t);
+
+	  native.free(q);
+
+	  return result;
+        si
     si   
 
     /// Root class for exceptions thrown by the runtime

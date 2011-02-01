@@ -32,11 +32,11 @@ endif
 LFLAGS:=-j$(JOBS) $(LFLAGS)
 
 ifeq ($(WANT_NATIVEOBJS),1)
-	LFLAGSBC:=-p $(PROJECT) -R$(RUNTIME) $(LFLAGS)
+	LFLAGSBC:=-p $(PROJECT) -R$(RUNTIME) $(LFLAGS) -Fn
 	LFLAGS:=$(LFLAGSBC) -FB
 else
 	LFLAGS:=-p $(PROJECT) -R$(RUNTIME) $(LFLAGS)
-	LFLAGSBC:=$(LFLAGS)
+	LFLAGSBC:=$(LFLAGS) -Fn
 endif
 
 
@@ -66,12 +66,12 @@ ifeq ($(PREFIX),)
 endif
 
 ifeq ($(NOLLVMCC),)
-	CLEAN:=lc lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o lc.bc lc.lh jit.o dummy.o llvmc.o llvmc.so lang lang.bc lang.lh lrt-exception.o lrt-unwind.o lrt-throw.o /tmp/lcache-$(PROJECT)/* lrt-ithunk-$(LRT_VERSION).o lrt-ithunk-$(LRT_VERSION).so || true
+	CLEAN:=lc lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o lc.bc lc.lh jit.o dummy.o llvmc.o llvmc.so _liblang _liblang.bc _liblang-$(LRT_VERION).lh _liblang.so lrt-exception.o lrt-unwind.o lrt-throw.o /tmp/lcache-$(PROJECT)/* lrt-ithunk-$(LRT_VERSION).o lrt-ithunk-$(LRT_VERSION).so || true
 else
-	CLEAN:=lc lrt-llvm-$(LRT_VERSION).bc lc.bc lc.lh llvmc.so lang lang.bc lang.lh /tmp/lcache-$(PROJECT)/* || true
+	CLEAN:=lc lrt-llvm-$(LRT_VERSION).bc lc.bc lc.lh llvmc.so _liblang _liblang.bc _liblang.lh /tmp/lcache-$(PROJECT)/* || true
 endif
 
-INSTALL_OBJS:=jit.o dummy.o llvmc.so fcgi.o lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o lrt-ithunk-$(LRT_VERSION).o lrt-ithunk-$(LRT_VERSION).so lc lang.bc lang.so lang.lh
+INSTALL_OBJS:=jit.o dummy.o llvmc.so fcgi.o lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o lrt-ithunk-$(LRT_VERSION).o lrt-ithunk-$(LRT_VERSION).so lc _liblang.bc _liblang.so _liblang.lh
 
 LRT_CFLAGS:=-DB64 -g -O1 -DLLVM
 
@@ -82,10 +82,6 @@ all: $(INSTALL_OBJS)
 install: $(INSTALL_OBJS)
 	echo "Installing in $(PREFIX)/"
 	echo "Target is $(TARGET)"
-	#mkdir -p safe
-	#cp safe/lc-previous-1 safe/lc-previous-2 || true
-	#cp safe/lc-previous safe/lc-previous-1 || true
-	#cp /usr/bin/lc safe/lc-previous
 	mkdir -p $(PREFIX)/bin/
 	cp -u -v -p lc $(PREFIX)/bin
 	mkdir -p $(PREFIX)/lib/lang/$(TARGET)/trusted/
@@ -93,7 +89,10 @@ install: $(INSTALL_OBJS)
 	mkdir -p $(PREFIX)/lib/lang/$(TARGET)/safe/
 	cp -r $(CP_FLAGS) lib/* $(PREFIX)/lib/lang	
 	cp $(CP_FLAGS) jit.o fcgi.o llvmc.so $(PREFIX)/lib/lang/$(TARGET)/unsafe/
-	cp $(CP_FLAGS) dummy.o lang.so lang.bc lang.lh $(PREFIX)/lib/lang/$(TARGET)/trusted/
+	cp $(CP_FLAGS) dummy.o $(PREFIX)/lib/lang/$(TARGET)/trusted/
+	cp $(CP_FLAGS) _liblang.so $(PREFIX)/lib/lang/$(TARGET)/trusted/liblang.so
+	cp $(CP_FLAGS) _liblang.bc $(PREFIX)/lib/lang/$(TARGET)/trusted/liblang-$(LRT_VERIONS).bc
+	cp $(CP_FLAGS) _liblang.lh $(PREFIX)/lib/lang/$(TARGET)/trusted/liblang.lh
 	cp $(CP_FLAGS) lrt-llvm-$(LRT_VERSION).bc $(PREFIX)/lib/lang/$(TARGET)/
 	cp $(CP_FLAGS) lrt-llvm-$(LRT_VERSION).o $(PREFIX)/lib/lang/$(TARGET)/
 	cp $(CP_FLAGS) lrt-ithunk-$(LRT_VERSION).o $(PREFIX)/lib/lang/$(TARGET)/
@@ -121,28 +120,27 @@ include lc.d
 
 include lang.d
 
-lang: lang.bc lang.lh
+# build bitcode + shared library with names that will not match what lc links against by default to
+# prevent accidentally linking compiler against wrong library
+_liblang: lang.bc lang.lh
 
-lang.bc: $(lang_DEPS)
+_liblang.bc: $(lang_DEPS)
 	echo build lang.bc $(LFLAGSBCLIB)
-	$(LC) -V -f $(MODEL) $(LFLAGSBCLIB) -u lib.l -o lang
+	$(LC) -V -f $(MODEL) $(LFLAGSBCLIB) -u lib.l -o _liblang
 
-lang.so: $(lang_DEPS)
+_liblang.so: $(lang_DEPS)
 	echo build lang.so $(LFLAGSSO)
 	rm /tmp/lcache-$(PROJECT)/* || true
-	$(LC) -V -f $(MODEL) $(LFLAGSSO) -u lib.l -o lang
-	mv lang lang.so
+	$(LC) -V -f $(MODEL) $(LFLAGSSO) -u lib.l -o _liblang
+	mv _liblang _liblang.so
 
-lang.lh: lang.bc
+_liblang.lh: _liblang.bc
 
 lc: $(lc_DEPS) llvmc.o llvmc.so dummy.o
-	rm -f lang.lh 2>/dev/null # don't link against any lang.so in current directory
 	$(LC) -f $(MODEL) $(LFLAGSEXE) -o lc -s llvm -lllvmc.o -lLLVM-2.8 main.l
 
 lc.bc: $(lc_DEPS)
 	$(LC) -f $(MODEL) $(LFLAGSBC) -o lc -s llvm -lLLVM-2.8 main.l
-
-# -lLLVMAnalysis -lLLVMArchive -lLLVMBitReader -lLLVMBitWriter -lLLVMCore -lLLVMExecutionEngine -lLLVMipa -lLLVMMC -lLLVMSupport -lLLVMSystem -lLLVMTarget -lLLVMTransformUtils main.l
 
 llvmc.o: llvmc.cpp
 	g++ $(MODEL) `llvm-config --cxxflags` -c llvmc.cpp
