@@ -66,7 +66,7 @@ ifeq ($(PREFIX),)
 endif
 
 ifeq ($(NOLLVMCC),)
-	CLEAN:=lc lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o lc.bc lc.lh jit.o dummy.o llvmc.o llvmc.so _liblang _liblang.bc _liblang-$(LRT_VERION).lh _liblang.so lrt-exception.o lrt-unwind.o lrt-throw.o /tmp/lcache-$(PROJECT)/* lrt-ithunk-$(LRT_VERSION).o lrt-ithunk-$(LRT_VERSION).so || true
+	CLEAN:=lc lrt-llvm-$(LRT_VERSION).bc lrt-llvm-$(LRT_VERSION).o lc.bc lc.lh jit.o dummy.o llvmc.o llvmc.so _liblang _liblang.bc _liblang.lh _liblang.so lrt-exception.o lrt-unwind.o lrt-throw.o /tmp/lcache-$(PROJECT)/* lrt-ithunk-$(LRT_VERSION).o lrt-ithunk-$(LRT_VERSION).so || true
 else
 	CLEAN:=lc lrt-llvm-$(LRT_VERSION).bc lc.bc lc.lh llvmc.so _liblang _liblang.bc _liblang.lh /tmp/lcache-$(PROJECT)/* || true
 endif
@@ -91,7 +91,7 @@ install: $(INSTALL_OBJS)
 	cp $(CP_FLAGS) jit.o fcgi.o llvmc.so $(PREFIX)/lib/lang/$(TARGET)/unsafe/
 	cp $(CP_FLAGS) dummy.o $(PREFIX)/lib/lang/$(TARGET)/trusted/
 	cp $(CP_FLAGS) _liblang.so $(PREFIX)/lib/lang/$(TARGET)/trusted/liblang.so
-	cp $(CP_FLAGS) _liblang.bc $(PREFIX)/lib/lang/$(TARGET)/trusted/liblang-$(LRT_VERIONS).bc
+	cp $(CP_FLAGS) _liblang.bc $(PREFIX)/lib/lang/$(TARGET)/trusted/liblang.bc
 	cp $(CP_FLAGS) _liblang.lh $(PREFIX)/lib/lang/$(TARGET)/trusted/liblang.lh
 	cp $(CP_FLAGS) lrt-llvm-$(LRT_VERSION).bc $(PREFIX)/lib/lang/$(TARGET)/
 	cp $(CP_FLAGS) lrt-llvm-$(LRT_VERSION).o $(PREFIX)/lib/lang/$(TARGET)/
