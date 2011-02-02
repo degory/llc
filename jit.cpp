@@ -24,12 +24,25 @@
 #include "llvm/System/Signals.h"
 #include "llvm/Target/TargetSelect.h"
 #include "llvm/Target/TargetOptions.h"
+#include "llvm/Analysis/Verifier.h"
 #include <cerrno>
 using namespace llvm;
 
 static Module *main_module = 0;
 static EngineBuilder *builder;
 static ExecutionEngine *execution_engine = 0;
+
+enum LogLevel { DEBUG=0, INFO=1, WARN=2, ERROR=3, FATAL=4 };
+
+extern "C" void _ZN4Util6Logger3logEiPc(int, const char *);
+
+static void log(LogLevel level, const char *message) {
+  _ZN4Util6Logger3logEiPc(level, message);
+}
+
+static void log(LogLevel level, struct std::basic_string<char, std::char_traits<char>, std::allocator<char> > message) {
+  _ZN4Util6Logger3logEiPc(level, message.c_str());
+}
 
 static void do_shutdown() {
   delete execution_engine;
@@ -67,7 +80,7 @@ extern "C" {
 
 
   void *__call_function(char *function_name) {
-    std::cerr << "looking for function '" << function_name << "'\n";
+    // std::cerr << "looking for function '" << function_name << "'\n";
     Function *f;
 
     for( std::vector<Module*>::const_iterator i = modules.begin(); i != modules.end() ; ++i ) {
@@ -78,7 +91,7 @@ extern "C" {
     }
 
     if( !f ) {
-      std::cerr << "oops: could not locate function '" << function_name << "' in module\n";
+      log( ERROR, std::string("JIT: could not locate function '") + function_name );
       return 0;
     }
 
@@ -87,11 +100,11 @@ extern "C" {
     fp = (func *)execution_engine->getPointerToFunction(f);
 
     if( !fp ) {
-      std::cerr << "oops: could not compile function '" << function_name << "'\n";
+      log( ERROR, std::string("JIT: could not compile function '") + function_name );
       return 0;
     }
 
-    std::cerr << "will call function '" << function_name << "'\n";
+    // std::cerr << "will call function '" << function_name << "'\n";
 
     return fp();
   }
@@ -99,54 +112,49 @@ extern "C" {
   void __load_module(char *bitcode_name) {
     std::string error_message;
     
-    std::cerr << "loading '" << bitcode_name << "'\n";
-  
-    MemoryBuffer *buffer = MemoryBuffer::getFile(bitcode_name, &error_message);
-    if( !buffer ) {
-      std::cerr << "oops: MemoryBuffer::getFile('" << bitcode_name << "') failed: " << error_message << "\n";
-      return;
-    }
-
-    std::cerr << "actual load bitcode\n";
-    Module *module = getLazyBitcodeModule(buffer, getGlobalContext(), &error_message);
-
-    std::cerr << "after actual load bitcode: " << error_message << "\n";
-
-    if( !module ) {
-      std::cerr << "get lazy bitcode module failed: " << error_message << "\n";
-      return;
-    }
-
-
-    if( !module->MaterializeAllPermanently(&error_message) ) {
-      std::cerr << "materialize module failed: " << error_message << "\n";
-    }
-
     if( main_module == 0 ) {
       if( !llvm::JITExceptionHandling ) {
-	std::cerr << "JIT DWARF exception handling initially disabled, enabling now...\n";
         llvm::JITExceptionHandling = true;
-      } else {
-	std::cerr << "JIT DWARF exception handling already enabled\n";	
       }
 
       if( !llvm::JITEmitDebugInfo ) {
-	std::cerr << "JIT DWARF debug info initially disabled, enabling now...\n";
 	llvm::JITEmitDebugInfo = true;
-      } else {
-	std::cerr << "JIT DWARF debug info already enabled\n";	
       }
 
-      std::cerr << "no main module, will create execution engine...\n";
+      log( INFO, "JIT: starting up\n" );
 
       InitializeNativeTarget();
       atexit(do_shutdown);  // Call llvm_shutdown() on exit.
+    }
 
+    log( INFO, std::string("JIT: loading '") + bitcode_name );
+  
+    MemoryBuffer *buffer = MemoryBuffer::getFile(bitcode_name, &error_message);
+    if( !buffer ) {
+      log( ERROR, std::string("JIT: MemoryBuffer::getFile('") + bitcode_name + "') failed: " + error_message );
+      return;
+    }
+
+    Module *module = getLazyBitcodeModule(buffer, getGlobalContext(), &error_message);
+
+    if( !module ) {
+      delete buffer;
+      log( ERROR, std::string("JIT: get lazy bitcode module failed: ") + error_message );
+      return;
+    }
+    
+    if( module->MaterializeAllPermanently(&error_message) ) {
+      log( ERROR, std::string("JIT: materialize module failed: ") + error_message );
+      if( verifyModule(*module, PrintMessageAction, &error_message) ) {
+	log( ERROR, std::string("JIT: module failed to verify: ") + error_message );
+	module->dump();
+      }    
+    }
+
+    if( main_module == 0 ) {
       main_module = module;
 
       builder = new EngineBuilder(module);
-
-      std::cerr << "constructed builder\n";
 
       builder->setErrorStr(&error_message);
       builder->setEngineKind(EngineKind::JIT);
@@ -162,20 +170,21 @@ extern "C" {
       builder->setOptLevel(opt_level);
 
       execution_engine = builder->create();
-      std::cerr << "created execution engine\n";
 
       delete(builder);
 
       if (!execution_engine) {
-	std::cerr << "execution engine is null\n";
+	log( ERROR, "JIT: execution engine is null" );
 
 	if (!error_message.empty()) {
-	  errs() << "error creating execution_engine: " << error_message << "\n";
+	  log( ERROR, std::string("JIT: error creating execution_engine: ") + error_message );
 	} else {
-	  errs() << "unknown error creating execution_engine!\n";
+	  log( ERROR, "JIT: unknown error creating execution_engine!" );
 	}
 	exit(1);
       }
+
+      log( INFO, "JIT: created execution engine" );
     }
 
     modules.push_back(module);
@@ -191,11 +200,11 @@ extern "C" {
     }
 #endif
 
-    std::cerr << "JIT'd all functions in: " << bitcode_name << "\n";
+    // std::cerr << "JIT'd all functions in: " << bitcode_name << "\n";
 
     execution_engine->runStaticConstructorsDestructors( module, false);
 
-    std::cerr << "initialized module: " << bitcode_name << "\n";
+    log( INFO, std::string("JIT: initialized module: ") + bitcode_name );
   }
 }
 

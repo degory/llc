@@ -19,12 +19,12 @@ namespace FCGI is
         si
 
 	int read( char ptr buffer, int count ) is
-	    IO.Std.err.println( "about to FCGI_fread..." );
+	    // IO.Std.err.println( "about to FCGI_fread..." );
             int bytes_read = cast int(native.FCGI_fread(buffer, 1, count, fcgi_stream));
 	    if bytes_read < count then
 	        is_at_end = true;
  	    fi
-   	    IO.Std.err.println( "read " + bytes_read + " bytes" );
+   	    // IO.Std.err.println( "read " + bytes_read + " bytes" );
             return bytes_read;
         si
 

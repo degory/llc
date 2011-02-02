@@ -69,6 +69,14 @@ namespace IO {
 	    readToken();
 	}
 
+	/// dispose of a SerialParser and any underlying Reader + Stream
+	void dispose() {
+	    if( is != null ) {
+		is.dispose();
+		is = null;
+	    }	    
+	}
+
 	/// accessor: get bool AtEOF
 	/// \return true if at end of reader
 	get bool AtEOF {
@@ -270,6 +278,14 @@ namespace IO {
 	public void init(Reader is) {
 	    parser = new SerialParser(is);
 	    references = new Map<String,Object>();
+	}
+
+	/// Dispose of SerialReader and any associated SerialParser, Reader and Stream
+	public void dispose() {
+	    if( parser != null ) {
+		parser.dispose();
+	    }
+	    parser = null;
 	}
 
 	/// Internal method
@@ -1010,7 +1026,10 @@ namespace IO {
 	}
 
 	void dispose() {
-	    os.close();
+	    if( os != null ) {
+		os.close();
+		os = null;
+	    }
 	}
 
 	/// Append a char to the output stream directly with no quoting
