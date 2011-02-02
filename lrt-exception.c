@@ -635,7 +635,7 @@ void __call_dispose( WORD *object ) {
   WORD *vtable = (WORD *)object[0];
   DISPOSE *dispose = (DISPOSE *)vtable[FINALIZE_OFFSET];
 
-  fprintf( stderr, "calling dipose on %lp\n", object );
+  // fprintf( stderr, "calling dipose on %lp\n", object );
   (*dispose)(object);
 }
 
