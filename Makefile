@@ -114,7 +114,7 @@ lc.d:	operation.l syntaxl.l syntaxk.l
 	$(LC) $(MODEL) $(LFLAGS) -D -p test -o lc -s llvm main.l
 
 lang.d:
-	$(LC) $(MODEL) $(LFLAGS) -D -u lib.l -o lang
+	$(LC) $(MODEL) $(LFLAGS) -D -u $(RUNTIME)/lib.l -o lang
 
 include lc.d
 
@@ -126,12 +126,12 @@ _liblang: lang.bc lang.lh
 
 _liblang.bc: $(lang_DEPS)
 	echo build lang.bc $(LFLAGSBCLIB)
-	$(LC) -V -f $(MODEL) $(LFLAGSBCLIB) -u lib.l -o _liblang
+	$(LC) -V -f $(MODEL) $(LFLAGSBCLIB) -u $(RUNTIME)/lib.l -o _liblang
 
 _liblang.so: $(lang_DEPS)
 	echo build lang.so $(LFLAGSSO)
 	rm /tmp/lcache-$(PROJECT)/* || true
-	$(LC) -V -f $(MODEL) $(LFLAGSSO) -u lib.l $(RUNTIME)/trusted/gstd.l -o _liblang
+	$(LC) -V -f $(MODEL) $(LFLAGSSO) -u $(RUNTIME)/lib.l $(RUNTIME)/trusted/gstd.l -o _liblang
 	mv _liblang _liblang.so
 
 _liblang.lh: _liblang.bc
