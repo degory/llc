@@ -14,7 +14,7 @@ namespace Web {
     /** an in memory HTML buffer with methods to add various HTML elements and attributes to the buffer and
      * enforce correct nesting by matching opening and closing HTML tags
      */
-    class HTMLBuilder extends System.Object {
+    class Builder extends System.Object {
 	StringBuffer buffer;             // accumulated HTML output
 	Vector<HTMLState> tag_stack;     // stack of closing tags for enclosing elements
         Map<String,String> default_tag_classes;   // default CSS style to set for tags via class attribute
