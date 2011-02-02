@@ -231,9 +231,11 @@ unsigned char *alloco( int total_size ) {
 }
 
 int __geterrno() {
+  /*
   fprintf( stderr, "errno is: %d\n", errno);
   fprintf( stderr, "error is %s\n", strerror(errno) );
   perror("__geterrno");
+  */
   return errno;
 }
 
