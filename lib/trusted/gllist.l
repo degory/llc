@@ -58,8 +58,8 @@ namespace Generic is
 	si
 
 	/// Append supplied values after last element in this LinkedList
-	/// \param v the value to append
-	void add( Iterator<T> v ) is
+	/// \param v the values to append
+	void add( Iterable<T> v ) is
 	    foreach var t; v.Iterator do
 	        add(t);
 	    od
@@ -202,9 +202,11 @@ namespace Generic is
 
         LinkedList<T> copy() is
 	    var result = new LinkedList<T>();
-            if tail != null then
-		tail = tail.copy();
+            if list != null then
+		result.list = list.copy();
 	    fi
+
+	    return result;
 	si
 
 	get LinkedList<T> Freeze is

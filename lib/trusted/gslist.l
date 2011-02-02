@@ -34,9 +34,11 @@ namespace Generic is
 
 	SortedList<T> copy() is
 	    var result = new SortedList<T>();
-            if tail != null then
-                tail = tail.copy();
+            if list != null then
+                result.list = list.copy();
             fi
+
+            return result;
         si
 
         get SortedList<T> Freeze is
@@ -83,9 +85,9 @@ namespace Generic is
 
 	SortedListNode<T> copy() is
             if tail != null then
-                return new SortedListNode(value, tail.copy());
+                return new SortedListNode<T>(value, cast SortedListNode<T>(tail).copy());
             else
-                return new SortedListNode(value, null);
+                return new SortedListNode<T>(value, null);
             fi
         si
 

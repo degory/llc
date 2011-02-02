@@ -81,6 +81,7 @@ namespace Parse {
 	}
 
         CompileStatus needCompile( String source_name, String class_name, int hash, bool one_file ) {
+	    // IO.Std.err.println( "search libraries for " + class_name + "..." );
 	    foreach( var l; libraries.Iterator ) {
 		var h = l.Hash[class_name];
 		if( h != 0 ) {
@@ -93,7 +94,7 @@ namespace Parse {
 		    }
 		}
 	    }
-
+	   
 	    if( one_file ) {
 		return CompileStatus.STALE;
 	    }

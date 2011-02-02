@@ -371,11 +371,14 @@ namespace Parse {
 
         get Container Clazz {
             if( c == null ) {
-                throw new Exception( "oops: cannot return class for type without one" );
+                throw new Exception( "oops: cannot return class for type without one: " + this );
             }
             return c;
         }
 
+	get Container ClazzOrNull {
+	    return c;
+	}
 
         void dump( StringBuffer human, StringBuffer decorate ) {
 	    if( this == null ) {

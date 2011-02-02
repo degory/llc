@@ -39,7 +39,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1263;
+	const int BUILD = 1264;
 
 	CompileState state;
 
@@ -485,6 +485,11 @@ namespace Parse {
 		if( visit_standard_library ) {
 		    IO.Std.err.println( "linking shared standard library (B)" );
 		    state.visitFile( CompileState.RUNTIME_NAME + ".lh" );
+		}
+
+		if( state.WantSharedStandardLibrary ) {
+		    // reference standard template expansions:
+		    state.visitFile( "gstd.l" );
 		}
 
 		state.compilePending();

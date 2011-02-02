@@ -131,7 +131,7 @@ _liblang.bc: $(lang_DEPS)
 _liblang.so: $(lang_DEPS)
 	echo build lang.so $(LFLAGSSO)
 	rm /tmp/lcache-$(PROJECT)/* || true
-	$(LC) -V -f $(MODEL) $(LFLAGSSO) -u lib.l -o _liblang
+	$(LC) -V -f $(MODEL) $(LFLAGSSO) -u lib.l $(RUNTIME)/trusted/gstd.l -o _liblang
 	mv _liblang _liblang.so
 
 _liblang.lh: _liblang.bc

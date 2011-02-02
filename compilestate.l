@@ -766,7 +766,7 @@ namespace Parse {
 		// IO.Std.err.println( "returning module for: " + CurrentClass.HumanName );
 		return CurrentClass.LLVMModule;
 	    } else {
-		IO.Std.err.println( "oops: LLVM module requested outside of class from: " + new System.Backtrace() );
+		// IO.Std.err.println( "oops: LLVM module requested outside of class from: " + new System.Backtrace() );
 		return module;
 	    }
 	}
@@ -1181,7 +1181,15 @@ namespace Parse {
 	    var hash = c.Hash;
 	    var name = c.DecoratedName;
 
-	    if( c.IsInterface || s != CompileStatus.LIBRARY ) {
+	    // IO.Std.err.println( "add hash file: " + c.HumanName );
+
+	    if( c.IsInterface ) {
+		// FIXME: may need to write interface method vtable indexes
+		// to support mixed graph coloring + selector hashing 
+		return;
+	    }
+
+	    if( /* c.IsInterface || */ s != CompileStatus.LIBRARY ) {
 		// IO.Std.err.println( "writing to " + library_hash_file + ": '" + name + ' ' + hash + ' ' + "'" );
 		library_hash_file.print( name + ' ' + hash + ' ' );
 
@@ -1199,9 +1207,11 @@ namespace Parse {
 		}
 	    }
 
+	    /*
             if( c.IsInterface ) {
 		return;
 	    }
+	    */
 
 	    if( s == CompileStatus.STALE ) {
 		write_hash_files.add( new WriteHashFile(lcache_dir + name, hash) );

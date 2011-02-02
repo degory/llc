@@ -64,7 +64,7 @@ namespace System {
 	    return _value == w.Value;
 	}
 
-	int operator>( long b, long c ) {
+	static int operator>( long b, long c ) {
 	    if( b > c ) {
 		return 1;
 	    } else if( b < c ) {

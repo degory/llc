@@ -1528,15 +1528,16 @@ namespace Parse {
 		// IO.Std.err.println( "call A: " + left_value + " (" + left_value.Class.Name + ")" );
 
 		if( left_value != null ) {
-		    Container scope = left_value.getType(state).Clazz;
+		    Container scope = null;
 		    Container super_class = null;
 		    if( left_value.getType(state).TypeKind == Type.SUPER ) {
+		        scope = left_value.getType(state).Clazz;
 			warn( "proc reference to method in super class: may be broken, method is: " + method.HumanName );
 			super_class = scope;
 		    }
 
 		    if( left_value.isClass(state) || left_value.isType(state) ) {
-			error( "left value is not an object" );
+			error( "left value is not an object: " + left_value + " (is class: " + left_value.isClass(state) + ", is type: " + left_value.isType(state) + ")" );
 			return ErrorValue();
 		    }
 
