@@ -82,6 +82,10 @@ extern void __native_thunk(void (*f)(),...);
 
 int __in_segv = 0;
 
+void __clear_in_segv() {
+  __in_segv = 0;
+}
+
 typedef struct _Registers {
   WORD r8;     // +0
   WORD r9;     // +8
@@ -1353,6 +1357,8 @@ void __segv_handler(int sig, siginfo_t *si, SigContext *uc) {
 
   __in_segv = 1;
 
+  __print_backtrace();
+
   // GC_disable();
 
   int i;
@@ -1363,6 +1369,7 @@ void __segv_handler(int sig, siginfo_t *si, SigContext *uc) {
   long rip = (long)uc->regs.rip;
 
   // null or negative, > 32M and below shared object area, > 64M beyond start of shared object area       
+  /*
   if( rip <= 8192l || (rip > 0x2000000 && rip < 0x80000000000) || rip > 0x80004000000 ) {
     // if rip doesn't look like a valid instruction address, assume we've somehow called through a bad pointer and
     // look on the stack top for a return address pointing at the offending instruction:
@@ -1376,6 +1383,7 @@ void __segv_handler(int sig, siginfo_t *si, SigContext *uc) {
 
     // fprintf( stderr, "non null rip %d\n", (void *)rip );
   }
+  */
 
   // fprintf( stderr, "Content-type: text/plain\r\n\r\n" );
   // fprintf( stderr, "SIGSEGV referencing address: 0x%p\n", (void *)si->si_addr );
@@ -1428,9 +1436,21 @@ void __segv_handler(int sig, siginfo_t *si, SigContext *uc) {
   uc->regs.rsi = (WORD)e;                       // exception to throw;
 #endif
   */
-  uc->regs.rip = (WORD)_ZN6System15MemoryException7throwMEEv; // restart address
+  // uc->regs.rip = (WORD)_ZN6System15MemoryException7throwMEEv; // restart address
   // exit(1);
+
+  // this isn't right but try throwing from within the handler as returning to the handler
+  // address is unreliable (due to uncertain stack state?):
+
+  _ZN6System15MemoryException7throwMEEv();
 }
+
+void __print_backtrace() {
+  void *trace[16];
+  int c = backtrace( trace, 16 );
+  backtrace_symbols_fd( trace, c, 2);
+}
+
 
 
 void *__gcj_mark_proc(

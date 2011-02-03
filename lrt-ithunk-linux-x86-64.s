@@ -21,6 +21,8 @@
 .globl __ithunk
 	.type	__ithunk, @function
 __ithunk:
+	pushq   %rbp
+	movq    %rsp,%rbp
         movq    %rsi, %r10		# object reference
 	movq	(%r10), %r10		# vtable
 	movq	32(%r10), %r10		# selector id -> method mapping table
@@ -30,6 +32,8 @@ __ithunk:
 	cmpq	%rdi, (%r10)
 	leaq	16(%r10), %r10
 	jne	1b
+
+	popq	%rbp
 	jmp 	*-8(%r10)
 	
 	.size	__ithunk, .-__ithunk

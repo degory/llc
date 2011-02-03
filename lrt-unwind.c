@@ -947,10 +947,12 @@ _Unwind_Reason_Code handleLsda(
   return ret;
 }
 
+void __print_backtrace(void);
 void __throw_exception_broken( void *l_exception ) {
   _Unwind_RaiseException( makeException(l_exception) );
   fprintf( stderr, "oops: unwind raise exception should not return\n" );
   fflush(stderr);
+  __print_backtrace();
   abort();
 }  
 
