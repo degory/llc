@@ -875,7 +875,7 @@ namespace Web {
     /** represents the state of an HTMLOutput object at a particular level of element nesting. HTMLStates are
      * stored on a stack so that previous states can be restored when elements are closed
      */
-    class HTMLState extends System.Object {
+    class HTMLState {
 	/** should HTML output be pretty indented (true) or output with no newlines or whitespace (false)
 	 */
 	public bool indent;
