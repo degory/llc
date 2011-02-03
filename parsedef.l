@@ -2058,7 +2058,7 @@ namespace Parse {
 		into.Close();
 		LLVM.Calls.LLVMRemoveFunction(fg);
 		// LLVM.Calls.LLVMDeleteFunction(fg);
-		IO.Std.err.println( "" + m.HumanName + ": not implemented" );
+		IO.Std.err.println( "" + m.HumanName + ": caught not implemented exception" );
 		if( state.WantVeryVerbose ) {
 		    IO.Std.err.println( "cause: " + nie );
 		}
