@@ -14,7 +14,7 @@ namespace Web {
     /** an in memory HTML buffer with methods to add various HTML elements and attributes to the buffer and
      * enforce correct nesting by matching opening and closing HTML tags
      */
-    class HTMLBuilder extends System.Object {
+    class Builder extends System.Object {
 	StringBuffer buffer;             // accumulated HTML output
 	Vector<HTMLState> tag_stack;     // stack of closing tags for enclosing elements
         Map<String,String> default_tag_classes;   // default CSS style to set for tags via class attribute
@@ -875,7 +875,7 @@ namespace Web {
     /** represents the state of an HTMLOutput object at a particular level of element nesting. HTMLStates are
      * stored on a stack so that previous states can be restored when elements are closed
      */
-    class HTMLState extends System.Object {
+    class HTMLState {
 	/** should HTML output be pretty indented (true) or output with no newlines or whitespace (false)
 	 */
 	public bool indent;

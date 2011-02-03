@@ -1429,7 +1429,7 @@ void __segv_handler(int sig, siginfo_t *si, SigContext *uc) {
 #endif
   */
   uc->regs.rip = (WORD)_ZN6System15MemoryException7throwMEEv; // restart address
-  exit(1);
+  // exit(1);
 }
 
 
