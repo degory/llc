@@ -193,8 +193,9 @@ namespace System is
 	    return address;
 	si
 
+	// FIXME: move into MemoryProtectionException:
         static void throwME() is
-	    throw new MemoryException("invalid pointer dereference");
+	    throw new MemoryProtectionException("invalid pointer dereference");
         si
     si
 
@@ -228,6 +229,10 @@ namespace System is
 
 	void init( char ptr s ) is
 	    super.init( s );
+	si
+
+	void dispose() is
+	    native.__clear_in_segv();
 	si
     si
 
