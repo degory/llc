@@ -964,16 +964,20 @@ static ft_cxa_demangle *f_cxa_demangle;
 static ft_cplus_demangle_v3 *f_cplus_demangle_v3;
 
 static void check_demanglers() {
-  void *f;
+  if( !have_checked_demanglers ) {
+    void *f;
 
-  f_cxa_demangle = dlsym(RTLD_DEFAULT, "__cxa_demangle");
-  f_cplus_demangle_v3 = dlsym(RTLD_DEFAULT, "cplus_demangle_v3");
+    f_cxa_demangle = dlsym(RTLD_DEFAULT, "__cxa_demangle");
+    fprintf( stderr, "cxa demangle is %p\n", f_cxa_demangle );
+    f_cplus_demangle_v3 = dlsym(RTLD_DEFAULT, "cplus_demangle_v3");
+    fprintf( stderr, "cplus demangle is %p\n", f_cplus_demangle_v3 );
+
+    have_checked_demanglers = 1;
+  }
 }
 
 char *__demangle_symbol( char *s ) {
-  if( !have_checked_demanglers ) {
-    check_demanglers();
-  }
+  check_demanglers();
 
   if( f_cxa_demangle != 0 ) {
     int status = 0;

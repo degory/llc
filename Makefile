@@ -50,7 +50,11 @@ LFLAGSEXE:=$(LFLAGS) -FN
 LFLAGSSO:=$(LFLAGSEXE) -FNPE
 
 ifeq ($(WANT_LINKSOLIB),1)
-	LFLAGSEXE:=$(LFLAGSEXE) -N
+	LFLAGSEXE:=$(LFLAGSEXE) -N 
+#-Fr
+else
+	LFLAGSEXE:=$(LFLAGSEXE) -n 
+#-FR
 endif
 
 ifeq ($(LLVM_CC),)
@@ -114,7 +118,7 @@ lc.d:	operation.l syntaxl.l syntaxk.l
 	$(LC) $(MODEL) $(LFLAGS) -D -p test -o lc -s llvm main.l
 
 lang.d:
-	$(LC) $(MODEL) $(LFLAGS) -D -u $(RUNTIME)/lib.l -o lang
+	$(LC) $(MODEL) $(LFLAGS) -D -u $(RUNTIME)/trusted/liblang.l -o lang
 
 include lc.d
 
@@ -125,13 +129,13 @@ include lang.d
 _liblang: lang.bc lang.lh
 
 _liblang.bc: $(lang_DEPS)
-	echo build lang.bc $(LFLAGSBCLIB)
-	$(LC) -V -f $(MODEL) $(LFLAGSBCLIB) -u $(RUNTIME)/lib.l -o _liblang
+	echo build _liblang.bc $(LFLAGSBCLIB)
+	$(LC) -V -f $(MODEL) $(LFLAGSBCLIB) -u $(RUNTIME)/trusted/liblang.l -o _liblang
 
 _liblang.so: $(lang_DEPS)
-	echo build lang.so $(LFLAGSSO)
+	echo build _liblang.so $(LFLAGSSO)
 	rm /tmp/lcache-$(PROJECT)/* || true
-	$(LC) -V -f $(MODEL) $(LFLAGSSO) -u $(RUNTIME)/lib.l $(RUNTIME)/trusted/gstd.l -o _liblang
+	$(LC) -V -f $(MODEL) $(LFLAGSSO) -u $(RUNTIME)/trusted/liblang.l $(RUNTIME)/trusted/gstd.l -o _liblang # -FR
 	mv _liblang _liblang.so
 
 _liblang.lh: _liblang.bc

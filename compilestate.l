@@ -490,6 +490,7 @@ namespace Parse {
 	bool want_line_numbers;
 	bool want_shared_standard_library;
 	bool want_link_libraries;
+	bool want_link_lrt;
 	bool want_statistics;
 	bool want_native_executable;
 	bool want_native_object_files;
@@ -3216,6 +3217,14 @@ namespace Parse {
         set bool WantLinkLibraries = l {
 	    want_link_libraries = l;
 	}
+
+        get bool WantLinkLRT {
+            return want_link_lrt;
+        }
+
+        set bool WantLinkLRT = l {
+            want_link_lrt = l;
+        }
 
 	get bool WantNativeExecutable {
 	    return want_native_executable;

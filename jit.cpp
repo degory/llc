@@ -121,13 +121,13 @@ extern "C" {
 	llvm::JITEmitDebugInfo = true;
       }
 
-      log( INFO, "JIT: starting up\n" );
+      log( DEBUG, "JIT: starting up\n" );
 
       InitializeNativeTarget();
       atexit(do_shutdown);  // Call llvm_shutdown() on exit.
     }
 
-    log( INFO, std::string("JIT: loading '") + bitcode_name );
+    log( DEBUG, std::string("JIT: loading '") + bitcode_name );
   
     MemoryBuffer *buffer = MemoryBuffer::getFile(bitcode_name, &error_message);
     if( !buffer ) {
@@ -184,7 +184,7 @@ extern "C" {
 	exit(1);
       }
 
-      log( INFO, "JIT: created execution engine" );
+      log( DEBUG, "JIT: created execution engine" );
     }
 
     modules.push_back(module);
@@ -204,7 +204,7 @@ extern "C" {
 
     execution_engine->runStaticConstructorsDestructors( module, false);
 
-    log( INFO, std::string("JIT: initialized module: ") + bitcode_name );
+    log( DEBUG, std::string("JIT: initialized module: ") + bitcode_name );
   }
 }
 

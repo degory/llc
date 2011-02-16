@@ -15,6 +15,7 @@ import signal;
 import stat;
 import args;
 import serial;
+import time;
 
 import htmlencoder;
 import htmlexception;

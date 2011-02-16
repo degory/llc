@@ -91,6 +91,7 @@ namespace Parse {
 	    state.WantBoundsCheck = true;
 	    state.WantNullCheck = true;
 	    state.WantLinkLibraries = true;
+	    state.WantLinkLRT = true;
 	    state.WantNativeExecutable = true;
 	    state.WantNativeObjectFiles = false;
 	    state.WantColorInterfaceSelectors = false;
@@ -184,6 +185,7 @@ namespace Parse {
 
 		    case 'u':
 			state.WantLinkLibraries = false;
+			state.WantLinkLRT = false;
 
 		    case 'N':
 			state.WantSharedStandardLibrary = true;
@@ -269,6 +271,12 @@ namespace Parse {
 
 			    case 't':
 				state.WantForceInterfaceThunk = false;
+
+			    case 'R':
+				state.WantLinkLRT = true;
+
+			    case 'r':
+				state.WantLinkLRT = false;
 
 			    default:
 				IO.Std.err.println( "unexpected output format option '" + name[j] + "'" );
@@ -553,7 +561,7 @@ namespace Parse {
         }
 
 	void usage( String name ) {
-	    IO.Std.out.println( "L-compiler build " + BUILD + " (C) 2004-2011 <degs@giantblob.com>" );
+	    IO.Std.out.println( "L-compiler build " + BUILD + " (C) 2004-2011 degs, giantblob.com" );
 	    IO.Std.out.println( "    host: " + System.Environment.NAME );
 	    IO.Std.out.println( "    target: " + Gen.Machine.NAME );
 	    IO.Std.out.println( "    cache: " + CompileState.Instance.CacheDir );
@@ -586,7 +594,7 @@ namespace Parse {
 	    IO.Std.out.println( "    -FP -Fp            generate position independant/absolute code" );
 	    IO.Std.out.println( "    -FC -Fc            use graph coloring/hashing to allocate interface method vtable slots" );
 	    IO.Std.out.println( "    -FE -Fe            export/do not export all symbols from exectuable" );
-	    // IO.Std.out.println( "    -FL -Fl            probably not functional" );
+	    IO.Std.out.println( "    -FR -Fr            link/do not link low level runtime library" );
 	    IO.Std.out.println();
 	    IO.Std.out.println( "check generation options:" );
 	    IO.Std.out.println( "    -CA -Ca          check/do not check array subscripts are within bounds" );

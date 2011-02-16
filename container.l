@@ -86,6 +86,7 @@ namespace Parse {
 	bool has_static;
 	bool need_interface_calling_convention;
 	bool implements_interface_method;
+	// bool library_hash_written;
 
 	LLVM.TypeHandle llvm_opaque_type_handle;
 	LLVM.TypeHandle llvm_struct_type_handle;
@@ -382,6 +383,16 @@ namespace Parse {
 	    last_static = v;
 	}
 
+	/*
+	get bool LibraryHashWritten {
+	    return library_hash_written;
+	}
+
+	set bool LibraryHashWritten = w {
+	    library_hash_written = w;
+	}
+	*/
+
 	static LLVM.Type getImplementsFunctionType() {
 	    var ppi8 = LLVM.Calls.LLVMPointerType(
 						  LLVM.Calls.LLVMPointerType(
@@ -619,7 +630,6 @@ namespace Parse {
 	    already_parsed = p;
 	}
 
-
 	int getGEPDepth( Symbol s ) {
 	    /*
 	    IO.Std.err.println( "GGGG: symbol: " + s );
@@ -634,12 +644,7 @@ namespace Parse {
 	    if( this == null ) {
 		IO.Std.err.println( "GGGG: getGEPDepth: " + s.HumanName + " null owner from: " + new System.Backtrace() );
 	    } else if( s.Owner == this ) {
-		if( IsStruct ) {
-		    return 1;
-		} else {
-		    // IO.Std.err.println( "GGGG: GEP: " + HumanName + "." + s.Name );
-		    return 1;
-		}
+		return 1;
 	    } else if( parent == null ) {
 		IO.Std.err.println( "GGGG: getGEPDepth: " + s.HumanName + " not found from: " + new System.Backtrace() );
 		throw new System.NotImplementedException( "GEP not owner: " + s.HumanName );
@@ -968,8 +973,9 @@ namespace Parse {
 
         void calcHash() {
 	    int h;
+	    int prev_hash = hash_;
 
-            if( hash_ == 0 ) {
+            // if( hash_ == 0 ) {
                 if( Super != null ) {
                     hash_ = Super.Hash;
 
@@ -1031,7 +1037,11 @@ namespace Parse {
                 
 		// IO.Std.err.println( HumanName + ": result hash " + hash );
                 // fprintf( stderr, "calculated hash %08X for %s\n", hash, getName() );
-            }
+		// }
+		if( prev_hash != 0 && hash_ != prev_hash ) {
+		    throw new System.Exception( "oops: hash has changed for " + HumanName + " (" + hash_ + " != " + prev_hash + ")" );
+		}
+		
         }
 
         get int Hash {
@@ -1960,14 +1970,6 @@ namespace Parse {
                 }
             }
 
-	    /*
-	    if( IsStruct ) {
-		var st = LLVM.Calls.LLVMStructType(llvm_fields.address, llvm_fields_i, 0 );
-		IO.Std.err.println( "struct type " + HumanName + " is: " ); IO.Std.err.flush();
-		LLVM.Calls.LLVMDumpType(st);
-	    }
-	    */
-	    
 	    llvm_struct_type_handle = LLVM.Calls.LLVMCreateTypeHandle( LLVM.Calls.LLVMStructType(llvm_fields.address, llvm_fields_i, 0 ) );
 			       
 	    // address.itable_offset = align(address.itable_offset,Machine.WORD);
@@ -2458,7 +2460,7 @@ namespace Parse {
 			    continue;
 			}
 
-			// FIXME: shouldn't emit ctable for structs at all
+			
 			if( !for_class.IsStruct ) {
 			    if( current.Address == IMPLEMENTS_OFFSET ) {
 

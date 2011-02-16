@@ -1352,12 +1352,14 @@ void __segv_handler(int sig, siginfo_t *si, SigContext *uc) {
   if( __in_segv ) {
     fprintf( stderr, "segv in segv handler\n" );
     fflush( stderr );
+    __print_backtrace();
+
     exit(1);
   }
 
   __in_segv = 1;
-
   __print_backtrace();
+
 
   // GC_disable();
 
