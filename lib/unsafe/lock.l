@@ -19,14 +19,14 @@ namespace Util {
 	native PThreadMutex __mutex_alloc();
 	native int pthread_mutex_lock(PThreadMutex m);
 	native int pthread_mutex_unlock(PThreadMutex m);
-	native void pthread_mutex_init(PThreadMutex m);
+	native void pthread_mutex_init(PThreadMutex m, char ptr attr);
 	native bool __mutex_lock_timed(PThreadMutex m, int seconds);
 	native bool __mutex_lock(PThreadMutex m);
 
         /// Construct a new Lock. Locks are created in unlocked state
 	void init() {
 	    _mutex = __mutex_alloc();
-	    pthread_mutex_init(_mutex);
+	    pthread_mutex_init(_mutex, null);
 	    // native.printf( `initialized lock %lp...\n`, m );
 	}
 

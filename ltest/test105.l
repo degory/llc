@@ -6,11 +6,12 @@ import thread;
 namespace Test105 {
     class Main {
 	void init() {
+	    IO.Std.err.FlushOnPrintln = true;
 	    var t = new Test();
 
 	    t.start();
 
-	    native.sleep( 5 );
+	    native.sleep( 10 );
 	}
     }
 

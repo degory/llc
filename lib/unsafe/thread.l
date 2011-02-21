@@ -121,6 +121,7 @@ namespace System {
 
         /// Entry point for newly created threads. Inherit from Thread and override run()
 	void run() {
+            @Virtual;
 
 	}
     }
