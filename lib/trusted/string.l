@@ -882,6 +882,10 @@ namespace System is
 	    index = index + 1;
 	    return result;
 	si
+
+	get StringIterator Iterator is
+	    return this;
+	si
     si
 
 				  

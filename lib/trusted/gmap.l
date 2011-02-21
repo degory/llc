@@ -75,6 +75,10 @@ namespace Generic is
 	    _go_next();
 	    return result;
 	si
+
+	get MapIterator<K,V> Iterator is
+	    return this;
+	si
     si
 
     /// Holds a key-value pair. 
@@ -364,35 +368,35 @@ namespace Generic is
 	/// Accessor: get PairKeyIterator<K,V> Keys
 	/// Get a new Iterator that returns each key in the Map in turn
 	get PairKeyIterator<K,V> Keys is
-	    return keys();
+	    return new PairKeyIterator<K,V>(Pairs);
 	si
 
 	/// Return a new Iterator that returns each key in the Map in turn
 	PairKeyIterator<K,V> keys() is
-	    return new PairKeyIterator<K,V>(pairs());
+	    return Keys;
 	si
 
 	/// Accessor: get Iterator<Pair<K,V>> Pairs
 	/// Get a new Iterator that returns each key-value pair in the Map in turn
 	get MapIterator<K,V> Pairs is
-	    return pairs();
+	    return new MapIterator<K,V>(this);
 	si
 
 	/// Return a new Iterator that returns each key-value pair in the Map in turn
 	MapIterator<K,V> pairs() is
-	    return new MapIterator<K,V>(this);
+            return Pairs;			
 	si
 
 	/// Accessor: get PairValueIterator<K,V> Iterator
 	/// Get a new Iterator that returns each value in the Map in turn
 	get PairValueIterator<K,V> Iterator is
-	    return elements();
+	    return new PairValueIterator<K,V>(pairs());
 	si
 
 	/// Return a new Iterator that returns each value in the Map in turn
 	PairValueIterator<K,V> elements() is
 	    // IO.Std.out.print( "Map.elements for " + this + "\n" );
-	    return new PairValueIterator<K,V>(pairs());
+	    return Iterator;
 	si
     si
 si

@@ -30,6 +30,10 @@ namespace Generic is
 
 	    return result;
 	si
+
+	get Iterator<T> Iterator is
+	    return this;
+	si
     si
 
     /// Thrown if an out of bounds LinkedList index is referenced

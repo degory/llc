@@ -442,6 +442,7 @@ namespace Parse {
 	    Type et;
 	    LLVM.Type let;
 
+/*
 	    if( iterator_type.isAssignableFrom(t) ) {
 		et = type_expr.parseType(state);
 		let = type_expr.parseType(state).getLLVMType(state);
@@ -483,6 +484,7 @@ namespace Parse {
 
 		into.Label( exit );
             } else {
+*/
 		// IO.Std.err.println( "QQQQQQ: iterator type is: " + type_expr );
 		et = t;
 
@@ -530,7 +532,9 @@ namespace Parse {
 		has_more_elements_call.compileBoolean( state, into, top, true ); // exit loop
 
 		into.Label( exit );
+/*
             }
+*/
 	    state.exitBlock(st);            
             state.Loops.popLoop();
         }

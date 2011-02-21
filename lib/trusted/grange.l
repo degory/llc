@@ -1,5 +1,8 @@
 namespace Generic is
-    class Range<T> do Iterator<T>, Iterable<T> is
+    use System.String;
+    use System.StringBuffer;
+
+    class Range<T> do Iterator<T> is
         bool done;
         public T i, from, to;
 
@@ -20,7 +23,23 @@ namespace Generic is
 	si
 
 	get Iterator<T> Iterator is
-	    return new Range<T>(from,to);
+            return this;
 	si
+
+        String toString() is
+	    StringBuffer result = new StringBuffer();
+	    result
+	        .append(from.toString())
+		.append("..")
+		.append(to.toString());
+
+            if i !~ from then
+	        result
+		    .append("@")
+		    .append(i.toString());
+	    fi
+
+	    return result;
+        si
     si				
 si

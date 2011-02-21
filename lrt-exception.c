@@ -179,6 +179,12 @@ void __collision_thunk(void) {
   exit(1);
 }
 
+void __print_backtrace() {
+  void *trace[16];
+  int c = backtrace( trace, 16 );
+  backtrace_symbols_fd( trace, c, 2);
+}
+
 /*	
 .global __proc_thunk5
 __proc_thunk5:
@@ -501,7 +507,7 @@ int __mutex_lock_timed( pthread_mutex_t *mutex, int seconds ) {
     ts.tv_nsec = tv.tv_usec * 1000;
     ts.tv_sec = tv.tv_sec + seconds;
 
-    result = pthread_mutex_timedlock( mutex, &tv );
+    result = pthread_mutex_timedlock( mutex, &ts );
   } else {
     result = pthread_mutex_lock( mutex );
   }
@@ -1447,11 +1453,7 @@ void __segv_handler(int sig, siginfo_t *si, SigContext *uc) {
   _ZN6System15MemoryException7throwMEEv();
 }
 
-void __print_backtrace() {
-  void *trace[16];
-  int c = backtrace( trace, 16 );
-  backtrace_symbols_fd( trace, c, 2);
-}
+
 
 
 

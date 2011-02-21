@@ -40,6 +40,10 @@ namespace Generic is
 	K nextElement() is
             return _i.nextElement().key;
         si
+
+	get Iterator<K> Iterator is
+	    return this;
+	si
     si
 
     /// Iterates over an Iterator<Pair<K,V>> returning each pair's value in in turn.
@@ -61,5 +65,9 @@ namespace Generic is
         V nextElement() is
             return _i.nextElement().value;
         si
+
+	get Iterator<V> Iterator is
+	    return this;
+	si
     si
 si

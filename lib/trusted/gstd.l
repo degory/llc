@@ -9,7 +9,7 @@ namespace Generic is
   use System.StringBuffer;
   use Util.Filter;
 
-  /// StandardGenerics expand templates for some common generics to ensure they're present in the standard shared library
+  ///expand templates for some common generics to ensure they're present in the standard shared library
   class __SG<T> is
     T[] at;
     Vector<T> vector;

@@ -588,6 +588,10 @@ namespace Parse {
             IO.Std.err.println( "search: " + result.HumanName );
             return result;
         }
+
+	get SymbolSearchIterator Iterator {
+	    return this;
+	}
     }
 
     class SymbolList extends Object {

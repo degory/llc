@@ -959,27 +959,47 @@ void __throw_exception_broken( void *l_exception ) {
 int have_checked_demanglers = 0;
 typedef void *(ft_cxa_demangle)(char *, char *, size_t, int *);
 typedef void *(ft_cplus_demangle_v3)(char *, int);
+typedef void *(ft_java_demangle_v3)(char *);
 
 static ft_cxa_demangle *f_cxa_demangle;
 static ft_cplus_demangle_v3 *f_cplus_demangle_v3;
+ static ft_java_demangle_v3 *f_java_demangle_v3;
 
 static void check_demanglers() {
   if( !have_checked_demanglers ) {
     void *f;
+    have_checked_demanglers = 1;
+
+    f_java_demangle_v3 = dlsym(RTLD_DEFAULT, "java_demangle_v3");
+    if( f_java_demangle_v3 != 0 ) {
+      fprintf( stderr, "java demangle is %p\n", f_cplus_demangle_v3 );
+      return;
+    }
+
+    f_cplus_demangle_v3 = dlsym(RTLD_DEFAULT, "cplus_demangle_v3");
+    if( f_cplus_demangle_v3 != 0 ) {
+      fprintf( stderr, "cplus demangle is %p\n", f_cplus_demangle_v3 );
+      return;
+    }
 
     f_cxa_demangle = dlsym(RTLD_DEFAULT, "__cxa_demangle");
-    fprintf( stderr, "cxa demangle is %p\n", f_cxa_demangle );
-    f_cplus_demangle_v3 = dlsym(RTLD_DEFAULT, "cplus_demangle_v3");
-    fprintf( stderr, "cplus demangle is %p\n", f_cplus_demangle_v3 );
+    if( f_cxa_demangle != 0 ) {
+      fprintf( stderr, "cxa demangle is %p\n", f_cxa_demangle );
+      return;
+    }
 
-    have_checked_demanglers = 1;
+    fprintf( stderr, "no demangle function found\n" );
   }
 }
 
 char *__demangle_symbol( char *s ) {
   check_demanglers();
 
-  if( f_cxa_demangle != 0 ) {
+  if( f_java_demangle_v3 != 0 ) {
+    return f_java_demangle_v3(s);
+  } else if( f_cplus_demangle_v3 != 0 ) {
+    return f_cplus_demangle_v3(s, 0);
+  } else if( f_cxa_demangle != 0 ) {
     int status = 0;
     char *result = f_cxa_demangle(s, 0, 0, &status);
     if( status == 0 ) {
@@ -987,8 +1007,6 @@ char *__demangle_symbol( char *s ) {
     } else {
       return 0;
     }
-  } else if( f_cplus_demangle_v3 != 0 ) {
-    return f_cplus_demangle_v3(s, 0);
   } else {
     return 0;
   }

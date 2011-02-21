@@ -489,6 +489,10 @@ class SortedMapIterator<K,V> do Iterator<Pair<K,V>> is
 	    return y;
 	fi
     si
+
+    get SortedMapIterator<K,V> Iterator is
+        return this;
+    si
 si
 
 /// Iterates over elements of a SortedMap<K,V> in reverse order
@@ -521,6 +525,10 @@ class SortedMapReverseIterator<K,V> do Iterator<Pair<K,V>> is
 
 	    return y;
 	fi
+    si
+
+    get SortedMapReverseIterator<K,V> Iterator is
+        return this;
     si
 si
 

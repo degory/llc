@@ -40,6 +40,10 @@ namespace Generic is
 
 	    return result;
 	si
+
+	get VectorIterator<T> Iterator is
+	    return this;
+	si
     si
 
     /// A reverse Iterator over Vector<T>
@@ -64,6 +68,10 @@ namespace Generic is
 	    _i = _i - 1;
 
 	    return result;
+	si
+
+	get VectorReverseIterator<T> Iterator is
+	    return this;
 	si
     si
 
