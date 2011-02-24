@@ -344,6 +344,8 @@ namespace Parse {
         Identifier ident;
         Expression expr;
         Statement statement;
+	Expression wrapped_expr;
+	bool wrap_done;
 
         void init( int line_number, TypeExpr type_expr, Identifier ident, Expression expr, Statement statement ) {
             super.init( line_number );
@@ -365,6 +367,8 @@ namespace Parse {
 	    ident.clear(state);
 	    expr.clear(state);
 	    statement.clear(state);
+	    wrapped_expr = null;
+	    wrap_done = false;
 	}
 
 	void checkTemplates( CompileState state ) {
@@ -374,29 +378,68 @@ namespace Parse {
 	    statement.checkTemplates(state);
 	}
 
+	bool wrapWithGetIterator( CompileState state ) {
+	    if( wrap_done ) {
+		return false;
+	    }
+
+	    wrap_done = true;
+
+            var t = expr.getType(state);
+
+	    var next_element_call =
+		new MethodCall(
+			       line_number,
+			       expr, // new LoadTemporary( line_number, t, null, true ),  // spoof a 'this' for the call
+			       new Identifier( line_number, "nextElement" ),
+			       null );
+
+	    next_element_call.calcType(state,true);
+
+	    if( next_element_call.Quality != null ) {
+		wrapped_expr = expr;
+		return false;
+	    }
+
+	    var iterator_call =
+		new MethodCall(
+			       line_number,
+			       expr,
+			       new Identifier( line_number, "getIterator" ),
+			       null );
+
+	    iterator_call.calcType(state,true);
+	    
+	    if( iterator_call.Quality != null ) {
+		wrapped_expr = iterator_call;
+		IO.Std.err.println( "wrapped expression with .Iterator: " + wrapped_expr );
+
+		return true;
+	    }
+
+	    wrapped_expr = expr;
+	    return false;
+	}
+
 	TypeExpr inferElementTypeExpr( CompileState state ) {
-            Type t = expr.getType(state);
+            var t = wrapped_expr.getType(state);
             if( t.TypeKind == Type.VECTOR ) {
                 return new WrapTypeAsTypeExpr( line_number, t.SubType ); 
-            } else if( iterator_type.isAssignableFrom(t) ) {
-		// may not be useful - cannot infer a more specific type here than Object
-		return new WrapTypeAsTypeExpr( line_number, object_type );
-	    } else {
-		MethodCall next_element_call =
-		    new MethodCall(
-				   line_number,
-				   new LoadTemporary( line_number, t, null, true ),  // spoof a 'this' for the call
-				   new Identifier( line_number, "nextElement" ),
-				   null );
-
-		next_element_call.calcType(state,true);
-		if( next_element_call.Quality != null ) {
-		    return new WrapTypeAsTypeExpr( line_number, next_element_call.Type );
-		} else {
-		    return new WrapTypeAsTypeExpr( line_number, undefined_type );
-		}
             }
 
+	    var next_element_call =
+		new MethodCall(
+			       line_number,
+			       wrapped_expr, // new LoadTemporary( line_number, t, null, true ),  // spoof a 'this' for the call
+			       new Identifier( line_number, "nextElement" ),
+			       null );
+
+	    next_element_call.calcType(state,true);
+	    if( next_element_call.Quality != null ) {
+		return new WrapTypeAsTypeExpr( line_number, next_element_call.Type );
+	    }
+
+	    return new WrapTypeAsTypeExpr( line_number, undefined_type );
 	}
 
         void compile( CompileState state, IRBlock into ) {
@@ -409,14 +452,17 @@ namespace Parse {
 	    LLVM.Value temp;
             Assignment assignment;
 
-	    Cast next_element_cast;
+	    // Cast next_element_cast;
 	    MethodCall has_more_elements_call, next_element_call;
 
 	    var te = type_expr;
 	    var t = type_expr.parseType( state );
+
+	    wrapWithGetIterator(state);
+
 	    if( t.TypeKind == Type.INFER ) {
 		te = inferElementTypeExpr( state );
-	    }
+	    } 
 
             VariableDef vd_ident = new VariableDef( line_number, ident, 0, te ); // new ReferenceType( line_number, type_expr ) );
 
@@ -433,7 +479,7 @@ namespace Parse {
 	    }
              
             // MethodCall *elements_call = new MethodCall( line_number, expr, new Identifier( line_number, "elements" ), 0 );
-            t = expr.getType(state);
+            t = wrapped_expr.getType(state);
 
 	    if( t == undefined_type ) {
 		return;
@@ -442,99 +488,55 @@ namespace Parse {
 	    Type et;
 	    LLVM.Type let;
 
-/*
-	    if( iterator_type.isAssignableFrom(t) ) {
-		et = type_expr.parseType(state);
-		let = type_expr.parseType(state).getLLVMType(state);
-		temp = into.AllocaEntry( let, ".iterator" );
-		into.Store(
-			   makeLLVMCast(
-					expr.compileValue( state, into ),
-					let,
-					into
-					),
-			   temp
-			   );
-			   
-                has_more_elements_call = new MethodCall(
-							line_number,
-							new LoadTemporary( line_number, iterator_type, temp, true ),
-							new Identifier( line_number, "hasMoreElements" ), null );
-                
-                has_more_elements_call.compileBoolean( state, into, exit, false ); // exit loop
 
-		into.Label( top );
-                
-                next_element_cast = new Cast(
-					     line_number,
-					     type_expr,
-					     new MethodCall(
-							    line_number,
-							    new LoadTemporary( line_number, iterator_type, temp, true ),
-							    new Identifier( line_number, "nextElement" ), null ) );
-                
-                assignment = new Assignment( line_number, ident, next_element_cast );
-                assignment.compile( state, into );
-                
-                statement.compile( state, into );
- 
-		into.Label( cont );
-
-                has_more_elements_call.compileBoolean( state, into, top, true ); // exit loop
-
-		into.Label( exit );
-            } else {
-*/
-		// IO.Std.err.println( "QQQQQQ: iterator type is: " + type_expr );
-		et = t;
-
-		let = et.getLLVMType(state);
-		temp = into.AllocaEntry( let, ".iterator" );
-		into.Store(
-			   makeLLVMCast(
-					expr.compileValue( state, into ),
-					let,
-					into
-					),
-			   temp
-			   );
-
-		has_more_elements_call =
-		    new MethodCall(
-				   line_number,
-				   new LoadTemporary( line_number, t, temp, true ),
-				   new Identifier( line_number, "hasMoreElements" ),
-				   null );
+	    // IO.Std.err.println( "QQQQQQ: iterator type is: " + type_expr );
+	    et = t;
+	    
+	    let = et.getLLVMType(state);
+	    temp = into.AllocaEntry( let, ".iterator" );
+	    into.Store(
+		       makeLLVMCast(
+				    wrapped_expr.compileValue( state, into ),
+				    let,
+				    into
+				    ),
+		       temp
+		       );
+	    
+	    has_more_elements_call =
+		new MethodCall(
+			       line_number,
+			       new LoadTemporary( line_number, t, temp, true ),
+			       new Identifier( line_number, "hasMoreElements" ),
+			       null );
+	    
+	    Type hme = has_more_elements_call.getType(state);
+	    if( hme != undefined_type && hme.TypeKind != Type.BOOL ) {
+		error( "iterator nextElement() method must return bool" );
+	    }
 		
-		Type hme = has_more_elements_call.getType(state);
-		if( hme != undefined_type && hme.TypeKind != Type.BOOL ) {
-		    error( "iterator nextElement() method must return bool" );
-		}
-		
-		has_more_elements_call.compileBoolean( state, into, exit, false ); // exit loop
+	    has_more_elements_call.compileBoolean( state, into, exit, false ); // exit loop
+	    
+	    into.Label( top );
+	    
+	    next_element_call =
+		new MethodCall(
+			       line_number,
+			       new LoadTemporary( line_number, t, temp, true ),
+			       new Identifier( line_number, "nextElement" ),
+			       null );
+	    
+	    assignment = new Assignment( line_number, ident, next_element_call );
+	    assignment.compile( state, into );
+	    
+	    statement.compile( state, into );
+	    
+	    into.Label( cont );
+	    
+	    has_more_elements_call.compileBoolean( state, into, top, true ); // exit loop
+	    
+	    into.Label( exit );
 
-		into.Label( top );
-		
-		next_element_call =
-		    new MethodCall(
-				   line_number,
-				   new LoadTemporary( line_number, t, temp, true ),
-				   new Identifier( line_number, "nextElement" ),
-				   null );
-		
-		assignment = new Assignment( line_number, ident, next_element_call );
-		assignment.compile( state, into );
-		
-		statement.compile( state, into );
-
-		into.Label( cont );
-
-		has_more_elements_call.compileBoolean( state, into, top, true ); // exit loop
-
-		into.Label( exit );
-/*
-            }
-*/
 	    state.exitBlock(st);            
             state.Loops.popLoop();
         }
