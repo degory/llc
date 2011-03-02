@@ -1030,7 +1030,7 @@ namespace Parse {
 		args = new Vector<Type>();
 		args.add(sub_type);
 		type = state.findGeneric( pointer_type.Clazz, args, false );
-
+		type.Clazz.setPointerTypeName(sub_type);
 		// type = pointer_type;
 		// IO.Std.err.println( "boxed pointer " + type + " has generic type: " + type );
 		return type;
@@ -1046,14 +1046,16 @@ namespace Parse {
 		args = new Vector<Type>();
 		args.add(sub_type);
 		type = state.findGeneric( array_type.Clazz, args, false );
+		type.Clazz.setArrayTypeName(sub_type);
 		// IO.Std.err.println( "boxed array has type: " + type + ", " + type.Clazz );
 		return type;
 
 	    case Type.PROC:
 		args = new Vector<Type>();
 		args.add(type);
-		type = state.findGeneric( proc_type.Clazz, args, false );
-		return type;
+		var r = state.findGeneric( proc_type.Clazz, args, false );
+		r.Clazz.setProcTypeName(type);
+		return r;
 	    }
 	    return null;
 	}

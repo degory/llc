@@ -1338,6 +1338,18 @@ namespace Parse {
             members.exitBlock(st);
         }
 
+	void setArrayTypeName( Type element_type ) {
+	    HumanName = element_type.toString() + "[]";
+	}
+
+	void setPointerTypeName( Type element_type ) {
+	    HumanName = element_type.toString() + " ptr";
+	}
+
+	void setProcTypeName( Type proc_type ) {
+	    HumanName = proc_type.toString();
+	}
+
         Symbol findSymbol( String name, int find_what ) {
             Symbol result = null;
 

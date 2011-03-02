@@ -130,12 +130,12 @@ _liblang: lang.bc lang.lh
 
 _liblang.bc: $(lang_DEPS)
 	echo build _liblang.bc $(LFLAGSBCLIB)
-	$(LC) -V -f $(MODEL) $(LFLAGSBCLIB) -u $(RUNTIME)/trusted/liblang.l -o _liblang
+	$(LC) -f $(MODEL) $(LFLAGSBCLIB) -u $(RUNTIME)/trusted/liblang.l -o _liblang
 
 _liblang.so: $(lang_DEPS)
 	echo build _liblang.so $(LFLAGSSO)
 	rm /tmp/lcache-$(PROJECT)/* || true
-	$(LC) -V -f $(MODEL) $(LFLAGSSO) -u $(RUNTIME)/trusted/liblang.l $(RUNTIME)/trusted/gstd.l -o _liblang # -FR
+	$(LC) -f $(MODEL) $(LFLAGSSO) -u $(RUNTIME)/trusted/liblang.l $(RUNTIME)/trusted/gstd.l -o _liblang # -FR
 	mv _liblang _liblang.so
 
 _liblang.lh: _liblang.bc

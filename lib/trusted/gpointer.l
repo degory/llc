@@ -1,6 +1,7 @@
 namespace System is
     /// Box type for T ptr
     class Pointer<T> is 
+        @NoWarnUnsafe;
         T ptr _value;
 
 	/// Construct a Pointer<T>
