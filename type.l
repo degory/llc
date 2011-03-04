@@ -636,6 +636,13 @@ namespace Parse {
             } else if( TypeKind == Type.VECTOR || TypeKind == Type.POINTER || TypeKind == Type.REFERENCE ) {
 		// IO.Std.err.println( "comparing sub-types..." );
                 int result = SubType.matchScore( u.SubType, assign );
+		if( TypeKind == Type.VECTOR && result != MATCH_EXACT && result != MATCH_NONE ) {
+		    // non-exact match between T[] and U[] array types is currently unsafe even if
+		    // T is assignable from U because corresponding Generic.Array<T> expansion may
+		    // static call methods defined in T and overridden in U (e.g. operator =~, operator <)
+		    // nothing in compiler depends on this working so removing support for it here:
+		    return MATCH_NONE;
+		}
                 return result;
             } else {
 		// IO.Std.err.println( "weird comparison: " + dump() + " versus " + u.dump() );
