@@ -28,30 +28,44 @@ namespace Parse {
     class NeedCompile {
         CompileState state;
 
-	Vector<LibraryHashFile> libraries;
+	Vector<LibraryInfo> libraries;
 
         void init( CompileState state ) {
             this.state = state;
 
-	    libraries = new Vector<LibraryHashFile>();
+	    libraries = new Vector<LibraryInfo>();
         }
 
-	void addLibraryHashFile( LibraryHashFile l ) {
+	void addLibraryInfoFile( LibraryInfo l ) {
 	    // IO.Std.err.println( "add library hash file: " + l );
 	    libraries.add( l );
 	}
 
-	// FIXME: not sure this is a hash, think it's method index:
-	get int Hash[String name] {
+        LibraryObject findLibraryObject(String name) {
 	    foreach( var l; libraries.Iterator ) {
-		int h = l.Hash[name];
-		if( h != 0 ) {
-		    return h;
+		var mh = l[name];
+		if( mh != null ) {
+		    return mh;
 		}
 	    }
 
-	    return 0;
+	    return null;	    
+	}
+
+	// FIXME: not always a hash, for methods it's vtable index:
+	get int Hash[String name] {
+	    var mh = findLibraryObject(name);
+	    if( mh != null ) {
+		return mh.Index;
+	    }
 	}	    
+
+	get bool IsFinal[String name] {
+	    var mh = findLibraryObject(name);
+	    if( mh != null ) {
+		return mh.IsFinal;
+	    }
+	}
 
         // check classes that this_class depends on against the stored hashes in this_class's .depend file
         // return true if this_class needs to be compiled, false otherwise
@@ -77,23 +91,27 @@ namespace Parse {
         }
 
 	bool isInLibrary( String class_name ) {
-	    return Hash[class_name] != 0;
+	    return findLibraryObject(class_name) != null;
 	}
 
         CompileStatus needCompile( String source_name, String class_name, int hash, bool one_file ) {
 	    // IO.Std.err.println( "search libraries for " + class_name + "..." );
 	    foreach( var l; libraries.Iterator ) {
-		var h = l.Hash[class_name];
-		if( h != 0 ) {
-		    if( h == hash ) {
-			// IO.Std.err.println( "no need to compile " + class_name + " in library " + l );
+		// IO.Std.err.println( "search " + l.Name + " for " + class_name + "..." );
+		var li = l[class_name];
+		if( li != null ) {
+		    if( li.Index == hash ) {
+			// IO.Std.err.println( "no need to compile " + class_name + " in library " + l.Name );
 			return CompileStatus.LIBRARY;
 		    } else {
-			IO.Std.err.println( "bad hash " + class_name + ": " + l.Name + " hash: " + h + " versus " + source_name + " hash: " + hash );
+			// IO.Std.err.println( "bad hash " + class_name + ": " + l.Name + " hash: " + li.Index  + " versus " + source_name + " hash: " + hash );
 			return CompileStatus.BAD_HASH;
+			// return CompileStatus.LIBRARY;
 		    }
 		}
 	    }
+
+	    // IO.Std.err.println( "not in any library: " + class_name + "..." );
 	   
 	    if( one_file ) {
 		return CompileStatus.STALE;

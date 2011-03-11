@@ -29,20 +29,38 @@ namespace Parse {
     use Gen.IRBlock;
     use Gen.Machine;
 
-    class LibraryHashFile {
+    class LibraryObject {
+	int index;
+	int flags;
+
+	void init(int i, int f) {
+	    index = i;
+	    flags = f;
+	}
+
+	get int Index {
+	    return index;
+	}
+
+	get bool IsFinal {
+	    return flags & 1 != 0;
+	}
+    }
+
+    class LibraryInfo {
         String name;
 
-        Map<String,int> hashes;
+        Map<String,LibraryObject> info;
 
         void init( String name, IO.Reader in ) {
             this.name = name;
-            hashes = new Map<String,int>();
+            info = new Map<String,LibraryObject>();
 
             var s = in.readAll().split(' ');
 
 	    var last = s.length - 1;
-            for( int i = 0; i < last; i = i + 2 ) {
-                hashes[s[i]] = s[i+1].toInt();
+            for( int i = 0; i < last; i = i + 3 ) {
+                info[s[i]] = new LibraryObject(s[i+1].toInt(), s[i+2].toInt());
             }
         }
 
@@ -50,9 +68,9 @@ namespace Parse {
             return name;
         }
 
-        get int Hash[ String name ] {
-            return hashes[ name ];
-        }
+        get LibraryObject[ String name ] {
+	    return info[name];
+	}
     }
 
 
@@ -919,6 +937,10 @@ namespace Parse {
 	    return r;
 	}
 
+	bool getCachedIsFinal(Container c) {
+	    return need_compile.IsFinal[c.DecoratedName];
+	}
+
 	get LoopStack Loops {
 	    return loop_stack;
 	}
@@ -1178,7 +1200,7 @@ namespace Parse {
 	    }
 	}
 
-        void addHashFile( Container c, CompileStatus s ) {
+        void addLibraryInfoFile( Container c, CompileStatus s ) {
 	    var hash = c.Hash;
 	    var name = c.DecoratedName;
 
@@ -1192,15 +1214,20 @@ namespace Parse {
 
 	    if( /* c.IsInterface || */ s != CompileStatus.LIBRARY ) {
 		// IO.Std.err.println( "writing to " + library_hash_file + ": '" + name + ' ' + hash + ' ' + "'" );
-		library_hash_file.print( name + ' ' + hash + ' ' );
+		library_hash_file.print( name + ' ' + hash + " 0 ");
 
 		foreach( Symbol t; c.Members.Iterator ) {
 		    if( t.IsMethod ) {
 			String u;
 			if( t.IsStatic ) {
-			    u = t.DecoratedName + " 0 ";
+			    u = t.DecoratedName + " 0 0 ";
 			} else {
 			    u = t.DecoratedName + ' ' + t.Address + ' ';
+			    if( t.IsFinal ) {
+				u = u + "1 ";
+			    } else {
+				u = u + "0 ";
+			    }
 			}
 
 			library_hash_file.print( u );
@@ -1230,7 +1257,7 @@ namespace Parse {
 	    library_hash_file.close();
 	}
 
-	void openLibraryHashFile() {
+	void openLibraryInfoFile() {
 	    var file_name = ExecutableName;
 	    var i = file_name.lastIndexOf('.');
 	    if( i >= 0 ) {
@@ -1273,7 +1300,7 @@ namespace Parse {
             int i, j;
             Package p;
 
-	    openLibraryHashFile();
+	    openLibraryInfoFile();
 
 	    // recursively visit all imported files building parse trees until every
 	    // imported package has been parsed:
@@ -1830,16 +1857,16 @@ namespace Parse {
 	    //IO.Std.err.println( "input file: '" + file_name + "'" );
 
 	    if( file_name.endsWith(".lh" ) ) {
-		IO.Std.err.println( "visit library hash file: " + file_name );
+		ParseTree.message( "visit library info file: " + file_name );
 		// IO.Std.err.println( "input file is a library hash file..." );
-		addLibraryHashFile( name, in );
+		addLibraryInfoFile( name, in );
 	    } else {
 		parseFile( file_name, in );
 	    }
             return true;
         }
 
-	void addLibraryHashFile( String name, IO.Reader in ) {
+	void addLibraryInfoFile( String name, IO.Reader in ) {
 	    if( name.endsWith( ".lh" ) ) {
 		name = name.substring( 0, name.Length - 3 ); // + ".so";
 	    }
@@ -1858,7 +1885,7 @@ namespace Parse {
 	    }
 	    */
 
-	    need_compile.addLibraryHashFile( new LibraryHashFile(name,in) );
+	    need_compile.addLibraryInfoFile( new LibraryInfo(name,in) );
 
 	    if( WantVeryVerbose ) {
 		ParseTree.message( "will link L library: " + name );

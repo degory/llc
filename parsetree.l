@@ -1575,7 +1575,7 @@ namespace Parse {
 
 		if( state.CurrentMethod != null ) {
 		    // IO.Std.err.println( "no final: " + state.CurrentMethod.HumanName + ", warned: " + warned + ", pass: " + cast int(state.Pass) );
-		    state.CurrentMethod.IsFinal = false;
+		    state.CurrentMethod.ForceVirtual = true;
 		    if( !warned ) {
 			warn( "force virtual: " + state.CurrentMethod.HumanName );
 		    }

@@ -1129,6 +1129,7 @@ namespace Parse {
 		if( s == CompileStatus.BAD_HASH ) {
 		    warn( "class " + c.HumanName + " in library not may not be compatible with source definition" );
 
+		    bool found_any = false;
 		    for( var ci = c; ci != null; ci = ci.Super ) {
 			// IO.Std.err.println( "check " + ci.HumanName + ": sc: " + ci.Hash + " lc: " + state.Hash[ci.DecoratedName] );
 
@@ -1137,9 +1138,11 @@ namespace Parse {
 				int la = state.Hash[si.DecoratedName];
 				if( la == 0 ) {
 				    if( !si.IsStatic ) {
+				        found_any = true;
 					warn( "no library hash found for method " + si.HumanName );
 				    }
 				} else if( si.Address != la ) {
+  				    found_any = true;
 				    error( "class source definition does not match compiled library class for method " + si.HumanName + " (" + si.Address + " != " + la + ")" );
 				    // IO.Std.err.println( "BAD: " + si.HumanName + ": sa: " + si.Address + " la: " + la );
 				    //} else {
@@ -1148,6 +1151,10 @@ namespace Parse {
 			    }
 			}
 		    }
+
+		    //if( !found_any ) {
+		    //	warn( "may be caused by not marking methods as @Virtual" );
+		    //}
 		}
 
 		if( s == CompileStatus.STALE /* || s == CompileStatus.BAD_HASH */ ) {
@@ -1258,7 +1265,7 @@ namespace Parse {
 		}
 
 		if( !errors_occurred ) {
-		    state.addHashFile( c, s );
+		    state.addLibraryInfoFile( c, s );
 		}
 		
 		// IO.Std.err.println( "compilation complete: " + c.getHumanName() );

@@ -153,6 +153,10 @@ namespace Parse {
             return true;
         }
 
+        get bool ForceVirtual {
+            return false;
+        }
+
 	get bool IsInline {
 	    return false;
 	}

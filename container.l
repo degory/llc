@@ -55,7 +55,6 @@ namespace Parse {
 	LLVM.Module llvm_module;
 	LLVM.Value this_pointer;
 
-
 	public LLVM.Value first_static, last_static;
 
 	word ref_bits;
@@ -86,6 +85,7 @@ namespace Parse {
 	bool has_static;
 	bool need_interface_calling_convention;
 	bool implements_interface_method;
+        bool force_virtual;
 	// bool library_hash_written;
 
 	LLVM.TypeHandle llvm_opaque_type_handle;
@@ -349,7 +349,15 @@ namespace Parse {
 	}
 	            
         get bool IsFinal {
-	    return is_final;
+	    return is_final && !force_virtual;
+        }
+
+	get bool ForceVirtual {
+            return force_virtual;
+        }
+
+	set bool ForceVirtual = v {
+	    force_virtual = v;
         }
 
 	get bool IsStatic {
@@ -950,8 +958,12 @@ namespace Parse {
             this.override = override;
         }
 
-        set bool IsFinal = final {
-            is_final = final;
+        set bool IsFinal = f {
+            if( !f || !force_virtual ) {
+                is_final = f;
+	    } else {
+		IO.Std.err.println( "ignoring set IsFinal on ForceVirtual method " + HumanName );
+	    }
         }
 
 	/*
@@ -980,24 +992,30 @@ namespace Parse {
                     hash_ = Super.Hash;
 
                     hash_ = Util.Hash.rotate(hash_);
-		    // IO.Std.err.println( HumanName + ": super hash " + hash );
+		    // IO.Std.err.println( HumanName + ": super hash " + hash_ );
+		    //  IO.Std.out.println( "HASH," + DecoratedName + "," + Super.DecoratedName + ",super," + hash_ );
                 } else {
                     hash_ = Machine.NAME.hash();
-		    // IO.Std.err.println( HumanName + ": root hash " + hash );
+		    // IO.Std.err.println( HumanName + ": root hash " + hash_ );
+		    // IO.Std.out.println( "HASH," + DecoratedName + ",,super," + hash_ );
                 }
 
 		if( implements_list != null ) {
 		    foreach( Container c; implements_list.elements() ) {
 			hash_ = Util.Hash.rotate(hash_) + c.Hash;
-			// IO.Std.err.println( HumanName + ": implements " + c.HumanName + " hash " + h );
+			// IO.Std.out.println( "HASH," + DecoratedName + "," + c.DecoratedName + ",implements," + hash_ );
 		    }
 		}               
 
                 foreach( Symbol current; members.SymbolList.elements() ) {
                     int m = current.Kind; //  & Symbol.MASK;
-                    if( !current.IsFinal ) {
+                    if( current.ForceVirtual ) {
                         m = m + 1 << 15;
-                    }
+			// IO.Std.out.println( "HASH," + DecoratedName + "," + current.DecoratedName + ",virtual," + hash_ );
+                    } else {
+			// IO.Std.out.println( "HASH," + DecoratedName + "," + current.DecoratedName + ",auto," + hash_ );
+
+		    }
 		    /*
 		    if( current.IsPIC ) {
 			m = m + 1 << 16;
@@ -1005,11 +1023,14 @@ namespace Parse {
 		    */
 
                     hash_ = Util.Hash.rotate(hash_) + m;
+		    // IO.Std.out.println( "HASH," + DecoratedName + "," + current.DecoratedName + ",kind," + hash_ );
 
                     if( current.Kind == Symbol.ENUM ) {
 			hash_ = Util.Hash.rotate(hash_) + current.Hash;
+			// IO.Std.out.println( "HASH," + DecoratedName + "," + current.DecoratedName + ",enum," + hash_ );
 		    } else if( current.IsAddressValid ) {
                         hash_ = Util.Hash.rotate(hash_) + current.Address;
+			// IO.Std.out.println( "HASH," + DecoratedName + "," + current.DecoratedName + ",address," + hash_ );
                     } else {
 			var v = current.LLVMValue;
 			if( v != null ) {
@@ -1017,8 +1038,9 @@ namespace Parse {
 				var ch = cast int(LLVM.Calls.LLVMGetConstValue(v));
 				// IO.Std.err.println( "using " + ch + " as hash value for " + current.Name + " when calculating hash for " + HumanName );
 				hash_ = Util.Hash.rotate(hash_) + ch;
+				// IO.Std.out.println( "HASH," + DecoratedName + "," + current.DecoratedName + ",llvm," + hash_ );
 			    } else {
-				IO.Std.err.println( "ignoring " + current.Name + " with non const LLVM.Value when calculating hash for " + HumanName );
+				// IO.Std.err.println( "ignoring " + current.Name + " with non const LLVM.Value when calculating hash for " + HumanName );
 			    } 
 			} else if( !current.IsStatic ) {
 			    IO.Std.err.println( "ignoring " + current.Name + " with no valid address when calculating hash for " + HumanName );
@@ -1027,11 +1049,13 @@ namespace Parse {
                     
                     String s = current.DecoratedName;
                     hash_ = Util.Hash.rotate(hash_) + Util.Hash.hash(s);
+		    // IO.Std.out.println( "HASH," + DecoratedName + "," + current.DecoratedName + ",name," + hash_ );
 
 		    // IO.Std.err.println( HumanName + ": member " + s + "@" + current.Address + " hash " + hash_ );
                 }
 
                 if( hash_ == 0 ) {
+		    // IO.Std.out.println( "HASH," + DecoratedName + ",,zero," + hash_ );
                     hash_ = 1;
                 }
                 
@@ -1323,13 +1347,11 @@ namespace Parse {
         set String HumanName = hn {
 	    human = hn;
         }
-        
-        
+                
         get SymbolList Scope {
             return members;
         }
         
-
         int enterBlock() {
             return members.enterBlock();
         }
@@ -1899,6 +1921,7 @@ namespace Parse {
 			    address.vtable_offset = address.vtable_offset + 1;
 			}
                     } else {
+			ForceVirtual = ancestor.ForceVirtual;
                         ancestor.IsFinal = false;
 
                         Container t = ancestor.Owner.Super;
@@ -1910,15 +1933,27 @@ namespace Parse {
                                 t = t.Owner.Super;
                             }
                         }
+
+			var cached_is_final = state.getCachedIsFinal(cast Container(current));
+
+			if( cached_is_final != is_final ) {
+			    String s;
+			    if( !is_final ) {
+			        body_statement.error("" + current.HumanName + ": is final in library but virtual here" );
+			    //} else {
+			    //    ParseTree.message( "warning: final mismatch: " + current.HumanName + ": is virtual in library but final here (safe)" );
+}
+			}
+
                     
                         current.Override = cast<Container>(ancestor);
                     
 			if( current.IsStatic ) {
 			    if( !ancestor.IsStatic ) {
-				ParseTree.message( "warning: static method cannot override " + ancestor.HumanName + " with " + current.HumanName );
+				body_statement.error( "cannot override " + ancestor.HumanName + " with static " + current.HumanName );
 			    }
 			} else if( ancestor.IsStatic ) {
-			    ParseTree.message( "warning: cannot override static method " + ancestor.HumanName + " with " + current.HumanName );
+			    body_statement.error( "cannot override static method " + ancestor.HumanName + " with " + current.HumanName );
 			} else if( !ancestor.IsAddressValid ) {
                             throw new Exception( "oops: " + current.Name + " inherits its address but the method it overrides has no address" );
                         } else {

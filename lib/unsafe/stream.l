@@ -764,9 +764,13 @@ namespace IO {
 	    SEEK_CUR = 1,
 	    SEEK_END = 2;
 
-	static get int LastError {
+	static get int StaticLastError {
 	    return cast int(native.__geterrno());
 	}
+
+	get int LastError {
+	    return StaticLastError;
+        }
 
 	/// Throws an IOException with message text appropriate for supplied operating system error
 	static void throwIOException( System.String string, int error, System.String path ) {
@@ -1146,7 +1150,7 @@ namespace IO {
 	    [s + l + 7] = cast char(0);
 	    var handle = cast int(native.mkstemp(s));
 	    if( handle < 0 ) {
-		FileStream.throwIOException( "mkstemp", FileStream.LastError, path );
+		FileStream.throwIOException( "mkstemp", FileStream.StaticLastError, path );
 	    }
 
 	    var result = new FileStream(handle);
@@ -1172,7 +1176,7 @@ namespace IO {
 		if( quiet ) {
 		    return null;
 		} else {
-		    FileStream.throwIOException( "open", FileStream.LastError, path );
+		    FileStream.throwIOException( "open", FileStream.StaticLastError, path );
 		}
 	    }
 
@@ -1299,7 +1303,7 @@ namespace IO {
 	    /*
 	    if( result != 0 ) {
 		System.StringBuffer cause = "rename failed " + from + "->" + to + " failed: ";
-		cause.append( cast char ptr(native.strerror(FileStream.LastError)) );
+		cause.append( cast char ptr(native.strerror(FileStream.StaticLastError)) );
 		IO.Std.err.println( cause );
 	    }
 	    */
@@ -1314,7 +1318,7 @@ namespace IO {
 	/// \throw IOException
 	static void rename( System.String from, System.String to ) {
 	    if( !renameQuiet(from, to) ) {
-		FileStream.throwIOException( "rename to " + to, FileStream.LastError, from );
+		FileStream.throwIOException( "rename to " + to, FileStream.StaticLastError, from );
 	    }
 	}
 	
@@ -1337,7 +1341,7 @@ namespace IO {
 	/// \throw IOException
 	static void delete( System.String file ) {
 	    if( !deleteQuiet(file) ) {
-		FileStream.throwIOException( "delete", FileStream.LastError, file );
+		FileStream.throwIOException( "delete", FileStream.StaticLastError, file );
 	    }
 	}
 
@@ -1392,7 +1396,7 @@ namespace IO {
 	    char ptr r = cast char ptr( native.getcwd( buffer, MAX_PATH_LENGTH) );
 
 	    if( r != buffer ) {
-		throw new IOException( FileStream.LastError, "get working directory" );
+		throw new IOException( FileStream.StaticLastError, "get working directory" );
 	    } else {
 		return new System.String( buffer ); 
 	    }
@@ -1411,14 +1415,14 @@ namespace IO {
 	    
 	    if( result < 0 ) {
 		if( quiet ) {
-		    if( FileStream.LastError == EINVAL ) {
+		    if( FileStream.StaticLastError == EINVAL ) {
 			// not a link - return file itself:
 			return file;
 		    } else {
 			return null;
 		    }
 		}
-		throw new IOException( FileStream.LastError, "read link: " + file + " (" + FileStream.LastError + ")" );
+		throw new IOException( FileStream.StaticLastError, "read link: " + file + " (" + FileStream.StaticLastError + ")" );
 	    } else {
 		[buffer+result] = '\0';
 		return new System.String( buffer );
