@@ -55,29 +55,37 @@ namespace Web {
 		return s;
 	    }
 
-	    int col = 0;
+            int col;
+	    int ti = 0;
 
 	    StringBuffer result = new StringBuffer();
 	    for( int i = 0; i < s.Length; i = i + 1 ) {
 		var c = s[i];
 		if( c == '\n' ) {
+		    ti = 0;
 		    col = 0;
 		    result.append( encode('\n' ) );
 		} else if( c == '\t' ) {
-		    while( col < 8 ) {
+		    while( ti < 8 ) {
 			result.append( encode(' ') );
+			ti = ti + 1;
 			col = col + 1;
 		    }
-		    col = 0;
+		    ti = 0;
 
 		} else {
 		    result.append( encode(c) );
+		    ti = ti + 1;
 		    col = col + 1;
-		    if( col >= 8 ) {
-			col = 0;
+		    if( ti >= 8 ) {
+			ti = 0;
 		    }
 		}
+		if( col > 40 ) {
+		    result.append( "&#8203;" );
+		}
 	    }
+
 	    return result.toString();
 	}
 

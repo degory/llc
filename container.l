@@ -336,7 +336,7 @@ namespace Parse {
 	}
 
 	get bool CallAsFinal {
-	    if( !is_final ) {
+	    if( !IsFinal ) {
 		return false;
 	    }
 
@@ -1921,7 +1921,9 @@ namespace Parse {
 			    address.vtable_offset = address.vtable_offset + 1;
 			}
                     } else {
-			ForceVirtual = ancestor.ForceVirtual;
+			if( ancestor.ForceVirtual ) {
+			    ForceVirtual = true;
+			}
                         ancestor.IsFinal = false;
 
                         Container t = ancestor.Owner.Super;
@@ -1929,23 +1931,16 @@ namespace Parse {
                             t = t.findMethod( ancestor );
                             if( t != null ) {
                                 ancestor = t;
+				if( ancestor.ForceVirtual && !ForceVirtual ) {
+				    IO.Std.err.println( "oops: force virtual should already have propogated from " + ancestor.HumanName + " to " + current.HumanName );
+				    ForceVirtual = true;
+				}
+
                                 ancestor.IsFinal = false;
                                 t = t.Owner.Super;
                             }
                         }
 
-			var cached_is_final = state.getCachedIsFinal(cast Container(current));
-
-			if( cached_is_final != is_final ) {
-			    String s;
-			    if( !is_final ) {
-			        body_statement.error("" + current.HumanName + ": is final in library but virtual here" );
-			    //} else {
-			    //    ParseTree.message( "warning: final mismatch: " + current.HumanName + ": is virtual in library but final here (safe)" );
-}
-			}
-
-                    
                         current.Override = cast<Container>(ancestor);
                     
 			if( current.IsStatic ) {
@@ -1960,8 +1955,20 @@ namespace Parse {
                             current.Address = ancestor.Address;
                         }
 
+
 			// IO.Std.err.println( "BBBB: override " + current.HumanName + " @ " + current.Address );
                     }
+
+		    var cached_is_final = state.getCachedIsFinal(cast Container(current));
+			
+		    if( cached_is_final != is_final ) {
+			String s;
+			if( !is_final ) {
+			    body_statement.error("" + current.HumanName + ": is final in library but virtual here" );
+			    //} else {
+			    //    ParseTree.message( "warning: final mismatch: " + current.HumanName + ": is virtual in library but final here (safe)" );
+			}
+		    }                    
 		} else if( k == Symbol.STATIC_VARIABLE ) {
                     if( current.IsAddressValid ) {
                         throw new Exception( "weird: static variable " + current.HumanName + " already has an address" );
