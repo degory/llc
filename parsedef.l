@@ -2008,10 +2008,6 @@ namespace Parse {
 
 	    // args.compile( state, into );
 
-            if( m.Owner.Super != null && m.Owner.Super != object_type.Clazz && state.WantWarnInit && m.Name =~ "init" &&
-                !body.isFirstStatementSuperConstructorCall( state ) ) {
-                warn( "first statement in " + human + " is not a call to super.init() or this.init()" );
-            }
 
 	    /*
 	    // FIXME: don't think template parameters can affect last return - it's a fixed property of
@@ -2058,6 +2054,12 @@ namespace Parse {
 		into.AtEnd();
 		
 		into.Close();		
+
+		if( m.Owner.Super != null && m.Owner.Super != object_type.Clazz && state.WantWarnInit && m.Name =~ "init" &&
+		    !body.isFirstStatementSuperConstructorCall( state ) ) {
+		    warn( "first statement in " + human + " is not a call to super.init() or this.init()" );
+		}
+
 		success = true;
 	    } catch( System.NotImplementedException nie ) {
 		into.AtEnd();

@@ -2395,7 +2395,7 @@ namespace Parse {
 		// allocate one more arg to accomodate proc object parameter to thunk, which target is not expecting:
 		num_arg = num_arg + 1;
 		oa = oa + 1;
-		IO.Std.err.println( "static target function: allocate space for additional parameter in thunk: " + oa );
+		// IO.Std.err.println( "static target function: allocate space for additional parameter in thunk: " + oa );
 	    }
 
 	    if( use_list != null ) {

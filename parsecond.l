@@ -305,6 +305,16 @@ namespace Parse {
             }
         }
 
+	bool isFirstStatementSuperConstructorCall(CompileState state) {
+	    if( false_block == null ) {
+	        return null;
+            }
+	    return
+		true_block.isFirstStatementSuperConstructorCall(state) &&
+		false_block.isFirstStatementSuperConstructorCall(state);
+
+	}
+
 	get bool IsLastReturn {
 	    bool result = true_block.IsLastReturn;
 	    if( false_block != null ) {
