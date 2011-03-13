@@ -24,9 +24,11 @@ namespace System {
 	/// \param so_name path to shared object to open
 	/// \throw LibraryException if the library cannot be opened
 	void init( String so_name ) {
+            /*
 	    if( !so_name.endsWith(".bc") ) {
 		so_name = so_name + ".bc";
 	    }
+            */
 
 	    if( !so_name.startsWith('/') ) {
 		so_name = IO.File.WorkingDirectory + "/" + so_name;

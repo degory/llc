@@ -1,36 +1,83 @@
-#!/bin/bash
+FAILED=0
+NAME=$1
+CASE=cases/$NAME
 
-CAPTURE=$1
+if [ "$TMP" = "" ] ; then
+    TMP=tmp
+fi
 
-let i=1
-let last=200
-let processes=4
+if [ -f $CASE/lflags ] ; then
+    LFLAGS="$LFLAGS `cat $CASE/lflags`"
+fi
 
-while [ $i -lt $last ] ; do
-    let from=i
-    let to=i+processes-1
-    let t=1
+if [ "$PROCESS" != "" ] ; then
+    LCACHE="/tmp/lcache-test${PROCESS}"
+    LFLAGS="$LFLAGS -p test${PROCESS}"
+    BINARY="binary${PROCESS}"
+else 
+    LCACHE="/tmp/lcache"
+    BINARY="binary"
+fi
 
-    # echo "running ${processes} tests from ${from} to ${to}..."
+if ! [ -d $LCACHE ] ; then
+    mkdir $LCACHE
+fi
+
+rm -f $BINARY ${BINARY}.bc ${BINARY}.lh ${LCACHE}/* ${TMP}/* 2>/dev/null
+
+if [ "$LC"="" ] ; then
+    LC=lc
+fi
+
+# echo "${NAME}: compile ${CASE}/test.l as ${BINARY}..."
+$LC $LFLAGS $CASE/test.l -o ${BINARY} 2>$TMP/err_out
+grep error: $TMP/err_out | sort >$TMP/err
+grep warn: $TMP/err_out | sort >$TMP/warn
+if [ "$2" = "capture" ]; then
+    cp $TMP/err $CASE/err
+    cp $TMP/warn $CASE/warn
+else
+    if ! diff $CASE/err $TMP/err >$TMP/err_diff ; then
+       FAILED=1
+       echo "${NAME}: compile error output differs"
+       # cat $TMP/err_diff
+       cp $TMP/err $CASE/err.test
+       cp $TMP/err_diff $CASE/err.diff
+    fi
+
+    if ! diff $CASE/warn $TMP/warn >$TMP/warn_diff ; then
+       FAILED=1
+       echo "${NAME}: compile warn output differs"
+       # cat $TMP/warn_diff
+       cp $TMP/warn $CASE/warn.test
+       cp $TMP/warn_diff $CASE/warn.diff
+    fi
+fi  
+
+if [ -f ./${BINARY} ] ; then
+    # echo "${NAME}: compile produced binary ${BINARY}"
+    #ls ./binary
+    #./timeout.sh 60 ./binary    
+    ./timeout.sh 15 ./${BINARY} 2>&1 | cat >$TMP/out
+elif [ -f $CASE/expectfail ] ; then
+    exit 1
+else
     
-    for j in `seq ${from} ${to}` ; do
-        export TMP=tmp/$t
-	if ! [ -d $TMP ] ; then
-            mkdir $TMP
-	fi
-        # echo "running test ${j} in ${TMP}..."
+    echo "${NAME}: compile failed to produce binary ${BINARY}"
+    exit 1
+fi
 
-	if [ -d cases/$j ] ; then
-   	    export PROCESS=$t
-	    ./onetest.sh $j $CAPTURE &
-	fi
-        let t=t+1
-    done
+if [ "$2" = "capture" ]; then
+    cp $TMP/out $CASE/out
+else
+    if ! diff $CASE/out $TMP/out >$TMP/out_diff ; then
+       FAILED=1
+       echo "${NAME}: test output differs"
+       cp $TMP/out $CASE/out.test
+       cp $TMP/out_diff $CASE/out.diff
+       # cat $TMP/out_diff
+    fi
+fi
 
-    # echo "waiting for ${processes} tests to complete..."
-
-    let i=i+processes
-
-    wait
-done
+exit $FAILED
 

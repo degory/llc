@@ -2306,7 +2306,7 @@ namespace Parse {
                 
             } else if( this.State == STATE_INSIDE_METHOD ) {
                 if( type.TypeKind == Type.REFERENCE && !in_parameters ) {
-                    from.warn( "cannot declare variable " + name + " of reference type " + type.dump() + " here" );
+                    from.error( "cannot declare variable " + name + " of reference type " + type.dump() + " here" );
                 }
                 int d;
                 if( in_parameters ) {

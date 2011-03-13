@@ -22,9 +22,9 @@ namespace Test48 {
 		    IO.Std.err.println( "hello world 2" );
 		    return 1;
 		} catch( ETest g ) {
-		    IO.Std.err.println( "problem e: " + e );
+		    IO.Std.err.println( "problem g: " + g );
 		} catch( System.Exception h ) {
-		    IO.Std.err.println( "problem h: " + e );
+		    IO.Std.err.println( "problem h: " + h );
 		} finally {
 		    return 2;
 		}
