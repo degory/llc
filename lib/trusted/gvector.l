@@ -219,7 +219,7 @@ namespace Generic is
 	/// \param v value to search for
 	int indexOf( T v ) is
 	    for int i = 0; i < _length; i = i + 1 do
-	        if [_values + i] == v then
+	        if [_values + i] =~ v then
 		    return i;
 		fi
 	    od
@@ -254,12 +254,12 @@ namespace Generic is
 
 	    T result = [_values + i];
 
+	    _length = _length - 1;
+
 	    while i < _length do
 		[_values + i] = [_values + i + 1];
 		i = i + 1;
 	    od
-
-	    _length = _length - 1;
 
 	    return result;
 	si

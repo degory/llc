@@ -59,7 +59,7 @@ namespace Parse {
 	}
 
 	void init() {
-
+            @NoWarnInit;
 	}
 
 	int run( String[] args ) {

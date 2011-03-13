@@ -420,6 +420,7 @@ class TreeNode<K,V> isa Pair<K,V> is
     public NodeColor color;
 
     void init(K key, V value, NodeColor nodeNodeColor, TreeNode<K,V> left, TreeNode<K,V> right) is
+        @NoWarnInit;
         this.key = key;
         this.value = value;
         this.color = nodeNodeColor;
