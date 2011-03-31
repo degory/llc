@@ -166,7 +166,8 @@ namespace System is
 	si
 
 	/// Return a human readable string representing this Object
-	String toString() is
+	get String AsString is
+	    @Virtual;
 	    StringBuffer result;
 	    int i;
 	    result = new StringBuffer();
@@ -176,6 +177,11 @@ namespace System is
 	    result.append( hash(), 16 );
 	
 	    return result;
+	si
+
+	String toString() is
+	    @Virtual;
+	    return AsString;
 	si
 
 	/// Attempt to convert this Object to an int. Throws CastException.

@@ -99,4 +99,60 @@ namespace Util is
 	    return reduceIf(l, p, f, T.none);
 	si
     si
+
+
+    /// Apply functions to lists of values
+    /// \param T element type of lists/argument type of functions
+
+    // arguably Filter<T> should just be Filter<T,T> with convert = identity but this
+    // would requirer wrapping all methods in Filter2
+    class Filter2<T,F> is
+        static List<T> where(Iterable<F> l, bool proc(F) p, T proc(F) convert ) is
+            var result = new Vector<T>();
+
+            foreach var i; l.Iterator do
+                if p(i) then
+                    result.add(convert(i));
+                fi
+            od
+
+            return result;
+        si
+
+        static List<T> except(Iterable<F> l, bool proc(F) f, T proc(F) convert ) is
+            var result = new Vector<T>();
+
+            foreach var i; l.Iterator do
+                if !f(i) then
+                    result.add(convert(i));
+                fi
+            od
+
+            return result;
+        si
+
+        static List<T> map(Iterable<F> l, T proc(F) f ) is
+            var result = new Vector<T>();
+
+            foreach var i; l.Iterator do
+                result.add( f(i) );
+            od
+
+            return result;
+        si
+
+        static List<T> mapIf(Iterable<F> l, bool proc(F) p, T proc(F) t, T proc(F) f ) is
+            var result = new Vector<T>();
+
+            foreach var i; l.Iterator do
+                if p(i) then
+                    result.add( t(i) );
+                else
+                    result.add( f(i) );
+                fi
+            od
+
+            return result;
+        si
+    si
 si

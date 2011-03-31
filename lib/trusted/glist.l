@@ -40,5 +40,7 @@ namespace Generic is
 	/// is altered. If the original list is immutable then this method
 	/// may simply return the same list
 	get List<T> Freeze;
+
+        // T pop();
     si
 si
