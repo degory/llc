@@ -454,6 +454,7 @@ int __get_time() {
 // L calling convention on 32 bit x86 is fastcall - first two parameters in ecx and edx and callee pops arguments from stack:
 extern __attribute__((fastcall)) void _ZN6System6Thread16__set_pthread_idEu4word( void *thread, WORD id );
 extern __attribute__((fastcall)) void _ZN6System6Thread14__thread_entryEv( void *thread );
+extern __attribute__((fastcall)) void _ZN4Util9Coroutine17__coroutine_entryEv( void *coroutine );
 extern __attribute__((fastcall)) char *_ZN6System12StringBuffer9toCStringEv( void *lstring );
 extern __attribute__((fastcall)) void *_ZN6System9Exception16getBacktraceInfoEv( void *e );
 extern __attribute__((fastcall)) void *_ZN6System12StringBuffer6appendEPc( void *buffer, char *s );
@@ -472,6 +473,7 @@ extern __attribute__((fastcall)) char *_ZN6System6Object9toCStringEv( void *e );
 
 extern void _ZN6System6Thread16__set_pthread_idEu4word( void *thread, WORD id );
 extern void _ZN6System6Thread14__thread_entryEv( void *thread );
+extern void _ZN4Util9Coroutine17__coroutine_entryEv( void *coroutine );
 extern char *_ZN6System12StringBuffer9toCStringEv( void *lstring );
 extern void *_ZN6System9Exception16getBacktraceInfoEv( void *e );
 extern void *_ZN6System12StringBuffer6appendEPc( void *buffer, char *s );
@@ -551,6 +553,11 @@ int __cond_wait_timed( pthread_cond_t *cond, pthread_mutex_t *mutex, int seconds
 
 int __cond_wait( pthread_cond_t *cond, pthread_mutex_t *mutex ) {
   __cond_wait_timed( cond, mutex, -1 );
+}
+
+
+void *__get_coroutine_entry() {
+  return _ZN4Util9Coroutine17__coroutine_entryEv;
 }
 
 void __thread_start( void *thread_object ) {
