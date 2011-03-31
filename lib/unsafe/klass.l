@@ -142,53 +142,6 @@ namespace System is
 		if vtable_o == null then return false; fi
 	    od
 	si
-
-	/// Find a class by fully qualified name and return a new Class representing it
-	/// \param name the fully qualified class name to search for
-        /// \return a new Class object if class found, null otherwise
-	static Class find( String name ) is
-	    // IO.Std.err.println( "searching for class with name '" + name + "'" );
-
-	    word ptr p = cast word ptr(native.__get_classes_info());
-
-	    do
-		char ptr compare = cast char ptr([p]);
-
-		if compare == null then
-		    IO.Std.err.println( "not found: " + name );
-		    return null;
-		fi
-
-		IO.Std.err.println( "try '" + name + "' =~ '" + compare + "'..." );
-
-		// native.printf( `comparing against class name '%s'...\n`, compare );
-
-		if name =~ compare then
-		    // make a pointer to the get vtable function:
-		    var f = new Proc<int ptr ptr proc()>([p+1]);
-		    IO.Std.err.println( "match, vtable is: " + f );
-
-		    var result = new Class( f() );
-		    IO.Std.err.println( "returning " + result );
-		    return result;
-		fi
-		p = p + 2;
-	    od
-
-	    return null;
-	si
-
-        /// Return a ClassIterator that steps through all classes in program returning
-        /// a Class object for each class in turn
-	static ClassIterator classes() is
-	    return new ClassIterator(cast word ptr(native.__get_classes_info()));
-	si
-
-        /// Return a ClassIterator that steps through all classes in program returning
-        /// the fully qualified name of each class in turn
-	static ClassNameIterator classNames() is
-	    return new ClassNameIterator(cast word ptr(native.__get_classes_info()));
-	si
     
 	/// Create an instance of the class this Class represents.
 	/// \attention the created object may not be completely constructed if its class does not implement init()
@@ -207,52 +160,6 @@ namespace System is
 
 	get bool IsArray is
 	    return Name.startsWith( "Generic.Array<" );
-	si
-    si
-
-    // avoid linking rest of library here by not extending Iterator:
-    /// Iterates over all class names in program
-    class ClassNameIterator is
-	word ptr current_record;
-
-	/// Construct a new ClassNameIterator
-        /// \param p pointer to class info table
-	void init( word ptr p ) is
-	    current_record = p;
-	si
-
-        /// Are there more class names?
-	bool hasMoreElements() is
-	    return [current_record] != null;
-	si
-
-        /// Return next class name
-	String nextElement() is
-	    System.String result = new String( cast char ptr([current_record]) );
-	    current_record = current_record + 2;
-	si
-    si
-
-    /// Iterates over all classes in program
-    class ClassIterator is
-	word ptr current_record;
-	
-	/// Construct a new ClassIterator
-        /// \param p pointer to class info table
-	void init( word ptr p ) is
-	    current_record = p;
-	si
-
-        /// Are there more classes?
-	bool hasMoreElements() is
-	    return [current_record] != null;
-	si
-
-        /// Return the next Class
-	Class nextElement() is
-	    Class result = new Class( cast int ptr ptr([current_record+1]) );
-	    current_record = current_record + 2;
-	    return result;
 	si
     si
 si

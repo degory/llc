@@ -467,124 +467,6 @@ static uintptr_t readEncodedPointer(const uint8** data, uint8 encoding)
   return result;
 }
 
-
-#if 0
-/* read a pointer encoded value and advance pointer */
-uintptr_t readEncodedPointer_borken(uint8** data, uint8 encoding) {
-
-  D( fprintf( stderr, "read encoded pointer %p\n", data ) );
-  D( fprintf( stderr, "encoding %02X\n", encoding ) );
-
-  uint8* p = *data;
-  uintptr_t result = 0;
-
-  D( fprintf( stderr, "p %p\n", p ) );
-
-  if ( encoding == DW_EH_PE_omit ) {
-    D( fprintf( stderr, "encoding is null\n" ) );
-    return 0;
-  }
-
-  /* first get value */
-  switch (encoding & 0x0F) {
-  case DW_EH_PE_absptr:
-    D( fprintf( stderr, "DW_EH_PE_absptr:\n" ) );
-    result = *((uintptr_t*)p);
-    p += sizeof(uintptr_t);
-    break;
-  case DW_EH_PE_uleb128:
-    D( fprintf( stderr, "DW_EH_PE_uleb128:\n" ) );
-    result = readULEB128(&p);
-    break;
-  case DW_EH_PE_udata2:
-    D( fprintf( stderr, "DW_EH_PE_udata2:\n" ) );
-    result = *((uint16*)p);
-    p += sizeof(uint16);
-    break;
-  case DW_EH_PE_udata4:
-    D( fprintf( stderr, "DW_EH_PE_udata4:\n" ) );
-    result = *((uint32*)p);
-    p += sizeof(uint32);
-    break;
-  case DW_EH_PE_udata8:
-    D( fprintf( stderr, "DW_EH_PE_udata8:\n" ) );
-    result = *((uint64*)p);
-    p += sizeof(uint64);
-    D( fprintf( stderr, "read %lx\n", result ) );
-    break;
-  case DW_EH_PE_sdata2:
-    D( fprintf( stderr, "DW_EH_PE_sdata2:\n" ) );
-    result = *((int16*)p);
-    p += sizeof(int16);
-    break;
-  case DW_EH_PE_sdata4:
-    D( fprintf( stderr, "DW_EH_PE_sdata4:\n" ) );
-    result = *((int32*)p);
-    p += sizeof(int32);
-    break;
-  case DW_EH_PE_sdata8:
-    D( fprintf( stderr, "DW_EH_PE_sdata8:\n" ) );
-    result = *((int64*)p);
-    p += sizeof(int64);
-    break;
-  case DW_EH_PE_sleb128:
-    D( fprintf( stderr, "DW_EH_PE_sleb128:\n" ) );
-    result = readSLEB128(&p);
-    break;
-
-  default:
-    D( fprintf( stderr, "not supported %02X default\n", encoding ) );
-    /* not supported */
-    abort();
-    break;
-  }
-
-  D( fprintf( stderr, "intermediate result %lx\n", result ) );
-  /* then add relative offset */
-  switch ( encoding & 0x70 ) {
-  case DW_EH_PE_absptr:
-    D( fprintf( stderr, "absptr\n" ) );
-    /* do nothing */
-    break;
-  case DW_EH_PE_pcrel:
-    D( fprintf( stderr, "pcrel\n" ) );
-    result += (uintptr_t)(*data);
-    D( fprintf( stderr, "result %lx\n", result ) );
-    break;
-  case DW_EH_PE_textrel:
-    D( fprintf( stderr, "not supported relative %02X textrel\n", (encoding & 0x70) ) );
-    abort();
-  case DW_EH_PE_datarel:
-    D( fprintf( stderr, "not supported relative %02X datarel\n", (encoding & 0x70) ) );
-    abort();
-  case DW_EH_PE_funcrel:
-    D( fprintf( stderr, "not supported relative %02X funcrel\n", (encoding & 0x70) ) );
-    abort();
-  case DW_EH_PE_aligned:
-    D( fprintf( stderr, "not supported relative %02X aligned\n", (encoding & 0x70) ) );
-    abort();
-  default:
-    D( fprintf( stderr, "not supported relative %02X default\n", (encoding & 0x70) ) );
-    /* not supported */
-    abort();
-    break;
-  }
-
-  D( fprintf( stderr, "maybe indirect?\n" );
-  /* then apply indirection */
-  if (encoding & DW_EH_PE_indirect) {
-    D( fprintf( stderr, "indirect\n" ) );
-    result = *((uintptr_t*)result);
-    D( fprintf( stderr, "indirect result %lx\n", result ) );
-  }
-
-     D( fprintf( stderr, "final result %lx\n", result ) );
-  *data = p;
-     D( fprintf( stderr, "returning\n" ) );
-  return result;
-}
-#endif
-
 int handleActionValue(
 		      int64 *resultAction,
 		      void *classInfo,
@@ -956,14 +838,14 @@ void __throw_exception_broken( void *l_exception ) {
   abort();
 }  
 
-int have_checked_demanglers = 0;
+static int have_checked_demanglers = 0;
 typedef void *(ft_cxa_demangle)(char *, char *, size_t, int *);
 typedef void *(ft_cplus_demangle_v3)(char *, int);
 typedef void *(ft_java_demangle_v3)(char *);
 
 static ft_cxa_demangle *f_cxa_demangle;
 static ft_cplus_demangle_v3 *f_cplus_demangle_v3;
- static ft_java_demangle_v3 *f_java_demangle_v3;
+static ft_java_demangle_v3 *f_java_demangle_v3;
 
 static void check_demanglers() {
   if( !have_checked_demanglers ) {
@@ -1010,4 +892,55 @@ char *__demangle_symbol( char *s ) {
   } else {
     return 0;
   }
+}
+
+static int have_checked_jit = 0;
+typedef void *(ft_jit_call_function_in)(char *, void *);
+typedef void *(ft_jit_call_function)(char *);
+typedef void *(ft_jit_load_module)(char *);
+static ft_jit_call_function *f_jit_call_function;
+static ft_jit_load_module *f_jit_load_module;
+
+static void check_jit() {
+  if( !have_checked_jit ) {
+    f_jit_call_function_in = dlsym(RTLD_DEFAULT, "__JIT_call_function_in" );
+    f_jit_call_function = dlsym(RTLD_DEFAULT, "__JIT_call_function" );
+    f_jit_load_module = dlsym(RTLD_DEFAULT, "__JIT_load_module" );
+
+    have_checked_jit = 1;
+  }
+}
+
+void *__call_function_in( char *name, void *module ) {
+  check_jit();
+  if( f_jit_call_function_in != 0 ) {
+    return f_jit_call_function_in(name, module);
+  } else {
+    fprintf(stderr, "JIT not loaded: not calling function '%s'\n", name );
+  }
+  return 0;
+}
+
+void *__call_function( char *name ) {
+  check_jit();
+  if( f_jit_call_function != 0 ) {
+    return f_jit_call_function(name);
+  } else {
+    fprintf(stderr, "JIT not loaded: not calling function '%s'\n", name );
+  }
+  return 0;
+}
+
+void *__load_module( char *name ) {
+  check_jit();
+  if( f_jit_load_module != 0 ) {
+    return f_jit_load_module(name);
+  } else {
+    fprintf(stderr, "JIT not loaded: not loading module '%s'\n", name );
+  }
+}
+
+int __is_JIT_available() {
+  check_jit();
+  return f_jit_call_function != 0;
 }
