@@ -1,6 +1,7 @@
 #C
 
 import stream;
+import vector;
 
 namespace Test75 {
     class Main {

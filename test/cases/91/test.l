@@ -1,7 +1,7 @@
 #C
 import stream;
 
-namespace Generic {
+namespace Test {
     class Iterator<T>  extends System.Object {
 	void init() {
 	    super.init();
@@ -135,10 +135,6 @@ namespace Generic {
 		throw new VectorException( "Vector.get() outside Vector bounds" );
 		return null;
 	    }
-	}
-
-	T get( int i ) {
-	    return opGet(i);
 	}
 
 	void opSet( int i, T o ) {
@@ -408,10 +404,6 @@ namespace Test91 {
 		throw new VectorException( "Vector.get() outside Vector bounds" );
 		return null;
 	    }
-	}
-
-	T get( int i ) {
-	    return opGet(i);
 	}
 
 	void opSet( int i, T o ) {

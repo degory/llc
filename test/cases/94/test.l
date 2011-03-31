@@ -5,6 +5,7 @@ import stream;
 namespace Test94 {
     class Main {
 	void init() {
+            Test1<int,int> t;
 	}
     }
 
@@ -12,7 +13,7 @@ namespace Test94 {
 
     }
 
-    Test1<U> extends Test0 {
+    class Test1<U> extends Test0 {
 
     }
 }

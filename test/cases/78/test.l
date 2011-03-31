@@ -14,7 +14,7 @@ namespace Test78 {
 
 	    map["Hello"] = "World";
 
-	    foreach( System.String k; map.Keys ) {
+	    foreach( System.Object k; map.Keys ) {
 		System.Object v = map[k];
 
 		IO.Std.err.println( "map[" + k + "] -> " + v );

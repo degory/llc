@@ -2,7 +2,7 @@
 
 import stream;
 
-namespace Generic {
+namespace Test {
     class Iterator<T>  extends System.Object {
 	void init() {
 	    super.init();
@@ -138,10 +138,6 @@ namespace Generic {
 	    }
 	}
 
-	T get( int i ) {
-	    return opGet(i);
-	}
-
 	void opSet( int i, T o ) {
 	    if( i < 0 ) {
 		throw new VectorException( "Vector.put() outside Vector bounds" );
@@ -154,10 +150,6 @@ namespace Generic {
 	    }
 	}
 
-	void put( int i, T t ) {
-	    opSet( i, t );
-	}
-    
 	Iterator<T> elements() {
 	    return new VectorIterator<T>( this );
 	

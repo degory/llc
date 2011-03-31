@@ -9,17 +9,8 @@ import gproc;
 import "dl";
 
 namespace System {
-    /// Thrown for errors with shared objects
-    class LibraryException extends RuntimeException {
-	/// construct a new LibraryException
-	/// \param message the error message for this LibraryException
-	void init( String message ) {
-	    super.init( message );
-	}
-    }
-
     /// A dynamically loaded shared object
-    class Library {
+    class NativeLibrary extends Library {
 	/// handle returned by dlopen for the shared object
 	word h;
 
@@ -53,44 +44,12 @@ namespace System {
 	    this.h = h;
 	}
 
-	static get Library Self {
+	static get NativeLibrary Self {
 	    if( self == null ) {
-		self = new Library(0w);
+		self = new NativeLibrary(0w);
 	    }
 
 	    return self;
-	}
-
-
-	/// convert a human readable class name to an internal get vtable function name. 
-	/// \param class_name fully qualified class name 
-	/// \return name of a get vtable function
-	static String decorateVTable( String class_name ) {
-	    // get vtable function name is the GCC 3.0 mangled class name, minus any _Z prefix, with
-	    // __get_vtable_ prepended
-
-	    // separate off all qualifiers:
-	    var q = class_name.split('.');
-
-	    var result = new StringBuffer( "__get_vtable_" );
-
-	    // GCC decoration:
-	    if( q.length == 0 ) {
-		result.append( class_name.Length );
-		result.append( class_name );
-		return result;
-	    }
-
-	    result.append( 'N' );
-
-	    foreach( var s; q.elements() ) {
-		result.append( s.Length );
-		result.append( s );
-	    }
-
-	    result.append( 'E' );
-
-	    return result;
 	}
 
 	/// locate a class in this shared object and return a Class object representing it
@@ -101,14 +60,6 @@ namespace System {
 	Class findClass( String class_name ) {
 	    if( class_name == null ) {
 		throw new LibraryException( "no class name supplied" );
-	    }
-
-	    if( h == 0w ) {
-		// special library referencing this process - try internal class table first:
-		var c = System.Class.find( class_name );
-		if( c != null ) {
-		    return c;
-		}
 	    }
 	  
 	    return findClassFromVTableName( decorateVTable(class_name) );
@@ -147,7 +98,7 @@ namespace System {
 
 	/// get the last error reported by libdl as a string
 	/// \return the error string reported by dlerror() or null if no error occurred
-	String dlerror() {
+	static String dlerror() {
 	    char ptr s = cast char ptr(native.dlerror());
 	    if( s != null ) {
 		return new String( s );

@@ -10,8 +10,8 @@ namespace Test30 {
 	    v.add( "testing " );
 	    v.add( "1 2 3" );
 
-	    foreach( System.String s; v.elements() ) {
-		native.printf( `next is: %s\n`, s.toCString() );
+	    foreach( var o; v.elements() ) {
+		native.printf( `next is: %s\n`, o.toCString() );
 	    }
 	}
     }
