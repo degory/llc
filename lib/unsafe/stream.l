@@ -10,8 +10,16 @@ import stat;
 pragma NoWarnUnsafe, NoMarkUnsafe;
 
 namespace IO {
+    use System.Object;
+    use System.String;
+    use System.StringBuffer;
+    use System.Exception;
+    use System.NotImplementedException;
+    use System.Backtrace;
+    use System.Exit;
+
     /// Holds Reader on standard input and Writers on standard output and standard error streams
-    class Std extends System.Object {
+    class Std extends Object {
 	/// Underlying stream for in
 	static FileStream in_stream = new FileStream(0);
 	/// Underlying stream for out
@@ -22,9 +30,9 @@ namespace IO {
         /// Standard input
 	public static Reader in = new Reader(in_stream);
 	/// Standard output
-	public static Writer out = cast Writer(System.Exit.add(new Writer(out_stream)));
+	public static Writer out = cast Writer(Exit.add(new Writer(out_stream)));
 	/// Standard error
-	public static Writer err = cast Writer(System.Exit.add(new Writer(err_stream)));
+	public static Writer err = cast Writer(Exit.add(new Writer(err_stream)));
 
         /// Replace standard input, standard output and standard error with thread safe versions
  	public static void makeThreadSafe() {
@@ -34,17 +42,17 @@ namespace IO {
 	    // FIXME: anything buffered here is lost:
 	    in = new LockedReader( in_stream );
 	    
-	    out = cast Writer(System.Exit.add(new LockedWriter( out_stream )));
-	    err = cast Writer(System.Exit.add(new LockedWriter( err_stream )));
+	    out = cast Writer(Exit.add(new LockedWriter( out_stream )));
+	    err = cast Writer(Exit.add(new LockedWriter( err_stream )));
 	}
     }
 
     /// Thrown on IO failures
-    class IOException extends System.Exception {
+    class IOException extends Exception {
 	int os_error;
 
         /// Construct an IOException for the given operating system error number and message    
-	void init( int os_error, System.String message ) {
+	void init( int os_error, String message ) {
 	    super.init( message );
 	    this.os_error = os_error;
 	}
@@ -56,7 +64,7 @@ namespace IO {
 	}
 
         /// Construct an IOException for the given operating system error number and C-string message
-	void init( System.String message ) {
+	void init( String message ) {
 	    super.init( message );
 	    this.os_error = 0;
 	}
@@ -115,7 +123,7 @@ namespace IO {
 	    }
 	}
 
-	void readAll( System.StringBuffer b ) {
+	void readAll( StringBuffer b ) {
 	    try {
 		lock.lock();
 		_readAllUnlocked( b );
@@ -208,7 +216,7 @@ namespace IO {
     }
 
     /// Reads from a CharStream through a buffer
-    class Reader extends System.Object {
+    class Reader extends Object {
 	const int DEFAULT_CAPACITY = 1024;
 
 	CharStream stream;
@@ -295,7 +303,7 @@ namespace IO {
 	}
 
         /// Internal method for LockedReader
-	void _readAllUnlocked( System.StringBuffer b ) {
+	void _readAllUnlocked( StringBuffer b ) {
 	    while( true ) {
 		int c = _readUnlocked();
 		if( c == -1 ) {
@@ -309,14 +317,14 @@ namespace IO {
         /// Read all remaining characters and append to supplied StringBuffer
         /// \param b StringBuffer to read into
         /// \throw IOException
-	void readAll( System.StringBuffer b ) {
+	void readAll( StringBuffer b ) {
 	    _readAllUnlocked( b );
 	}
 
         /// Read all remaining characters into a new StringBuffer and return it
         /// \throw IOException
-	System.StringBuffer readAll() {
-	    System.StringBuffer result = new System.StringBuffer();
+	StringBuffer readAll() {
+	    StringBuffer result = new StringBuffer();
 	    readAll(result);
 	    return result;
 	}
@@ -394,7 +402,7 @@ namespace IO {
     }
 
     /// Writes to a CharStream through a buffer
-    class Writer extends System.Object {
+    class Writer extends Object {
 	private CharStream stream;
 	private char[] buffer;
 	private int capacity;
@@ -417,7 +425,7 @@ namespace IO {
         /// \param s CharStream to write to
 	void init( CharStream s ) {
 	    this.init( s, 1024 );
-	    // native.printf( `new writer on %s from %s\n`, s.toCString(), new System.Backtrace().toCString() );
+	    // native.printf( `new writer on %s from %s\n`, s.toCString(), new Backtrace().toCString() );
 	}
 
 	void dispose() {
@@ -537,14 +545,14 @@ namespace IO {
 	/// Write the supplied String
 	/// \param s string to write
         /// \throw IOException
-	void write( System.String s ) {
+	void write( String s ) {
 	    write( s.toCString(), s.getLength() );
 	}
 
 	/// Write the supplied Object as a String. The Object is converted to a String and then written
 	/// \param o the Object to write.
         /// \throw IOException
-	void print( System.Object o ) {
+	void print( Object o ) {
 	    if( o != null ) {
 		write( o.toString() );
 	    } else {
@@ -555,7 +563,7 @@ namespace IO {
 	/// Write the supplied String.
 	/// \param s the String to write.
 	/// \throw IOException
-	void print( System.String s ) {
+	void print( String s ) {
 	    write( s );
 	}
 
@@ -575,13 +583,21 @@ namespace IO {
 	    write( w.toString() );
 	}
 
+	void printf( String s, Object[] a ) {
+	    write( String.format(s, a) );
+	}
+
+	void printfln( String s, Object[] a ) {
+	    println( String.format(s, a) );	    
+	}
+
 	/// Write the supplied Object as a String. The Object is converted to a String and then written followed by a newline.
 	/// If FlushOnPrintln is set then the buffer is flushed after the newline is written.
 	/// \param o the Object to write.
         /// \throw IOException
-	void println( System.Object o ) {
+	void println( Object o ) {
 	    if( this == null ) {
-		native.printf( `println: this Writer is null %s\n`, new System.Backtrace().toCString() );
+		native.printf( `println: this Writer is null %s\n`, new Backtrace().toCString() );
 		return;
 	    }
 
@@ -601,9 +617,9 @@ namespace IO {
 	/// If FlushOnPrintln is set then the buffer is flushed after the newline is written.
 	/// \param s the String to write.
         /// \throw IOException
-	void println( System.String s ) {
+	void println( String s ) {
 	    if( this == null ) {
-		native.printf( `println: this Writer is null %s\n`, new System.Backtrace().toCString() );
+		native.printf( `println: this Writer is null %s\n`, new Backtrace().toCString() );
 		return;
 	    }
 
@@ -620,7 +636,7 @@ namespace IO {
         /// \throw IOException
 	void println() {
 	    if( this == null ) {
-		native.printf( `println: this Writer is null %s\n`, new System.Backtrace().toCString() );
+		native.printf( `println: this Writer is null %s\n`, new Backtrace().toCString() );
 	    }
 
 	    write( '\n' );
@@ -629,7 +645,7 @@ namespace IO {
 	    }
 	}
 
-	System.String toString() {
+	String toString() {
 	    return "Writer on " + stream;
 	}
     }
@@ -637,7 +653,7 @@ namespace IO {
 
     /// A stream of characters, simplex or duplex depending on implementation.
     /// \abstract
-    class CharStream extends System.Object {
+    class CharStream extends Object {
 	/// Construct a new CharStream
 	/// \abstract
 	void init() { super.init(); }
@@ -656,7 +672,7 @@ namespace IO {
 	/// \param count number of characters to read
 	/// \return number of characters read.
 	int read( char ptr buffer, int count ) {
-	    throw new System.NotImplementedException( "read not implemented in " + this );
+	    throw new NotImplementedException( "read not implemented in " + this );
 	}
 
 	/// Write characters from supplied buffer
@@ -664,35 +680,35 @@ namespace IO {
 	/// \param count number of characters to write. 
 	/// \return number of characters written.
 	int write( char ptr buffer, int count ) {
-	    throw new System.NotImplementedException( "write not implemented in " + this );
+	    throw new NotImplementedException( "write not implemented in " + this );
 	}
 
 	/// Close this CharStream
 	void close() {
-	    throw new System.NotImplementedException( "close not implemented in " + this );
+	    throw new NotImplementedException( "close not implemented in " + this );
 	}
 
 	/// Return has all available input been read?
 	bool isAtEnd() {
-	    throw new System.NotImplementedException( "isAtEnd not implemented in " + this );
+	    throw new NotImplementedException( "isAtEnd not implemented in " + this );
 	}
 
 	/// Move the read/write position to supplied offset relative to start of file
 	/// \param offset new read/write position in characters from start of file
 	void seekSet( long offset ) {
-	    throw new System.NotImplementedException( "seekSet not implemented in " + this );
+	    throw new NotImplementedException( "seekSet not implemented in " + this );
 	}
 
 	/// Move the read/write position to supplied offset relative to current position
 	/// \param offset new read/write position in characters from current position
 	void seekCur( long offset ) {
-	    throw new System.NotImplementedException( "seekCur not implemented in " + this );
+	    throw new NotImplementedException( "seekCur not implemented in " + this );
 	}
 
 	/// Move the read/write position to supplied offset relative to end of file
 	/// \param offset new read/write position in characters from end of file
 	void seekEnd( long offset ) {
-	    throw new System.NotImplementedException( "seekEnd not implemented in " + this );
+	    throw new NotImplementedException( "seekEnd not implemented in " + this );
 	}
 
 	/// If underlying stream output is buffered then flush all buffered output, otherwise
@@ -703,12 +719,12 @@ namespace IO {
 
     /// A read only CharStream over a String
     class StringStream extends CharStream {
-	protected System.String string;
+	protected String string;
 	protected int position;
 
 	/// Construct a new StringStream
 	/// \param s the String this StringStream will read 
-	void init( System.String s ) {
+	void init( String s ) {
 	    super.init();
 	    string = s;
 	    position = 0;
@@ -739,12 +755,12 @@ namespace IO {
 
     /// A read write CharStream over a StringBuffer
     class StringBufferStream extends StringStream {
-	void init( System.StringBuffer s ) {
+	void init( StringBuffer s ) {
 	    super.init(s);
 	}
 
 	int write( char ptr buffer, int size ) {
-	    System.StringBuffer s = cast<System.StringBuffer>(string);
+	    StringBuffer s = cast<StringBuffer>(string);
 	    int i;
 	    for( i = 0; i < size; i = i + 1 ) {
 		s.append( [buffer + i] );
@@ -755,7 +771,7 @@ namespace IO {
 
     /// A read write CharStream over an operating system handle (typically a file handle but can be a pipe etc.)
     class FileStream extends CharStream {
-	private System.String path;
+	private String path;
 	private int handle;
 	private bool is_at_end;
 
@@ -773,8 +789,8 @@ namespace IO {
         }
 
 	/// Throws an IOException with message text appropriate for supplied operating system error
-	static void throwIOException( System.String string, int error, System.String path ) {
-	    System.StringBuffer b = new System.StringBuffer(string);
+	static void throwIOException( String string, int error, String path ) {
+	    StringBuffer b = new StringBuffer(string);
 	    b.append( ` \"` );
 	    b.append( path );
 	    b.append( '\"' );
@@ -790,13 +806,13 @@ namespace IO {
 	}
 
 	/// Throws an IOException with message text appropriate for supplied operating system error
-	void throwIOException( System.String string, int error ) {
+	void throwIOException( String string, int error ) {
 	    throwIOException( string, error, path );
 	}
 
 	/// Construct a FileStream with Path set to supplied String. Note: Path is used only for error reporting. 
 	/// Callers need to also set an operating system handle before a FileStream can be used
-	void init( System.String path ) {
+	void init( String path ) {
 	    super.init();
 	    Path = path;
 	}
@@ -805,7 +821,7 @@ namespace IO {
 	void init( int handle ) {
 	    super.init();
 
-	    this.path = "handle #" + handle; // + " from " + new System.Backtrace();
+	    this.path = "handle #" + handle; // + " from " + new Backtrace();
 	    this.handle = handle;
 	}
 
@@ -815,17 +831,17 @@ namespace IO {
 	}
 
 	/// Set the path name used for error reporting
-	set System.String Path = path {
+	set String Path = path {
 	    this.path = path;
 	}
 
 	/// Get the path name used for error reporting
-	get System.String Path {
+	get String Path {
 	    return path;
 	}
 
 
-	System.String toString() {
+	String toString() {
 	    return "IO.FileStream on " + path;
 	}
 
@@ -838,14 +854,14 @@ namespace IO {
 	void checkResult( char ptr message, int r ) {
 	    // native.printf( `check result %s %d\n`, message, r );
 	    if( r < 0 ) {
-		throwIOException( new System.String( message ), LastError );
+		throwIOException( new String( message ), LastError );
 	    }
 	}
 
 	/// Check that this FileStream is open (has a valid handle), otherwise throw an IOException
 	void checkOpen( char ptr message ) {
 	    if( handle < 0 ) {
-		throwIOException( "closed: " + new System.String(message), 0 );
+		throwIOException( "closed: " + new String(message), 0 );
 	    }
 	}
 
@@ -947,7 +963,7 @@ namespace IO {
     }
 
     /// Provides methods for opening files as FileStream objects and utility methods relating to paths, files and directories
-    class File extends System.Object {
+    class File extends Object {
 	public const int
 	    O_RDONLY = 0,
 	    O_WRONLY = 1,
@@ -969,7 +985,7 @@ namespace IO {
 	    EAGAIN = 11,
 	    EINVAL = 22;
 
-	private System.String path;
+	private String path;
 	private int mode; // append, creat, excl, trunc
 	private int prot;
 	bool mode_set;    // has a mode been explicitly set?
@@ -977,19 +993,19 @@ namespace IO {
 
 	/// Construct a File object with the supplied path
 	/// \param path a path name, either absolute or relative to current working directory
-	void init( System.String path ) {
+	void init( String path ) {
 	    Path = path;
 	    read = true;
 	    prot = DEFAULT_PROT;
 	}
 
 	/// Set this File's path
-	set System.String Path = path {
+	set String Path = path {
 	    this.path = path;
 	}
 
 	/// Get this File's path
-	get System.String Path {
+	get String Path {
 	    return path;
 	}
 
@@ -1027,7 +1043,7 @@ namespace IO {
 	    return exists(path);
 	}
 
-	static bool exists(System.String path) {
+	static bool exists(String path) {
 	    var s = new IO.Stat();
 	    return s.stat(path);
 	}
@@ -1069,7 +1085,7 @@ namespace IO {
 		read = false;
 		write = true;
 	    } else {
-		throw new IOException( 0, "bad file mode: " + System.String.hex(mode) );
+		throw new IOException( 0, "bad file mode: " + String.hex(mode) );
 	    }
 
 	    this.mode = m;
@@ -1083,7 +1099,7 @@ namespace IO {
 	    }
 	}
 
-	System.String toString() {
+	String toString() {
 	    if( path != null ) {
 		return "IO.File '" + path + "'";
 	    } else {
@@ -1093,7 +1109,7 @@ namespace IO {
 
 	/// Return a new Reader on a read-only FileStream for the supplied path
 	/// \param path path to the file to open
-	static Reader openRead( System.String path ) {
+	static Reader openRead( String path ) {
 	    return new Reader( openReadStream( path ) );
 	}
 
@@ -1104,7 +1120,7 @@ namespace IO {
 
 	/// Return a new Writer on a write-only FileStream for the supplied path
 	/// \param path path to the file to open
-	static Writer openWrite( System.String path ) {
+	static Writer openWrite( String path ) {
 	    return new Writer( openWriteStream(path) );
 	}
 
@@ -1114,7 +1130,7 @@ namespace IO {
 	}
 
 	/// Return a new Writer on an append-only FileStream for the supplied path
-	static Writer openAppend( System.String path ) {
+	static Writer openAppend( String path ) {
 	    return new Writer( openAppendStream(path) );
 	}
 
@@ -1124,7 +1140,7 @@ namespace IO {
 	}
 
 	/// Return a new Writer on a write-only FileStream for a newly created file at the supplied path
-	static Writer openCreate( System.String path ) {
+	static Writer openCreate( String path ) {
 	    return new Writer( openCreateStream(path) );
 	}
 
@@ -1134,7 +1150,7 @@ namespace IO {
 	}
 
 	/// Return a new read-write FileStream for a newly created temporary file at the supplied path
-	static FileStream openTemp( System.String path ) {
+	static FileStream openTemp( String path ) {
 	    int l = path.Length;
 	    char ptr s = cast char ptr(native.GC_malloc_atomic(l + 7));
 
@@ -1155,7 +1171,7 @@ namespace IO {
 
 	    var result = new FileStream(handle);
 
-	    result.Path = new System.String(s);
+	    result.Path = new String(s);
 
 	    return result;
 	}
@@ -1166,9 +1182,9 @@ namespace IO {
 	/// \param prot UNIX file protection bits
 	/// \param quiet if true, return null on failure, otherwise throw IOException on failure
 	/// \throw IOException
-	static FileStream openStream( System.String path, int mode, int prot, bool quiet ) {
+	static FileStream openStream( String path, int mode, int prot, bool quiet ) {
 	    // native.printf( `mode %o prot %o\n`, mode, prot );
-	    // IO.Std.err.println( "opening '" + path + "' mode: " + System.String.oct(mode) + ", prot: " + System.String.oct(prot) );
+	    // IO.Std.err.println( "opening '" + path + "' mode: " + String.oct(mode) + ", prot: " + String.oct(prot) );
 	    
 	    int handle = cast<int>(native.open( path.toCString(), mode, prot ));
 
@@ -1188,7 +1204,7 @@ namespace IO {
 	/// \param mode UNIX open mode
 	/// \param prot UNIX file protection bits
 	/// \throw IOException
-	static FileStream openStream( System.String path, int mode, int prot ) {
+	static FileStream openStream( String path, int mode, int prot ) {
 	    return openStream( path, mode, prot, false );
 	}
 
@@ -1200,7 +1216,7 @@ namespace IO {
 
 	/// Return a new read-only FileStream for a file at the supplied path, which must exist
 	/// \param path path to the file to open
-	static FileStream openReadStream( System.String path ) {
+	static FileStream openReadStream( String path ) {
 	    return openStream( path, O_RDONLY, 0, false );
 	}
 
@@ -1214,7 +1230,7 @@ namespace IO {
 	/// protection bits if it does not exist. Existing files are not truncated.
 	/// \param path path to file to open or create
 	/// \throw IOException
-	static FileStream openWriteStream( System.String path ) {
+	static FileStream openWriteStream( String path ) {
 	    return openStream( path, O_WRONLY | O_CREAT, DEFAULT_PROT, false );
 	}
 
@@ -1230,7 +1246,7 @@ namespace IO {
 	/// protection bits if it does not exist. Existing files are not truncated
 	/// \param path path to file to open or create
 	/// \throw IOException
-	static FileStream openReadWriteStream( System.String path ) {
+	static FileStream openReadWriteStream( String path ) {
 	    return openStream( path, O_RDWR | O_CREAT, DEFAULT_PROT, false );
 	}
 
@@ -1246,8 +1262,8 @@ namespace IO {
 	/// protection bits if it does not exist. Existing files are not truncated.
 	/// \param path path to file to open or create
 	/// \throw IOException
-	static FileStream openAppendStream( System.String path ) {
-	    // IO.Std.err.println( "open append: " + System.String.oct(O_RDWR | O_CREAT | O_APPEND) + " prot: " + System.String.oct(DEFAULT_PROT) );
+	static FileStream openAppendStream( String path ) {
+	    // IO.Std.err.println( "open append: " + String.oct(O_RDWR | O_CREAT | O_APPEND) + " prot: " + String.oct(DEFAULT_PROT) );
 	    return openStream( path, O_WRONLY | O_CREAT | O_APPEND, DEFAULT_PROT, false );
 	}
 
@@ -1264,7 +1280,7 @@ namespace IO {
 	/// \param path path to file to open or create
 	/// \throw IOException
 	// create -> create if not present, truncate if present, write only
-	static FileStream openCreateStream( System.String path ) {
+	static FileStream openCreateStream( String path ) {
 	    return openStream( path, O_WRONLY | O_CREAT | O_TRUNC, DEFAULT_PROT, false );
 	}
 
@@ -1281,7 +1297,7 @@ namespace IO {
 	/// \param path path to file to open or create
 	/// \return FileStream on success, null if the file already exists
 	/// \throw IOException
-	static FileStream openCreateLockStream( System.String path ) {
+	static FileStream openCreateLockStream( String path ) {
 	    return openStream( path, O_WRONLY | O_CREAT | O_TRUNC | O_EXCL, DEFAULT_PROT, true );
 	}
 
@@ -1298,11 +1314,11 @@ namespace IO {
 	/// \param from path to existing file
 	/// \param to path to rename file to
 	/// \return true on success, otherwise false
-	static bool renameQuiet( System.String from, System.String to ) {
+	static bool renameQuiet( String from, String to ) {
 	    int result = cast int(native.rename(from.toCString(), to.toCString()));
 	    /*
 	    if( result != 0 ) {
-		System.StringBuffer cause = "rename failed " + from + "->" + to + " failed: ";
+		StringBuffer cause = "rename failed " + from + "->" + to + " failed: ";
 		cause.append( cast char ptr(native.strerror(FileStream.StaticLastError)) );
 		IO.Std.err.println( cause );
 	    }
@@ -1316,7 +1332,7 @@ namespace IO {
 	/// \param from path to existing file
 	/// \param to path to rename file to
 	/// \throw IOException
-	static void rename( System.String from, System.String to ) {
+	static void rename( String from, String to ) {
 	    if( !renameQuiet(from, to) ) {
 		FileStream.throwIOException( "rename to " + to, FileStream.StaticLastError, from );
 	    }
@@ -1325,7 +1341,7 @@ namespace IO {
 	/// Delete file with supplied path, return success or failure
 	/// \param file path to file to delete
 	/// \return true on success, otherwise false
-	static bool deleteQuiet( System.String file ) {
+	static bool deleteQuiet( String file ) {
 	    int result = cast int(native.unlink(file.toCString()));
 	    return result == 0;
 	}
@@ -1339,7 +1355,7 @@ namespace IO {
 	/// Delete file with supplied path
 	/// \param file path to file to delete
 	/// \throw IOException
-	static void delete( System.String file ) {
+	static void delete( String file ) {
 	    if( !deleteQuiet(file) ) {
 		FileStream.throwIOException( "delete", FileStream.StaticLastError, file );
 	    }
@@ -1355,7 +1371,7 @@ namespace IO {
 	/// it is created and its creation time is set to the current time.
 	/// \param file path to the file to touch
 	/// \throw IOException
-	static void touch( System.String file ) {
+	static void touch( String file ) {
 	    FileStream f = File.openWriteStream(file);
 	    f.close();
 	}
@@ -1371,7 +1387,7 @@ namespace IO {
 	/// file doesn't exist then it is created and its creation time is set to the current time.
 	/// \param file path to the file to touch
 	/// \return true on success, otherwise false
-	static bool touchQuiet( System.String file ) {
+	static bool touchQuiet( String file ) {
 	    try {
 		touch( file );
 		return true;
@@ -1390,7 +1406,7 @@ namespace IO {
 	const int MAX_PATH_LENGTH = 512;
 
 	/// Get the path to the current working directory.
-	static get System.String WorkingDirectory {
+	static get String WorkingDirectory {
 	    char ptr buffer = cast char ptr( native.GC_malloc_atomic( MAX_PATH_LENGTH ) );
             // native.printf( `%p working directory\n`, buffer );
 	    char ptr r = cast char ptr( native.getcwd( buffer, MAX_PATH_LENGTH) );
@@ -1398,7 +1414,7 @@ namespace IO {
 	    if( r != buffer ) {
 		throw new IOException( FileStream.StaticLastError, "get working directory" );
 	    } else {
-		return new System.String( buffer ); 
+		return new String( buffer ); 
 	    }
 	}
 
@@ -1408,7 +1424,7 @@ namespace IO {
 	/// \return if file refers to a symbollic link, return the referenced path; if file refers to a regular
 	/// file return its path otherwise if quiet then return null, otherwise throw IOException
 	/// \throw IOException
-	static System.String readLink( System.String file, bool quiet ) {
+	static String readLink( String file, bool quiet ) {
 	    char ptr buffer = cast char ptr( native.GC_malloc_atomic( MAX_PATH_LENGTH ) );
             // native.printf( `%p read link\n`, buffer );
 	    int result = cast int( native.readlink( file.toCString(), buffer, MAX_PATH_LENGTH-1 ) );
@@ -1425,7 +1441,7 @@ namespace IO {
 		throw new IOException( FileStream.StaticLastError, "read link: " + file + " (" + FileStream.StaticLastError + ")" );
 	    } else {
 		[buffer+result] = '\0';
-		return new System.String( buffer );
+		return new String( buffer );
 	    }		   
 	}
 
@@ -1434,7 +1450,7 @@ namespace IO {
 	/// \return if file refers to a symbollic link, return the referenced path; if file refers to a regular
 	/// file return its path otherwise throw IOException
 	/// \throw IOException
-	static System.String readLink( System.String file ) {
+	static String readLink( String file ) {
 	    return readLink( file, false );
 	}
 
@@ -1442,7 +1458,7 @@ namespace IO {
 	/// \param file path to the link to read
 	/// \return if file refers to a symbollic link, return the referenced path; if file refers to a regular
 	/// file return its path otherwise return null
-	static System.String readLinkQuiet( System.String file ) {
+	static String readLinkQuiet( String file ) {
 	    return readLink( file, true );
 	}
     }

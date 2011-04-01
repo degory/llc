@@ -9,6 +9,7 @@ pragma NoMarkUnsafe, NoWarnUnsafe;
 namespace System is
     use Generic.Iterator;
     use Generic.Range;
+    use Generic.ReverseRange;
 
     /// Object wrapper around primitive int type
     class Int is
@@ -103,8 +104,16 @@ namespace System is
 	    return i + 1;
 	si
 
+	static int prev(int i) is
+	    return i - 1;
+	si
+
 	static Range<int> opRange(int from, int to) is
-	    return new Range<int>(from, to);
+	    if from <= to then
+	        return new Range<int>(from, to);
+            else
+	        return new ReverseRange<int>(from, to);
+            fi
 	si	
     si
 

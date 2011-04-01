@@ -787,6 +787,24 @@ namespace System is
 	    return result;
 	si
 
+        get StringBuffer UpperFirst is
+            StringBuffer result = new StringBuffer(_length);
+            if _length > 0 then
+		char c = [_buffer];
+		if c >= 'a' && c <= 'z' then
+		    result.append( c + ('A' - 'a') );
+		else
+		    result.append( c );
+		fi
+
+                for var i = 1; i < _length; i = i + 1 do
+                    result.append( [_buffer + i] );
+                od            
+            fi
+
+            return result;
+        si
+
 	get int MemoryUse is 
 	    return ObjectSize + _length;
 	si

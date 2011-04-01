@@ -27,13 +27,18 @@ namespace Generic is
 	/// \param to the last element of a to include in this slice
 	void init( List<T> a, int from, int to ) is
 	    if from < 0 || to >= a.Length then
-	        throw new BoundsException( "Slice index out of bounds" );
+	        throw new BoundsException( "Slice range out of bounds" );
 	    fi
+
 	    this.a = a;
             i = from;
 	    this.from = from;
 	    this.to = to;
-	si
+
+            if Length < 0 then
+                throw new BoundsException( "Slice range is reversed" );
+            fi
+        si
 
 	bool hasMoreElements() is
 	    return i <= to;
@@ -46,7 +51,7 @@ namespace Generic is
 	si
 
 	get T[int index] is 
-	    if index <0 ||  index > to then
+	    if index < 0 || index > to then
 	        throw new BoundsException( "Slice index out of bounds" );
 	    fi
 	    return a[from + index];
@@ -61,7 +66,7 @@ namespace Generic is
 	si
 
 	get int Length is
-	    return from - to;
+	    return 1 + to - from;
 	si
 
 	/// \attention: not implemented
@@ -96,16 +101,15 @@ namespace Generic is
                if i != from then
 	           result.append(',');			
                fi
- 	       result.append(this[i].toString());
+ 	       result.append(a[i].toString());
 	    od
 
             return result;
         si
 
-        /// \attention: checks reference equality only for reference types
 	bool contains( T v ) is
 	    for int i = from; i <= to; i = i + 1 do
- 		if cast T[](this)[i] =~ v then
+ 		if a[i] =~ v then
 		    return true;
 		fi
 	    od
