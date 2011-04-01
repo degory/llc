@@ -79,35 +79,7 @@ extern "C" {
   }
 
 
-  void *__JIT_call_function_in(char *function_name, void *m) {
-    Module *module = (Module *)m;
-
-    Function *f;
-    f = module->getFunction(function_name);
-
-    if( !f ) {
-      log(
-	  ERROR,
-	  std::string("JIT: could not locate function '") + function_name + " in module " + m->getModuleIdentifier() );
-      return 0;
-    }
-
-    func *fp;
-
-    fp = (func *)execution_engine->getPointerToFunction(f);
-
-    if( !fp ) {
-      log(
-	  ERROR,
-	  std::string("JIT: could not compile function '") + function_name + " in module " + m->getModuleIdentifier() );
-
-      return 0;
-    }
-
-    return f();
-  }
-
-  void *__JIT_call_function(char *function_name) {
+  void *__call_function(char *function_name) {
     // std::cerr << "looking for function '" << function_name << "'\n";
     Function *f;
 
@@ -137,7 +109,7 @@ extern "C" {
     return fp();
   }
 
-  void *__JIT_load_module(char *bitcode_name) {
+  void __load_module(char *bitcode_name) {
     std::string error_message;
     
     if( main_module == 0 ) {
@@ -149,18 +121,18 @@ extern "C" {
 	llvm::JITEmitDebugInfo = true;
       }
 
-      log( DEBUG, "JIT: starting up\n" );
+      log( INFO, "JIT: starting up\n" );
 
       InitializeNativeTarget();
       atexit(do_shutdown);  // Call llvm_shutdown() on exit.
     }
 
-    log( DEBUG, std::string("JIT: loading '") + bitcode_name );
+    log( INFO, std::string("JIT: loading '") + bitcode_name );
   
     MemoryBuffer *buffer = MemoryBuffer::getFile(bitcode_name, &error_message);
     if( !buffer ) {
       log( ERROR, std::string("JIT: MemoryBuffer::getFile('") + bitcode_name + "') failed: " + error_message );
-      return 0;
+      return;
     }
 
     Module *module = getLazyBitcodeModule(buffer, getGlobalContext(), &error_message);
@@ -168,7 +140,7 @@ extern "C" {
     if( !module ) {
       delete buffer;
       log( ERROR, std::string("JIT: get lazy bitcode module failed: ") + error_message );
-      return 0;
+      return;
     }
     
     if( module->MaterializeAllPermanently(&error_message) ) {
@@ -176,7 +148,7 @@ extern "C" {
       if( verifyModule(*module, PrintMessageAction, &error_message) ) {
 	log( ERROR, std::string("JIT: module failed to verify: ") + error_message );
 	module->dump();
-      }
+      }    
     }
 
     if( main_module == 0 ) {
@@ -212,7 +184,7 @@ extern "C" {
 	exit(1);
       }
 
-      log( DEBUG, "JIT: created execution engine" );
+      log( INFO, "JIT: created execution engine" );
     }
 
     modules.push_back(module);
@@ -232,9 +204,7 @@ extern "C" {
 
     execution_engine->runStaticConstructorsDestructors( module, false);
 
-    log( DEBUG, std::string("JIT: initialized module: ") + bitcode_name );
-
-    return module;
+    log( INFO, std::string("JIT: initialized module: ") + bitcode_name );
   }
 }
 
