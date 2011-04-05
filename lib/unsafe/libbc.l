@@ -16,14 +16,20 @@ namespace System {
     }
 
     /// A dynamically loaded shared object
-    class Library {
+    class BitcodeLibrary extends Library {
 	/// path to file holding shared object
 	String so_name;
+
+	BitcodeLibrary self;
 
 	/// construct and load a shared object
 	/// \param so_name path to shared object to open
 	/// \throw LibraryException if the library cannot be opened
 	void init( String so_name ) {
+            if( so_name == null ) {
+                 return;
+            }
+
 	    if( !so_name.endsWith(".bc") ) {
 		so_name = so_name + ".bc";
 	    }
@@ -34,38 +40,7 @@ namespace System {
 
 	    this.so_name = so_name;
 
-	    native.__load_module(so_name.toCString());
-	}
-
-	/// convert a human readable class name to an internal get vtable function name. 
-	/// \param class_name fully qualified class name 
-	/// \return name of a get vtable function
-	static String decorateVTable( String class_name ) {
-	    // get vtable function name is the GCC 3.0 mangled class name, minus any _Z prefix, with
-	    // __get_vtable_ prepended
-
-	    // separate off all qualifiers:
-	    var q = class_name.split('.');
-
-	    var result = new StringBuffer( "__get_ctable_" );
-
-	    // GCC decoration:
-	    if( q.length == 0 ) {
-		result.append( class_name.Length );
-		result.append( class_name );
-		return result;
-	    }
-
-	    result.append( 'N' );
-
-	    foreach( var s; q.elements() ) {
-		result.append( s.Length );
-		result.append( s );
-	    }
-
-	    result.append( 'E' );
-
-	    return result;
+	    native.__JIT_load_module(so_name.toCString());
 	}
 
 	/// locate a class in any shared object and return a Class object representing it
@@ -86,7 +61,7 @@ namespace System {
 	/// \return a Class object representing the requested class, if present in the shared object or null otherwise
 	/// \throw LibraryException if the vtable cannot be found
 	static Class findClassFromVTableNameAll( String vtable_function ) {
-	    int ptr ptr v = cast int ptr ptr( native.__call_function( vtable_function.toCString() ) );
+	    int ptr ptr v = cast int ptr ptr( native.__JIT_call_function( vtable_function.toCString() ) );
 
 	    if( v != null ) {
 		// create and return a new class from the vtable returned by the get vtable function:
@@ -106,5 +81,14 @@ namespace System {
 	Class findClass( String class_name ) {
 	    return findClassAll( class_name );
 	}
+
+ 	static get BitcodeLibrary Self {
+	    if( self == null ) {
+		self = new BitcodeLibrary(null);
+	    }
+
+	    return self;
+	}
+
     }
 }
