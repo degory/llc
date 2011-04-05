@@ -1,9 +1,13 @@
 
 #define POSIX_SOURCE 1
+
 #include <sys/types.h>
 #include <sys/stat.h>
 // #include <sigcontext.h>
-// #include <ucontext.h>
+#define __USE_GNU 1
+#include <ucontext.h>
+#undef __USE_GNU
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -12,6 +16,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <errno.h>
+
 
 // #define DEBUG 1
 // #define GC_DEBUG 0
@@ -36,6 +41,8 @@ typedef void ExFunc(int type, void *ex);
 #define THROW_EXCEPTION 4
 #define THROW_FINALLY 5
 #define THROW_STOP 6
+
+typedef void *GC_PTR;
 
 
 #if DEBUG
@@ -591,7 +598,7 @@ void __thread_start( void *thread_object ) {
 
 
 void __GC_add_roots( GC_PTR from, GC_PTR to ) {
-  GC_add_roots( from, to+1 );
+  GC_add_roots( from, (void *)(((unsigned long *)to)+1) );
 }
 
 
@@ -1564,6 +1571,26 @@ long __get_nanotime() {
 
 }
 
+void ftest(void) {
+  fprintf(stderr, "ftest...\n" ); fflush(stderr);
+}
 
+
+void *__alloc_ucontext(void *coroutine_object, size_t stack_size) {
+  fprintf(stderr, "alloc ucontext object %p, stacksize %u...\n", coroutine_object, stack_size ); fflush(stderr);
+  ucontext_t *result = GC_malloc(sizeof(ucontext_t));
+  fprintf(stderr, "getcontext into %p...\n", result ); fflush(stderr);
+  getcontext(result);
+
+  fprintf(stderr, "alloc stack...\n" ); fflush(stderr); 
+  result->uc_stack.ss_sp = GC_malloc(stack_size);
+  result->uc_stack.ss_size = stack_size - 16;
+  result->uc_link = 0;
+
+  fprintf(stderr, "make context into %p...\n", result ); fflush(stderr);
+  makecontext(result, _ZN6System9Coroutine17__coroutine_entryEv, 1, coroutine_object);
+
+  return result;
+}
 
 

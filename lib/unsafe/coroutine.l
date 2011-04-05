@@ -1,64 +1,80 @@
 
-import "pcl";
-
 namespace System is
-    struct coroutine_t is
-    si
+    use IO.Std;
 
     class Coroutine is
     	const int DEFAULT_STACK_SIZE = 32 * 1024;
-	coroutine_t _coroutine;
+        
+        // FIXME: not thread safe:
+        static Coroutine _current;
 
-        native int co_thread_init();
-        native void co_thread_cleanup();
-	native coroutine_t co_create(char ptr func, Coroutine data, char ptr stack, int stacksize);
-	native void co_delete(coroutine_t co);
-	native void co_call(coroutine_t co);
-	native void co_resume();
-	native void co_exit_to(coroutine_t co);
-	native void co_exit();
-	native coroutine_t co_current();
-	native char ptr co_get_data(coroutine_t co);
-	native char ptr co_set_data(coroutine_t co, char ptr data); 
+        char ptr _context;
+        public bool is_root;
 
-        native char ptr __get_coroutine_entry();
-	native char ptr GC_malloc(int s);
+        native char ptr __alloc_ucontext(Coroutine o, int stack_size);
+        native int swapcontext(char ptr old_context, char ptr new_context);
+        native void GC_capture_current_sp();
+        native void GC_clear_current_sp();
 
 	void init(int stack_size) is
-            _coroutine = co_create(__get_coroutine_entry(), this, GC_malloc(stack_size), stack_size);
+            // IO.Std.out.println( "" + this + ": coroutine init(" + stack_size + ")" );
+            _context = __alloc_ucontext(this, stack_size);
 	si
 
 	void init() is
-	    init(DEFAULT_STACK_SIZE);
+            // IO.Std.out.println( "" + this + ": coroutine init()" );
+            _context = __alloc_ucontext(this, DEFAULT_STACK_SIZE);
 	si
 
-        void start() is
-	    // this.call();
-        si
-
         void __coroutine_entry() is
+            // IO.Std.err.println( "this is: " + cast word(this) ); IO.Std.err.flush();
             try
-	        run();
+                run();
 	    catch System.Exception se
-                native.printf( `uncaught exception %s in thread\n`, se.Class.Name.toCString() );
+                native.printf( `uncaught exception %s in coroutine\n`, se.Class.Name.toCString() );
                 native.printf( `\t%s\n`, se.Message.toCString() );
                 native.printf( `%s\n`, se.Backtrace.toCString() );
                 native.__flush_stdout();	    
  	    yrt
-
-	    co_exit();
         si
 
 	void run() is
 	    @Virtual;
 	si
 
-	void call() is
-	    co_call(_coroutine);
+        static void call(Coroutine callee) is
+            Current.call_(callee);
+        si
+
+	void call_(Coroutine callee) is
+            // IO.Std.err.println( "from " + this + " call " + callee );
+            if is_root then               
+                // call out of root coroutine: save stack top
+                GC_capture_current_sp();
+            fi
+
+            // FIXME: should probably be atomic:
+
+            // also, is this actually needed? should return from swapcontext
+            // and immediately set _current = this (which will be callee);
+            _current = callee; 
+            // IO.Std.err.println( "leave " + this + "..." );
+            swapcontext(_context, callee._context);
+            // IO.Std.err.println( "enter " + this + "..." );
+            _current = this;
+
+            if is_root then
+                // call into root coroutine: clear stack top
+                GC_clear_current_sp();
+            fi
 	si
 
-	void resume() is
-	    co_resume();
-	si
+        static get Coroutine Current is
+            if _current == null then
+                _current = new Coroutine();
+                _current.is_root = true;
+            fi
+            return _current;
+        si
     si
 si

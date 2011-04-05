@@ -25,7 +25,7 @@ namespace Generic is
     SortedMap<int,T> sorted_map_ik;
     SortedMap<String,T> sorted_map_sk;
     Filter<T> filter;
-
+    Generator<T> gen;
   si
 
   class __StandardGenerics is
