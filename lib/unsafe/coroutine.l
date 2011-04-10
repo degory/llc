@@ -10,6 +10,7 @@ namespace System is
 
         char ptr _context;
         public bool is_root;
+        Coroutine _caller;
 
         native char ptr __alloc_ucontext(Coroutine o, int stack_size);
         native int swapcontext(char ptr old_context, char ptr new_context);
@@ -17,19 +18,21 @@ namespace System is
         native void GC_clear_current_sp();
 
 	void init(int stack_size) is
-            // IO.Std.out.println( "" + this + ": coroutine init(" + stack_size + ")" );
             _context = __alloc_ucontext(this, stack_size);
+            // _caller = Current;
 	si
 
 	void init() is
-            // IO.Std.out.println( "" + this + ": coroutine init()" );
             _context = __alloc_ucontext(this, DEFAULT_STACK_SIZE);
+            // _caller = Current;
 	si
 
         void __coroutine_entry() is
-            // IO.Std.err.println( "this is: " + cast word(this) ); IO.Std.err.flush();
             try
                 run();
+                if _caller != null then
+                    call_(_caller);
+                fi
 	    catch System.Exception se
                 native.printf( `uncaught exception %s in coroutine\n`, se.Class.Name.toCString() );
                 native.printf( `\t%s\n`, se.Message.toCString() );
@@ -42,12 +45,18 @@ namespace System is
 	    @Virtual;
 	si
 
+/*
         static void call(Coroutine callee) is
             Current.call_(callee);
         si
+*/
+        void call() is
+            Current.call_(this);
+        si
 
 	void call_(Coroutine callee) is
-            // IO.Std.err.println( "from " + this + " call " + callee );
+            callee._current = this;
+
             if is_root then               
                 // call out of root coroutine: save stack top
                 GC_capture_current_sp();
@@ -58,9 +67,9 @@ namespace System is
             // also, is this actually needed? should return from swapcontext
             // and immediately set _current = this (which will be callee);
             _current = callee; 
-            // IO.Std.err.println( "leave " + this + "..." );
+
             swapcontext(_context, callee._context);
-            // IO.Std.err.println( "enter " + this + "..." );
+
             _current = this;
 
             if is_root then
@@ -68,6 +77,14 @@ namespace System is
                 GC_clear_current_sp();
             fi
 	si
+  
+        get Coroutine Caller is
+            return _caller;
+        si
+
+        set Coroutine Caller = c is
+            _caller = c;
+        si
 
         static get Coroutine Current is
             if _current == null then
