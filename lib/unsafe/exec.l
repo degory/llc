@@ -173,7 +173,7 @@ namespace Util is
 		if want_wait then
 		    int result = wait();
 		    // IO.Std.err.println( "spawned process finished, returning: " + result );
-		    return result;
+		    return result >> 8;
 		else
 		    return 0;
 		fi
@@ -186,7 +186,7 @@ namespace Util is
 	/// \param env program environment in an array of Strings
 	/// \return child exit status
 	int run( System.String name, System.String[] args, System.String[] env ) is
-	    return run( name, args, env, true ) >> 8;
+	    return run( name, args, env, true );
 	si
 
 	/// Start a new program and wait for it to complete. New program receives a copy of the current program environment.
@@ -194,7 +194,7 @@ namespace Util is
 	/// \param args program arguments in an array of Strings
 	/// \return child exit status
 	int run( System.String name, System.String[] args ) is
-	    return run( name, args, null, true ) >> 8;
+	    return run( name, args, null, true );
 	si
     si
 si

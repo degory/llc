@@ -44,13 +44,10 @@ namespace Parse {
 	CompileState state;
 
 	set String ExecutableName = name {
-	    int i;
-	    for( i = name.getLength() - 1; i >= 0; i = i - 1 ) {
-		if( name.charAt(i) == '.' ) {
-		    name = name.substring(0, i);
-		    break;
-		}
+	    if( name.endsWith(".l") ) {
+		name = name.substring(0, name.Length-2);
 	    }
+
 	    state.ExecutableName = name;
 	}
 

@@ -46,6 +46,10 @@ namespace System is
 	    return result;
 	si
 
+        StringBuffer operator%( Object[] args ) is
+            return format(this, args);
+        si
+
 	/// Return a formatted copy of supplied string with supplied arguments substituted for '%'
 	static StringBuffer format( String s, int[] args ) is
 	    StringBuffer result = new StringBuffer(``);
