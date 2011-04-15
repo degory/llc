@@ -1,6 +1,4 @@
-#C
-
-// Copyright 2004-2010 <degs@giantblob.com> all rights reserved
+// Copyright 2004-2011 <degs@giantblob.com> all rights reserved
 
 
 import stream;
@@ -9,14 +7,19 @@ import gmap;
 import sql;
 import "sqlite3";
 
-namespace SQL {
+namespace SQL is
     pragma NoMarkUnsafe, NoWarnUnsafe;
 
+    use System.Object;
+    use System.Int;
+    use System.Long;
+    use System.String;
     use Util.Pointer;
+    use Generic.Map;
 
-    namespace SQLite3 {
+    namespace SQLite3 is
 	/// SQLite3 error codes
-	enum Result {
+	enum Result is
 	    OK = 0,   /* Successful result */
    	    /* beginning-of-error-codes */
 	    ERROR = 1,   /* SQL error or missing database */
@@ -47,172 +50,284 @@ namespace SQL {
 	    NOTADB = 26,   /* File opened that is not a database file */
 	    ROW = 100,  /* sqlite3_step() has another row ready */
 	    DONE = 101  /* sqlite3_step() has finished executing */
-	}       
+	si
 
 	/// Thrown by SQLLite3 bindings on errors
-	class Exception extends SQLException {
+	class Exception isa SQLException is
 	    Result error;
-	    void init( word connection, System.String message, Result error ) {
-		super.init( message + " " + new System.String(cast char ptr(native.sqlite3_errmsg(connection))) );
+	    void init( word connection, String message, Result error ) is
+		super.init( message + " " + new String(cast char ptr(native.sqlite3_errmsg(connection))) );
 		this.error = error;
-	    }
+	    si
 	    
-	    void init( System.String message ) {
+	    void init( String message ) is
 		super.init( message );
-	    }       
+	    si
 
-	    get Result Error {
+	    get Result Error is
 		return error;
-	    }
-	}
-    
-	/// A SQLite3 Statement
-	class Statement extends SQL.Statement {
-	    word connection;
-	    word statement;
-	    Generic.Map<System.String,int> column_map;
+	    si
+	si
 
-	    /// Construct a new SQLite3Statement
-	    /// \param c pointer to libsqlite3 connection structure
-	    /// \param s pointer to libsqlite3 statement structure
-	    void init( word c, word s ) {
-		this.connection = c;
-		this.statement = s;
-	    }
+        class ResultSet isa SQL.ResultSet is
+	    Map<String,int> column_map;
+            Statement statement;
+            word sqlite3_statement;
+            bool dispose_statement;
 
-	    void bind( int c, int i ) {
-		var result = cast Result(native.sqlite3_bind_int( statement, c+1, i ));
-		if( result != Result.OK ) {
-		    throw new Exception( connection, "bind " + c + " " + i, result );
-		}
-	    }
+            void init( Statement s, word s3s ) is
+                IO.Std.err.println( "new result set..." );
+                super.init();
+                statement = s;
+                sqlite3_statement = s3s;
+            si
 
-	    void bind( int c, System.String s ) {
-		// IO.Std.err.println( "binding '" + s + "'..." );
-		var result = cast Result(native.sqlite3_bind_text( statement, c+1, s.toCString(), s.Length, 0 ));
-		if( result != Result.OK ) {
-		    throw new Exception( connection, "bind " + c + " " + s, result );
-		}
-	    }
+            get bool DisposeStatement is
+                return dispose_statement;
+            si
 
-	    bool next() {
-		var result = cast Result(native.sqlite3_step(statement));
+            set bool DisposeStatement = d is
+                dispose_statement = d;
+            si
 
-		if( result == Result.ROW ) {
-		    return true;
-		} else if( result == Result.DONE ) {
-		    return false;
-		} else {
-		    throw new Exception( connection, "next", result );
-		}
-	    }
+            bool next() is
+                IO.Std.err.println( "result set next..." );
+                return statement._next();
+            si
 
-	    void exec() {
-		while( next() ) 
-		    ;
-	    }
+	    get int ColumnCount is
+		return cast int(native.sqlite3_column_count(sqlite3_statement));
+	    si
 
-	    get int ColumnCount {
-		return cast int(native.sqlite3_column_count(statement));
-	    }
+            get Object[int c] is
+                IO.Std.err.println( "result set get " + c + "..." );
+                var tc = Type[c];
 
-	    get System.String Name[int c] {
-		char ptr cname = cast char ptr(native.sqlite3_column_origin_name(statement, c));
-		System.String name = new System.String(cname);
+                if tc == SQLType.NULL then
+                    return null;
+                elif tc == SQLType.INTEGER then
+                    IO.Std.err.println( "result set get " + c + " int..." );
+                    return new Long(cast long(native.sqlite3_column_int64(sqlite3_statement, c)));
+                else
+                    IO.Std.err.println( "result set get " + c + " string..." );
+  		    return new String(cast char ptr(native.sqlite3_column_text(sqlite3_statement, c)));
+                fi
+            si
+
+	    get String Name[int c] is
+                IO.Std.err.println( "result set get " + c + " name..." );
+		char ptr cname = cast char ptr(native.sqlite3_column_origin_name(sqlite3_statement, c));
+		String name = new String(cname);
 
 		return name;
-	    }
+	    si
 
-	    get SQLType Type[int c] {
-		int itype = cast int(native.sqlite3_column_type(statement, c));
+	    get SQLType Type[int c] is
+                IO.Std.err.println( "result set get " + c + " type..." );
+		int itype = cast int(native.sqlite3_column_type(sqlite3_statement, c));
 		return cast SQLType(itype);
-	    }
+	    si
 
-	    get System.String String[int c] {
-		return new System.String(cast char ptr(native.sqlite3_column_text(statement, c)));
-	    }
+	    get Map<String,int> ColumnMap is
+                IO.Std.err.println( "result set get column map..." );
+                if column_map == null then
+  		    column_map = new Map<String,int>();
+		    for int i = 0; i < ColumnCount; i = i + 1 do
+		        String name = Name[i];
 
-	    get int Int[int c] {
-		return cast int(native.sqlite3_column_int(statement, c));
-	    }
+		        if name != null && name.Length > 0 then
+			    column_map[name] = i + 1; // avoid 0 as Generic.Map<...,int> returns 0 on not found
+		        fi
+		    od
+                fi
 
-	    void initColumnMap() {
-		column_map = new Generic.Map<System.String,int>();
-		for( int i = 0; i < ColumnCount; i = i + 1 ) {
-		    System.String name = Name[i];
+                return column_map;
+	    si
 
-		    if( name != null && name.Length > 0 ) {
-			column_map[name] = i + 1; // avoid 0 as Generic.Map<...,int> returns 0 on not found
-		    }
-		}
-	    }
-
-	    get int ColumnIndex[System.String name] {
-		if( column_map == null ) {
-		    initColumnMap();
-		}
-		int c = column_map[name];
-		if( c == 0 ) {
+	    get int ColumnIndex[String name] is
+                IO.Std.err.println( "result set get " + name + " column index..." );
+                var m = ColumnMap;
+		int c = m[name];
+		if c == 0 then
 		    throw new Exception( "unknown column '" + name + "'" );
-		} else {
+		else
 		    return c - 1; // shift from 1-based to 0-based
-		}
-	    }
+		fi
+	    si
 
-	    void reset() {
+            void dispose() is
+                if dispose_statement && statement != null then
+                    statement.dispose();
+                    statement = null;
+                    sqlite3_statement = 0w;
+                fi
+            si 
+        si
+
+	/// An SQLite3 Statement
+        class Statement isa SQL.Statement is
+	    word connection;
+	    word statement;
+	    Generic.Map<String,int> column_map;
+
+	    /// Construct a new SQLite3.Statement
+	    /// \param c pointer to libsqlite3 connection structure
+	    /// \param s pointer to libsqlite3 statement structure
+	    void init( word c, word s ) is
+                IO.Std.err.println( "new statement..." );
+                super.init();
+		this.connection = c;
+		this.statement = s;
+	    si
+
+	    void bind( int c, int i ) is
+                IO.Std.err.println( "bind " + c + "<-" + i );
+
+		var result = cast Result(native.sqlite3_bind_int( statement, c+1, i ));
+		if result != Result.OK then
+		    throw new Exception( connection, "bind " + c + " " + i, result );
+		fi
+	    si
+
+	    void bind( int c, long l ) is
+                IO.Std.err.println( "bind " + c + "<-" + l );
+
+		var result = cast Result(native.sqlite3_bind_int64( statement, c+1, l ));
+		if result != Result.OK then
+		    throw new Exception( connection, "bind " + c + " " + l, result );
+		fi
+	    si
+
+	    void bind( int c, String s ) is
+                IO.Std.err.println( "bind " + c + "<-" + s );
+
+                if s == null then
+                    bindNull(c);
+                    return;
+                fi
+
+		var result = cast Result(native.sqlite3_bind_text( statement, c+1, s.toCString(), s.Length, 0 ));
+
+		if result != Result.OK then
+		    throw new Exception( connection, "bind " + c + " " + s, result );
+		fi
+	    si
+
+	    void bindNull( int c ) is
+                IO.Std.err.println( "bind " + c + "<-" + null );
+
+		var result = cast Result(native.sqlite3_bind_null( statement, c+1 ) );
+		if result != Result.OK then
+		    throw new Exception( connection, "bind " + c + " null", result );
+		fi
+	    si    
+
+	    void bind( int c, Object v ) is
+                IO.Std.err.println( "bind " + c + "<-" + v );
+
+                if v == null then
+                    bindNull(c);                
+                elif isa String(v) then
+                    bind(c, cast String(v));
+                elif isa Int(v) then
+                    bind(c, cast Int(v).Value);
+                elif isa Long(v) then
+		    bind(c, cast Long(v).Value);
+                else
+                    throw new SQL.SQLException( "bind value of unexpected type: " + v.Class );
+                fi
+	    si
+
+            void bind( Object[] values ) is
+                IO.Std.err.println( "bind all<-" + values );
+
+                for var i = 0; i < values.length; i = i + 1 do
+                    bind(i, values[i]);
+                od
+            si
+
+	    bool _next() is
+                IO.Std.err.println( "step..." );
+
+		var result = cast Result(native.sqlite3_step(statement));
+
+		if result == Result.ROW then
+                    IO.Std.err.println( "step at row" );
+		    return true;
+		elif result == Result.DONE then
+                    IO.Std.err.println( "step done" );
+		    return false;
+		else
+		    throw new Exception( connection, "next", result );
+		fi
+	    si
+
+	    void exec() is
+                IO.Std.err.println( "exec..." );
+		while _next() do 
+		    ;
+                od
+	    si
+
+            ResultSet fetch() is
+                return new ResultSet(this, statement);
+            si
+
+	    void reset() is
 		column_map = null;
 		var result = cast Result(native.sqlite3_reset(statement));
-		if( result != Result.OK ) {
+		if result != Result.OK then
 		    throw new Exception( connection, "reset", result );
-		}
-	    }
+		fi
+	    si
 
-	    void dispose() {
-		if( statement != 0W ) {
+	    void dispose() is
+		if statement != 0W then
 		    native.sqlite3_finalize( statement );
 		    statement = 0W;
-		}
-	    }
-	}
-
+		fi
+	    si
+        si
+    
 	/// a Connection to a SQLite3 database
-	class Connection extends SQL.Connection {
-	    System.String name;
+	class Connection isa SQL.Connection is
+	    String name;
 	    word connection;
 
 	    /// Construct a new SQLite3Connection
 	    /// \param name path to the SQLite3 database file to open
-	    void init( System.String name ) {
+	    void init( String name ) is
+                super.init();
 		this.name = name;
 		open();
-	    }
+	    si
 
 	    /// Internal method. SQLite3Connections are opened when constructed
-	    void open() {
+	    void open() is
 		Pointer t = new Pointer();
 		Result result = cast Result(native.sqlite3_open( name.toCString(), t ));
-		if( result != Result.OK ) {
+		if result != Result.OK then
 		    throw new Exception( t.value, "open: " + name, result );
-		}
+		fi
 		connection = t.value;
-	    }
+	    si
 
-	    void begin() {
+	    void begin() is
 		Statement s = prepare("begin");
 		s.exec();
-	    }
+	    si
 
-	    void commit() {
+	    void commit() is
 		Statement s = prepare("commit");
 		s.exec();
-	    }
+	    si
 
-	    void rollback() {
+	    void rollback() is
 		Statement s = prepare("rollback");
 		s.exec();
-	    }
+	    si
 
-	    Statement prepare( System.String query ) {
+	    Statement prepare( String query ) is
 		Pointer t = new Pointer();
 		Pointer u = new Pointer();
 	    
@@ -226,19 +341,29 @@ namespace SQL {
 								      ) );
 					      
 
-		if( result != Result.OK ) {
+		if result != Result.OK then
 		    throw new Exception( connection, "prepare: " + query, result );
-		}
+		fi
 
 		return new Statement( connection, t.value );
-	    }
+	    si
 
-	    void dispose() {
-		if( connection != 0W ) {
+            ResultSet fetch( String query, Object[] param ) is
+                var s = prepare(query);
+
+                s.bind(param);
+
+                var r = s.fetch();
+                r.DisposeStatement = true;
+                return r;
+            si
+
+	    void dispose() is
+		if connection != 0W then
 		    native.sqlite3_close(connection);
 		    connection = 0W;
-		}
-	    }
-	}
-    }
-}
+		fi
+	    si
+	si
+    si
+si
