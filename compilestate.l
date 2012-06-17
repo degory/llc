@@ -1681,8 +1681,8 @@ namespace Parse {
 
 	    if( !WantLinkLibraries ) {
 		IO.Std.err.println( "Do not link libraries" );
-		v.add( "-L/usr/lang/lib/" + TargetID + "/" );
-		v.add( "-L/usr/lang/lib/" );
+		v.add( "-L" + RealPath(RuntimeDir + TargetID + "/") );
+		v.add( "-L" + RealPath(RuntimeDir));
 
 		// v.add( RuntimeDir + "lrt-llvm-" + RUNTIME_VERSION + ".bc" );
 
@@ -1692,8 +1692,8 @@ namespace Parse {
 
 	    } else {
 		IO.Std.err.println( "Will link libraries" );
-		v.add( "-L/usr/lang/lib/" + TargetID + "/" );
-		v.add( "-L/usr/lang/lib/" );
+		v.add( "-L" + RealPath(RuntimeDir + TargetID + "/"));
+		v.add( "-L" + RealPath(RuntimeDir) );
 
 		if( WantNativeObjectFiles ) {
 		    v.add( RuntimeDir + TargetID + "/lrt-llvm-" + RUNTIME_VERSION + ".o" );
