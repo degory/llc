@@ -1644,8 +1644,8 @@ namespace Parse {
 		}
 	    } else {
 		IO.Std.err.println( "link bitcode object files" );
-		exe = "/usr/local/bin/llvm-ld";
-		v.add( "llvm-ld" );
+		exe = "/usr/bin/llvm-ld-2.9";
+		v.add( "llvm-ld-2.9" );
 
 		if( OptimizeLevel == 0 ) {
 		    IO.Std.err.println( "linking with -disable-opt" );
