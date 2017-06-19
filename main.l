@@ -23,7 +23,7 @@ namespace Parse {
     class Main {
 	void init() {
 	    // native.GC_init();
-	    native.GC_disable();
+	    // native.GC_disable();
 
 	    var args = System.Arguments.ProgramArguments;
 
