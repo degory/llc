@@ -644,6 +644,8 @@ namespace Parse {
 	    }
 	    instance = this;
 
+	    forward_c_types = new Set();
+
 	    ParseTree.initUndefinedSymbols(this);
 
 	    // walk_ = new Util.Walk( proc(Object)(dumpMemory) );
@@ -692,6 +694,16 @@ namespace Parse {
 	    }
 	}
 
+	void addForwardCFunction(String declaration, String definition) {
+	    var s = IO.File.openWrite("forward.c");
+	    s.println(definition);
+	    s.close();
+
+	    s = IO.File.openWrite("forward.h");
+	    s.println(definition);
+	    s.close();
+	}
+
 	void walk( Object o ) {
 	    walk_.walk(o);
 	}
@@ -736,6 +748,7 @@ namespace Parse {
 		addSearchPath( "./" );
 	    }
 
+	    addSearchPath( RuntimeDir + "trusted/new" );
 	    addSearchPath( RuntimeDir + TargetID + "/" );
 	    addSearchPath( RuntimeDir + TargetID + "/trusted/" );
 	    addSearchPath( RuntimeDir + "trusted/" );
@@ -1434,6 +1447,8 @@ namespace Parse {
 		ParseTree.message( "compiling methods..." );
 	    }
 
+	    forwardAllCTypes();
+
             for( i = 0; i < to_compile_list.Length; i = i + 1 ) {
                 p = cast<Package>(to_compile_list[i]);
                 p.compile( this );
@@ -1626,8 +1641,8 @@ namespace Parse {
 		if( !WantNativeExecutable ) {
 		    throw new System.Exception( "cannot link bitcode executable from native object files" );
 		}
-		exe = "gcc";
-		v.add( "gcc" );
+		exe = "clang";
+		v.add( "clang" );
 
 		if( WantLinkLibraries ) {
 		    v.add( RuntimeDir + TargetID + "/trusted/dummy.o" );

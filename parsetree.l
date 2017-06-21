@@ -1598,6 +1598,17 @@ namespace Parse {
 		state.WantBoundsCheck = false;
 	    } else if( n =~ "NoNullCheck" ) {		
 		state.WantNullCheck = false;
+	    } else if( n =~ "Forward" ) {
+		if( state.Pass != CompilePass.DECLARE_SYMBOLS ) {
+		    return;
+                }
+
+		if (state.CurrentMethod == null) {
+		    warn("@Forward but no current method");
+		    return;
+		}
+		
+		state.addForward();
 	    } else if( !warned ) {
 		warn( "ignoring undefined pragma " + name );
 	    }

@@ -212,6 +212,148 @@ namespace Parse {
 	    }
 	}
 
+	private get String CArgsDef {
+	    var result = new StringBuffer();
+
+	    if (IsInstance) {
+		result
+		    .append(Owner.Type.CType)
+		    .append(" __this");
+
+		if (arg_types != null && arg_types.Length > 0) {
+		    result.append(", ");
+		}
+	    }
+
+	    if (arg_types != null) {
+		for (var i = 0; i < arg_types.Length; i = i + 1) {
+		    result
+			.append(arg_types[i].CType)
+		        .append(" p")
+			.append(i);
+
+		    if (i+1 < arg_types.Length) {
+			result.append(", ");
+		    }
+		}
+	    }
+
+	    return result.toString();
+	}
+
+	private get String CArgsUse {
+	    var result = new StringBuffer();
+
+	    if (IsInstance) {
+		result.append("__this");
+
+		if (arg_types != null && arg_types.Length > 0) {
+		    result.append(", ");
+		}
+	    }
+
+	    if (arg_types != null) {
+		for (var i = 0; i < arg_types.Length; i = i + 1) {
+		    result
+		        .append("p")
+			.append(i);
+		    
+		    if (i+1 < arg_types.Length) {
+			result.append(", ");
+		    }
+		}
+	    }
+
+	    return result.toString();
+	}
+
+	private get String CDecoratedExtern {
+	    return new StringBuffer()
+		.append("extern ")
+		.append(Type.CType)
+		.append(" ")
+		.append(DecoratedName)
+		.append("(")
+		.append(CArgsDef)
+		.append(");\n")
+		.toString();
+	}
+
+	private get String CForwardCall {
+	    return new StringBuffer()
+		.append(DecoratedName)
+		.append("(")
+		.append(CArgsUse)
+		.append(");")
+		.toString();
+	}
+
+	private get String CForwardHead {
+	    return new StringBuffer()
+		.append(Type.CType)
+		.append(" ")
+		.append(QualifiedName.replace('.', '_'))
+		.append("(")
+		.append(CArgsDef)
+		.append(")")
+		.toString();
+	}
+
+	get Vector<String> NamedForwardCTypes {
+	    var result = new Vector<String>();
+
+	    if (Type.NeedsNamedCType) {
+		result.add(Type.CType);
+	    }
+
+	    if (arg_types != null) {
+		foreach (var t; arg_types) {
+		    if (t.NeedsNamedCType) {
+			result.add(t.CType);
+		    }
+		}
+	    }
+
+	    return result;
+	}
+
+        get String CForwardDeclaration {
+	    if (this == null) {
+		throw new Exception("this is null");
+	    }
+
+	    if (Name == null) {
+		throw new Exception("Name is null");
+	    }
+
+	    if (DecoratedName == null) {
+		throw new Exception("DecoratedName is null");
+	    }
+
+	    return new StringBuffer()
+		.append("extern ")
+		.append(CForwardHead)
+		.append(";\n")
+		.toString();
+	}
+
+        get String CForwardDefinition {
+	    if (this == null) {
+		throw new Exception("this is null");
+	    }
+
+	    if (Name == null) {
+		throw new Exception("Name is null");
+	    }
+
+	    return new StringBuffer()
+		.append(CDecoratedExtern)
+		.append(CForwardHead)
+		.append(CForwardCall)
+		.append("}\n")
+		.toString();
+	}
+
 	get int NextAnon {
 	    int result = next_anon;
 	    next_anon = next_anon + 1;
@@ -227,6 +369,7 @@ namespace Parse {
 	}
 
 	void addToBodyStatement(Statement s) {
+	    @Forward;
 	    // IO.Std.err.println( "body statement is: " + body_statement );
 	    if( !BodyStatement.contains(s) ) {
 		// IO.Std.err.println( "does not contain: " + s );
@@ -819,6 +962,7 @@ namespace Parse {
 	}
 
 	void addArgument( Type type, Identifier name ) {
+	    @Forward;
 	    if( arg_types == null ) {
 		arg_types = new Vector<Type>();
 	    }

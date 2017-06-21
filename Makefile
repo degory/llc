@@ -147,35 +147,35 @@ lc.bc: $(lc_DEPS)
 	$(LC) -f $(MODEL) $(LFLAGSBC) -o lc -s llvm -lLLVM-2.8 main.l
 
 llvmc.o: llvmc.cpp
-	g++ $(MODEL) `llvm-config --cxxflags` -c llvmc.cpp
+	$(CXX) $(MODEL) `llvm-config --cxxflags` -c llvmc.cpp
 
 llvmc.so: llvmc.cpp
-	g++ $(MODEL) `llvm-config --cxxflags` -fpic -shared llvmc.cpp -o llvmc.so
+	$(CXX) $(MODEL) `llvm-config --cxxflags` -fpic -shared llvmc.cpp -o llvmc.so
 
 dummy.o: dummy.c
-	gcc $(MODEL) -c dummy.c
+	$(CC) $(MODEL) -c dummy.c
 
 lcbc:	$(lc_DEPS) 
 	$(LC) -f $(MODEL) $(LFLAGSBC) -o lcbc -s llvm main.l -o lc
 
 fcgi.o: fcgi.c
-	gcc $(MODEL) -c fcgi.c 
+	$(CC) $(MODEL) -c fcgi.c 
 
 jit.o: jit.cpp
-	g++ $(MODEL) `llvm-config --cxxflags` -c jit.cpp -o jit.o
+	$(CXX) $(MODEL) `llvm-config --cxxflags` -c jit.cpp -o jit.o
 
 lrt-llvm-$(LRT_VERSION).bc: lrt-exception.o lrt-unwind.o lrt-throw.o
 	llvm-ld -disable-opt -o lrt-llvm-$(LRT_VERSION) lrt-exception.o lrt-unwind.o lrt-throw.o
 
 lrt-llvm-$(LRT_VERSION).o: lrt-llvm-$(LRT_VERSION).bc
 	llc lrt-llvm-$(LRT_VERSION).bc
-	gcc -c lrt-llvm-$(LRT_VERSION).s 
+	$(CC) -c lrt-llvm-$(LRT_VERSION).s 
 
 lrt-ithunk-$(LRT_VERSION).o: lrt-ithunk-$(TARGET).s
-	gcc $(MODEL) -c lrt-ithunk-$(TARGET).s -o lrt-ithunk-$(LRT_VERSION).o
+	$(CC) $(MODEL) -c lrt-ithunk-$(TARGET).s -o lrt-ithunk-$(LRT_VERSION).o
 
 lrt-ithunk-$(LRT_VERSION).so: lrt-ithunk-$(LRT_VERSION).o	
-	gcc $(MODEL) -shared lrt-ithunk-$(LRT_VERSION).o -o lrt-ithunk-$(LRT_VERSION).so
+	$(CC) $(MODEL) -shared lrt-ithunk-$(LRT_VERSION).o -o lrt-ithunk-$(LRT_VERSION).so
 
 lrt-exception.o: lrt-exception.c
 	$(LLVM_CC) $(MODEL) $(LRT_CFLAGS) -emit-llvm -c lrt-exception.c

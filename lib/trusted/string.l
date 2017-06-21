@@ -1257,7 +1257,6 @@ namespace System is
 		return append( `<null>` );
 	    fi
 	si
-
 	
 	StringBuffer append( Object o ) is
 	    if o != null then
@@ -1266,7 +1265,6 @@ namespace System is
 		return append( `<null>` );
 	    fi
 	si
-
 
 	StringBuffer copy() is
 	    return new StringBuffer( toCString() );

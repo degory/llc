@@ -352,8 +352,15 @@ namespace Parse {
 		return Owner.HumanName;
 	    }
 	}
-		
 
+        get String QualifiedName {
+	    if( owner == null ) {
+		return Name;
+	    } else {
+		return Owner.QualifiedName + '.' + Name;
+	    }
+        }
+		
         get Parse.SymbolList Scope {
             if( type != null && type.TypeKind == Type.CLASS ) {
                 return type.Scope;
