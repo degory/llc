@@ -1659,8 +1659,8 @@ namespace Parse {
 		}
 	    } else {
 		IO.Std.err.println( "link bitcode object files" );
-		exe = "/usr/local/bin/llvm-ld";
-		v.add( "llvm-ld" );
+		exe = "/usr/bin/llvm-ld-2.9";
+		v.add( "llvm-ld-2.9" );
 
 		if( OptimizeLevel == 0 ) {
 		    IO.Std.err.println( "linking with -disable-opt" );
@@ -1696,8 +1696,8 @@ namespace Parse {
 
 	    if( !WantLinkLibraries ) {
 		IO.Std.err.println( "Do not link libraries" );
-		v.add( "-L/usr/lang/lib/" + TargetID + "/" );
-		v.add( "-L/usr/lang/lib/" );
+		v.add( "-L" + RealPath(RuntimeDir + TargetID + "/") );
+		v.add( "-L" + RealPath(RuntimeDir));
 
 		// v.add( RuntimeDir + "lrt-llvm-" + RUNTIME_VERSION + ".bc" );
 
@@ -1707,8 +1707,8 @@ namespace Parse {
 
 	    } else {
 		IO.Std.err.println( "Will link libraries" );
-		v.add( "-L/usr/lang/lib/" + TargetID + "/" );
-		v.add( "-L/usr/lang/lib/" );
+		v.add( "-L" + RealPath(RuntimeDir + TargetID + "/"));
+		v.add( "-L" + RealPath(RuntimeDir) );
 
 		if( WantNativeObjectFiles ) {
 		    v.add( RuntimeDir + TargetID + "/lrt-llvm-" + RUNTIME_VERSION + ".o" );
