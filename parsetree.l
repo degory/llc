@@ -1599,7 +1599,7 @@ namespace Parse {
 	    } else if( n =~ "NoNullCheck" ) {		
 		state.WantNullCheck = false;
 	    } else if( n =~ "Forward" ) {
-		if( state.Pass != CompilePass.DECLARE_SYMBOLS ) {
+		if( state.Pass != CompilePass.DECLARE_CLASS_SYMBOLS ) {
 		    return;
                 }
 

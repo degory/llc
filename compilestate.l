@@ -464,6 +464,8 @@ namespace Parse {
         Vector<String> visited_files;
 	Vector<String> dependent_files;
 
+	Generic.Set<String> c_forward_structs;
+
 	int active_processes;
 
         int sp;
@@ -638,13 +640,13 @@ namespace Parse {
 	    proc_instances = new Vector<Type>();
 	 
 	    interfaces_set = new Generic.Set<Container>();
+
+	    c_forward_structs = new Generic.Set<String>();
  
 	    if( instance != null ) {
 		IO.Std.err.println( "creating another compiler instance overwrites static values in previous instance" );
 	    }
 	    instance = this;
-
-	    forward_c_types = new Set();
 
 	    ParseTree.initUndefinedSymbols(this);
 
@@ -694,13 +696,15 @@ namespace Parse {
 	    }
 	}
 
-	void addForwardCFunction(String declaration, String definition) {
-	    var s = IO.File.openWrite("forward.c");
-	    s.println(definition);
+	void addForward() {
+	    CurrentMethod.addCForwardStructs(c_forward_structs);
+
+	    var s = IO.File.openAppend("forward.c");
+	    s.println(CurrentMethod.CForwardDefinition);
 	    s.close();
 
-	    s = IO.File.openWrite("forward.h");
-	    s.println(definition);
+	    s = IO.File.openAppend("forward.h");
+	    s.println(CurrentMethod.CForwardDeclaration);
 	    s.close();
 	}
 
@@ -1447,12 +1451,16 @@ namespace Parse {
 		ParseTree.message( "compiling methods..." );
 	    }
 
-	    forwardAllCTypes();
-
             for( i = 0; i < to_compile_list.Length; i = i + 1 ) {
                 p = cast<Package>(to_compile_list[i]);
                 p.compile( this );
             }
+
+	    var s = IO.File.openAppend("forward_types.h");
+	    foreach (var cfs; c_forward_structs) {
+		s.println("struct " + cfs + " {};");
+	    }
+	    s.close();
 
 	    /*
 	    var w = new Util.Walk( proc(Object)(dumpMemory) );
@@ -1659,8 +1667,8 @@ namespace Parse {
 		}
 	    } else {
 		IO.Std.err.println( "link bitcode object files" );
-		exe = "/usr/bin/llvm-ld-2.9";
-		v.add( "llvm-ld-2.9" );
+		exe = "/usr/local/bin/llvm-ld";
+		v.add( "llvm-ld" );
 
 		if( OptimizeLevel == 0 ) {
 		    IO.Std.err.println( "linking with -disable-opt" );

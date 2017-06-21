@@ -393,6 +393,20 @@ namespace Parse {
             dumpDecorate( decorate );
         }
 
+	void addCForwardStructs(Generic.Set<String> c_forward_structs) {
+	    if (type_kind == Type.CLASS || type_kind == Type.STRUCT) {
+		c_forward_structs.add(
+				      c.QualifiedName.replace('.', '_')
+				      );
+	    } else if(
+		      type_kind == Type.VECTOR ||
+		      type_kind == Type.REFERENCE ||
+		      type_kind == Type.POINTER ||
+		      type_kind == Type.PROC) {
+		sub_type.addCForwardStructs(c_forward_structs);
+	    }
+	}
+
 	get String CType {
 	    @Forward;
 	    // IO.Std.err.println( "dumping type to: " + human );
@@ -412,7 +426,7 @@ namespace Parse {
             case Type.CHAR:
 		return "char";
 
-            case Type.INTEGER:
+	    case Type.ENUM, Type.INTEGER:
 		return "int";
 
 	    case Type.WORD:
@@ -422,22 +436,22 @@ namespace Parse {
 		return "long";
 
             case Type.VECTOR:
-		return "*" + sub_type.CType;
+		return sub_type.CType + " *";
 
             case Type.REFERENCE:
-		return "*" + sub_type.CType;
+		return sub_type.CType + " *";
 
             case Type.POINTER:
-		return "*" + sub_type.CType;
+		return sub_type.CType + " *";
 
 	    case Type.PROC:
 		return sub_type.CType + "(*)()";
 
-            case Type.CLASS,Type.STRUCT,Type.ENUM:
-		return "struct " + c.QualifiedName.replace('.', '_');
+            case Type.CLASS,Type.STRUCT:
+		return "struct " + c.QualifiedName.replace('.', '_') + " *";
 
             case Type.STRING:
-		return "System_String";
+		return "System_String *";
 
 	    case Type.INFER:
 		return "undefined";

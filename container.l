@@ -299,24 +299,6 @@ namespace Parse {
 		.toString();
 	}
 
-	get Vector<String> NamedForwardCTypes {
-	    var result = new Vector<String>();
-
-	    if (Type.NeedsNamedCType) {
-		result.add(Type.CType);
-	    }
-
-	    if (arg_types != null) {
-		foreach (var t; arg_types) {
-		    if (t.NeedsNamedCType) {
-			result.add(t.CType);
-		    }
-		}
-	    }
-
-	    return result;
-	}
-
         get String CForwardDeclaration {
 	    if (this == null) {
 		throw new Exception("this is null");
@@ -349,10 +331,24 @@ namespace Parse {
 	    return new StringBuffer()
 		.append(CDecoratedExtern)
 		.append(CForwardHead)
+		.append(" {")
 		.append(CForwardCall)
 		.append("}\n")
 		.toString();
 	}
+
+	void addCForwardStructs(Generic.Set<String> c_forward_structs) {
+	    if (IsInstance) {
+		Type.addCForwardStructs(c_forward_structs);
+	    }
+
+	    if (arg_types != null) {
+		foreach (var t; arg_types) {
+		    t.addCForwardStructs(c_forward_structs);
+		}
+	    }
+	}
+
 
 	get int NextAnon {
 	    int result = next_anon;
