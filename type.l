@@ -381,8 +381,6 @@ namespace Parse {
 	}
 
         void dump( StringBuffer human, StringBuffer decorate ) {
-	    @Forward;
-
 	    if( this == null ) {
 		IO.Std.err.println( "null type: " + new System.Backtrace() );
 		human.append( "NULL TYPE" );
@@ -408,7 +406,6 @@ namespace Parse {
 	}
 
 	get String CType {
-	    @Forward;
 	    // IO.Std.err.println( "dumping type to: " + human );
             switch ( type_kind ) {
             case Type.NONE:
@@ -449,6 +446,62 @@ namespace Parse {
 
             case Type.CLASS,Type.STRUCT:
 		return "struct " + c.QualifiedName.replace('.', '_') + " *";
+
+            case Type.STRING:
+		return "System_String *";
+
+	    case Type.INFER:
+		return "undefined";
+
+            case Type.ERROR:
+                return "undefined";
+
+            default:
+		return "<unknown: " + TypeKind + ">";
+            }	
+	}
+
+	get String CTypeNoClass {
+	    // IO.Std.err.println( "dumping type to: " + human );
+            switch ( type_kind ) {
+            case Type.NONE:
+		return "void";
+                
+            case Type.VOID:
+		return "void";
+
+            case Type.BOOL:
+		return "int";
+
+            case Type.BYTE:
+		return "char";
+
+            case Type.CHAR:
+		return "char";
+
+	    case Type.ENUM, Type.INTEGER:
+		return "int";
+
+	    case Type.WORD:
+		return "long";
+
+	    case Type.LONG:
+		return "long";
+
+            case Type.VECTOR:
+		return sub_type.CType + " *";
+
+            case Type.REFERENCE:
+		return sub_type.CType + " *";
+
+            case Type.POINTER:
+		return sub_type.CType + " *";
+
+	    case Type.PROC:
+		return sub_type.CType + "(*)()";
+
+            case Type.CLASS, Type.STRUCT:
+		return "void *";
 
             case Type.STRING:
 		return "System_String *";

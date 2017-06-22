@@ -241,6 +241,35 @@ namespace Parse {
 	    return result.toString();
 	}
 
+	private get String CArgsDefNoClass {
+	    var result = new StringBuffer();
+
+	    if (IsInstance) {
+		result
+		    .append(Owner.Type.CTypeNoClass)
+		    .append(" __this");
+
+		if (arg_types != null && arg_types.Length > 0) {
+		    result.append(", ");
+		}
+	    }
+
+	    if (arg_types != null) {
+		for (var i = 0; i < arg_types.Length; i = i + 1) {
+		    result
+			.append(arg_types[i].CTypeNoClass)
+		        .append(" p")
+			.append(i);
+
+		    if (i+1 < arg_types.Length) {
+			result.append(", ");
+		    }
+		}
+	    }
+
+	    return result.toString();
+	}
+
 	private get String CArgsUse {
 	    var result = new StringBuffer();
 
@@ -280,7 +309,14 @@ namespace Parse {
 	}
 
 	private get String CForwardCall {
+	    var ret = "";
+
+	    if (Type.TypeKind != Type.VOID) {
+	      ret = "return ";
+            }
+
 	    return new StringBuffer()
+	        .append(ret)
 		.append(DecoratedName)
 		.append("(")
 		.append(CArgsUse)
@@ -295,6 +331,17 @@ namespace Parse {
 		.append(QualifiedName.replace('.', '_'))
 		.append("(")
 		.append(CArgsDef)
+		.append(")")
+		.toString();
+	}
+
+	private get String CForwardHeadNoClass {
+	    return new StringBuffer()
+		.append(Type.CTypeNoClass)
+		.append(" ")
+		.append(QualifiedName.replace('.', '_'))
+		.append("(")
+		.append(CArgsDefNoClass)
 		.append(")")
 		.toString();
 	}
@@ -314,7 +361,7 @@ namespace Parse {
 
 	    return new StringBuffer()
 		.append("extern ")
-		.append(CForwardHead)
+		.append(CForwardHeadNoClass)
 		.append(";\n")
 		.toString();
 	}
@@ -338,8 +385,10 @@ namespace Parse {
 	}
 
 	void addCForwardStructs(Generic.Set<String> c_forward_structs) {
+	    Type.addCForwardStructs(c_forward_structs);
+
 	    if (IsInstance) {
-		Type.addCForwardStructs(c_forward_structs);
+		Owner.Type.addCForwardStructs(c_forward_structs);
 	    }
 
 	    if (arg_types != null) {
@@ -348,7 +397,6 @@ namespace Parse {
 		}
 	    }
 	}
-
 
 	get int NextAnon {
 	    int result = next_anon;
@@ -958,7 +1006,6 @@ namespace Parse {
 	}
 
 	void addArgument( Type type, Identifier name ) {
-	    @Forward;
 	    if( arg_types == null ) {
 		arg_types = new Vector<Type>();
 	    }

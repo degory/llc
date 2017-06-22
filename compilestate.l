@@ -1319,6 +1319,14 @@ namespace Parse {
 
 	    openLibraryInfoFile();
 
+	    IO.File.deleteQuiet( "forward.c" );
+	    IO.File.deleteQuiet( "forward.h" );
+	    IO.File.deleteQuiet( "forward_types.h" );
+
+            var t = IO.File.openCreate("forward.c");
+	    t.println("#include \"forward_types.h\"");
+            t.close();
+
 	    // recursively visit all imported files building parse trees until every
 	    // imported package has been parsed:
 	    Pass = CompilePass.PARSE_IMPORTS;
@@ -1456,7 +1464,7 @@ namespace Parse {
                 p.compile( this );
             }
 
-	    var s = IO.File.openAppend("forward_types.h");
+	    var s = IO.File.openCreate("forward_types.h");
 	    foreach (var cfs; c_forward_structs) {
 		s.println("struct " + cfs + " {};");
 	    }
@@ -1649,8 +1657,8 @@ namespace Parse {
 		if( !WantNativeExecutable ) {
 		    throw new System.Exception( "cannot link bitcode executable from native object files" );
 		}
-		exe = "clang";
-		v.add( "clang" );
+		exe = "gcc";
+		v.add( "gcc" );
 
 		if( WantLinkLibraries ) {
 		    v.add( RuntimeDir + TargetID + "/trusted/dummy.o" );
