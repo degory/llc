@@ -1,0 +1,7 @@
+#WANT_LINKSOLIB:=1
+#WANT_NATIVEOBJS:=1
+#JOBS:=4
+PATH:=/usr/local/sbin:/usr/lib/llvm-2.8/bin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games
+export LLVM_CC=/usr/lib/llvm-2.8/gcc-4.2/bin/llvm-gcc
+export LLVM_CXX=/usr/lib/llvm-2.8/gcc-4.2/bin/llvm-g++
+
