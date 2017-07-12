@@ -111,6 +111,12 @@ namespace Generic is
 	    init( INITIAL_LENGTH );
 	si
 
+	void init(Iterable<T> values) is
+	    init();
+
+	    add(values);
+	si
+
 	get int Length is
 	    return _length;
 	si

@@ -165,18 +165,22 @@ namespace System is
 	    return new String( getClassNameC() );
 	si
 
-	/// Return a human readable string representing this Object
-	get String AsString is
-	    @Virtual;
+        static String dump(Object o) is
 	    StringBuffer result;
 	    int i;
 	    result = new StringBuffer();
-	    result.append( getClassNameC() );
+	    result.append( o.getClassNameC() );
 	    // result = new StringBuffer( getClassNameC() );
 	    result.append( ` @` );
-	    result.append( hash(), 16 );
+	    result.append( o.hash(), 16 );
 	
 	    return result;
+	si
+
+	/// Return a human readable string representing this Object
+	get String AsString is
+	    @Virtual;	    
+            return Object.dump(this);
 	si
 
 	String toString() is
