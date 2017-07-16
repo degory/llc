@@ -189,17 +189,20 @@ lrt-throw.o: lrt-throw.cpp
 bootstrap:
 	rm -r ./bs1 || true
 	$(MAKE) clean
-	$(MAKE) install PREFIX=./bs1 NOSAFE=1	
+	$(MAKE) install PREFIX=./bs1 NOSAFE=1
+	[ -f bs1/bin/lc ]
 	rm -r ./bs2 || true
 	$(MAKE) clean
 	$(MAKE) install LC=./bs1/bin/lc RUNTIME=./bs1/lib/lang PREFIX=./bs2 NOSAFE=1
+	[ -f bs2/bin/lc ]
 	rm -r ./bs3 || true
 	$(MAKE) clean
 	$(MAKE) install LC=./bs2/bin/lc RUNTIME=./bs2/lib/lang PREFIX=./bs3 NOSAFE=1
+	[ -f bs3/bin/lc ]
 	rm -r ./bs4 || true
 	$(MAKE) clean
-	$(MAKE) install LC=./bs3/bin/lc RUNTIME=./bs3/lib/lang PREFIX=./bs4 NOSAFE=1	
-	diff -r bs3 bs4
+	$(MAKE) install LC=./bs3/bin/lc RUNTIME=./bs3/lib/lang PREFIX=./bs4 NOSAFE=1
+	[ -f bs4/bin/lc ]
 
 syntaxl.l: syntax-l.jay skeleton-l
 	jay/jay -v syntax-l.jay <skeleton-l >syntaxl.l
