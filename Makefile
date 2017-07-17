@@ -83,6 +83,8 @@ CP_FLAGS:=-u -v -p --preserve=timestamps
 
 all: $(INSTALL_OBJS)
 
+install-objs: $(INSTALL_OBJS)
+
 install: $(INSTALL_OBJS)
 	echo "Installing in $(PREFIX)/"
 	echo "Target is $(TARGET)"
