@@ -21,7 +21,7 @@ ifeq ($(JOB_NAME),)
 endif
 
 ifeq ($(PROJECT),)
-	PROJECT:=$JOB_NAME
+	PROJECT:=$(JOB_NAME)
 endif
 
 ifeq ($(RUNTIME),)
