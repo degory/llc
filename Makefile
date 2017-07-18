@@ -16,8 +16,12 @@ else
 	TARGET:=linux-x86-64
 endif
 
+ifeq ($(JOB_NAME),)
+	JOB_NAME=llc-master-ci
+endif
+
 ifeq ($(PROJECT),)
-	PROJECT:=compiler
+	PROJECT:=$JOB_NAME
 endif
 
 ifeq ($(RUNTIME),)
@@ -116,7 +120,7 @@ lc.zip: $(INSTALL_OBJS)
 clean:
 	rm $(CLEAN) || true
 
-lc.d:	operation.l syntaxl.l syntaxk.l
+lc.d:	syntaxl.l syntaxk.l
 	$(LC) $(MODEL) $(LFLAGS) -D -p test -o lc -s llvm main.l
 
 lang.d:
@@ -211,11 +215,5 @@ syntaxl.l: syntax-l.jay skeleton-l
 
 syntaxk.l: syntax-k.jay skeleton-k
 	jay/jay -v syntax-k.jay <skeleton-k >syntaxk.l
-
-printtermg: printtermg.l
-	lc -FN printtermg.l
-
-operation.l: ops printtermg
-	./printtermg <ops
 
 
