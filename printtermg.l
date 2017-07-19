@@ -179,24 +179,15 @@ namespace PrintTerm {
 		    // size 4, op + 6
 		    // size 8, op + 7
 
-                    IO.Std.err.println( "trying 0..." );
                     s0_3a = list[i];
-                    IO.Std.err.println( "trying 1..." );
                     s1_3a = list[i+1];
-		    IO.Std.err.println( "trying 2..." );
 		    s4_3a = list[i+2];
-		    IO.Std.err.println( "trying 3..." );
 		    s8_3a = list[i+3];
 
-                    IO.Std.err.println( "trying 4..." );
                     s0_2a = list[i+4];
-                    IO.Std.err.println( "trying 5..." );
                     s1_2a = list[i+5];
-                    IO.Std.err.println( "trying 6..." );
                     s4_2a = list[i+6];
-                    IO.Std.err.println( "done" );
                     s8_2a = list[i+7];
-                    IO.Std.err.println( "done" );
                 } catch( Generic.VectorException ve ) {
                     IO.Std.err.println( "caught: " + ve );
                 }
@@ -208,92 +199,61 @@ namespace PrintTerm {
 
                 bool have_2a = s0_3a != null || s1_2a != null || s4_2a != null || s8_2a != null;
 
-                IO.Std.err.println( "have 1: " + have_size_1 );
-                IO.Std.err.println( "have 4: " + have_size_4 );
-                IO.Std.err.println( "have 8: " + have_size_8 );
-                IO.Std.err.println( "have 2a: " + have_2a );
-
-		IO.Std.err.println( "s0_3a: " + s0_3a );
-		IO.Std.err.println( "s0_2a: " + s0_2a );
-                IO.Std.err.println( "s1_3a: " + s1_3a );
-                IO.Std.err.println( "s1_2a: " + s1_2a );
-                IO.Std.err.println( "s4_3a: " + s4_3a );
-                IO.Std.err.println( "s4_2a: " + s4_2a );
-                IO.Std.err.println( "s8_3a: " + s8_3a );
-                IO.Std.err.println( "s8_2a: " + s8_2a );
-
                 if( have_size_0 || have_size_1 || have_size_4 || have_size_8 ) {
-                    IO.Std.err.println( "have 0 or 1 or 4 or 8\n" );
 
 		    if( have_size_0 ) {
-                        IO.Std.err.println( "0: have 0: " + s0_3a + " and " + s0_2a );
                         oout.println( "        " + s0_3a.name + " = " + (s0_3a.op & ~3)+ "," );
                         if( s0_2a != null ) {
-                            IO.Std.err.println( "0: have 2a: " + s0_2a );
                             oout.println( "        " + s0_3a.name + s0_3a.address + " = " + (s0_3a.op & ~3) + "," );
                             oout.println( "        " + s0_2a.name + s0_2a.address + " = " + (s0_2a.op & ~3)+ "," );
                         }
                     } else if( have_size_1 ) {
-                        IO.Std.err.println( "1: have 1: " + s1_3a );
                         oout.println( "        " + s1_3a.name + " = " + (s1_3a.op & ~3)  + "," );
                         if( s1_2a != null ) {
-                            IO.Std.err.println( "1: have 2a: " + s1_2a );
                             oout.println( "        " + s1_3a.name + s1_3a.address + " = " + (s1_3a.op & ~3) + "," );
                             oout.println( "        " + s1_2a.name + s1_2a.address + " = " + (s1_2a.op & ~3) + "," );
                         }
 		    } else if( have_size_4 ) {
-                        IO.Std.err.println( "4: have 4: " + s4_3a );
                         oout.println( "        " + s4_3a.name + " = " + (s4_3a.op & ~3)+ "," );
                         if( s4_2a != null ) {
-                            IO.Std.err.println( "4: have 2a:" + s4_2a );
                             oout.println( "        " + s4_3a.name + s4_3a.address + " = " + (s4_3a.op & ~3) + "," );
                             oout.println( "        " + s4_2a.name + s4_2a.address + " = " + (s4_2a.op & ~3)+ "," );
                         }
 		    } else if( have_size_8 ) {
-			IO.Std.err.println( "have 8: " + s8_3a );
 			oout.println( "        " + s8_3a.name + " = " + s8_3a.op + "," );
 			if( s8_2a != null ) {
-			    IO.Std.err.println( "8: have 2a:" + s8_2a );
 			    oout.println( "        " + s8_3a.name + s8_3a.address + " = " + s8_3a.op + "," );
 			    oout.println( "        " + s8_2a.name + s8_2a.address + " = " + s8_2a.op + "," );
 			}
                     }
 
 		    if( have_size_0 ) {
-			IO.Std.err.println( "have 0..." );
 			oout.println( "        " + s0_3a.name + "_0 = " + s0_3a.op + "," );
 			if( s0_2a != null ) {
-			    IO.Std.err.println( "have 2a..." );
 			    oout.println( "        " + s0_3a.name + s0_3a.address + "_0 = " + s0_3a.op + "," );
 			    oout.println( "        " + s0_2a.name + s0_2a.address + "_0 = " + s0_2a.op + "," );
 			}
 		    }
 
                     if( have_size_1 ) {
-                        IO.Std.err.println( "2: have 1..." );
                         oout.println( "        " + s1_3a.name + "_1 = " + s1_3a.op + "," );
                         if( s1_2a != null ) {
-                            IO.Std.err.println( "2: have 2a..." );
                             oout.println( "        " + s1_3a.name + s1_3a.address + "_1 = " + s1_3a.op + "," );
                             oout.println( "        " + s1_2a.name + s1_2a.address + "_1 = " + s1_2a.op + "," );
                         }
                     }
 
                     if( have_size_4 ) {
-                        IO.Std.err.println( "2: have 4..." );                   
                         oout.println( "        " + s4_3a.name + "_4 = " + s4_3a.op + "," );
                         if( s4_2a != null ) {
-                            IO.Std.err.println( "2: have 2a..." );
                             oout.println( "        " + s4_3a.name + s4_3a.address + "_4 = " + s4_3a.op + "," );
                             oout.println( "        " + s4_2a.name + s4_2a.address + "_4 = " + s4_2a.op + "," );
                         }
                     }
 
 		    if( have_size_8 ) {
-			IO.Std.err.println( "have 8..." );
 			oout.println( "        " + s8_3a.name + "_8 = " + s8_3a.op + "," );
 			if( s8_2a != null ) {
-			    IO.Std.err.println( "have 2a..." );
 			    oout.println( "        " + s8_3a.name + s8_3a.address + "_8 = " + s8_3a.op + "," );
 			    oout.println( "        " + s8_2a.name + s8_2a.address + "_8 = " + s8_2a.op + "," );
 			}
