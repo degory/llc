@@ -116,15 +116,15 @@ lc.zip: $(INSTALL_OBJS)
 clean:
 	rm $(CLEAN) || true
 
-lc.d:	operation.l syntaxl.l syntaxk.l
-	$(LC) $(MODEL) $(LFLAGS) -D -p test -o lc -s llvm main.l
+# lc.d:	operation.l syntaxl.l syntaxk.l
+#	$(LC) $(MODEL) $(LFLAGS) -D -p test -o lc -s llvm main.l
 
-lang.d:
-	$(LC) $(MODEL) $(LFLAGS) -D -u $(RUNTIME)/trusted/liblang.l $(RUNTIME)/trusted/gstd.l -o lang
+# lang.d:
+#	$(LC) $(MODEL) $(LFLAGS) -D -u $(RUNTIME)/trusted/liblang.l $(RUNTIME)/trusted/gstd.l -o lang
 
-include lc.d
+# include lc.d
 
-include lang.d
+# include lang.d
 
 # build bitcode + shared library with names that will not match what lc links against by default to
 # prevent accidentally linking compiler against wrong library
@@ -213,7 +213,7 @@ syntaxk.l: syntax-k.jay skeleton-k
 	jay/jay -v syntax-k.jay <skeleton-k >syntaxk.l
 
 printtermg: printtermg.l
-	lc -FN printtermg.l
+	$(LC) -p $(PROJECT) -FN printtermg.l
 
 operation.l: ops printtermg
 	./printtermg <ops
