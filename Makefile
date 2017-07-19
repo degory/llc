@@ -116,15 +116,20 @@ lc.zip: $(INSTALL_OBJS)
 clean:
 	rm $(CLEAN) || true
 
-# lc.d:	operation.l syntaxl.l syntaxk.l
-#	$(LC) $(MODEL) $(LFLAGS) -D -p test -o lc -s llvm main.l
+ifneq ($(MAKECMDGOALS),clean)
 
-# lang.d:
-#	$(LC) $(MODEL) $(LFLAGS) -D -u $(RUNTIME)/trusted/liblang.l $(RUNTIME)/trusted/gstd.l -o lang
+lc.d:	operation.l syntaxl.l syntaxk.l
+	$(LC) $(MODEL) $(LFLAGS) -D -p test -o lc -s llvm main.l
 
-# include lc.d
+lang.d:
+	$(LC) $(MODEL) $(LFLAGS) -D -u $(RUNTIME)/trusted/liblang.l $(RUNTIME)/trusted/gstd.l -o lang
 
-# include lang.d
+include lc.d
+
+include lang.d
+
+endif
+
 
 # build bitcode + shared library with names that will not match what lc links against by default to
 # prevent accidentally linking compiler against wrong library

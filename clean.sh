@@ -9,4 +9,6 @@ if [ -d /tmp/lcache-$PROJECT ]; then
     rm -rf /tmp/lcache-$PROJECT
 fi
 
+mkdir /tmp/lcache-$PROJECT
+
 make clean
