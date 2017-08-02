@@ -1,0 +1,12 @@
+FROM ghul-base:latest
+RUN apt-get update
+RUN apt-get -y install strace
+
+COPY llc /usr/local/bin
+COPY llvm-ld /usr/local/bin/
+COPY libgc.so.1.0.3 /usr/lib/
+RUN ln -fs /usr/lib/libgc.so.1.0.3 /usr/lib/libgc.so 
+RUN ln -fs /usr/lib/libgc.so.1.0.3 /usr/lib/libgc.so.1
+
+COPY ../../lc.zip /tmp
+RUN cd /tmp ; mkdir t ; cd  t; unzip ../lc.zip ; cp -av * /usr/

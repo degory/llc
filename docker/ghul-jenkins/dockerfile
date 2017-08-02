@@ -1,0 +1,19 @@
+FROM ghul-llc:latest
+RUN apt-get update
+# RUN apt-get install -y openssh-server nfs-common
+RUN mkdir /var/run/sshd
+RUN chmod 0755 /var/run/sshd
+
+RUN groupadd jenkins -g 117
+RUN useradd jenkins -u 111 -g 117 -m -d /var/lib/jenkins -s /bin/bash
+RUN mkdir /var/lib/jenkins/workspace
+VOLUME /var/lib/jenkins/workspace
+RUN mkdir /var/lib/jenkins/.ssh
+COPY authorized_keys /var/lib/jenkins/.ssh/authorized_keys
+# RUN chmod 600 /var/lib/jenkins/.ssh/authorized_keys
+RUN chmod 700 /var/lib/jenkins/.ssh
+RUN chown -R jenkins:jenkins /var/lib/jenkins
+RUN echo "jenkins ALL=(ALL) ALL" >>/etc/sudoers
+EXPOSE 22
+CMD ["/usr/sbin/sshd","-D"]
+

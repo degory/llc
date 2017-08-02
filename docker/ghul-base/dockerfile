@@ -1,0 +1,5 @@
+FROM ubuntu:10.04
+COPY sources.list /etc/apt/
+
+RUN apt-get update
+RUN apt-get -y install llvm-2.8-dev llvm-gcc-4.2 zip unzip git g++ libgc-dev libfcgi-dev
