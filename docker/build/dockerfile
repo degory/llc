@@ -1,6 +1,5 @@
-FROM ghul-llc:latest
+FROM docker.giantblob.com/llc:latest
 RUN apt-get update
-# RUN apt-get install -y openssh-server nfs-common
 RUN mkdir /var/run/sshd
 RUN chmod 0755 /var/run/sshd
 
@@ -14,6 +13,5 @@ COPY authorized_keys /var/lib/jenkins/.ssh/authorized_keys
 RUN chmod 700 /var/lib/jenkins/.ssh
 RUN chown -R jenkins:jenkins /var/lib/jenkins
 RUN echo "jenkins ALL=(ALL) ALL" >>/etc/sudoers
-EXPOSE 22
-CMD ["/usr/sbin/sshd","-D"]
+
 
