@@ -5,10 +5,9 @@
 import args;
 import stream;
 
-import buildnumber;
-
 import compiler;
 import compilestate;
+// import mtree;
 
 import gc;
 
@@ -40,6 +39,8 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
+	const int BUILD = 1300;
+
 	CompileState state;
 
 	set String ExecutableName = name {
@@ -461,7 +462,7 @@ namespace Parse {
 		    options.append( "splitbound " );
 		}		
 
-		IO.Std.err.println( "build: " + BuildNumber.BUILD );
+		IO.Std.err.println( "build: " + BUILD );
 		IO.Std.err.println( "options: " + options );
 		IO.Std.err.println( "output executable: " + state.ExecutableName );
 	    }
@@ -557,7 +558,7 @@ namespace Parse {
         }
 
 	void usage( String name ) {
-	    IO.Std.out.println( "L-compiler build " + BuildNumber.BUILD + " (C) 2004-2017 <degs@l-lang.com>" );
+	    IO.Std.out.println( "L-compiler build " + BUILD + " (C) 2004-2017 <degs@l-lang.com>" );
 	    IO.Std.out.println( "    host: " + System.Environment.NAME );
 	    IO.Std.out.println( "    target: " + Gen.Machine.NAME );
 	    IO.Std.out.println( "    cache: " + CompileState.Instance.CacheDir );
