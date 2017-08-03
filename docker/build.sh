@@ -5,7 +5,11 @@ if [ -z "$1" ]; then
 fi
 
 if [ -z "$BUILD_NUMBER" ]; then
-    docker build $1 -t docker.giantblob.com/$1:test docker.giantblob.com/$1:latest
+    echo "Building test version of $1..."
+    
+    docker build $1 -t docker.giantblob.com/$1:test -t docker.giantblob.com/$1:latest
+    docker push docker.giantblob.com/$1:test
+    docker push docker.giantblob.com/$1:latest    
 else
     echo "Building version $BUILD_NUMBER of $1..."
     

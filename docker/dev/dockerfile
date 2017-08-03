@@ -1,0 +1,9 @@
+FROM docker.giantblob.com/llc:latest
+RUN groupadd dev -g 1002
+RUN useradd dev -u 1026 -g 1002 -m -s /bin/bash
+RUN mkdir /home/dev/source
+RUN chown dev:dev /home/dev/source
+VOLUME /home/dev/source
+
+
+
