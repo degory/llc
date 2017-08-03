@@ -39,7 +39,7 @@ namespace Parse {
     }
 
     class Compiler extends System.Compiler {
-	const int BUILD = 1268;
+	const int BUILD = 1300;
 
 	CompileState state;
 
@@ -558,7 +558,7 @@ namespace Parse {
         }
 
 	void usage( String name ) {
-	    IO.Std.out.println( "L-compiler build " + BUILD + " (C) 2004-2011 <degs@l-lang.com>" );
+	    IO.Std.out.println( "L-compiler build " + BUILD + " (C) 2004-2017 <degs@l-lang.com>" );
 	    IO.Std.out.println( "    host: " + System.Environment.NAME );
 	    IO.Std.out.println( "    target: " + Gen.Machine.NAME );
 	    IO.Std.out.println( "    cache: " + CompileState.Instance.CacheDir );
