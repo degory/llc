@@ -46,6 +46,8 @@ namespace Parse {
 	set String ExecutableName = name {
 	    if( name.endsWith(".l") ) {
 		name = name.substring(0, name.Length-2);
+	    } else if( name.endsWith(".lo") ) {
+		name = name.substring(0, name.Length-3);
 	    }
 
 	    state.ExecutableName = name;

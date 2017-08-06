@@ -1854,7 +1854,7 @@ namespace Parse {
 		    s = s + '/';
 		}
 
-		if( name.endsWith(".l") || name.endsWith(".lh") ) {
+		if( name.endsWith(".l") || name.endsWith(".lo") || name.endsWith(".lh") ) {
 		    // IO.Std.err.println( "l or lh extension, try open '" + name + "' directly" );
 		    in = tryOpen( s, name, "" );
 		    if( in != null ) {
@@ -1869,15 +1869,14 @@ namespace Parse {
 			file_name = name;
 			break;
 		    }
-		    /*
-		    IO.Std.err.println( "other extension, try open '" + name + "' + '.ll'" );
 
-		    in = tryOpen( s, name, ".lh" );
+		    // IO.Std.err.println( "other extension, try open '" + name + "' + '.ll'" );
+
+		    in = tryOpen( s, name, ".lo" );
 		    if( in != null ) {
 			file_name = name;
 			break;
 		    }
-		    */
 		}
             }
 
