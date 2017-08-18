@@ -16,10 +16,14 @@ namespace Generic is
     use System.String;
     use System.StringBuffer;
 
+	interface Removable<K> is
+		remove(K key);
+	si
+
     /// Iterates over a Map<K,V> and returns each Pair<K,V> comprising the map in turn. Returns values in no particular order 
     /// \param K the key type
     /// \param V the value type
-    class MapIterator<K,V> do Iterator<Pair<K,V>> is
+    class MapIterator<K,V> do Iterator<Pair<K,V>>, Removable<K> is
 	Map<K,V> _map;            // the Map we're iterating over
 	LinkedListIterator<MapPair<K,V>> _j;   // iterator over the current hash chain
 	MapPair<K,V> _next; // the map value that we will return as nextElement()	
