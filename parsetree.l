@@ -1566,7 +1566,17 @@ namespace Parse {
 		    if( !warned ) {
 			warn( "force " + message + " for remaining classes in this file" );
 		    }
+                }
+            } else if( n =~ "Visitor" ) {              
+		if( state.Pass == CompilePass.CHECK_TEMPLATES ) {
+		    // current method not set in this pass so cannot apply pragma now:
+		    return;
 		}
+
+                if( state.CurrentClass != null ) {
+		    IO.Std.err.println( "emit visitor: "+ state.CurrentClass.HumanName + ", pass: " + cast int(state.Pass) );
+                }
+ 
 	    } else if( n =~ "Virtual" ) {
 		if( state.Pass == CompilePass.CHECK_TEMPLATES ) {
 		    // current method not set in this pass so cannot apply pragma now:

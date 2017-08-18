@@ -16,14 +16,14 @@ namespace Generic is
     use System.String;
     use System.StringBuffer;
 
-	interface Removable<K> is
-		remove(K key);
+	interface Deletable<K> is
+	    void delete(K key);
 	si
 
     /// Iterates over a Map<K,V> and returns each Pair<K,V> comprising the map in turn. Returns values in no particular order 
     /// \param K the key type
     /// \param V the value type
-    class MapIterator<K,V> do Iterator<Pair<K,V>>, Removable<K> is
+    class MapIterator<K,V> do Iterator<Pair<K,V>> is
 	Map<K,V> _map;            // the Map we're iterating over
 	LinkedListIterator<MapPair<K,V>> _j;   // iterator over the current hash chain
 	MapPair<K,V> _next; // the map value that we will return as nextElement()	
@@ -165,7 +165,7 @@ namespace Generic is
     /// An associative array implemented as a hash table. 
     /// \param K type of keys in the Map. K must implement int hash() method and =~ operator (bool opEquals(K)). 
     /// \param V type of values in the Map.
-    class Map<K,V> do Dict<K,V> is
+    class Map<K,V> do Dict<K,V>, Deletable<K> is
 	public ListNode<MapPair<K,V>>[] _values;
 
 	/// Construct a new Map
@@ -249,7 +249,11 @@ namespace Generic is
 	    else
 		return match.value;
 	    fi
-	si
+        si
+
+        void delete( K key ) is
+            remove(key);
+        si
 
 	/// Remove and value associated with key from the Map if it is present, otherwise return V.none
 	/// \param key key to remove
