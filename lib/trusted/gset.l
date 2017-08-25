@@ -29,6 +29,12 @@ namespace Generic is
 	    init( 1021 );
 	si
 
+        void init(Iterable<T> o) is
+            init();
+
+            add(o);
+        si
+
 	/// Get the number of values in this Set
 	get int Length is
 	    return _map.Length;
