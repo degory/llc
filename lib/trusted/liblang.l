@@ -13,3 +13,8 @@ import coroutine;
 import generator;
 import time;
 import logger;
+
+// for ghul
+namespace Ghul is
+
+si
