@@ -528,7 +528,6 @@ namespace Parse {
 	    }
 
 	    if( Owner.IsInterface ) {
-		IO.Std.err.println( "do not call interface method " + HumanName + " as final" );
 		return false;
 	    }
 	    
@@ -2119,7 +2118,7 @@ namespace Parse {
                             if( t != null ) {
                                 ancestor = t;
 				if( ancestor.ForceVirtual && !ForceVirtual ) {
-				    IO.Std.err.println( "oops: force virtual should already have propogated from " + ancestor.HumanName + " to " + current.HumanName );
+				    body_statement.warn("force virtual should already have propogated from " + ancestor.HumanName + " to " + current.HumanName );
 				    ForceVirtual = true;
 				}
 
