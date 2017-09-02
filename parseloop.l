@@ -412,7 +412,6 @@ namespace Parse {
 	    
 	    if( iterator_call.Quality != null ) {
 		wrapped_expr = iterator_call;
-		IO.Std.err.println( "wrapped expression with .Iterator: " + wrapped_expr );
 
 		return true;
 	    }

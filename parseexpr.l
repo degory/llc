@@ -116,7 +116,6 @@ namespace Parse {
 			var box_ident = new Identifier(line_number, "box");
 			box_ident.qualifies(e);
 			e = box_ident;
-			IO.Std.err.println( "boxed expr is: " + e );
 		    }
 		}
 
@@ -2873,7 +2872,7 @@ namespace Parse {
 	    var vtable = makeLoadVTable(state, c);
 	    var args = { LLVM.Calls.LLVMConstTypeSizeIndirect(st), vtable };
 
-	    IO.Std.err.println( "DDDDDDDD: oops: call or invoke in dynamic proc ref thunk: need to check if callee implements interface method" );
+	    warn("this will fail if target method implements an interface");
 	    var o = callOrInvoke( state, into, f, args );
 
 	    // IO.Std.err.print( "call to alloc object is: " ); IO.Std.err.flush();
