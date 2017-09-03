@@ -1470,15 +1470,29 @@ namespace Parse {
             markError();
         }
 
+        get String reporting_file_name {
+            if (file_name.endsWith(".lo")) {
+                var result = file_name.substring(0, file_name.Length - 3);
+
+                var index = result.lastIndexOf('.');
+
+                result = result.substring(0, index + 1) + "ghul";
+
+                return result;
+            } else {
+                return file_name;                
+            }
+        }
+
         void error( String msg ) {
             newline(); 
-            IO.Std.err.println( file_name + ": " + line_number + ",0.." + (line_number + 1) + ",0: error: " + msg + TemplateErrorString );
+            IO.Std.err.println( reporting_file_name + ": " + line_number + ",0.." + (line_number + 1) + ",0: error: " + msg + TemplateErrorString );
             errors_occurred = true;
         }
 
         void warn( String msg ) {
             newline();
-            IO.Std.err.println( file_name + ": " + line_number + ",0.." + (line_number + 1) + ",0: warn: " + msg + TemplateErrorString );
+            IO.Std.err.println( reporting_file_name + ": " + line_number + ",0.." + (line_number + 1) + ",0: warn: " + msg + TemplateErrorString );
         }
 
         public const int VTABLE_FIXED_SIZE = 3;
