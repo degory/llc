@@ -3,7 +3,9 @@ namespace System is
     use IO.Std;
 
     class Coroutine is
-    	const int DEFAULT_STACK_SIZE = 32 * 1024;
+        pragma NoWarnUnsafe;
+
+        const int DEFAULT_STACK_SIZE = 32 * 1024;
         
         // FIXME: not thread safe:
         static Coroutine _current;
@@ -17,15 +19,15 @@ namespace System is
         native void GC_capture_current_sp();
         native void GC_clear_current_sp();
 
-	void init(int stack_size) is
+        void init(int stack_size) is
             _context = __alloc_ucontext(this, stack_size);
             // _caller = Current;
-	si
+        si
 
-	void init() is
+        void init() is
             _context = __alloc_ucontext(this, DEFAULT_STACK_SIZE);
             // _caller = Current;
-	si
+        si
 
         void __coroutine_entry() is
             try
@@ -33,17 +35,17 @@ namespace System is
                 if _caller != null then
                     call_(_caller);
                 fi
-	    catch System.Exception se
+            catch System.Exception se
                 native.printf( `uncaught exception %s in coroutine\n`, se.Class.Name.toCString() );
                 native.printf( `\t%s\n`, se.Message.toCString() );
                 native.printf( `%s\n`, se.Backtrace.toCString() );
                 native.__flush_stdout();	    
- 	    yrt
+             yrt
         si
 
-	void run() is
-	    @Virtual;
-	si
+        void run() is
+            @Virtual;
+        si
 
 /*
         static void call(Coroutine callee) is
@@ -54,7 +56,7 @@ namespace System is
             Current.call_(this);
         si
 
-	void call_(Coroutine callee) is
+        void call_(Coroutine callee) is
             callee._current = this;
 
             if is_root then               
@@ -76,7 +78,7 @@ namespace System is
                 // call into root coroutine: clear stack top
                 GC_clear_current_sp();
             fi
-	si
+        si
   
         get Coroutine Caller is
             return _caller;
