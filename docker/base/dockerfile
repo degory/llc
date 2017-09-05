@@ -1,5 +1,12 @@
 FROM ubuntu:10.04
+
+COPY sources.list /etc/apt/
+
+RUN apt-get update && \
+    apt-get -y install llvm-2.8-dev llvm-gcc-4.2 zip unzip git g++ libgc-dev libfcgi-dev
+
 COPY fixuid /usr/local/bin
+
 RUN USER=docker && \
     GROUP=docker && \
     chown root:root /usr/local/bin/fixuid && \
@@ -9,8 +16,3 @@ RUN USER=docker && \
 
 RUN addgroup --gid 1000 docker && \
     adduser --uid 1000 --ingroup docker --home /home/docker --shell /bin/sh --disabled-password --gecos "" docker
-
-COPY sources.list /etc/apt/
-
-RUN apt-get update && \
-    apt-get -y install llvm-2.8-dev llvm-gcc-4.2 zip unzip git g++ libgc-dev libfcgi-dev
