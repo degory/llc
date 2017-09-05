@@ -1,6 +1,4 @@
 FROM docker.giantblob.com/base:latest
-RUN apt-get update
-RUN apt-get -y install strace
 
 COPY llc /usr/local/bin
 COPY llvm-ld /usr/local/bin/

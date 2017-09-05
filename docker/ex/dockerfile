@@ -1,5 +1,5 @@
 FROM docker.giantblob.com/llc:latest
-USER docker:docker
+USER dev:dev
 ENTRYPOINT ["fixuid"]
 
 
