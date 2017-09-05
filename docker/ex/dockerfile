@@ -1,0 +1,8 @@
+FROM docker.giantblob.com/llc:latest
+USER docker:docker
+ENTRYPOINT ["fixuid"]
+
+
+
+
+

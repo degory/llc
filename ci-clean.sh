@@ -1,2 +1,2 @@
 #!/bin/bash
-docker run -v `pwd`:/home/dev/source/ -w /home/dev/source --user dev -it docker.giantblob.com/dev /bin/bash -c "make clean"
+docker run -v `pwd`:/home/dev/source/ -w /home/dev/source -u --user docker -u `id -u`:`id -g` -it docker.giantblob.com/ex /bin/bash -c "make clean"
