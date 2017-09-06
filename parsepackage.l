@@ -121,7 +121,7 @@ namespace Parse {
 
                 IO.Writer o = null;
 
-                o = IO.File.openCreate( s );
+                o = IO.File.openCreateQuiet( s );
 
                 if (o == null) {
                     IO.Std.out.println( "could not output to: '" + s + "'" );
