@@ -14,7 +14,7 @@ namespace Parse {
     class Package extends ParseTree {
         Statement body;
         SymbolList sl;
-	bool is_trusted;
+        bool is_trusted;
         
         void init( int line_number, Statement body ) {
             super.init(line_number);
@@ -25,10 +25,10 @@ namespace Parse {
 
         void parseImports( CompileState state ) {
             state.beginPackage( file_name, null );
-	    setFileName();
+            setFileName();
 
-	    is_trusted = state.isSourceFileTrusted( file_name );
-	    state.setTrusted( is_trusted );
+            is_trusted = state.isSourceFileTrusted( file_name );
+            state.setTrusted( is_trusted );
 
             body.parseImports( state );
             state.endPackage();
@@ -36,38 +36,38 @@ namespace Parse {
                
         void declareGlobalSymbols( CompileState state ) {
             state.beginPackage( file_name, null );
-	    setFileName();
-	    state.setTrusted( is_trusted );
+            setFileName();
+            state.setTrusted( is_trusted );
             
             body.declareGlobalSymbols( state );
             state.endPackage();
         }
 
-	void useTypes( CompileState state ) {
+        void useTypes( CompileState state ) {
             state.beginPackage( file_name, null );
-	    setFileName();
-	    state.setTrusted( is_trusted );
+            setFileName();
+            state.setTrusted( is_trusted );
 
-	    body.useTypes( state );
+            body.useTypes( state );
 
-	    state.endPackage();
-	}
+            state.endPackage();
+        }
 
-	void checkTemplates( CompileState state ) {
-	    // IO.Std.err.println( "check templates for source file: " + file_name );
-	    state.beginPackage( file_name, null );
-	    setFileName();
-	    state.setTrusted( is_trusted );            
+        void checkTemplates( CompileState state ) {
+            // IO.Std.err.println( "check templates for source file: " + file_name );
+            state.beginPackage( file_name, null );
+            setFileName();
+            state.setTrusted( is_trusted );            
 
-	    body.checkTemplates( state );
-	    state.endPackage();
-	}
+            body.checkTemplates( state );
+            state.endPackage();
+        }
         
         void declareClassSymbols( CompileState state ) {
             state.beginPackage( file_name, null );
 
-	    setFileName();            
-	    state.setTrusted( is_trusted );
+            setFileName();            
+            state.setTrusted( is_trusted );
             
             body.declareClassSymbols( state );
             state.endPackage();
@@ -75,57 +75,68 @@ namespace Parse {
 
         void declareSymbols( CompileState state ) {
             state.beginPackage( file_name, null );
-	    setFileName();
-	    state.setTrusted( is_trusted );
+            setFileName();
+            state.setTrusted( is_trusted );
 
             body.declareSymbols( state );
             state.endPackage();
         }
 
-	void compile( CompileState state ) {
-	    // var temp_factory = new TempFactory( TempFactory.CurrentTemp, 0 );
-	    // var worker = new CompileWork( state, this, temp_factory );
-	    // state.submit( worker );
+        void compile( CompileState state ) {
+            // var temp_factory = new TempFactory( TempFactory.CurrentTemp, 0 );
+            // var worker = new CompileWork( state, this, temp_factory );
+            // state.submit( worker );
 
-	    compile2( state );
-	}
+            compile2( state );
+        }
         
         void compile2( CompileState state ) {
-	    // IO.Std.err.println( ">>> " + file_name );
-	    // IO.Std.err.println( "compile package: " + file_name );
+            // IO.Std.err.println( ">>> " + file_name );
+            // IO.Std.err.println( "compile package: " + file_name );
 
             state.beginPackage( file_name, null );
-	    setFileName();
-	    state.setTrusted( is_trusted );
+            setFileName();
+            state.setTrusted( is_trusted );
 
             body.compile( state );            
 
-	    print( state );
+            print( state );
             state.endPackage();	    
-	    // IO.Std.err.println( "<<< " + file_name );
+            // IO.Std.err.println( "<<< " + file_name );
 
-	    // state.walk( this );
+            // state.walk( this );
         }
 
-	void print( CompileState state ) {
-	    if( state.WantPrint ) {
-		int from = file_name.lastIndexOf('/');
-		if( from < 0 ) {
-		    from = 0;
-		}
-		String s = state.CacheDir + file_name.substring( from, file_name.Length-2 ) + ".h";
-		IO.Std.out.println( "would output to: '" + s + "'" );
+        void print( CompileState state ) {
+            if( state.WantPrint ) {
+                /*
+                int from = file_name.lastIndexOf('/');
+                if( from < 0 ) {
+                    from = 0;
+                }
+                String s = state.CacheDir + file_name.substring( from, file_name.Length-2 ) + ".ghul";
+                */
 
-		IO.Writer o = IO.File.openCreate( s );
+                String s = file_name.substring( 0, file_name.Length-2 ) + ".ghul";
 
-		Printer p = new Printer( o );
-		pl(p);
+                IO.Writer o = null;
 
-		body.print( state, p );
+                o = IO.File.openCreate( s );
 
-		o.close();
-	    }
-	}
+                if (o == null) {
+                    IO.Std.out.println( "could not output to: '" + s + "'" );
+                    return;
+                }
+                    
+                Printer p = new Printer( o );
+                pl(p);
+
+                body.print( state, p );
+
+                o.close();
+                    
+            }
+        }
     }
 
     class NameSpace extends Statement {
@@ -147,37 +158,37 @@ namespace Parse {
             // this.qualified_name = name.getHumanName( state );
             n = state.declareNameSpace( name, name.Name );
             state.enterNameSpace( n );
-	    state.UseList = use_list;
+            state.UseList = use_list;
             if( body != null ) {
                 body.declareGlobalSymbols( state );
             }
             state.exitNameSpace( n );
         }
 
-	void useTypes( CompileState state ) {
+        void useTypes( CompileState state ) {
             // this.qualified_name = name.getHumanName( state );
             n = state.declareNameSpace( name, name.Name );
             state.enterNameSpace( n );
-	    state.UseList = use_list;
+            state.UseList = use_list;
             if( body != null ) {
                 body.useTypes( state );
             }
             state.exitNameSpace( n );
-	}
+        }
 
-	void checkTemplates( CompileState state ) {
+        void checkTemplates( CompileState state ) {
             state.enterNameSpace( n );
-	    state.UseList = use_list;
+            state.UseList = use_list;
             if( body != null ) {
                 body.checkTemplates( state );
             }
-	    
+            
             state.exitNameSpace( n );
-	}
+        }
 
         void declareClassSymbols( CompileState state ) {
             state.enterNameSpace( n );
-	    state.UseList = use_list;
+            state.UseList = use_list;
             if( body != null ) {
                 body.declareClassSymbols( state );
             }
@@ -186,7 +197,7 @@ namespace Parse {
 
         void declareSymbols( CompileState state ) {
             state.enterNameSpace( n );
-	    state.UseList = use_list;
+            state.UseList = use_list;
             if( body != null ) {
                 body.declareSymbols( state );
             }
@@ -195,25 +206,31 @@ namespace Parse {
 
         void compile( CompileState state ) {
             state.enterNameSpace( n );
-	    state.UseList = use_list;
+            state.UseList = use_list;
             if( body != null ) {
                 body.compile( state );
             }
             state.exitNameSpace( n );
         }
 
-	void print( CompileState state, Printer p ) {
-	    pl(p);
+        void print( CompileState state, Printer p ) {
+            if( body != null ) {
+                pl(p);
+                p.nl();
 
-	    p.nl();
-	    p.print( "namespace " );
-	    name.print( state, p );
-	    p.println( " {" );
-	    p.indent();
-	    body.print( state, p );
-	    p.outdent();
-	    p.println( "}" );
-	}
+                p.print( "namespace " );
+
+                name.print( state, p );
+
+                p.println( " is" );
+
+                p.indent();
+
+                body.print( state, p );
+                p.outdent();
+                p.println( "si" );
+            }
+        }
 
         String toString() {
             StringBuffer result = new StringBuffer();
@@ -221,7 +238,7 @@ namespace Parse {
             result.append( name );
             result.append( body );
 
-	    return result;
+            return result;
         }
     }
 
@@ -236,9 +253,9 @@ namespace Parse {
         void declareGlobalSymbols( CompileState state ) {
         }
 
-	void useTypes( CompileState state ) {
+        void useTypes( CompileState state ) {
             // Symbol symbol = state.findSymbol( name.getName() );
-	    // do not report errors, search only for types:
+            // do not report errors, search only for types:
             Symbol symbol = name.getSymbol(state,false,Symbol.FIND_TYPE);
             if( symbol == null ) {
                 error( "cannot find type or namespace " + name.Name );
@@ -247,10 +264,10 @@ namespace Parse {
             } else {
                 state.useNameSpace( this, cast<Container>(symbol) );
             }
-	}
+        }
 
-	void checkTemplates( CompileState state ) {
-	}
+        void checkTemplates( CompileState state ) {
+        }
 
         void declareSymbols( CompileState state ) {
         }
@@ -258,14 +275,14 @@ namespace Parse {
         void compile( CompileState state ) {
         }
 
-	void print( CompileState state, Printer p ) {
-	    pl(p);
+        void print( CompileState state, Printer p ) {
+            pl(p);
 
-	    p.nl();
-	    p.print( "using " );
-	   
-	    name.print( state, p );
-	    p.println( ";" );
-	}
+            p.nl();
+            p.print( "use " );
+           
+            name.print( state, p );
+            p.println( ";" );
+        }
     }
 }

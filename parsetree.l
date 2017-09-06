@@ -52,6 +52,7 @@ namespace Parse {
         bool in_elif;
         bool one_line;
         bool no_semi_colon;
+        bool in_class;
         
         void init( IO.Writer out ) {
             this.out = out;
@@ -98,6 +99,14 @@ namespace Parse {
 
         void setNoSemiColon( bool v ) {
             no_semi_colon = v;
+        }
+
+        get bool InClass {
+            return in_class;
+        }
+
+        set bool InClass = value {
+            in_class = value;
         }
 
         void print( Object o ) {
@@ -148,7 +157,7 @@ namespace Parse {
             if( comment != null ) {
                 // IO.Std.out.println( "CCCCCC: output comment: " + comment );
 
-                out.print( comment );
+                print( comment );
                 first = comment.endsWith('\n');
             }
         }

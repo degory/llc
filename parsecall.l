@@ -32,34 +32,34 @@ namespace Parse {
             this.arguments = arguments;
         }
 
-	void clear( CompileState state ) {
-	    super.clear( state );
-	    left.clear( state );
-	    if( argument != null ) {
-		argument.clear( state );
-	    }
-	    if( arguments != null ) {
-		arguments.clear( state );
-	    }
-	    method = null;
-	}
+        void clear( CompileState state ) {
+            super.clear( state );
+            left.clear( state );
+            if( argument != null ) {
+                argument.clear( state );
+            }
+            if( arguments != null ) {
+                arguments.clear( state );
+            }
+            method = null;
+        }
 
 
-	void checkTemplates( CompileState state ) {
-	    super.checkTemplates( state );
+        void checkTemplates( CompileState state ) {
+            super.checkTemplates( state );
 
-	    if( argument != null ) {
-		argument.checkTemplates( state );
-		// ensure generic array template is instantiated:
-		new VectorType( line_number, left ).checkTemplates(state);
-	    } else {
-		left.checkTemplates( state );
-	    }
+            if( argument != null ) {
+                argument.checkTemplates( state );
+                // ensure generic array template is instantiated:
+                new VectorType( line_number, left ).checkTemplates(state);
+            } else {
+                left.checkTemplates( state );
+            }
 
-	    if( arguments != null ) {
-		arguments.checkTemplates( state );
-	    }
-	}
+            if( arguments != null ) {
+                arguments.checkTemplates( state );
+            }
+        }
 
 
         void calcType( CompileState state ) {
@@ -106,156 +106,156 @@ namespace Parse {
             Container class_symbol = null;
             Type t = getType(state);
 
-	    if( t == undefined_type ) {
-		return ErrorValue();
-	    }
+            if( t == undefined_type ) {
+                return ErrorValue();
+            }
 
-	    RuntimeFunction op;
+            RuntimeFunction op;
 
-	    LLVM.Value v;
-	    LLVM.Value f;
-	    LLVM.Value function;
-	    LLVM.Value size;
-	    LLVM.Value vtable;
-	    LLVM.Value[] args;
+            LLVM.Value v;
+            LLVM.Value f;
+            LLVM.Value function;
+            LLVM.Value size;
+            LLVM.Value vtable;
+            LLVM.Value[] args;
 
             if( t.TypeKind == Type.VECTOR ) {
-		/*
+                /*
                 Type st = t.SubType;
-		if( st.isReference() ) {
-		    op = RuntimeFunction.ALLOC_REF_ARRAY;
-		} else {
-		    // IO.Std.err.println( "new non reference array for: " + st );
-		    op = RuntimeFunction.ALLOC_ARRAY;
-		}
+                if( st.isReference() ) {
+                    op = RuntimeFunction.ALLOC_REF_ARRAY;
+                } else {
+                    // IO.Std.err.println( "new non reference array for: " + st );
+                    op = RuntimeFunction.ALLOC_ARRAY;
+                }
 
-		Container c = t.getBoxType(state).Clazz;
-		f = state.getRuntimeFunction( op );
+                Container c = t.getBoxType(state).Clazz;
+                f = state.getRuntimeFunction( op );
 
-		size = argument.compileValue( state, into );
-		vtable = makeLoadVTable( state, c );
+                size = argument.compileValue( state, into );
+                vtable = makeLoadVTable( state, c );
 
-		IO.Std.err.print( "new array function: " ); IO.Std.err.flush();
-		LLVM.Calls.LLVMDumpValue( f );
+                IO.Std.err.print( "new array function: " ); IO.Std.err.flush();
+                LLVM.Calls.LLVMDumpValue( f );
 
-		IO.Std.err.print( "new size: " ); IO.Std.err.flush();
-		LLVM.Calls.LLVMDumpValue( size );
+                IO.Std.err.print( "new size: " ); IO.Std.err.flush();
+                LLVM.Calls.LLVMDumpValue( size );
 
-		IO.Std.err.print( "new vtable: " ); IO.Std.err.flush();
-		LLVM.Calls.LLVMDumpValue( vtable );
+                IO.Std.err.print( "new vtable: " ); IO.Std.err.flush();
+                LLVM.Calls.LLVMDumpValue( vtable );
 
-		IO.Std.err.print( "new sub type: " ); IO.Std.err.flush();
-		LLVM.Calls.LLVMDumpType( st.getLLVMType(state) );
+                IO.Std.err.print( "new sub type: " ); IO.Std.err.flush();
+                LLVM.Calls.LLVMDumpType( st.getLLVMType(state) );
 
-		// PointerType on type here as ConstTypeSize will strip off one level of pointer and compute size of pointed to type:
-		args = { size, LLVM.Calls.LLVMConstTypeSize(st.getLLVMType(state)), vtable };
+                // PointerType on type here as ConstTypeSize will strip off one level of pointer and compute size of pointed to type:
+                args = { size, LLVM.Calls.LLVMConstTypeSize(st.getLLVMType(state)), vtable };
 
-		v = callOrInvoke( state, into, f, args );
+                v = callOrInvoke( state, into, f, args );
 
-		return into.PointerCast( v, getType(state).getLLVMType(state) );
-		*/
-		return makeAllocateArray( state, into, t, argument.compileValue(state,into) );
+                return into.PointerCast( v, getType(state).getLLVMType(state) );
+                */
+                return makeAllocateArray( state, into, t, argument.compileValue(state,into) );
             } else if( t.TypeKind == Type.CLASS ) {
                 // int temp = TempFactory.nextTemp();
 
                 class_symbol = getType(state).Clazz;
 
-		op = RuntimeFunction.ALLOC_OBJECT;
+                op = RuntimeFunction.ALLOC_OBJECT;
 
-		if( class_symbol.IsStruct ) {
-		    vtable = LLVM.Calls.LLVMConstPointerNull(LLVM.Calls.LLVMVTableType());
-		} else {
-		    vtable = makeLoadVTable( state, class_symbol );
+                if( class_symbol.IsStruct ) {
+                    vtable = LLVM.Calls.LLVMConstPointerNull(LLVM.Calls.LLVMVTableType());
+                } else {
+                    vtable = makeLoadVTable( state, class_symbol );
 
-		    // new ITree( line_number, Op.GLOBAL, Machine.WORD, 
+                    // new ITree( line_number, Op.GLOBAL, Machine.WORD, 
 
-		    // does this class override Object.finalize()? If so need to register it's 
-		    // finalizer with the garbage collector:
+                    // does this class override Object.finalize()? If so need to register it's 
+                    // finalizer with the garbage collector:
 
-		    Quality q = new Quality();
-		    Container m = class_symbol.findBestMethod( "dispose", new Vector<Type>(), q );
+                    Quality q = new Quality();
+                    Container m = class_symbol.findBestMethod( "dispose", new Vector<Type>(), q );
 
-		    if( m != null && m.Owner != object_type.Clazz ) {
-			// dispose method found and it's not Object.dispose() - need to register finalizer
-			op = RuntimeFunction.ALLOC_OBJECT_FINALIZE;
-		    }
-		}
-		
-		f = state.getRuntimeFunction( op );
-		/*
-		IO.Std.err.println( "about to emit call __alloc_object" ); IO.Std.err.flush();
-		LLVM.Calls.LLVMDumpValue(f);
-		*/
+                    if( m != null && m.Owner != object_type.Clazz ) {
+                        // dispose method found and it's not Object.dispose() - need to register finalizer
+                        op = RuntimeFunction.ALLOC_OBJECT_FINALIZE;
+                    }
+                }
+                
+                f = state.getRuntimeFunction( op );
+                /*
+                IO.Std.err.println( "about to emit call __alloc_object" ); IO.Std.err.flush();
+                LLVM.Calls.LLVMDumpValue(f);
+                */
 
-		// no PointerType on type here as class is already a pointer type and we want size of pointed to struct here:
-		args = { LLVM.Calls.LLVMConstTypeSizeIndirect(getType(state).getLLVMType(state)), vtable };
+                // no PointerType on type here as class is already a pointer type and we want size of pointed to struct here:
+                args = { LLVM.Calls.LLVMConstTypeSizeIndirect(getType(state).getLLVMType(state)), vtable };
 
-		/*
-		IO.Std.err.println( "args are:\n" ); IO.Std.err.flush();
-		LLVM.Calls.LLVMDumpValue(args[0]);
-		LLVM.Calls.LLVMDumpValue(args[1]);	       
-		*/
+                /*
+                IO.Std.err.println( "args are:\n" ); IO.Std.err.flush();
+                LLVM.Calls.LLVMDumpValue(args[0]);
+                LLVM.Calls.LLVMDumpValue(args[1]);	       
+                */
 
-		v = callOrInvoke( state, into, f, args );
-		v = into.PointerCast( v, getType(state).getLLVMType(state) );
-				
-		args = ExpressionList.compilePush( arguments,
-						   state,
-						   v,
-						   method.Owner.Type,
-						   method.ArgTypes,
-						   into,
-						   true,
-						   false );
-		
-		// message( "constructor call does not require interface calling convention: " + method.HumanName );
-		compileCall( state, into, null, Op.STATIC_CALL_DISCARD, method, method.DecoratedName, 0, null, args );
-		// addDummyExceptionHandlerJump( state, line_number, into );
-		    //} else {
-		    // IO.Std.err.println( "not calling empty constructor " + method.HumanName + " (" + method.DecoratedName + ")" );
-		    // }
+                v = callOrInvoke( state, into, f, args );
+                v = into.PointerCast( v, getType(state).getLLVMType(state) );
+                                
+                args = ExpressionList.compilePush( arguments,
+                                                   state,
+                                                   v,
+                                                   method.Owner.Type,
+                                                   method.ArgTypes,
+                                                   into,
+                                                   true,
+                                                   false );
+                
+                // message( "constructor call does not require interface calling convention: " + method.HumanName );
+                compileCall( state, into, null, Op.STATIC_CALL_DISCARD, method, method.DecoratedName, 0, null, args );
+                // addDummyExceptionHandlerJump( state, line_number, into );
+                    //} else {
+                    // IO.Std.err.println( "not calling empty constructor " + method.HumanName + " (" + method.DecoratedName + ")" );
+                    // }
 
-		return v; 
+                return v; 
             } else {
                 if( type != undefined_type ) {
                     error( "cannot new type " + type.dump() + " (K" + getType( state ).TypeKind + ")" );
                 } else {
-		    error( "cannot new undefined type" );
+                    error( "cannot new undefined type" );
                     // IO.Std.err.println( "newing undefined type" );
                 }
-		return ErrorValue( getType(state).getLLVMType(state) );
+                return ErrorValue( getType(state).getLLVMType(state) );
             }
         }
 
-	get int Depth {
-	    if( argument != null ) {
-		return argument.Depth + 1;
-	    } else if( arguments != null ) {
-		return arguments.Depth + 1;
-	    } else {
-		return 1;
-	    }
-	}
+        get int Depth {
+            if( argument != null ) {
+                return argument.Depth + 1;
+            } else if( arguments != null ) {
+                return arguments.Depth + 1;
+            } else {
+                return 1;
+            }
+        }
 
-	void print( CompileState state, Printer p ) {
-	    pl(p);
+        void print( CompileState state, Printer p ) {
+            pl(p);
 
-	    p.print( "new " );
-	    left.print( state, p );
-	    if( argument != null ) {
-		p.print( "[" );
-		argument.print( state, p );
-		p.print( "]" );
-	    } else {
-		p.print( "(" );
-		if( arguments != null /* && arguments.Length > 0 */ ) {
-		    p.print( " " );
-		    arguments.print( state, p );
-		    p.print( " " );
-		}
-		p.print( ")" );
-	    }
-	}
+            p.print( "new " );
+            left.print( state, p );
+            if( argument != null ) {
+                p.print( "[" );
+                argument.print( state, p );
+                p.print( "]" );
+            } else {
+                p.print( "(" );
+                if( arguments != null /* && arguments.Length > 0 */ ) {
+                    p.print( " " );
+                    arguments.print( state, p );
+                    p.print( " " );
+                }
+                p.print( ")" );
+            }
+        }
     }
 
 
@@ -264,13 +264,13 @@ namespace Parse {
         Identifier name;
         ExpressionList arguments;
 
-	/*
-	static String[] pointer_return = {
-	    "alloco",
-	    "__get_argv",
-	    "__get_envp"
-	};
-	*/
+        /*
+        static String[] pointer_return = {
+            "alloco",
+            "__get_argv",
+            "__get_envp"
+        };
+        */
 
         void init( int line_number, Identifier name, ExpressionList arguments ) {
             super.init( line_number );
@@ -280,115 +280,115 @@ namespace Parse {
 
         void calcType( CompileState state ) {
 
-	    type = new Type( Type.POINTER, new Type( Type.BYTE ) );
-	    /*
+            type = new Type( Type.POINTER, new Type( Type.BYTE ) );
+            /*
 
-	    String n = name.getName();
-	    for( int i = 0; i < pointer_return.length; i = i + 1 ) {
-		if( n.equals( pointer_return[i] ) ) {
-		    type = new Type( Type.POINTER, new Type( Type.BYTE ) );			
-		    return;
-		}
-	    }
+            String n = name.getName();
+            for( int i = 0; i < pointer_return.length; i = i + 1 ) {
+                if( n.equals( pointer_return[i] ) ) {
+                    type = new Type( Type.POINTER, new Type( Type.BYTE ) );			
+                    return;
+                }
+            }
 
-	    type = new Type( Type.INTEGER );
-	    */
+            type = new Type( Type.INTEGER );
+            */
         }
 
-	void clear( CompileState state ) {
-	    if( arguments != null ) {
-		arguments.clear( state );
-	    }
-	}
-	
-	void checkTemplates( CompileState state ) {
-	    if( arguments != null ) {
-		arguments.checkTemplates( state );
-	    }
-	}
+        void clear( CompileState state ) {
+            if( arguments != null ) {
+                arguments.clear( state );
+            }
+        }
+        
+        void checkTemplates( CompileState state ) {
+            if( arguments != null ) {
+                arguments.checkTemplates( state );
+            }
+        }
 
-	LLVM.Value getFunction( CompileState state ) {
-	    LLVM.Value v;
-	    LLVM.Type ft;
+        LLVM.Value getFunction( CompileState state ) {
+            LLVM.Value v;
+            LLVM.Type ft;
 
-	    char ptr n = name.Name.toCString();
+            char ptr n = name.Name.toCString();
 
-	    v = LLVM.Calls.LLVMGetNamedFunction(state.Module, n );
-	    if( v == null ) {
-		var args = new LLVM.Type[0];
-		ft = LLVM.Calls.LLVMFunctionType( LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type() ,0), args.address, 0, 1 );
+            v = LLVM.Calls.LLVMGetNamedFunction(state.Module, n );
+            if( v == null ) {
+                var args = new LLVM.Type[0];
+                ft = LLVM.Calls.LLVMFunctionType( LLVM.Calls.LLVMPointerType(LLVM.Calls.LLVMInt8Type() ,0), args.address, 0, 1 );
 
-		v = LLVM.Calls.LLVMAddFunction(state.Module, n, ft);
+                v = LLVM.Calls.LLVMAddFunction(state.Module, n, ft);
 
-		/*
-		IO.Std.err.print( "NNNN: added native function: " ); IO.Std.err.flush();
-		LLVM.Calls.LLVMDumpValue( v );
+                /*
+                IO.Std.err.print( "NNNN: added native function: " ); IO.Std.err.flush();
+                LLVM.Calls.LLVMDumpValue( v );
 
-		IO.Std.err.print( "NNNN: added function type: " ); IO.Std.err.flush();
-		LLVM.Calls.LLVMDumpType( ft );
-		*/
-	    } else {
-		/*
-		IO.Std.err.print( "NNNN: existing native function: " ); IO.Std.err.flush();
-		LLVM.Calls.LLVMDumpValue( v );
+                IO.Std.err.print( "NNNN: added function type: " ); IO.Std.err.flush();
+                LLVM.Calls.LLVMDumpType( ft );
+                */
+            } else {
+                /*
+                IO.Std.err.print( "NNNN: existing native function: " ); IO.Std.err.flush();
+                LLVM.Calls.LLVMDumpValue( v );
 
-		ft = LLVM.Calls.LLVMTypeOf(v);
+                ft = LLVM.Calls.LLVMTypeOf(v);
 
-		IO.Std.err.print( "NNNN: existing function type: " ); IO.Std.err.flush();
-		LLVM.Calls.LLVMDumpType( ft );
-		*/
-	    }
+                IO.Std.err.print( "NNNN: existing function type: " ); IO.Std.err.flush();
+                LLVM.Calls.LLVMDumpType( ft );
+                */
+            }
 
-	    return v;
-	}
+            return v;
+        }
 
 
         LLVM.Value compileValue( CompileState state, IRBlock into ) {
-	    // IO.Std.err.println( "call native function for value: " + name.getName() );
+            // IO.Std.err.println( "call native function for value: " + name.getName() );
 
-	    if( type == undefined_type ) {
-		return ErrorValue();
-	    }
+            if( type == undefined_type ) {
+                return ErrorValue();
+            }
             
-	    if( state.WantMarkUnsafe ) {
-		state.markCodeUnsafe( CompileState.UNSAFE_NATIVE );
-	    }
+            if( state.WantMarkUnsafe ) {
+                state.markCodeUnsafe( CompileState.UNSAFE_NATIVE );
+            }
             if( state.WantWarnUnsafe ) {
                 warn( "calling native function " + name.Name );
             }
             
-	    var arg_values = ExpressionList.compilePush( arguments, state, null, null, null, into, false, true );
-	    var function = getFunction( state );
+            var arg_values = ExpressionList.compilePush( arguments, state, null, null, null, into, false, true );
+            var function = getFunction( state );
 
-	    addDummyExceptionHandlerJump( state, line_number, into );
-	    return callOrInvoke( state, into, function, arg_values );
+            addDummyExceptionHandlerJump( state, line_number, into );
+            return callOrInvoke( state, into, function, arg_values );
         }
 
         void compileDiscardValue( CompileState state, IRBlock into ) {
-	    compileValue( state, into );
-	}
+            compileValue( state, into );
+        }
 
-	get int Depth {
-	    if( arguments != null ) {
-		return arguments.Depth + 1;
-	    } else {
-		return 1;
-	    }
-	}
+        get int Depth {
+            if( arguments != null ) {
+                return arguments.Depth + 1;
+            } else {
+                return 1;
+            }
+        }
 
-	void print( CompileState state, Printer p ) {
-	    pl(p);
+        void print( CompileState state, Printer p ) {
+            pl(p);
 
-	    p.print( "native." );
-	    name.print( state, p );
-	    p.print( "(" );
-	    if( arguments != null ) {
-		p.print( " " );
-		arguments.print( state, p );
-		p.print( " " );
-	    }
-	    p.print( ")" );	   
-	}
+            p.print( "native." );
+            name.print( state, p );
+            p.print( "(" );
+            if( arguments != null ) {
+                p.print( " " );
+                arguments.print( state, p );
+                p.print( " " );
+            }
+            p.print( ")" );	   
+        }
     }
 
 
@@ -397,23 +397,23 @@ namespace Parse {
         // Identifier name;
         ExpressionList arguments;
         Container method;
-	bool compare_operation;
-	bool not_result;
-	bool super_call;
-	Quality quality;
-	MethodCall method_call;
-	Type proc_type;
+        bool compare_operation;
+        bool not_result;
+        bool super_call;
+        Quality quality;
+        MethodCall method_call;
+        Type proc_type;
 
         void init( int line_number, Expression left_value, Identifier name, ExpressionList args ) {
             super.init( line_number );
             this.method = null;
             this.arguments = args;
             // this.name = name;
-	    
-	    if( left_value != null ) {
-		// FIXME: sense of qualifies is probably backwards...
-		name.qualifies( left_value );
-	    }
+            
+            if( left_value != null ) {
+                // FIXME: sense of qualifies is probably backwards...
+                name.qualifies( left_value );
+            }
 
             this.left_value = name;
         }
@@ -425,173 +425,173 @@ namespace Parse {
             this.left_value = left_value;
         }
 
-	void clear( CompileState state ) {
-	    // IO.Std.err.println( "method call clear: " + name );
-	    super.clear( state );
-	    method = null;
-	    compare_operation = false;
-	    not_result = false;
-	    super_call = false;
-	    method_call = null;
-	    proc_type = null;
+        void clear( CompileState state ) {
+            // IO.Std.err.println( "method call clear: " + name );
+            super.clear( state );
+            method = null;
+            compare_operation = false;
+            not_result = false;
+            super_call = false;
+            method_call = null;
+            proc_type = null;
 
-	    /*
-	    if( name != null ) {
-		name.clear( state );
-	    }
-	    */
+            /*
+            if( name != null ) {
+                name.clear( state );
+            }
+            */
 
-	    if( left_value != null ) {
-		left_value.clear( state );
-	    }
+            if( left_value != null ) {
+                left_value.clear( state );
+            }
 
-	    if( arguments != null ) {
-		arguments.clear( state );
-	    }
+            if( arguments != null ) {
+                arguments.clear( state );
+            }
 
-	    quality = null;
-	}
-
-	void checkTemplates( CompileState state ) {
-	    /*
-	    if( name != null ) {
-		name.checkTemplates( state );
-	    }
-	    */
-
-	    if( left_value != null ) {
-		left_value.checkTemplates( state );
-	    }
-
-	    if( arguments != null ) {
-		arguments.checkTemplates( state );
-	    }
-	}
-
-        bool isSuperConstructorCall( CompileState state ) {
-	    // sort out mess that is left_value/qualifies...
-	    var name = cast Identifier(left_value);
-	    var left_value = name.LeftValue;
-	    
-	    if( name.Name =~ "init" && (left_value == null || left_value.isThis( state ) || left_value.isSuper( state )) ) {
-		return true;
-	    } else {
-		/*
-		IO.Std.err.println( "is init call, name: " + name + ": NO" );
-		if( left_value != null ) {
-		    IO.Std.err.println( "left value: " + left_value + " is " + left_value.ClassName );
-		    IO.Std.err.println( "is this: " + left_value.isThis(state) );
-		    IO.Std.err.println( "is super: " + left_value.isSuper(state) );
-		} else {
-		    IO.Std.err.println( "no left value" );
-		}
-		*/
-		return false;
-	    }
+            quality = null;
         }
 
-	get bool IsEmpty {
-	    bool result = isSuperConstructorCall( CompileState.Instance );
+        void checkTemplates( CompileState state ) {
+            /*
+            if( name != null ) {
+                name.checkTemplates( state );
+            }
+            */
 
-	    return result;
-	}
+            if( left_value != null ) {
+                left_value.checkTemplates( state );
+            }
 
-	void setIsCompareOperation( bool c ) {
-	    compare_operation = c;
-	}
+            if( arguments != null ) {
+                arguments.checkTemplates( state );
+            }
+        }
 
-	void setNotResult( bool nr ) {
-	    not_result = nr;
-	}
+        bool isSuperConstructorCall( CompileState state ) {
+            // sort out mess that is left_value/qualifies...
+            var name = cast Identifier(left_value);
+            var left_value = name.LeftValue;
+            
+            if( name.Name =~ "init" && (left_value == null || left_value.isThis( state ) || left_value.isSuper( state )) ) {
+                return true;
+            } else {
+                /*
+                IO.Std.err.println( "is init call, name: " + name + ": NO" );
+                if( left_value != null ) {
+                    IO.Std.err.println( "left value: " + left_value + " is " + left_value.ClassName );
+                    IO.Std.err.println( "is this: " + left_value.isThis(state) );
+                    IO.Std.err.println( "is super: " + left_value.isSuper(state) );
+                } else {
+                    IO.Std.err.println( "no left value" );
+                }
+                */
+                return false;
+            }
+        }
 
-	get Quality Quality {
-	    // get previously calculated overload match quality - for ArithExpression
-	    return quality;
-	}
+        get bool IsEmpty {
+            bool result = isSuperConstructorCall( CompileState.Instance );
 
-	get Type Type {
-	    // get previously calculated type - for ArithExpression
-	    return type;
-	}
+            return result;
+        }
 
-	void calcType( CompileState state ) {
-	    calcType( state, false );
-	}
+        void setIsCompareOperation( bool c ) {
+            compare_operation = c;
+        }
 
-	void calcType( CompileState state, bool quiet ) {
-	    if( left_value == null ) {
-		IO.Std.err.println( "left value is null: " + this );
-	    }
-	   
-	    // quiet => internally constructed method call and hence cannot be a proc reference
-	    // otherwise check if left value refers to a method identifier (rather than a proc reference
-	    // or some other kind of symbol):
-	    if( quiet || left_value.isSuper(state) || left_value.isMethod(state) || left_value.isThis(state) ) {
-		calcTypeNormal( state, quiet );
-	    } else {
-		calcTypeProcReference( state );
-	    }
-	}
+        void setNotResult( bool nr ) {
+            not_result = nr;
+        }
 
-	void addHiddenArgTypes( Vector<Type> ref arg_types, Container method ) {
-	    if( method.ArgTypes.Length > 0 ) {
-		if( arg_types == null ) {
-		    arg_types = new Vector<Type>();
-		}
+        get Quality Quality {
+            // get previously calculated overload match quality - for ArithExpression
+            return quality;
+        }
 
-		while( arg_types.Length < method.ArgTypes.Length ) {
-		    IO.Std.err.println( "add hidden argument type: " + method.ArgTypes[arg_types.Length] );
-		    arg_types.add( method.ArgTypes[arg_types.Length] );
-		}
-	    }
-	}
+        get Type Type {
+            // get previously calculated type - for ArithExpression
+            return type;
+        }
 
-	void addHiddenArguments( ExpressionList ref args, Container method ) {
-	    int mal = 0;
-	    if( method.ArgTypes != null ) {
-		mal = method.ArgTypes.Length;
-	    }
+        void calcType( CompileState state ) {
+            calcType( state, false );
+        }
 
-	    if( mal == 0 ) {
-		IO.Std.err.println( "method " + method.HumanName + " expects no arguments" );
-		return;
-	    }
+        void calcType( CompileState state, bool quiet ) {
+            if( left_value == null ) {
+                IO.Std.err.println( "left value is null: " + this );
+            }
+           
+            // quiet => internally constructed method call and hence cannot be a proc reference
+            // otherwise check if left value refers to a method identifier (rather than a proc reference
+            // or some other kind of symbol):
+            if( quiet || left_value.isSuper(state) || left_value.isMethod(state) || left_value.isThis(state) ) {
+                calcTypeNormal( state, quiet );
+            } else {
+                calcTypeProcReference( state );
+            }
+        }
 
-	    int al = 0;
-	    if( args != null ) {
-		al = args.List.Length;
-	    }
+        void addHiddenArgTypes( Vector<Type> ref arg_types, Container method ) {
+            if( method.ArgTypes.Length > 0 ) {
+                if( arg_types == null ) {
+                    arg_types = new Vector<Type>();
+                }
 
-	    if( mal == al ) {
-		return;
-	    }
+                while( arg_types.Length < method.ArgTypes.Length ) {
+                    IO.Std.err.println( "add hidden argument type: " + method.ArgTypes[arg_types.Length] );
+                    arg_types.add( method.ArgTypes[arg_types.Length] );
+                }
+            }
+        }
 
-	    var result = new ExpressionList(line_number);
+        void addHiddenArguments( ExpressionList ref args, Container method ) {
+            int mal = 0;
+            if( method.ArgTypes != null ) {
+                mal = method.ArgTypes.Length;
+            }
 
-	    if( al != 0 ) {
-		foreach( var e; args.List.Iterator ) {
-		    IO.Std.err.println( "add existing argument: " + e );
-		    result.add( e );
-		}
-	    }	    
+            if( mal == 0 ) {
+                IO.Std.err.println( "method " + method.HumanName + " expects no arguments" );
+                return;
+            }
 
-	    while( result.List.Length < method.ArgTypes.Length ) {
-		IO.Std.err.println( "add hidden argument identifier: " + method.ArgNames[result.List.Length] );
-		result.add(
-			   new Identifier(
-					  line_number,
-					  method.ArgNames[result.List.Length].Name
-					  )
-			   );
-	    }
+            int al = 0;
+            if( args != null ) {
+                al = args.List.Length;
+            }
 
-	    args = result;
-	}
+            if( mal == al ) {
+                return;
+            }
+
+            var result = new ExpressionList(line_number);
+
+            if( al != 0 ) {
+                foreach( var e; args.List.Iterator ) {
+                    IO.Std.err.println( "add existing argument: " + e );
+                    result.add( e );
+                }
+            }	    
+
+            while( result.List.Length < method.ArgTypes.Length ) {
+                IO.Std.err.println( "add hidden argument identifier: " + method.ArgNames[result.List.Length] );
+                result.add(
+                           new Identifier(
+                                          line_number,
+                                          method.ArgNames[result.List.Length].Name
+                                          )
+                           );
+            }
+
+            args = result;
+        }
 
         void calcTypeNormal( CompileState state, bool quiet ) {
             Symbol symbol = null;
             String arg_string = null;
-	    Type t;
+            Type t;
 
             Vector<Type> arg_types = null;
             if( arguments != null ) {
@@ -599,20 +599,20 @@ namespace Parse {
                 // IO.Std.err.println( "method call arguments: " + arg_types );
             }
 
-	    Identifier name;
-	    if( this.left_value.isThis(state) ) {
-		var m = state.CurrentMethod;
-		name = new Identifier(line_number, m.Name);
-		if( m.IsAnon ) {
-		    IO.Std.err.println( "call this() anon method: " + m.HumanName );
-		    addHiddenArgTypes(arg_types, m);
-		}
-	    } else {
-		name = cast Identifier(this.left_value);
-	    }
+            Identifier name;
+            if( this.left_value.isThis(state) ) {
+                var m = state.CurrentMethod;
+                name = new Identifier(line_number, m.Name);
+                if( m.IsAnon ) {
+                    IO.Std.err.println( "call this() anon method: " + m.HumanName );
+                    addHiddenArgTypes(arg_types, m);
+                }
+            } else {
+                name = cast Identifier(this.left_value);
+            }
 
-	    var left_value = name.LeftValue;
-	    
+            var left_value = name.LeftValue;
+            
             if( left_value != null && left_value.isThis( state ) ) {
                 // IO.Std.err.println( "left value is this" );
                 left_value = null;
@@ -625,38 +625,38 @@ namespace Parse {
             */
 
 
-	    quality = new Quality();
+            quality = new Quality();
             if( left_value != null ) {
                 type = left_value.getType( state );
-		if( type.TypeKind == Type.SUPER ) {
-		    super_call = true;
-		} else if( type.CanTreatAsObject ) {
-		    type = type.getBoxType(state);
-		}
+                if( type.TypeKind == Type.SUPER ) {
+                    super_call = true;
+                } else if( type.CanTreatAsObject ) {
+                    type = type.getBoxType(state);
+                }
 
                 if( type.TypeKind == Type.ERROR ) {
                     symbol = undefined_method;
                 } else if( type.TypeKind != Type.CLASS && type.TypeKind != Type.SUPER ) {
                     ExpressionList wrap_arguments = new ExpressionList( line_number );
-		    t = type.getBoxType(state);
+                    t = type.getBoxType(state);
 
                     if( t != null ) {
-			wrap_arguments.add( left_value );
+                        wrap_arguments.add( left_value );
 
-			if( arguments != null && arguments.List.Length > 0 ) {
-			    foreach( Expression e; arguments.List.elements() ) {
-				wrap_arguments.add(e);
-			    }
-			}
-			left_value = new WrapTypeAsExpression(line_number,t);
+                        if( arguments != null && arguments.List.Length > 0 ) {
+                            foreach( Expression e; arguments.List.elements() ) {
+                                wrap_arguments.add(e);
+                            }
+                        }
+                        left_value = new WrapTypeAsExpression(line_number,t);
 
                         method_call = new MethodCall( line_number, left_value, new Identifier(line_number,name.Name), wrap_arguments );
-			/*
-			IO.Std.err.println( "boxed method call: " + method_call );
-			IO.Std.err.println( "left value: " + left_value );
-			IO.Std.err.println( "identifier: " + name.Name );
-			IO.Std.err.println( "wrap args: " + wrap_arguments );
-			*/
+                        /*
+                        IO.Std.err.println( "boxed method call: " + method_call );
+                        IO.Std.err.println( "left value: " + left_value );
+                        IO.Std.err.println( "identifier: " + name.Name );
+                        IO.Std.err.println( "wrap args: " + wrap_arguments );
+                        */
 
                         method_call.calcType( state, true );
                         type = method_call.Type;
@@ -743,87 +743,87 @@ namespace Parse {
                 */
                 checkAccess( symbol, state );
             }
-	} 
+        } 
 
     
-	void calcTypeProcReference( CompileState state ) {
+        void calcTypeProcReference( CompileState state ) {
             Vector<Type> arg_types = null;
             if( arguments != null ) {
                 arg_types = arguments.getTypes( state );
-		// IO.Std.err.println( "method call arguments: " + arg_types );
+                // IO.Std.err.println( "method call arguments: " + arg_types );
             }
 
-	    // IO.Std.err.println( "calling though something other than a method identifier, is it a proc reference? " + new System.Backtrace() );
-	    // IO.Std.err.println( "" + line_number + ": left value is: " + left_value );
+            // IO.Std.err.println( "calling though something other than a method identifier, is it a proc reference? " + new System.Backtrace() );
+            // IO.Std.err.println( "" + line_number + ": left value is: " + left_value );
 
-	    proc_type = left_value.getType( state );
-	    
-	    // IO.Std.err.println( "left value type is: " + proc_type );
+            proc_type = left_value.getType( state );
+            
+            // IO.Std.err.println( "left value type is: " + proc_type );
 
-	    if( proc_type.TypeKind != Type.PROC ) {
-		if( proc_type.TypeKind == Type.CLASS && proc_type.Clazz.Template == ParseTree.proc_type.Clazz ) {
-		    // IO.Std.err.println( "de-method on System.Proc<P>, attempt to determine proc type so we can call it..." );
-		    
-		    // what is type of P (proc ref) in this specialization of System.Proc?
-		    proc_type = proc_type.getActualArgumentType( state, "P" );
-		    
-		    // IO.Std.err.println( "proc type now: " + proc_type );
-		} else {
-		    if( left_value.isIdentifier(state) ) {
-			Identifier n = cast Identifier(left_value);
-			Symbol s = n.getSymbol(state,false,Symbol.FIND_ANY);
-			if( s != null ) {
-			    int k = s.Kind;
-			    
-			    if( k & Symbol.FLAG_METHOD != 0 ) {
-				error( "strange: " + s.OwnerHumanName + "." + s.Name + " is a method but cannot call it" );
-			    } else {
-				String kind_s = "";
-				String scope_s = "";
-				
-				if( k & Symbol.FLAG_VARIABLE != 0 ) {
-				    kind_s = "variable";
-				} else if( k & Symbol.FLAG_CLASS != 0 ) {
-				    kind_s = "container";
-				} else if( k & Symbol.FLAG_ACCESSOR != 0 ) {
-				    kind_s = "accessor";
-				} else if( k > Symbol.ATTRIBUTE ) {
-				    kind_s = "attribute";
-				}
-				
-				if( k & Symbol.FLAG_STATIC != 0 ) {
-				    scope_s = "static ";
-				} else if( k & Symbol.FLAG_LOCAL != 0 ) {
-				    scope_s = "local ";
-				    
-				}
-				
-				
-				error( s.OwnerHumanName + "." + s.Name + " is a " + scope_s + kind_s + " not a method" );
-			    }
-			} else {
-			    error( "" + proc_type + " is not a method (B)" );
-			}
-		    } else {
-			error( "" + proc_type + " is not a method (C)" );
-		    }
-		    proc_type = null;
-		    type = undefined_type;
-		    return;
-		}
-	    }
+            if( proc_type.TypeKind != Type.PROC ) {
+                if( proc_type.TypeKind == Type.CLASS && proc_type.Clazz.Template == ParseTree.proc_type.Clazz ) {
+                    // IO.Std.err.println( "de-method on System.Proc<P>, attempt to determine proc type so we can call it..." );
+                    
+                    // what is type of P (proc ref) in this specialization of System.Proc?
+                    proc_type = proc_type.getActualArgumentType( state, "P" );
+                    
+                    // IO.Std.err.println( "proc type now: " + proc_type );
+                } else {
+                    if( left_value.isIdentifier(state) ) {
+                        Identifier n = cast Identifier(left_value);
+                        Symbol s = n.getSymbol(state,false,Symbol.FIND_ANY);
+                        if( s != null ) {
+                            int k = s.Kind;
+                            
+                            if( k & Symbol.FLAG_METHOD != 0 ) {
+                                error( "strange: " + s.OwnerHumanName + "." + s.Name + " is a method but cannot call it" );
+                            } else {
+                                String kind_s = "";
+                                String scope_s = "";
+                                
+                                if( k & Symbol.FLAG_VARIABLE != 0 ) {
+                                    kind_s = "variable";
+                                } else if( k & Symbol.FLAG_CLASS != 0 ) {
+                                    kind_s = "container";
+                                } else if( k & Symbol.FLAG_ACCESSOR != 0 ) {
+                                    kind_s = "accessor";
+                                } else if( k > Symbol.ATTRIBUTE ) {
+                                    kind_s = "attribute";
+                                }
+                                
+                                if( k & Symbol.FLAG_STATIC != 0 ) {
+                                    scope_s = "static ";
+                                } else if( k & Symbol.FLAG_LOCAL != 0 ) {
+                                    scope_s = "local ";
+                                    
+                                }
+                                
+                                
+                                error( s.OwnerHumanName + "." + s.Name + " is a " + scope_s + kind_s + " not a method" );
+                            }
+                        } else {
+                            error( "" + proc_type + " is not a method (B)" );
+                        }
+                    } else {
+                        error( "" + proc_type + " is not a method (C)" );
+                    }
+                    proc_type = null;
+                    type = undefined_type;
+                    return;
+                }
+            }
 
-	    if( !proc_type.Clazz.matches( arg_types, false ) ) {
+            if( !proc_type.Clazz.matches( arg_types, false ) ) {
                 var arg_string = dumpArguments( arg_types );		
-		error( "argument types do not match: " + proc_type + " vesus(" + arg_string + ")" );
-		proc_type = null;
-		type = undefined_type;
-		return;
-	    }
+                error( "argument types do not match: " + proc_type + " vesus(" + arg_string + ")" );
+                proc_type = null;
+                type = undefined_type;
+                return;
+            }
 
-	    type = proc_type.Clazz.Type;
-	    // IO.Std.err.println( "call through proc reference " + proc_type + " returns type " + type );
-	}
+            type = proc_type.Clazz.Type;
+            // IO.Std.err.println( "call through proc reference " + proc_type + " returns type " + type );
+        }
 
         LLVM.Value compileValue( CompileState state, IRBlock into ) {
             return compileValue( state, into, true );
@@ -834,69 +834,69 @@ namespace Parse {
         }
 
         LLVM.Value compileValue( CompileState state, IRBlock into, bool need_value ) {
-	    int tt, ta, tr;
-	    var arguments = this.arguments;
+            int tt, ta, tr;
+            var arguments = this.arguments;
 
-	    /*
-	    IO.Std.err.println( "call method, current class: " + state.CurrentClass );
-	    if( type != null ) {		
-	    `IO.Std.err.println( "QQQQQQ: method call type not null on entry: " + type );
-	    }
-	    if( method != null ) {
-		IO.Std.err.println( "QQQQQQ: method call method not null on entry: " + method );
-	    }
-	    */
+            /*
+            IO.Std.err.println( "call method, current class: " + state.CurrentClass );
+            if( type != null ) {		
+            `IO.Std.err.println( "QQQQQQ: method call type not null on entry: " + type );
+            }
+            if( method != null ) {
+                IO.Std.err.println( "QQQQQQ: method call method not null on entry: " + method );
+            }
+            */
 
             getType( state );
 
-	    if( type == undefined_type ) {
-		return ErrorValue();
-	    }
-
-	    if( method_call != null ) {
-		return method_call.compileValue( state, into, need_value );
-	    }
-
-            bool load_this = false;
-	    bool proc_call = proc_type != null;
-
-            if( method == undefined_method ) {
-		return ErrorValue();
-            } else if( method == null && !proc_call ) {
-                // result of compile error
-		error( "no method here" );
-		return ErrorValue();
+            if( type == undefined_type ) {
+                return ErrorValue();
             }
 
-	    Identifier name;
-	    var left_value = this.left_value;
+            if( method_call != null ) {
+                return method_call.compileValue( state, into, need_value );
+            }
 
-	    if( !proc_call ) {
-		if( left_value.isThis(state) ) {
-		    name = new Identifier(line_number, state.CurrentMethod.Name);
-		    if( method.IsAnon ) {
-			addHiddenArguments( arguments, method );
-		    }
-		} else {
-		    name = cast Identifier(left_value);
-		}
+            bool load_this = false;
+            bool proc_call = proc_type != null;
 
-		left_value = name.LeftValue;
-	    
-		// IO.Std.err.println( "call method " + method.Owner.HumanName + " " + method.Name );
+            if( method == undefined_method ) {
+                return ErrorValue();
+            } else if( method == null && !proc_call ) {
+                // result of compile error
+                error( "no method here" );
+                return ErrorValue();
+            }
 
-		if( !super_call && left_value != null && !left_value.isThis( state ) ) {
-		    // IO.Std.err.println( "IIIIII: load this" );
-		    load_this = true;
-		}
-	    }
+            Identifier name;
+            var left_value = this.left_value;
+
+            if( !proc_call ) {
+                if( left_value.isThis(state) ) {
+                    name = new Identifier(line_number, state.CurrentMethod.Name);
+                    if( method.IsAnon ) {
+                        addHiddenArguments( arguments, method );
+                    }
+                } else {
+                    name = cast Identifier(left_value);
+                }
+
+                left_value = name.LeftValue;
+            
+                // IO.Std.err.println( "call method " + method.Owner.HumanName + " " + method.Name );
+
+                if( !super_call && left_value != null && !left_value.isThis( state ) ) {
+                    // IO.Std.err.println( "IIIIII: load this" );
+                    load_this = true;
+                }
+            }
             
             int size = 0;
-	    /*
+            /*
             if( method.getKind() == Symbol.INSTANCE_METHOD ) {
                 size = 4;                       // FIXME: not always
             }
-	    */
+            */
             
             int flags = LOAD_FLAG_ADDRESS;
             
@@ -906,189 +906,189 @@ namespace Parse {
             
             LLVM.Value t = null;
 
-	    if( proc_call ) {
-		flags = flags | LOAD_FLAG_PROC_CALL;
+            if( proc_call ) {
+                flags = flags | LOAD_FLAG_PROC_CALL;
                 t = left_value.compileValue( state, into );
 
-		// IO.Std.err.println( "compile proc call on type: " + proc_type.SubType );
+                // IO.Std.err.println( "compile proc call on type: " + proc_type.SubType );
                 t = compileLoad( state, into, null, null, arguments, proc_type.Clazz.Type, proc_type.Clazz.ArgTypes, t, flags, null );
 
-		// IO.Std.err.println( "block now:\n" + into );
+                // IO.Std.err.println( "block now:\n" + into );
 
-	    } else if( left_value != null && !left_value.isClass(state) /* && !left_value.isType(state) */ ) {
-		// IO.Std.err.println( "call on non-class left value: " + left_value );
-		/*
+            } else if( left_value != null && !left_value.isClass(state) /* && !left_value.isType(state) */ ) {
+                // IO.Std.err.println( "call on non-class left value: " + left_value );
+                /*
 
-		if( left_value.isType(state) ) {
-		    IO.Std.err.println( "will fail: left value is type: " + left_value );
-		}
-		*/
+                if( left_value.isType(state) ) {
+                    IO.Std.err.println( "will fail: left value is type: " + left_value );
+                }
+                */
 
-		if( !super_call /* || compare_operation */ ) {
-		    t = left_value.compileValue( state, into );
-		} else {
-		    // avoid a redundant null check - let compileLoad load 'this' value, so it knows it's guaranteed non-null
-		    t = null;
-		}
+                if( !super_call /* || compare_operation */ ) {
+                    t = left_value.compileValue( state, into );
+                } else {
+                    // avoid a redundant null check - let compileLoad load 'this' value, so it knows it's guaranteed non-null
+                    t = null;
+                }
 
-		LLVM.BasicBlock e, n, c, d;
-		LLVM.Value u;
+                LLVM.BasicBlock e, n, c, d;
+                LLVM.Value u;
 
-		// FIXME: this is a bad place for this but MethodCall doesn't make it easy
-		// to do this in the caller:
-		if( compare_operation ) {
-		    // IO.Std.err.println( "compare operation on objects: requires null check..." );
-		    n = into.Block();
-		    d = into.Block();
-		    e = into.Block();
+                // FIXME: this is a bad place for this but MethodCall doesn't make it easy
+                // to do this in the caller:
+                if( compare_operation ) {
+                    // IO.Std.err.println( "compare operation on objects: requires null check..." );
+                    n = into.Block();
+                    d = into.Block();
+                    e = into.Block();
 
-		    /*
-		    IO.Std.err.println( "left value: " + left_value );
-		    IO.Std.err.println( "arguments: " + arguments );
-		    IO.Std.err.println( "arg[0]: " + arguments[0] );
-		    */
-		   
-		    var a = arguments[0].compileValue(state,into);
-		    arguments[0] = new LoadTemporary(line_number, arguments[0].getType(state), a, false);
+                    /*
+                    IO.Std.err.println( "left value: " + left_value );
+                    IO.Std.err.println( "arguments: " + arguments );
+                    IO.Std.err.println( "arg[0]: " + arguments[0] );
+                    */
+                   
+                    var a = arguments[0].compileValue(state,into);
+                    arguments[0] = new LoadTemporary(line_number, arguments[0].getType(state), a, false);
 
-		    /*
-		    IO.Std.err.println( "compare left: " );
-		    LLVM.Calls.LLVMDumpValue( t );
-		    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(t) );
-		    IO.Std.err.println( "compare argument: " );
-		    LLVM.Calls.LLVMDumpValue( a );
-		    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(a) );
-		    */
+                    /*
+                    IO.Std.err.println( "compare left: " );
+                    LLVM.Calls.LLVMDumpValue( t );
+                    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(t) );
+                    IO.Std.err.println( "compare argument: " );
+                    LLVM.Calls.LLVMDumpValue( a );
+                    LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(a) );
+                    */
 
-		    into.Label(e);
-		    
-		    u = 
-			into.ICmp(
-				  LLVM.LLVMIntPredicate.LLVMIntEQ,
-				  t,
-				  makeLLVMCast(
-					       a,
-					       LLVM.Calls.LLVMTypeOf(t),
-					       into
-					       )
-				  );
+                    into.Label(e);
+                    
+                    u = 
+                        into.ICmp(
+                                  LLVM.LLVMIntPredicate.LLVMIntEQ,
+                                  t,
+                                  makeLLVMCast(
+                                               a,
+                                               LLVM.Calls.LLVMTypeOf(t),
+                                               into
+                                               )
+                                  );
 
-		    /*
-		    IO.Std.err.println( "compare reference: " );
-		    LLVM.Calls.LLVMDumpValue( u );
-		    */
-		    
+                    /*
+                    IO.Std.err.println( "compare reference: " );
+                    LLVM.Calls.LLVMDumpValue( u );
+                    */
+                    
                     into.BranchLabel(
-				     u,
-				     d,
-				     n
-				     );
+                                     u,
+                                     d,
+                                     n
+                                     );
 
-		    // Jump equal e->d
+                    // Jump equal e->d
 
-		    // Label n:
+                    // Label n:
 
-		    var ct =
-			into.ICmp(
-				  LLVM.LLVMIntPredicate.LLVMIntEQ,
-				  t,
-				  LLVM.Calls.LLVMConstPointerNull(
-								  LLVM.Calls.LLVMTypeOf(t)
-								  )
-				  );
+                    var ct =
+                        into.ICmp(
+                                  LLVM.LLVMIntPredicate.LLVMIntEQ,
+                                  t,
+                                  LLVM.Calls.LLVMConstPointerNull(
+                                                                  LLVM.Calls.LLVMTypeOf(t)
+                                                                  )
+                                  );
 
-		    var ca = 
-			into.ICmp(
-				  LLVM.LLVMIntPredicate.LLVMIntEQ,
-				  a,
-				  LLVM.Calls.LLVMConstPointerNull(
-								  LLVM.Calls.LLVMTypeOf(a)
-								  )
-				  );
+                    var ca = 
+                        into.ICmp(
+                                  LLVM.LLVMIntPredicate.LLVMIntEQ,
+                                  a,
+                                  LLVM.Calls.LLVMConstPointerNull(
+                                                                  LLVM.Calls.LLVMTypeOf(a)
+                                                                  )
+                                  );
 
-		    var o = 
-			into.Or(
-				 ct,
-				 ca
-				 );
+                    var o = 
+                        into.Or(
+                                 ct,
+                                 ca
+                                 );
 
-		    /*
-		    IO.Std.err.println( "compare null left: " );
-		    LLVM.Calls.LLVMDumpValue( ct );
-		    IO.Std.err.println( "compare null arg: " );
-		    LLVM.Calls.LLVMDumpValue( ca );
-		    IO.Std.err.println( "or: " );
-		    LLVM.Calls.LLVMDumpValue( o );
-		    */
-		    into.Branch(o, d);
-		    // Jump at least one null and definitely not equal n->d
+                    /*
+                    IO.Std.err.println( "compare null left: " );
+                    LLVM.Calls.LLVMDumpValue( ct );
+                    IO.Std.err.println( "compare null arg: " );
+                    LLVM.Calls.LLVMDumpValue( ca );
+                    IO.Std.err.println( "or: " );
+                    LLVM.Calls.LLVMDumpValue( o );
+                    */
+                    into.Branch(o, d);
+                    // Jump at least one null and definitely not equal n->d
 
-		}		    		       
+                }		    		       
 
                 Container super_class = null;
                 if( super_call ) {
                     super_class = left_value.getType(state).Clazz;
-		    // IO.Std.err.println( "super call..." );
+                    // IO.Std.err.println( "super call..." );
                 }
 
-		/*
-		IO.Std.err.println( "method call calling load: " + method );
-		IO.Std.err.println( "IIIIII: kind is " + method.Kind + " versus " + Symbol.STATIC_METHOD );
-		*/
+                /*
+                IO.Std.err.println( "method call calling load: " + method );
+                IO.Std.err.println( "IIIIII: kind is " + method.Kind + " versus " + Symbol.STATIC_METHOD );
+                */
 
-		// IO.Std.err.println( "DDDD: arg types: " + method.ArgTypes );
+                // IO.Std.err.println( "DDDD: arg types: " + method.ArgTypes );
 
                 t = compileLoad( state, into, method, null, arguments, null, method.ArgTypes, t, flags, super_class );
 
-		if( compare_operation ) {
-		    c = into.CurrentBlock;
+                if( compare_operation ) {
+                    c = into.CurrentBlock;
 
-		    // c->d, result in t
-		    into.Label( d );
+                    // c->d, result in t
+                    into.Label( d );
 
-		    /*
-		    IO.Std.err.println( "call result: " );
-		    LLVM.Calls.LLVMDumpValue( t );
-		    */
+                    /*
+                    IO.Std.err.println( "call result: " );
+                    LLVM.Calls.LLVMDumpValue( t );
+                    */
 
-		    var r = into.Phi( LLVM.Calls.LLVMInt1Type() );
-		    into.AddIncoming( r,
-				      { t, LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0), LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),0L,0) },
-				      { c, e, n }
-				      );
+                    var r = into.Phi( LLVM.Calls.LLVMInt1Type() );
+                    into.AddIncoming( r,
+                                      { t, LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0), LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),0L,0) },
+                                      { c, e, n }
+                                      );
 
-	            /*
-		    IO.Std.err.println( "phi: " );
-		    LLVM.Calls.LLVMDumpValue( r );
-		    */
+                    /*
+                    IO.Std.err.println( "phi: " );
+                    LLVM.Calls.LLVMDumpValue( r );
+                    */
 
-		    t = r;
-		}
+                    t = r;
+                }
             } else if( left_value != null ) {
-		// Std.err.println( "call B..." );
+                // Std.err.println( "call B..." );
 
-		// FIXME: probably should be method.IsStatic here:
+                // FIXME: probably should be method.IsStatic here:
                 if( left_value.isClass( state ) ) {
                     flags = flags | LOAD_FLAG_STATIC;
-		}
+                }
 
-		if( left_value.isClass(state) != method.IsStatic ) {
-		    IO.Std.err.println( "isClass probably wrong here: " + method.HumanName );
-		}
-		// IO.Std.err.println( "DDDD: arg types: " + method.ArgTypes );
+                if( left_value.isClass(state) != method.IsStatic ) {
+                    IO.Std.err.println( "isClass probably wrong here: " + method.HumanName );
+                }
+                // IO.Std.err.println( "DDDD: arg types: " + method.ArgTypes );
 
                 t = compileLoad( state, into, method, null, arguments, null, method.ArgTypes, null, flags, null );
             } else {
-		// Std.err.println( "call C..." );
+                // Std.err.println( "call C..." );
                 if( state.CurrentMethod.IsStatic ) {
                     flags = flags | LOAD_FLAG_STATIC;
-		}
-		// IO.Std.err.println( "DDDD: arg types: " + method.ArgTypes );
+                }
+                // IO.Std.err.println( "DDDD: arg types: " + method.ArgTypes );
 
                 t = compileLoad( state, into, method, null, arguments, null, method.ArgTypes, t, flags, null );
             }
             
-	    /*
+            /*
             int temp = 0;
             if( need_value ) {
                 temp = TempFactory.nextTemp();
@@ -1096,27 +1096,27 @@ namespace Parse {
             } else {
                 into.add( t );
             }
-	    if( size > 0 ) {
-		into.add( new ITree( line_number, Op.RELEASE, 0, size ) );
-	    }
+            if( size > 0 ) {
+                into.add( new ITree( line_number, Op.RELEASE, 0, size ) );
+            }
             if( need_value ) {
                 return makeLoadTemporary( temp, getType( state ).RegSize );
             } else {
                 return null;
             }
-	    */
-	    // LLVM.Calls.LLVMDumpValue(t);
+            */
+            // LLVM.Calls.LLVMDumpValue(t);
 
-	    return t;
+            return t;
         }
 
 
         void dump( CompileState state, StringBuffer buffer ) {
-	    if( left_value != null ) {
-		left_value.dump( state, buffer );
-	    } else {
-		buffer.append( "<no left value>" );
-	    }
+            if( left_value != null ) {
+                left_value.dump( state, buffer );
+            } else {
+                buffer.append( "<no left value>" );
+            }
 
             buffer.append( '(' );
             
@@ -1127,333 +1127,331 @@ namespace Parse {
             buffer.append( ')' );
         }
 
-	/*
+        /*
         void declareSymbols( CompileState state ) {
-	    state.CurrentMethod.markNotLeaf();
+            state.CurrentMethod.markNotLeaf();
         }
-	*/
+        */
 
-	String toString() {
-	    StringBuffer result = new StringBuffer();
-	    dump( CompileState.getInstance(), result );
+        String toString() {
+            StringBuffer result = new StringBuffer();
+            dump( CompileState.getInstance(), result );
 
-	    return result;
-	}
+            return result;
+        }
 
-	get int Depth {
-	    int result = left_value.Depth;
-	    if( arguments != null ) {
-		int d = arguments.Depth;
-		if( d > result ) {
-		    result = d;
-		}
-	    }
+        get int Depth {
+            int result = left_value.Depth;
+            if( arguments != null ) {
+                int d = arguments.Depth;
+                if( d > result ) {
+                    result = d;
+                }
+            }
 
-	    return result + 1;
-	}
+            return result + 1;
+        }
 
-	void print( CompileState state, Printer p ) {
-	    // getType(state);
+        void print( CompileState state, Printer p ) {
+            // getType(state);
 
-	    pl(p);
-	    /*
-	      not needed - left value qualifies name after calcType called:
-	    if( left_value != null ) {
-		left_value.print( state, p );
-		p.print( "." );
-	    }
-	    */
-	    left_value.print( state, p );
-	    p.print( "(" );
-	    if( arguments != null ) {
-		p.print( " " );
-		arguments.print( state, p );
-		p.print( " " );
-	    }
-	    p.print( ")" );	   
-	}
+            pl(p);
+
+            left_value.print( state, p );
+            p.print( "(" );
+            if( arguments != null ) {
+                arguments.print( state, p );
+            }
+            p.print( ")" );	   
+        }
     }
 
     class ProcLiteral extends Expression {
-	MethodDef body;
-	String name;
-	IdentifierList use_list;
+        MethodDef body;
+        String name;
+        IdentifierList use_list;
 
-	void init( int line_number, IdentifierList use_list, MethodDef body ) {
+        void init( int line_number, IdentifierList use_list, MethodDef body ) {
             super.init( line_number );
             this.body = body;
-	    if( use_list == null ) {
-		use_list = new IdentifierList(line_number);
-	    }
-	    this.use_list = use_list;	    
+            if( use_list == null ) {
+                use_list = new IdentifierList(line_number);
+            }
+            this.use_list = use_list;	    
 
-	    // name = body.Name.Name;
-	    // IO.Std.err.println( "new proc literal: " + name );
+            // name = body.Name.Name;
+            // IO.Std.err.println( "new proc literal: " + name );
 
             // is_empty = body.IsEmpty;
         }
 
-	void clear( CompileState state ) {
-	    body.clear(state);
-	    use_list.clear(state);
-	}
+        void clear( CompileState state ) {
+            body.clear(state);
+            use_list.clear(state);
+        }
 
-	void checkTemplates( CompileState state ) {
-	    // IO.Std.err.FlushOnPrintln = true;
-	    // IO.Std.err.println( "proc literal, check templates in class: " + state.CurrentClass );
-	    calcType(state);
-	    if( type != null ) {
-		type.getBoxType(state);
-	    }
-	    // IO.Std.err.println( "will need to compile body: for proc literal: " + type + " in class " + state.CurrentClass.HumanName );
-	    
-	    if( body.Name == null ) {
-		name = "__anon_" + state.CurrentClass.NextAnon;
-		body.Name = new Identifier( line_number, name );
+        void checkTemplates( CompileState state ) {
+            // IO.Std.err.FlushOnPrintln = true;
+            // IO.Std.err.println( "proc literal, check templates in class: " + state.CurrentClass );
+            calcType(state);
+            if( type != null ) {
+                type.getBoxType(state);
+            }
+            // IO.Std.err.println( "will need to compile body: for proc literal: " + type + " in class " + state.CurrentClass.HumanName );
+            
+            if( body.Name == null ) {
+                name = "__anon_" + state.CurrentClass.NextAnon;
+                body.Name = new Identifier( line_number, name );
 
-		state.CurrentClass.addToBodyStatement(body);
-	    }
-	}
+                state.CurrentClass.addToBodyStatement(body);
+            }
+        }
 
-	void calcType( CompileState state ) {
-	    // IO.Std.err.println( "proc literal, calcType: " + body );
-	    Type return_type = body.getReturnType(state);
-	    // IO.Std.err.println( "return type: " + return_type );
-	    Vector<Type> arg_types = body.getArgTypes(state);
+        void calcType( CompileState state ) {
+            // IO.Std.err.println( "proc literal, calcType: " + body );
+            Type return_type = body.getReturnType(state);
+            // IO.Std.err.println( "return type: " + return_type );
+            Vector<Type> arg_types = body.getArgTypes(state);
 
-	    // IO.Std.err.println( "arg types: " + arg_types );
+            // IO.Std.err.println( "arg types: " + arg_types );
 
-	    type = state.findProcType( return_type, arg_types );
-	}
+            type = state.findProcType( return_type, arg_types );
+        }
 
-	LLVM.Value compileValue( CompileState state, IRBlock into ) {
-	    getType(state);
+        LLVM.Value compileValue( CompileState state, IRBlock into ) {
+            getType(state);
 
-	    var method = state.CurrentClass.findAnonMethod( name );
+            var method = state.CurrentClass.findAnonMethod( name );
 
-	    if( state.CurrentMethod == null || state.CurrentMethod.IsStatic ) {
-		/*
-		if( state.CurrentMethod != null ) {
-		    IO.Std.err.println( "anon method " + method.HumanName + " is static because " + state.CurrentMethod.HumanName + " is static"  );
-		} else {
-		    IO.Std.err.println( "anon method " + method.HumanName + " is static because outside any method"  );
-		}
-		*/
-		method.IsStatic = true;
-	    }
+            if( state.CurrentMethod == null || state.CurrentMethod.IsStatic ) {
+                /*
+                if( state.CurrentMethod != null ) {
+                    IO.Std.err.println( "anon method " + method.HumanName + " is static because " + state.CurrentMethod.HumanName + " is static"  );
+                } else {
+                    IO.Std.err.println( "anon method " + method.HumanName + " is static because outside any method"  );
+                }
+                */
+                method.IsStatic = true;
+            }
 
 
-	    // IO.Std.err.println( "method is: " + method );
-	    var v = new Vector<LLVM.Value>();
+            // IO.Std.err.println( "method is: " + method );
+            var v = new Vector<LLVM.Value>();
 
-	    if( use_list != null ) {
-		foreach( var i; use_list.List.Iterator ) {
-		    // IO.Std.err.println( "will compile: " + i );
+            if( use_list != null ) {
+                foreach( var i; use_list.List.Iterator ) {
+                    // IO.Std.err.println( "will compile: " + i );
 
-		    method.addArgument( i.getType(state), i );
+                    method.addArgument( i.getType(state), i );
  
-		    v.add( i.compileValue(state, into) );
-		}
-	    }
+                    v.add( i.compileValue(state, into) );
+                }
+            }
 
-	    // IO.Std.err.println( "use values: " + v );
-	    
-	    return compileLoadProcRef( state, into, null, method, type, v );
-	}      
+            // IO.Std.err.println( "use values: " + v );
+            
+            return compileLoadProcRef( state, into, null, method, type, v );
+        }
+
+        void print( CompileState state, Printer p ) {
+            // getType(state);
+
+            body.print(state, p);
+        }          
     }
 
     class ProcRef extends Expression {
-	Expression left;
-	TypeExpr return_type;
-	TypeExprList arguments;
-	Container method;
-	bool virtual_call;
+        Expression left;
+        TypeExpr return_type;
+        TypeExprList arguments;
+        Container method;
+        bool virtual_call;
 
-	void init( int line_number, Expression left, TypeExpr return_type, TypeExprList arguments ) {
-	    super.init( line_number );
-	    this.left = left;
-	    this.return_type = return_type;
-	    this.arguments = arguments;
-	}
+        void init( int line_number, Expression left, TypeExpr return_type, TypeExprList arguments ) {
+            super.init( line_number );
+            this.left = left;
+            this.return_type = return_type;
+            this.arguments = arguments;
+        }
 
-	void clear( CompileState state ) {
-	    super.clear(state);
+        void clear( CompileState state ) {
+            super.clear(state);
 
-	    method = null;
-	    virtual_call = false;
-	    left.clear(state);
-	    return_type.clear(state);
-	    arguments.clear(state);
-	}
+            method = null;
+            virtual_call = false;
+            left.clear(state);
+            return_type.clear(state);
+            arguments.clear(state);
+        }
 
-	void checkTemplates( CompileState state ) {
-	    left.checkTemplates(state);
-	    return_type.checkTemplates(state);
-	    arguments.checkTemplates(state);
-	    calcType(state, true);
-	    if( type != null ) {
-		type.getBoxType(state);
-	    }
-	    type = null;
-	}
+        void checkTemplates( CompileState state ) {
+            left.checkTemplates(state);
+            return_type.checkTemplates(state);
+            arguments.checkTemplates(state);
+            calcType(state, true);
+            if( type != null ) {
+                type.getBoxType(state);
+            }
+            type = null;
+        }
 
-	void calcType( CompileState state ) {
-	    calcType(state,false);
-	}
+        void calcType( CompileState state ) {
+            calcType(state,false);
+        }
 
-	void calcType( CompileState state, bool quiet ) {
+        void calcType( CompileState state, bool quiet ) {
             var arg_types = arguments.getTypes( state ); // regular arguments
-	    String arg_string;
+            String arg_string;
 
-	    type = state.findProcType( return_type.parseType(state), arg_types );
+            type = state.findProcType( return_type.parseType(state), arg_types );
 
-	    if( quiet ) {
-		return;
-	    }
+            if( quiet ) {
+                return;
+            }
 
-	    if( left == null || !left.isMethod(state) ) {
-		error( "proc must qualify a method name" );
-		type = undefined_type;
-		return;
-	    }
+            if( left == null || !left.isMethod(state) ) {
+                error( "proc must qualify a method name" );
+                type = undefined_type;
+                return;
+            }
 
-	    // IO.Std.err.println( "calc type: " + this );
+            // IO.Std.err.println( "calc type: " + this );
 
-	    Type t;
+            Type t;
 
-	    var name = cast Identifier(left);
-	    var left_value = name.LeftValue;
-	    Vector<Type> arg_types_s;
+            var name = cast Identifier(left);
+            var left_value = name.LeftValue;
+            Vector<Type> arg_types_s;
 
-	    Symbol symbol;
+            Symbol symbol;
 
             var q0 = new Quality();
-	    var q1 = new Quality();
-	    Container s0, s1;
-	    Container c;
+            var q1 = new Quality();
+            Container s0, s1;
+            Container c;
 
-	    Type arg0_type = null;
+            Type arg0_type = null;
 
-	    // find first argument type and left-1 shifted arguments in order to search for a 
-	    // virtual method that could match this proc type. For example Test Test.add(Test) would
-	    // match Test proc add(Test,Test) this way. 
-	    if( arg_types.Length > 0 ) {
-		// IO.Std.err.println( "preparing virtual method lookup arguments..." );
+            // find first argument type and left-1 shifted arguments in order to search for a 
+            // virtual method that could match this proc type. For example Test Test.add(Test) would
+            // match Test proc add(Test,Test) this way. 
+            if( arg_types.Length > 0 ) {
+                // IO.Std.err.println( "preparing virtual method lookup arguments..." );
 
-		arg_types_s = new Vector<Type>();
-		foreach( Type u; arg_types.elements() ) {
-		    if( arg0_type == null ) {
-			// remove first argument from list. will use to attempt to locate virtual method
-			arg0_type = u;
-			// IO.Std.err.println( "arg 0 is: " + arg0_type );
-		    } else {
-			// include subsequent arguments in list
-			arg_types_s.add(u);
-			// IO.Std.err.println( "arg n is: " + u );
-		    }
-		}
-	    }
+                arg_types_s = new Vector<Type>();
+                foreach( Type u; arg_types.elements() ) {
+                    if( arg0_type == null ) {
+                        // remove first argument from list. will use to attempt to locate virtual method
+                        arg0_type = u;
+                        // IO.Std.err.println( "arg 0 is: " + arg0_type );
+                    } else {
+                        // include subsequent arguments in list
+                        arg_types_s.add(u);
+                        // IO.Std.err.println( "arg n is: " + u );
+                    }
+                }
+            }
 
             if( left_value != null ) {
                 t = left_value.getType( state );
-		// IO.Std.err.println( "left value type is: " + t );
-			
+                // IO.Std.err.println( "left value type is: " + t );
+                        
                 if( t.TypeKind == Type.ERROR ) {
                     symbol = undefined_method;
-		    return;
-		} else if( t.TypeKind != Type.CLASS ) {
-		    var r = t.getBoxType(state);
-		    if( r == null ) {
-			error( "cannot search for method " + name + " in " + t );
-			type = undefined_type;
-			return;
-		    } else {
-			t = r;
-		    }
+                    return;
+                } else if( t.TypeKind != Type.CLASS ) {
+                    var r = t.getBoxType(state);
+                    if( r == null ) {
+                        error( "cannot search for method " + name + " in " + t );
+                        type = undefined_type;
+                        return;
+                    } else {
+                        t = r;
+                    }
                 }
 
-		if( t != null ) {
-		    // IO.Std.err.println( "search for method " + name + " in " + t );
-		    s0 = t.findBestMethod( name.Name, arg_types, q0 );
+                if( t != null ) {
+                    // IO.Std.err.println( "search for method " + name + " in " + t );
+                    s0 = t.findBestMethod( name.Name, arg_types, q0 );
 
-		    // IO.Std.err.println( "result symbol: " + s0 );
-		}		    
-	    } else {
-		// IO.Std.err.println( "no left value, look up in current class..." );
-		t = state.CurrentClass.Type;
+                    // IO.Std.err.println( "result symbol: " + s0 );
+                }		    
+            } else {
+                // IO.Std.err.println( "no left value, look up in current class..." );
+                t = state.CurrentClass.Type;
 
-		/*
-		IO.Std.err.println( "left value type is: " + t );
+                /*
+                IO.Std.err.println( "left value type is: " + t );
                 IO.Std.err.println( "searching current class " + state.CurrentClass + " for best match: " + name.Name + "(" + arg_types + ")" );
-		*/
+                */
 
                 s0 = state.findBestMethod( name.Name, arg_types, q0 );
             }
 
-	    if( t != null && arg0_type != null ) {
-		/*
-		IO.Std.err.println( "XXXX: t is: " + t + ", arg0 is: " + arg0_type + "..." );
-		IO.Std.err.println( "" + t + " assignable " + arg0_type + ": " + t.isAssignableFrom(arg0_type) );
-		IO.Std.err.println( "" + arg0_type + " assignable " + t + ": " + arg0_type.isAssignableFrom(t) );
-		*/
-		if( arg0_type.isAssignableFrom(t) ) {
-		    c = t.Clazz;
-		    if( c == null ) {
-			// IO.Std.err.println( "type has no container, try box type: " );
-		    
-			c = t.getBoxType(state).Clazz;
-		    }
+            if( t != null && arg0_type != null ) {
+                /*
+                IO.Std.err.println( "XXXX: t is: " + t + ", arg0 is: " + arg0_type + "..." );
+                IO.Std.err.println( "" + t + " assignable " + arg0_type + ": " + t.isAssignableFrom(arg0_type) );
+                IO.Std.err.println( "" + arg0_type + " assignable " + t + ": " + arg0_type.isAssignableFrom(t) );
+                */
+                if( arg0_type.isAssignableFrom(t) ) {
+                    c = t.Clazz;
+                    if( c == null ) {
+                        // IO.Std.err.println( "type has no container, try box type: " );
+                    
+                        c = t.getBoxType(state).Clazz;
+                    }
 
-		    if( c != null ) {
-			// IO.Std.err.println( "will consider virtual methods in " + c.HumanName + " with args: " + arg_types_s );
-			s1 = c.findBestMethod( name.Name, arg_types_s, q1 );
-			
-			if( s1 != null && s1.IsStatic ) {
-			    // IO.Std.err.println( "no good, is static" );
-			    s1 = null;
-			}
+                    if( c != null ) {
+                        // IO.Std.err.println( "will consider virtual methods in " + c.HumanName + " with args: " + arg_types_s );
+                        s1 = c.findBestMethod( name.Name, arg_types_s, q1 );
+                        
+                        if( s1 != null && s1.IsStatic ) {
+                            // IO.Std.err.println( "no good, is static" );
+                            s1 = null;
+                        }
 
-			/*
-			if( s1 != null ) {
-			    IO.Std.err.println( "possible virtual method: " + s1.HumanName );
-			}
-			*/
-		    } else {
-			IO.Std.err.println( "weird: assignable but no class in: " + t );
-		    }
-		}
-	    }
+                        /*
+                        if( s1 != null ) {
+                            IO.Std.err.println( "possible virtual method: " + s1.HumanName );
+                        }
+                        */
+                    } else {
+                        IO.Std.err.println( "weird: assignable but no class in: " + t );
+                    }
+                }
+            }
 
-	    var quality = q0;
-	    if( s0 != null && s1 != null ) {
-		// IO.Std.err.println( "compare " + s0.HumanName + " (" + q0 + ") and " + s1.HumanName + " (" + q1 + ")..." );
-		if( q0 =~ q1 ) {
-		    warn( "preferring " + s0.HumanName + " over " + s1.HumanName + " (" + q0 + "==" + q1 + ")"  );
-		    symbol = s0;
-		} else if( q0 > q1 ) {
-		    // IO.Std.err.println( "choose: " + s0.HumanName + " (" + q0 + ">" + q1 + ")" );
-		    symbol = s0;
-		} else {
-		    // IO.Std.err.println( "choose: " + s1.HumanName + " (" + q0 + "<=" + q1 + ")" );
-		    symbol = s1;
-		    quality = q1;
-		}		    		    
-	    } else if( s0 != null ) {
-		// IO.Std.err.println( "only choice: " + s0.HumanName );
-		symbol = s0;
-	    } else {
-		/*
-		if( s1 != null ) {
-		    IO.Std.err.println( "only choice: " + s1.HumanName );
-		}
-		*/
-		symbol = s1;
-		quality = q1;
-	    }
+            var quality = q0;
+            if( s0 != null && s1 != null ) {
+                // IO.Std.err.println( "compare " + s0.HumanName + " (" + q0 + ") and " + s1.HumanName + " (" + q1 + ")..." );
+                if( q0 =~ q1 ) {
+                    warn( "preferring " + s0.HumanName + " over " + s1.HumanName + " (" + q0 + "==" + q1 + ")"  );
+                    symbol = s0;
+                } else if( q0 > q1 ) {
+                    // IO.Std.err.println( "choose: " + s0.HumanName + " (" + q0 + ">" + q1 + ")" );
+                    symbol = s0;
+                } else {
+                    // IO.Std.err.println( "choose: " + s1.HumanName + " (" + q0 + "<=" + q1 + ")" );
+                    symbol = s1;
+                    quality = q1;
+                }		    		    
+            } else if( s0 != null ) {
+                // IO.Std.err.println( "only choice: " + s0.HumanName );
+                symbol = s0;
+            } else {
+                /*
+                if( s1 != null ) {
+                    IO.Std.err.println( "only choice: " + s1.HumanName );
+                }
+                */
+                symbol = s1;
+                quality = q1;
+            }
 
-	    virtual_call = symbol == s1;
+            virtual_call = symbol == s1;
 
-	    // IO.Std.err.println( "virtual call: " + virtual_call );
+            // IO.Std.err.println( "virtual call: " + virtual_call );
 
             if( symbol == null ) {
                 type = undefined_type;
@@ -1466,113 +1464,113 @@ namespace Parse {
                     error( "method " + name.Name + "(" + arg_string + ") is not defined in " + state.CurrentClass.HumanName );
 
                 }
-		return;
+                return;
             } else if( symbol.Kind & Symbol.FLAG_METHOD == 0 ) {
-		type = undefined_type;
-		error( name.Name + " is not a method (D)" );
-		return;
+                type = undefined_type;
+                error( name.Name + " is not a method (D)" );
+                return;
             }
 
-	    // IO.Std.err.println( "proc bound to " + symbol.HumanName );
+            // IO.Std.err.println( "proc bound to " + symbol.HumanName );
 
-	    method = cast<Container>( symbol );
-	    if( method == null ) {
-		throw new Exception( "oops: method symbol " + symbol.HumanName + " is not a container" );
-	    }
+            method = cast<Container>( symbol );
+            if( method == null ) {
+                throw new Exception( "oops: method symbol " + symbol.HumanName + " is not a container" );
+            }
 
-	    if( quality.quality < Type.QUALITY_GOOD ) {
-		arg_string = dumpArguments( arg_types );
-		String resolve_string = dumpArguments( method.ArgTypes );
-		
-		if( state.WantWarnResolve ) {
-		    warn( "reference to " + name.Name + "(" + arg_string +
-			  ") resolves to " + method.HumanName + "(" + resolve_string + ") match quality " + quality.quality );
-		}
-	    }
+            if( quality.quality < Type.QUALITY_GOOD ) {
+                arg_string = dumpArguments( arg_types );
+                String resolve_string = dumpArguments( method.ArgTypes );
+                
+                if( state.WantWarnResolve ) {
+                    warn( "reference to " + name.Name + "(" + arg_string +
+                          ") resolves to " + method.HumanName + "(" + resolve_string + ") match quality " + quality.quality );
+                }
+            }
 
-	    /*
-	      IO.Std.err.println( "method call resolves to: " + symbol );
-	      IO.Std.err.println( "IIIIII: kind is " + symbol.Kind + " versus " + Symbol.STATIC_METHOD );
-	    */
-	    checkAccess( symbol, state );	    
-	}
+            /*
+              IO.Std.err.println( "method call resolves to: " + symbol );
+              IO.Std.err.println( "IIIIII: kind is " + symbol.Kind + " versus " + Symbol.STATIC_METHOD );
+            */
+            checkAccess( symbol, state );	    
+        }
 
-	LLVM.Value compileValue( CompileState state, IRBlock into ) {
-	    var ty = getType( state );
+        LLVM.Value compileValue( CompileState state, IRBlock into ) {
+            var ty = getType( state );
 
-	    if( type == undefined_type || method == null || method == undefined_method ) {
-		return ErrorValue();
-	    }
+            if( type == undefined_type || method == null || method == undefined_method ) {
+                return ErrorValue();
+            }
 
-	    // var load_this = false;
-	    Identifier name;
-	    var left_value = left;
+            // var load_this = false;
+            Identifier name;
+            var left_value = left;
 
-	    name = cast Identifier(left_value);
-	    left_value = name.LeftValue;
+            name = cast Identifier(left_value);
+            left_value = name.LeftValue;
 
-	    /*
-	    if( left_value != null && !left_value.isThis( state ) && !left_value.isSuper( state ) ) {
-		IO.Std.err.println( "IIIIII: load this" );
-		load_this = true;
-	    }
-	    */
-	    
-	    
-	    LLVM.Value t = null;
+            /*
+            if( left_value != null && !left_value.isThis( state ) && !left_value.isSuper( state ) ) {
+                IO.Std.err.println( "IIIIII: load this" );
+                load_this = true;
+            }
+            */
+            
+            
+            LLVM.Value t = null;
 
-	    if( virtual_call ) {
-		// IO.Std.err.println( "virtual call..." );
-		t = compileLoadSlotRef( state, into, method, type );
-	    } else if( !method.IsStatic ) { // !left_value.isClass( state ) && !left_value.isType(state) ) {
-		// IO.Std.err.println( "call A: " + left_value + " (" + left_value.Class.Name + ")" );
+            if( virtual_call ) {
+                // IO.Std.err.println( "virtual call..." );
+                t = compileLoadSlotRef( state, into, method, type );
+            } else if( !method.IsStatic ) { // !left_value.isClass( state ) && !left_value.isType(state) ) {
+                // IO.Std.err.println( "call A: " + left_value + " (" + left_value.Class.Name + ")" );
 
-		if( left_value != null ) {
-		    Container scope = null;
-		    Container super_class = null;
-		    if( left_value.getType(state).TypeKind == Type.SUPER ) {
-		        scope = left_value.getType(state).Clazz;
-			warn( "proc reference to method in super class: may be broken, method is: " + method.HumanName );
-			super_class = scope;
-		    }
+                if( left_value != null ) {
+                    Container scope = null;
+                    Container super_class = null;
+                    if( left_value.getType(state).TypeKind == Type.SUPER ) {
+                        scope = left_value.getType(state).Clazz;
+                        warn( "proc reference to method in super class: may be broken, method is: " + method.HumanName );
+                        super_class = scope;
+                    }
 
-		    if( left_value.isClass(state) || left_value.isType(state) ) {
-			error( "left value is not an object: " + left_value + " (is class: " + left_value.isClass(state) + ", is type: " + left_value.isType(state) + ")" );
-			return ErrorValue();
-		    }
+                    if( left_value.isClass(state) || left_value.isType(state) ) {
+                        error( "left value is not an object: " + left_value + " (is class: " + left_value.isClass(state) + ", is type: " + left_value.isType(state) + ")" );
+                        return ErrorValue();
+                    }
 
-		    t = left_value.compileValue( state, into );
-		} else {
-		    if( state.CurrentMethod == null || state.CurrentMethod.IsStatic ) {
-			error( "cannot bind proc reference bound to 'this' here" );
-			return ErrorValue();
-		    }
-		}
+                    t = left_value.compileValue( state, into );
+                } else {
+                    if( state.CurrentMethod == null || state.CurrentMethod.IsStatic ) {
+                        error( "cannot bind proc reference bound to 'this' here" );
+                        return ErrorValue();
+                    }
+                }
 
-		
-		/*
+                
+                /*
                 IO.Std.err.println( "method call calling load: " + method );
                 IO.Std.err.println( "IIIIII: kind is " + method.Kind + " versus " + Symbol.STATIC_METHOD );
-		*/
+                */
 
                 t = compileLoadProcRef( state, into, t, method, type, null );
             } else {
 
                 // IO.Std.err.println( "call B..." );
                 if( left_value != null && !left_value.isClass( state ) && !left_value.isType(state) ) {
-		    // IO.Std.err.println( "left value is not class..." );
+                    // IO.Std.err.println( "left value is not class..." );
                     // if( method.IsStatic ) {
-		    warn( "cannot bind " + left_value + " to static method " + method.HumanName );
-			//    return ErrorValue();
-			// }
-			// t = left_value.compileValue( state, into );
+                    warn( "cannot bind " + left_value + " to static method " + method.HumanName );
+                        //    return ErrorValue();
+                        // }
+                        // t = left_value.compileValue( state, into );
                 }
 
                 t = compileLoadProcRef( state, into, null, method, type, null );
             }
-	
-	    return t;
-	}
-	
+        
+            return t;
+        }
+        
     }
 }

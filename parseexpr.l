@@ -150,14 +150,15 @@ namespace Parse {
         void print( CompileState state, Printer p ) {
             pl(p);
 
+            p.print("[");
+            list.print( state, p );
+            p.print("]");
+
             if( element_type != null ) {
-                p.print( "new " );
+                p.print(": ");
                 element_type.print( state, p );
                 p.print( " " );
             }
-            p.print("{");
-            list.print( state, p );
-            p.print("}");
         }
     }
 
@@ -448,7 +449,7 @@ namespace Parse {
         void print( CompileState state, Printer p ) {
             pl(p);
 
-            p.print( "this" );
+            p.print( "self" );
         }
     }
 
