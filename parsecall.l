@@ -245,7 +245,9 @@ namespace Parse {
             if( argument != null ) {
                 p.print( "[" );
                 argument.print( state, p );
-                p.print( "]" );
+                p.print( "](" );
+                argument.print( state, p );
+                p.print( ")");
             } else {
                 p.print( "(" );
                 if( arguments != null /* && arguments.Length > 0 */ ) {
