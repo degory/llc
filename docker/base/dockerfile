@@ -1,16 +1,22 @@
 FROM ubuntu:10.04
-COPY fixuid /usr/local/bin
-RUN USER=docker && \
-    GROUP=docker && \
-    chown root:root /usr/local/bin/fixuid && \
-    chmod 4755 /usr/local/bin/fixuid && \
-    mkdir -p /etc/fixuid && \
-    printf "user: $USER\ngroup: $GROUP\n" > /etc/fixuid/config.yml
-
-RUN addgroup --gid 1000 docker && \
-    adduser --uid 1000 --ingroup docker --home /home/docker --shell /bin/sh --disabled-password --gecos "" docker
 
 COPY sources.list /etc/apt/
 
 RUN apt-get update && \
     apt-get -y install llvm-2.8-dev llvm-gcc-4.2 zip unzip git g++ libgc-dev libfcgi-dev
+
+COPY fixuid /usr/local/bin
+
+RUN USER=dev && \
+    GROUP=dev && \
+    chown root:root /usr/local/bin/fixuid && \
+    chmod 4755 /usr/local/bin/fixuid && \
+    mkdir -p /etc/fixuid && \
+    printf "user: $USER\ngroup: $GROUP\n" > /etc/fixuid/config.yml
+
+RUN addgroup --gid 1000 dev && \
+    adduser --uid 1000 --ingroup dev --home /home/dev --shell /bin/sh --disabled-password --gecos "" dev && \
+    mkdir /home/dev/source && \
+    chown dev:dev /home/dev/source
+
+VOLUME /home/dev/source/
