@@ -10,7 +10,6 @@ class Root { // is
 
 %}
 
-
 /* uncomment for yyextract:
 %token FIRST            
 
@@ -1320,7 +1319,7 @@ primary:
 	        $$ = new Parse.Super( first_line );
         }
 |	vector_list
-|	OPEN_PAREN expression CLOSE_PAREN { $$ = $2; }
+|	OPEN_PAREN expression CLOSE_PAREN { $$ = new Parse.Parenthesis( first_line, cast<Parse.Expression>($2)); }
 |	cast
 |       isa
 |	new

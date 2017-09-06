@@ -277,6 +277,15 @@ namespace Parse {
             }
         }
 
+        void print( CompileState state, Printer p ) {
+            pl(p);
+
+            p.print( "isa " );
+            left.print( state, p );
+            p.print( "(" );
+            right.print( state, p );
+            p.print( ")" );
+        }        
     }
 
     /// Cast
@@ -1770,25 +1779,18 @@ namespace Parse {
         void qualifies( Expression left_value ) {
             left.qualifies(left_value);
         }
+        
+        void compileBoolean( CompileState state, IRBlock into, LLVM.BasicBlock label, bool jump ) {
+            left.compileBoolean(state, into, label, jump);
+        }        
 
-        /*
-        LLVM.Value compileValue( CompileState state, IRBlock into, ILabel e, bool jump ) {
-            return left.compileValue(state, into, e, jump);
-        }
-
-
-        ITree compileValue( CompileState state, IBlock into ) {
+        LLVM.Value compileValue( CompileState state, IRBlock into ) {
             return left.compileValue(state, into);
-        }
-
-        void compileDiscardValue( CompileState state, IBlock into ) {
-            left.compileDiscardValue(state, into);
         }
 
         void compileDiscardValue( CompileState state, IRBlock into ) {
             left.compileDiscardValue(state, into);
         }
-        */
 
         bool isSuperConstructorCall( CompileState state ) {
             return left.isSuperConstructorCall(state);
@@ -1817,12 +1819,6 @@ namespace Parse {
         void calcType( CompileState state ) {
             type = left.getType(state);
         }
-
-        /*
-        ITree compileAddress( CompileState state, IBlock into ) {
-            return left.compileAddress( state, into );
-        }
-        */
 
         void print( CompileState state, Printer p ) {
             p.print( "(" );
