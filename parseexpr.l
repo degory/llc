@@ -1288,19 +1288,6 @@ namespace Parse {
                             cl = t;
                         }
 
-                        /*
-                        IO.Std.err.println( "pointer add: " + Op.getOpName(op) );
-                        IO.Std.err.print( "left:  " ); IO.Std.err.flush();
-                        LLVM.Calls.LLVMDumpValue( cl );
-                        IO.Std.err.print( "type:  " ); IO.Std.err.flush();
-                        LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(cl) );
-                        
-                        IO.Std.err.print( "right:  " ); IO.Std.err.flush();
-                        LLVM.Calls.LLVMDumpValue( cr );
-                        IO.Std.err.print( "type:  " ); IO.Std.err.flush();
-                        LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(cr) );
-                        */
-
                         return into.GEP( cl, { cr } );
                     } else {
                         error( "illegal operation on pointer" );
@@ -1323,19 +1310,6 @@ namespace Parse {
                     }
                     return t;
                 }
-
-                /*
-                IO.Std.err.println( "arith operator " + Op.getOpName(op) );
-                IO.Std.err.print( "left:  " ); IO.Std.err.flush();
-                LLVM.Calls.LLVMDumpValue( cl );
-                IO.Std.err.print( "type:  " ); IO.Std.err.flush();
-                LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(cl) );
-                
-                IO.Std.err.print( "right:  " ); IO.Std.err.flush();
-                LLVM.Calls.LLVMDumpValue( cr );
-                IO.Std.err.print( "type:  " ); IO.Std.err.flush();
-                LLVM.Calls.LLVMDumpType( LLVM.Calls.LLVMTypeOf(cr) );
-                */
 
                 switch( op ) {
                 case Op.ADD:
@@ -1522,6 +1496,9 @@ namespace Parse {
                 
             case Op.LE:
                 return "<=";
+
+            case Op.RANGE:
+                return "..";
 
             default:
                 return "unknown-op";

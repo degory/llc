@@ -515,8 +515,6 @@ namespace Parse {
         void print( CompileState state, Printer p ) {
             pl(p);
 
-            type_expr.print( state, p );
-
             p.print( " (" );
             bool seen_any = false;
             foreach( TypeExpr e; arguments.List.elements() ) {
@@ -526,7 +524,9 @@ namespace Parse {
                 e.print( state, p );
                 seen_any = true;
             }	    
-            p.print( ")" );
+            p.print( ") -> " );
+
+            type_expr.print( state, p );            
         }
     }
 

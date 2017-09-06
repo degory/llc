@@ -171,9 +171,6 @@ namespace Parse {
         }
     }
 
-
-
-
     class DoWhileStatement extends LoopStatement {
         Expression expression;
         Statement block;
