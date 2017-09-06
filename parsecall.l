@@ -243,17 +243,13 @@ namespace Parse {
             p.print( "new " );
             left.print( state, p );
             if( argument != null ) {
-                p.print( "[" );
-                argument.print( state, p );
-                p.print( "](" );
+                p.print( "[](" );
                 argument.print( state, p );
                 p.print( ")");
             } else {
                 p.print( "(" );
                 if( arguments != null /* && arguments.Length > 0 */ ) {
-                    p.print( " " );
                     arguments.print( state, p );
-                    p.print( " " );
                 }
                 p.print( ")" );
             }
