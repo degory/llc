@@ -20,7 +20,7 @@ namespace Parse {
         void init( int line_number ) {
             super.init( line_number );
             this.expression = null;
-	    cases = new Vector<Case>();
+            cases = new Vector<Case>();
         }
 
         void add( Case c ) {
@@ -35,14 +35,14 @@ namespace Parse {
             this.expression = expression;
         }
 
-	void clear( CompileState state ) {
-	    foreach( Case c; cases.elements() ) {
+        void clear( CompileState state ) {
+            foreach( Case c; cases.elements() ) {
                 c.clear( state );
             }
         }
 
-	void checkTemplates( CompileState state ) {
-	    foreach( Case c; cases.elements() ) {
+        void checkTemplates( CompileState state ) {
+            foreach( Case c; cases.elements() ) {
                 c.checkTemplates( state );
             }
         }
@@ -58,9 +58,9 @@ namespace Parse {
             state.Loops.pushLoop( LoopName, e, null );
             
             Type type = expression.getType(state);
-	    if( type == undefined_type ) {
-		return;
-	    }
+            if( type == undefined_type ) {
+                return;
+            }
             
             LLVM.Value temp = expression.compileValue(state,into);
 
@@ -72,7 +72,7 @@ namespace Parse {
                 default_block.compile( state, into );
             }
             
-	    into.Label(e);
+            into.Label(e);
             state.Loops.popLoop();
         }
 
@@ -92,33 +92,33 @@ namespace Parse {
             into.append( "}\n" );
         }
 
-	void print( CompileState state, Printer p ) {
-	    pl(p);
+        void print( CompileState state, Printer p ) {
+            pl(p);
 
-	    p.nl();
-	    String label = LoopName;
-	    if( label != null ) {
-		p.print( label );
-		p.print( ": " );
-	    }
+            p.nl();
+            String label = LoopName;
+            if( label != null ) {
+                p.print( label );
+                p.print( ": " );
+            }
 
-	    p.print( "case " );
-	    expression.print( state, p );
+            p.print( "case " );
+            expression.print( state, p );
 
-	    foreach( Case c; cases.elements() ) {
-		c.print( state, p );
-	    }
+            foreach( Case c; cases.elements() ) {
+                c.print( state, p );
+            }
 
-	    if( default_block != null ) {
-		p.nl();
-		p.println( "default:" );
-		p.indent();
-		default_block.print( state, p );
-		p.outdent();
-	    }
+            if( default_block != null ) {
+                p.nl();
+                p.println( "default:" );
+                p.indent();
+                default_block.print( state, p );
+                p.outdent();
+            }
 
-	    p.println( "esac" );
-	}
+            p.println( "esac" );
+        }
     }
 
     class Case extends Statement {
@@ -135,79 +135,79 @@ namespace Parse {
             block.declareSymbols( state );
         }
 
-	void clear( CompileState state ) {
-	    expression_list.clear(state);
-	    block.clear(state);
-	}
+        void clear( CompileState state ) {
+            expression_list.clear(state);
+            block.clear(state);
+        }
 
-	void checkTemplates( CompileState state ) {
-	    expression_list.checkTemplates(state);
-	    block.checkTemplates(state);
-	}
+        void checkTemplates( CompileState state ) {
+            expression_list.checkTemplates(state);
+            block.checkTemplates(state);
+        }
 
         
         void compile( CompileState state, IRBlock into, LLVM.Value temp, Type type, LLVM.BasicBlock exit ) {
             Vector<Expression> list = expression_list.List;
             LLVM.BasicBlock next = into.Block();
-	    Type t;
+            Type t;
 
             if( list.Length == 1 ) {
                 Expression expression = list[0];
-		t = expression.getType(state);
-		if( t == undefined_type ) {
-		    return;
-		}
+                t = expression.getType(state);
+                if( t == undefined_type ) {
+                    return;
+                }
                 if( !type.isAssignableFrom(t) ) {
                     error( "case expression " + expression.dump(state) + " of type " + expression.getType(state).dump() + " not compatible with switch expression of type " + type.dump() );
                 } else {
 
-		    into.Branch(
-				into.ICmp(
-					  LLVM.LLVMIntPredicate.LLVMIntNE, 
-					  temp,
-					  expression.compileValue(state,into)
-					  ),
-				
-				next
-				);
-			
+                    into.Branch(
+                                into.ICmp(
+                                          LLVM.LLVMIntPredicate.LLVMIntNE, 
+                                          temp,
+                                          expression.compileValue(state,into)
+                                          ),
+                                
+                                next
+                                );
+                        
                 }
                 block.compile( state, into );
             } else {
-		LLVM.BasicBlock match = into.Block();
+                LLVM.BasicBlock match = into.Block();
                 
                 foreach( Expression e; list.elements() ) {
-		    t = e.getType(state);
-		    if( t == undefined_type ) {
-			return;
-		    }
+                    t = e.getType(state);
+                    if( t == undefined_type ) {
+                        return;
+                    }
                     if( !type.isAssignableFrom(t) ) {
                         error( "case expression " + e.dump(state) + " of type " + e.getType(state).dump() + " not compatible with switch expression of type " + type.dump() );                  
                     } else {
-			into.Branch(
-				    into.ICmp(
-					      LLVM.LLVMIntPredicate.LLVMIntEQ, 
-					      temp,
-					      e.compileValue(state, into)
-					      ),
-				    
-				    match
-				    );
+                        into.Branch(
+                                    into.ICmp(
+                                              LLVM.LLVMIntPredicate.LLVMIntEQ, 
+                                              temp,
+                                              e.compileValue(state, into)
+                                              ),
+                                    
+                                    match
+                                    );
                     }
                 }
 
 
-		into.JumpLabel( next, match );
+                into.JumpLabel( next, match );
 
                 block.compile( state, into );
             }
 
             if( exit != null ) {
-		into.JumpLabel( exit, next );
+                into.JumpLabel( exit, next );
             } else {
-		IO.Std.err.println( "FIXME: looks wrong - case may be falling through here" );
-		into.Label( next );
-	    }
+                IO.Std.err.println( "FIXME: looks wrong - case may be falling through here" );
+                into.Label( next );
+            }
         }
 
         
@@ -219,25 +219,25 @@ namespace Parse {
             into.append( "\n" );
         }
 
-	void print( CompileState state, Printer p ) {
-	    pl(p);
+        void print( CompileState state, Printer p ) {
+            pl(p);
 
-	    p.nl();
-	    p.print( "is " );
-	    expression_list.print( state, p );
-	    p.println( ":" );
-	    p.indent();
-	    block.print( state, p );
-	    p.outdent();
+            p.nl();
+            p.print( "when " );
+            expression_list.print( state, p );
+            p.println( ":" );
+            p.indent();
+            block.print( state, p );
+            p.outdent();
 
-	}
+        }
     }
 
     class IfStatement extends Statement {
         Expression expression;
         Statement true_block;
         Statement false_block;
-	bool last_return;
+        bool last_return;
 
         void init( int line_number, Expression expression, Statement true_block, Statement false_block ) {
             super.init( line_number );
@@ -253,23 +253,23 @@ namespace Parse {
             this.false_block = null;
         }
 
-	void clear( CompileState state ){
-	    // last_return = false;
-	    expression.clear( state );
-	    true_block.clear( state );
-	    if( false_block != null ) {
-		false_block.clear( state );
-	    }
-	}
+        void clear( CompileState state ){
+            // last_return = false;
+            expression.clear( state );
+            true_block.clear( state );
+            if( false_block != null ) {
+                false_block.clear( state );
+            }
+        }
 
-	void checkTemplates( CompileState state ){
-	    // last_return = false;
-	    expression.checkTemplates( state );
-	    true_block.checkTemplates( state );
-	    if( false_block != null ) {
-		false_block.checkTemplates( state );
-	    }
-	}
+        void checkTemplates( CompileState state ){
+            // last_return = false;
+            expression.checkTemplates( state );
+            true_block.checkTemplates( state );
+            if( false_block != null ) {
+                false_block.checkTemplates( state );
+            }
+        }
 
         void declareSymbols( CompileState state ) {
             true_block.declareSymbols( state );
@@ -281,62 +281,62 @@ namespace Parse {
         void compile( CompileState state, IRBlock into ) {
             LLVM.BasicBlock f = into.Block();
 
-	    Type t = expression.getType(state); 
-	    if( t == undefined_type ) {
-		return;
-	    } else if( t.TypeKind != Type.BOOL ) {
-	        error( "if condition is not bool: " + t );
-	    } else {
-		expression.compileBoolean( state, into, f, false );
-	    }
+            Type t = expression.getType(state); 
+            if( t == undefined_type ) {
+                return;
+            } else if( t.TypeKind != Type.BOOL ) {
+                error( "if condition is not bool: " + t );
+            } else {
+                expression.compileBoolean( state, into, f, false );
+            }
 
             true_block.compile( state, into );
             
             if( false_block != null ) {
-		LLVM.BasicBlock e = into.Block();
-	    
-		into.JumpLabel( e, f );
+                LLVM.BasicBlock e = into.Block();
+            
+                into.JumpLabel( e, f );
 
                 false_block.compile( state, into );
                 
-		into.Label( e );
+                into.Label( e );
             } else {
-		into.Label( f );
+                into.Label( f );
             }
         }
 
-	bool isFirstStatementSuperConstructorCall(CompileState state) {
-	    if( false_block == null ) {
-	        return null;
+        bool isFirstStatementSuperConstructorCall(CompileState state) {
+            if( false_block == null ) {
+                return null;
             }
-	    return
-		true_block.isFirstStatementSuperConstructorCall(state) &&
-		false_block.isFirstStatementSuperConstructorCall(state);
+            return
+                true_block.isFirstStatementSuperConstructorCall(state) &&
+                false_block.isFirstStatementSuperConstructorCall(state);
 
-	}
+        }
 
-	get bool IsLastReturn {
-	    bool result = true_block.IsLastReturn;
-	    if( false_block != null ) {
-		result = result && false_block.IsLastReturn;
-	    }
+        get bool IsLastReturn {
+            bool result = true_block.IsLastReturn;
+            if( false_block != null ) {
+                result = result && false_block.IsLastReturn;
+            }
 
-	    last_return = result;
-	    return result;
-	}
+            last_return = result;
+            return result;
+        }
 
-	void markLastReturns() {    
-	    if( last_return ) {
-		true_block.markLastReturns();
-		if( false_block != null ) {
-		    false_block.markLastReturns();
-		}
-	    }
-	}
+        void markLastReturns() {    
+            if( last_return ) {
+                true_block.markLastReturns();
+                if( false_block != null ) {
+                    false_block.markLastReturns();
+                }
+            }
+        }
 
-	get bool IsIf {
-	    return true;
-	}
+        get bool IsIf {
+            return true;
+        }
 
         void dump( CompileState state, StringBuffer  buffer ) {
             buffer.append( "if(" );
@@ -349,35 +349,35 @@ namespace Parse {
             }
         }
 
-	void print( CompileState state, Printer p ) {
-	    pl(p);
+        void print( CompileState state, Printer p ) {
+            pl(p);
 
-	    p.nl();
-	    if( p.InElif ) {
-		p.InElif = false;
-		p.print( "elif " );
-	    } else {
-		p.print( "if " );
-	    }
-	    expression.print( state, p );
-	    p.println( " then" );
-	    p.indent();
-	    true_block.print( state, p );
-	    p.outdent();
-	    if( false_block != null ) {
-		if( false_block.IsIf ) {
-		    p.InElif = true;
-		    false_block.print( state, p );
-		} else {
-		    p.println( "else" );
-		    p.indent();
-		    false_block.print( state, p );
-		    p.outdent();
-		    p.println( "fi" );
-		}
-	    } else {
-		p.println( "fi" );
-	    }
-	}
+            p.nl();
+            if( p.InElif ) {
+                p.InElif = false;
+                p.print( "elif " );
+            } else {
+                p.print( "if " );
+            }
+            expression.print( state, p );
+            p.println( " then" );
+            p.indent();
+            true_block.print( state, p );
+            p.outdent();
+            if( false_block != null ) {
+                if( false_block.IsIf ) {
+                    p.InElif = true;
+                    false_block.print( state, p );
+                } else {
+                    p.println( "else" );
+                    p.indent();
+                    false_block.print( state, p );
+                    p.outdent();
+                    p.println( "fi" );
+                }
+            } else {
+                p.println( "fi" );
+            }
+        }
     }
 }

@@ -159,12 +159,11 @@ namespace Parse {
             pl(p);
 
             p.nl();
-            p.print( "#include <" );
+            p.print( "// import " );
             name.print( state, p );
-            p.println( ".h>" );
+            p.println( ";" );
         }
     }
-
 
     class LibraryDef extends Statement {
         Constant name;
@@ -2311,7 +2310,10 @@ namespace Parse {
                     p.InArgs = false;
                 }
             } else {
-                name.print( state, p );
+                if (!name.Name.startsWith("__anon_")) {
+                    name.print( state, p );
+                }
+
                 p.print( "(" );
 
                 if( args != null ) {
