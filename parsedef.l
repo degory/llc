@@ -333,8 +333,11 @@ namespace Parse {
             p.print( "enum " );
             name.print( state, p );
             p.println( " is" );
+            p.indent();
             members.print( state, p );
+            p.outdent();
             p.println( "si" );
+            p.nl();
         }
     }
 
@@ -342,7 +345,7 @@ namespace Parse {
     class ClassDef extends AccessDef {
         Identifier super_ident;
         Identifier name;
-        IdentifierList arguments;     // formal arguments to this class - names of types that will be given specific type values when class is used
+        IdentifierList arguments;     // formal argulAments to this class - names of types that will be given specific type values when class is used
         TypeExprList super_arguments; // actual arugments to super class - specified now (although may be references to formal arguments)
         TypeExprList implements_list;      // implemented interfaces
         BlockStatement body;

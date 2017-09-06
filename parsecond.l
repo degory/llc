@@ -111,7 +111,7 @@ namespace Parse {
 
             if( default_block != null ) {
                 p.nl();
-                p.println( "default:" );
+                p.println( "default" );
                 p.indent();
                 default_block.print( state, p );
                 p.outdent();
