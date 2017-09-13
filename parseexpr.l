@@ -30,9 +30,13 @@ namespace Parse {
             // IO.Std.err.println( "list is: " + this );
             Type t, u;
 
+            bool explicit_non_object_type = false;
+
             if( element_type != null ) {
                 t = element_type.parseType(state);
                 element_kind = t.TypeKind;
+
+                explicit_non_object_type = !t.equals(ParseTree.object_type);
             } else if( list.List.Length == 0 ) {
                 error( "cannot initialize array from zero length list with no type" );
                 t = undefined_type;
@@ -56,7 +60,7 @@ namespace Parse {
                 u = f.getType(state);
                 
                 if( !t.isAssignableFrom( u ) ) {
-                    if( element_type != null ) {
+                    if( explicit_non_object_type ) {
                         error("element of type " + u + " not compatible with explicit type " + t);
                     } else {
                         if( u.isAssignableFrom( t ) ) {
