@@ -29,6 +29,7 @@ namespace Parse {
             // IO.Std.err.println( "VectorList calcType in pass #" + cast int(state.Pass) );
             // IO.Std.err.println( "list is: " + this );
             Type t, u;
+
             if( element_type != null ) {
                 t = element_type.parseType(state);
                 element_kind = t.TypeKind;
@@ -53,17 +54,17 @@ namespace Parse {
 
             foreach( Expression f; list.List.elements() ) {
                 u = f.getType(state);
+                
                 if( !t.isAssignableFrom( u ) ) {
-                    /*
-                    if( t.isScalar() ) {
-                        error( "inconsitent types in array initializer: " + t.dump() + " and " + u.dump() );
-                        t = undefined_type;
-                        break;
-                      } else */ if( u.isAssignableFrom( t ) ) { 
-                        t = u;
+                    if( element_type != null ) {
+                        error("element of type " + u + " not compatible with explicit type " + t);
                     } else {
-                        t = object_type;
-                        break;
+                        if( u.isAssignableFrom( t ) ) {
+                            t = u;
+                        } else {
+                            t = object_type;
+                            break;
+                        }
                     }
                 }
             }

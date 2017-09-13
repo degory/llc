@@ -259,7 +259,6 @@ namespace Parse {
         }
     }
 
-
     class WhileStatement extends LoopStatement {
         Expression expression;
         Statement block;
