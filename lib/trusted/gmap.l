@@ -165,7 +165,7 @@ namespace Generic is
     /// An associative array implemented as a hash table. 
     /// \param K type of keys in the Map. K must implement int hash() method and =~ operator (bool opEquals(K)). 
     /// \param V type of values in the Map.
-    class Map<K,V> do Dict<K,V>, Deletable<K> is
+    class Map<K,V> do Dict<K,V>, Iterable<V>, Deletable<K> is
 	public ListNode<MapPair<K,V>>[] _values;
 
 	/// Construct a new Map
