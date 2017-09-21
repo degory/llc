@@ -464,8 +464,6 @@ namespace Parse {
         Vector<String> visited_files;
 	Vector<String> dependent_files;
 
-	Generic.Set<String> c_forward_structs;
-
 	int active_processes;
 
         int sp;
@@ -641,8 +639,6 @@ namespace Parse {
 	 
 	    interfaces_set = new Generic.Set<Container>();
 
-	    c_forward_structs = new Generic.Set<String>();
- 
 	    if( instance != null ) {
 		IO.Std.err.println( "creating another compiler instance overwrites static values in previous instance" );
 	    }
@@ -694,18 +690,6 @@ namespace Parse {
 	    } else {
 		return "linux-" + TargetISAName + "-32";
 	    }
-	}
-
-	void addForward() {
-	    CurrentMethod.addCForwardStructs(c_forward_structs);
-
-	    var s = IO.File.openAppend("forward.c");
-	    s.println(CurrentMethod.CForwardDefinition);
-	    s.close();
-
-	    s = IO.File.openAppend("forward.h");
-	    s.println(CurrentMethod.CForwardDeclaration);
-	    s.close();
 	}
 
 	void walk( Object o ) {
@@ -1319,14 +1303,6 @@ namespace Parse {
 
 	    openLibraryInfoFile();
 
-	    IO.File.deleteQuiet( "forward.c" );
-	    IO.File.deleteQuiet( "forward.h" );
-	    IO.File.deleteQuiet( "forward_types.h" );
-
-            var t = IO.File.openCreate("forward.c");
-	    t.println("#include \"forward_types.h\"");
-            t.close();
-
 	    // recursively visit all imported files building parse trees until every
 	    // imported package has been parsed:
 	    Pass = CompilePass.PARSE_IMPORTS;
@@ -1463,12 +1439,6 @@ namespace Parse {
                 p = cast<Package>(to_compile_list[i]);
                 p.compile( this );
             }
-
-	    var s = IO.File.openCreate("forward_types.h");
-	    foreach (var cfs; c_forward_structs) {
-		s.println("struct " + cfs + " {};");
-	    }
-	    s.close();
 
 	    /*
 	    var w = new Util.Walk( proc(Object)(dumpMemory) );
