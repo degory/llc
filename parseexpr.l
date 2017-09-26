@@ -1097,7 +1097,11 @@ namespace Parse {
                     case Op.RANGE:
                         op_string = "..";
                         n = "opRange";
-                        
+
+                    case Op.RANGE_INCLUSIVE:
+                        op_string = "::";
+                        n = "opRangeInclusive";
+                                                
                     default:
                         error( "cannot use this operator here" );			   
                         return;
@@ -1504,6 +1508,9 @@ namespace Parse {
 
             case Op.RANGE:
                 return "..";
+
+            case Op.RANGE_INCLUSIVE:
+                return "::";
 
             default:
                 return "unknown-op";

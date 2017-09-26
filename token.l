@@ -459,6 +459,9 @@ namespace Parse {
             case Token.RANGE:
                 token_string = "opRange";
 
+            case Token.RANGE_INCLUSIVE:
+                token_string = "opRangeInclusive";
+
             default:
                 // syntax error:
                 return r;
@@ -921,15 +924,17 @@ namespace Parse {
                 }
 
             case ',': return Token.COMMA;
-            case ':': return Token.COLON;
-            case ';': 
-                /*
-                if( generic_state == IN_FOR ) {
-                    generic_state = IN_OTHER;
-                } else if( paren_level == 0 ) {
-                    generic_state = MAYBE_IN_TYPE;
+
+            case ':': 
+                c = nextChar();
+                if( c == ':' ) {
+                    return Token.RANGE_INCLUSIVE;
+                } else {
+                    prevChar(c);
+                    return Token.COLON;
                 }
-                */
+
+            case ';': 
                 return Token.END_STATEMENT;
 
             case '@':

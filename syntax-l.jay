@@ -239,6 +239,7 @@ class Root {
 %token ISA           115
 %token OPERATOR	     116
 %token RANGE	     117
+%token RANGE_INCLUSIVE 118
 %start ROOT
 
 %%
@@ -746,6 +747,9 @@ expressionA:
 expressionR:
     expressionR RANGE expressionB
                { $$ = new Parse.ArithExpression( first_line, Op.RANGE, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
+|   expressionR RANGE_INCLUSIVE expressionB
+               { $$ = new Parse.ArithExpression( first_line, Op.RANGE_INCLUSIVE, cast<Parse.Expression>($1), cast<Parse.Expression>($3)); }
+
 |   expressionB
 
 ;
