@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+
 if [ -z "$1" ]; then
     echo "no image name specified"
     exit 1
