@@ -18,4 +18,4 @@ deb-src http://old-releases.ubuntu.com/ubuntu/ maverick-updates universe
 deb http://old-releases.ubuntu.com/ubuntu maverick-security universe
 deb-src http://old-releases.ubuntu.com/ubuntu maverick-security universe
 
-deb http://archive.canonical.com/ubuntu maverick partner
+# deb http://archive.canonical.com/ubuntu maverick partner
