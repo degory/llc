@@ -1931,7 +1931,7 @@ namespace Parse {
                             if( t != null ) {
                                 ancestor = t;
 				if( ancestor.ForceVirtual && !ForceVirtual ) {
-				    body_statement.warn("force virtual should already have propogated from " + ancestor.HumanName + " to " + current.HumanName );
+				    // body_statement.warn("force virtual should already have propogated from " + ancestor.HumanName + " to " + current.HumanName );
 				    ForceVirtual = true;
 				}
 

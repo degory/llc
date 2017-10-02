@@ -1064,7 +1064,11 @@ namespace Parse {
 	get String CacheDir {
 	    if( lcache_dir == null ) {
 		if( project_name != null ) {
-		    lcache_dir = "/tmp/lcache-" + project_name + "/";
+                    if( project_name.startsWith('.') || project_name.startsWith('/') ) {
+                        lcache_dir = project_name + "/";
+                    } else {
+		        lcache_dir = "/tmp/lcache-" + project_name + "/";
+                    }
 		} else {
 		    lcache_dir = "/tmp/lcache/";
 		}
