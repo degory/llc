@@ -36,7 +36,7 @@ namespace IO {
 
         public static get Reader input { return in; }
         public static get Writer output { return out; }
-        public static get Writer error { return error; }
+        public static get Writer error { return err; }
 
         /// Replace standard input, standard output and standard error with thread safe versions
         public static void makeThreadSafe() {
