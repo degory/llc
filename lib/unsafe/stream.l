@@ -123,10 +123,10 @@ namespace IO {
             }
         }
 
-        void readAll( StringBuffer b ) {
+        void readAll( StringBuffer b, int terminator ) {
             try {
                 lock.lock();
-                _readAllUnlocked( b );
+                _readAllUnlocked( b, terminator );
             } finally {
                 lock.unlock();
             }
@@ -281,6 +281,12 @@ namespace IO {
             return _readUnlocked();
         }
 
+        String readLine() {
+            StringBuffer result = new StringBuffer();
+            readAll(result, cast int('\n'));
+            return result;
+        }
+
         /// Internal method for LockedReader
         void _unReadUnlocked( int c ) {
             //try {
@@ -303,10 +309,10 @@ namespace IO {
         }
 
         /// Internal method for LockedReader
-        void _readAllUnlocked( StringBuffer b ) {
+        void _readAllUnlocked( StringBuffer b, int terminator ) {
             while( true ) {
                 int c = _readUnlocked();
-                if( c == -1 ) {
+                if( c == terminator ) {
                     return;
                 }
                 b.append( cast<char>(c) );
@@ -317,15 +323,15 @@ namespace IO {
         /// Read all remaining characters and append to supplied StringBuffer
         /// \param b StringBuffer to read into
         /// \throw IOException
-        void readAll( StringBuffer b ) {
-            _readAllUnlocked( b );
+        void readAll( StringBuffer b, int terminator ) {
+            _readAllUnlocked( b, terminator );
         }
 
         /// Read all remaining characters into a new StringBuffer and return it
         /// \throw IOException
         StringBuffer readAll() {
             StringBuffer result = new StringBuffer();
-            readAll(result);
+            readAll(result, -1);
             return result;
         }
 
