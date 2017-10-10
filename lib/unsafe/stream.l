@@ -34,8 +34,12 @@ namespace IO {
         /// Standard error
         public static Writer err = cast Writer(Exit.add(new Writer(err_stream)));
 
+        public static get Reader input { return in; }
+        public static get Writer output { return out; }
+        public static get Writer error { return error; }
+
         /// Replace standard input, standard output and standard error with thread safe versions
-         public static void makeThreadSafe() {
+        public static void makeThreadSafe() {
             out.flush();
             err.flush();
             
