@@ -605,16 +605,16 @@ namespace Parse {
                 at = left_value.getType( state );
                 k = at.TypeKind;
                 if( k == Type.CLASS || k == Type.VECTOR ) {
-                    return LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),0L,0);
-                } else {
                     return LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0);
+                } else {
+                    return LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),0L,0);
                 }
             } else if( k == Symbol.ATTRIBUTE_ISREFERENCE ) {
                 at = left_value.getType( state );
                 if( at.isReference() ) {
-                    return LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),0L,0);
-                } else {
                     return LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),1L,0);
+                } else {
+                    return LLVM.Calls.LLVMConstInt(LLVM.Calls.LLVMInt1Type(),0L,0);
                 }
             } else if( k == Symbol.CONST ) {
                 // IO.Std.err.println( "FIXME: store LLVM.Value in const symbol" );
