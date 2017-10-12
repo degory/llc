@@ -94,7 +94,7 @@ namespace Generic is
 
                 var current = this[i];
 
-                if T.reference && current == null then
+                if T.isreference && current == null then
                     result.append("null");
                 else
                     result.append(this[i].toString());
