@@ -316,7 +316,7 @@ namespace IO {
         void _readAllUnlocked( StringBuffer b, int terminator ) {
             while( true ) {
                 int c = _readUnlocked();
-                if( c == terminator ) {
+                if( c == terminator || c == -1 ) {
                     return;
                 }
                 b.append( cast<char>(c) );
