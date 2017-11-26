@@ -13,7 +13,7 @@ jobs:
       - run:
           name: Bootstrap
           command: BUILD_NUMBER=$((400+CIRCLE_BUILD_NUM)) ./ci-bootstrap.sh
-      - run
+      - run:
           name: StoreAssets
           command: cp lc.zip $CIRCLE_ARTIFACTS
 
