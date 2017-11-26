@@ -12,7 +12,7 @@ jobs:
           command: ./docker-login.sh
       - run:
           name: Bootstrap
-          command: BUILD_NUMBER=$((400+CIRCLE_BUILD_NUM)) ./ci-bootstrap.sh
+          command: WORKSPACE=$CIRCLE_WORKING_DIRECTORY BUILD_NUMBER=$((400+CIRCLE_BUILD_NUM)) ./ci-bootstrap.sh
       - run:
           name: StoreAssets
           command: cp lc.zip $CIRCLE_ARTIFACTS
