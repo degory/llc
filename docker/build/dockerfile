@@ -1,9 +1,0 @@
-FROM docker.giantblob.com/llc:latest
-RUN groupadd jenkins -g 117
-RUN useradd jenkins -u 111 -g 117 -m -d /var/lib/jenkins -s /bin/bash
-RUN mkdir /var/lib/jenkins/workspace
-VOLUME /var/lib/jenkins/workspace
-RUN chown -R jenkins:jenkins /var/lib/jenkins
-
-
-

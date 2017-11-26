@@ -1,4 +1,4 @@
-FROM docker.giantblob.com/base:latest
+FROM ghul/base:latest
 
 COPY llc /usr/local/bin
 COPY llvm-ld /usr/local/bin/

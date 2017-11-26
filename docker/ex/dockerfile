@@ -1,4 +1,4 @@
-FROM docker.giantblob.com/llc:latest
+FROM ghul/llc:latest
 USER dev:dev
 ENTRYPOINT ["fixuid"]
 
