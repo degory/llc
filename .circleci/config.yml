@@ -28,7 +28,7 @@ jobs:
       - checkout
       - run:
           name: Build
-	  command: WORKSPACE=`pwd` BUILD_NUMBER=$((400+CIRCLE_BUILD_NUM)) ./ci-build.sh
+          command: WORKSPACE=`pwd` BUILD_NUMBER=$((400+CIRCLE_BUILD_NUM)) ./ci-build.sh
       - run:
           name: DockerLogin
           command: ./docker-login.sh
