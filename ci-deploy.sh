@@ -1,4 +1,4 @@
 #!/bin/bash
-cd $WORKSPACE/docker
+cd docker
 cp ../lc.zip llc/
 ./build-all.sh
