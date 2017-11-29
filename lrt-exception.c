@@ -455,6 +455,14 @@ int __get_time() {
   return (int)t.tv_sec;
 }
 
+long __get_micro_time() {
+  struct timeval t;
+
+  gettimeofday( &t, 0 );
+
+  return (long)t.tv_sec * 1000000L + t.tv_usec;  
+}
+
 #if B32
 // C calling convention:
 
