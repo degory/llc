@@ -16,6 +16,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <errno.h>
+#include <dirent.h>
 
 
 // #define DEBUG 1
@@ -461,6 +462,10 @@ long __get_micro_time() {
   gettimeofday( &t, 0 );
 
   return (long)t.tv_sec * 1000000L + t.tv_usec;  
+}
+
+char *__get_dirent_name(struct dirent *ep) {
+  return ep->d_name;
 }
 
 #if B32
