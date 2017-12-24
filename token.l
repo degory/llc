@@ -385,7 +385,7 @@ namespace Parse {
             } else if( c >= '0' && c <= '7' ) {
                 // IO.Std.out.println( "escape octal" );
                 while( c >= '0' && c <= '7' ) {
-                    result = 8 * result + cast<int>(c);
+                    result = 8 * result + cast<int>(c - '0');
                     c = nextChar();
                 }
                 prevChar(c);
