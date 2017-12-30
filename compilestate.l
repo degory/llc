@@ -1718,11 +1718,13 @@ namespace Parse {
 		v.add( s );
 	    }
 
+            /*
 	    foreach( String u; libraries.elements() ) {
-		if( u.endsWith( ".so" ) ) {
+		if( u.endsWith( ".so" ) || u.startsWith( "-" ) ) {
 		    v.add( u );
 		}
 	    }
+            */
 	    // v.add( "-nostartfiles" );
 
 	    v.add( "-lgc" );
@@ -1731,12 +1733,10 @@ namespace Parse {
 	    // v.add( "-lpthread" );
 
 	    foreach( String t; libraries.elements() ) {
-		if( t.endsWith(".o") || t.endsWith(".bc") || t.endsWith( ".so" ) ) {
+		if( t.endsWith(".o") || t.endsWith(".bc") || t.endsWith( ".so" ) || t.startsWith( "-" ) ) {
 		    v.add( t ); 
-		} else if( !t.endsWith(".so") ) {
-		    v.add( "-l" + t );
 		} else {
-		    IO.Std.err.println( "oops: ignoring import file: " + t );		
+		    v.add( "-l" + t );
 		}
 	    }
 

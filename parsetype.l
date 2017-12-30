@@ -614,7 +614,7 @@ namespace Parse {
             } else {
                 b.append( type );
             }
-            b.append( '<' );
+            b.append( '[' );
             bool seen_any = false;
             foreach( TypeExpr e; arguments.List.elements() ) {
                 if( seen_any ) {
@@ -622,7 +622,7 @@ namespace Parse {
                 }
                 b.append( e.toString() );		
             }	    
-            b.append( '>' );
+            b.append( ']' );
 
             return b;
         }

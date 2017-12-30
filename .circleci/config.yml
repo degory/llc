@@ -34,7 +34,7 @@ jobs:
           command: ./docker-login.sh
       - run:
           name: BuildAndPushImage
-          command: ./ci-deploy.sh
+          command: BUILD_NUMBER=$((400+CIRCLE_BUILD_NUM)) ./ci-deploy.sh
 
 workflows:
   version: 2

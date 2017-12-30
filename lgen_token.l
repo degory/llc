@@ -86,8 +86,8 @@ namespace LGen {
                 "Identifier",
                 "Number",
                 "String",
-		"Code string",
-		"Tree code",
+                "Code string",
+                "Tree code",
                 "Character",
                 
                 "{",
@@ -131,7 +131,7 @@ namespace LGen {
                 "terminal",
                 "rule",
                 "start",
-		"rewrite",
+                "rewrite",
                 "machine",
 
                 "unknown",
@@ -143,8 +143,8 @@ namespace LGen {
             symbol_tokens["terminal"] = Token.TERMINAL;
             symbol_tokens["rule"] = Token.RULE;
             symbol_tokens["start"] = Token.START;
-	    symbol_tokens["rewrite"] = Token.REWRITE;
-	    symbol_tokens["machine"] = Token.MACHINE;
+            symbol_tokens["rewrite"] = Token.REWRITE;
+            symbol_tokens["machine"] = Token.MACHINE;
 
             read_buffer = new Util.Vector();
             mark_buffer = new Util.Vector();
@@ -222,9 +222,9 @@ namespace LGen {
             return token_name[cast<int>(t)];
         }
 
-	int getLineNumber() {
-	    return line_number;
-	}
+        int getLineNumber() {
+            return line_number;
+        }
 
         char readEscape() {
             char c = nextChar();
@@ -315,7 +315,7 @@ namespace LGen {
 
 
             System.StringBuffer buffer;
-	    int block_level;
+            int block_level;
 
             // IO.Std.out.println( "number/letter: '" + c + "'?" );
             if( c == '{' ) {
@@ -345,7 +345,7 @@ namespace LGen {
                     }
                     c = nextChar();
                 }
-		prevChar(c);
+                prevChar(c);
                 token_string = buffer;
                 return Token.CODE_STRING;
             } else if( c >= '0' && c <= '9' ) {
@@ -489,10 +489,8 @@ namespace LGen {
             case ',': return Token.COMMA;
             case ':': return Token.COLON;
             case ';': return Token.SEMICOLON;
-	    case '$': return Token.DOLLAR;
+            case '$': return Token.DOLLAR;
             }
-
-
             
             IO.Std.out.println( "unknown: '" + c + "'" );
             return Token.UNKNOWN;
