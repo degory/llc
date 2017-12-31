@@ -2499,7 +2499,7 @@ namespace Parse {
 		decorate = new StringBuffer("N");
 		populateNameSpaceDecorated( decorate, name );
 		decorate.append( "I" );
-		human.append( "<" );
+		human.append( "[" );
 
 		bool seen_any = false;
 		foreach( Type u; args.elements() ) {
@@ -2513,7 +2513,7 @@ namespace Parse {
 		    u.dump( human, decorate );
 		}
 		
-		human.append( ">" );	    
+		human.append( "]" );	    
 		decorate.append( "EE" );
 
 		search_name = name + human;
