@@ -380,7 +380,7 @@ static int GenerateNative(const std::string &OutputFilename,
     args.push_back("-shared");
   }
 
-  args.push_back("-Wl,--unresolved-symbols=ignore-in-shared-libs");
+  // args.push_back("-Wl,--unresolved-symbols=ignore-in-shared-libs");
 
   args.push_back("-Xlinker");
   args.push_back("-E" );

@@ -8,7 +8,7 @@ jobs:
           name: Pull
           command: git pull --ff-only origin master
       - run:
-          name: DockerLogin
+          name: Docker login
           command: ./docker-login.sh
       - run:
           name: Bootstrap
@@ -30,11 +30,14 @@ jobs:
           name: Build
           command: WORKSPACE=`pwd` BUILD_NUMBER=$((400+CIRCLE_BUILD_NUM)) ./ci-build.sh
       - run:
-          name: DockerLogin
+          name: Docker login
           command: ./docker-login.sh
       - run:
-          name: BuildAndPushImage
+          name: Build and push image
           command: BUILD_NUMBER=$((400+CIRCLE_BUILD_NUM)) ./ci-deploy.sh
+      - run:
+          name: Tag image as stable
+          command: BUILD_NUMBER=$((400+CIRCLE_BUILD_NUM)) ./ci-tag-stable.sh
 
 workflows:
   version: 2
