@@ -1501,6 +1501,10 @@ void __init_gcj_malloc() {
 
 #define SIGNAL_STACK_SIZE 65536
 void __install_segv_handler() {
+  if( getenv("GC_ENABLE_INCREMENTAL") ) {
+    return;
+  }
+  
   D("install segv handler\n");
   stack_t ss;
   struct sigaction sa;
