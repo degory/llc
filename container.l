@@ -1714,7 +1714,7 @@ namespace Parse {
 
                 c.Address = -(INTERFACE_OFFSET + slot_index);
                 if( CompileState.Instance.WantVeryVerbose ) {
-                    ParseTree.message( "interface slot #" + slot_index + ": " + c.HumanName + " @ " + c.Address );
+                    ParseTree.message( "hash interface slot #" + slot_index + ": " + c.HumanName + " @ " + c.Address );
                 }
 
                 // does this set addresses for all overrides?
@@ -1799,7 +1799,7 @@ namespace Parse {
 
                 c.Address = -(INTERFACE_OFFSET + slot_index);
                 if( CompileState.Instance.WantVeryVerbose ) {
-                    ParseTree.message( "interface slot #" + slot_index + ": " + c.HumanName + " @ " + c.Address );
+                    ParseTree.message( "color interface slot #" + slot_index + ": " + c.HumanName + " @ " + c.Address );
                 }
 
                 Container o = c.Override;
