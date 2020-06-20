@@ -1,15 +1,17 @@
 .file 1 "lrt0.S"
 
 
-// default allocator 
-#define ALLOC GC_malloc_ignore_off_page
-// #define ALLOC GC_malloc
+// default allocator
+// #define ALLOC GC_malloc_ignore_off_page
+
+#define ALLOC GC_malloc
 
 // if we checked the array type at compile time to make sure it was not a pointer
 // #define NON_OBJECT_ARRAY_ALLOC  GC_malloc_atomic_ignore_off_page
 // #define NON_OBJECT_ARRAY_ALLOC  __alloc_atomic_clear
 
-#define NON_OBJECT_ARRAY_ALLOC  GC_malloc_atomic_ignore_off_page
+// #define NON_OBJECT_ARRAY_ALLOC  GC_malloc_atomic_ignore_off_page
+#define NON_OBJECT_ARRAY_ALLOC  GC_malloc
 	
 #define OBJECT_ARRAY_ALLOC ALLOC
 #define OBJECT_ALLOC ALLOC

@@ -340,7 +340,8 @@ namespace Generic is
 		fi
 
 		// if T.isreference then 
-		    new_values = cast T ptr(native.GC_malloc_ignore_off_page( a * T.sizeof ));
+		   new_values = cast T ptr(native.GC_malloc( a * T.sizeof ));
+		   // new_values = cast T ptr(native.GC_malloc_ignore_off_page( a * T.sizeof ));
 //else
 //		    new_values = cast T ptr(native.GC_malloc_atomic_ignore_off_page( a * T.sizeof ));
 //		fi

@@ -126,8 +126,11 @@ typedef struct _SigContext {
 
 #ifdef LLVM
 
-#define ALLOC GC_malloc_ignore_off_page
-#define NON_OBJECT_ARRAY_ALLOC  GC_malloc_atomic_ignore_off_page
+// #define ALLOC GC_malloc_ignore_off_page
+// #define NON_OBJECT_ARRAY_ALLOC  GC_malloc_atomic_ignore_off_page
+
+#define ALLOC GC_malloc
+#define NON_OBJECT_ARRAY_ALLOC  GC_malloc
 	
 #define OBJECT_ARRAY_ALLOC ALLOC
 #define OBJECT_ALLOC ALLOC
@@ -631,7 +634,8 @@ void *__alloc_object( WORD size, WORD *vtable ) {
     result[0] = (WORD)vtable;
 #endif
   } else {
-    result = GC_malloc_ignore_off_page( size ); // GC_MALLOC_IGNORE_OFF_PAGE( size );
+    result = GC_malloc( size ); // GC_MALLOC_IGNORE_OFF_PAGE( size );  
+//    result = GC_malloc_ignore_off_page( size ); // GC_MALLOC_IGNORE_OFF_PAGE( size );
   }
 
     // result[0] = (WORD)vtable;
@@ -664,7 +668,6 @@ void __call_dispose( WORD *object ) {
   // fprintf( stderr, "calling dipose on %lp\n", object );
   (*dispose)(object);
 }
-
 
 #else
 
