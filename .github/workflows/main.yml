@@ -27,7 +27,6 @@ jobs:
         BUILD_NUMBER: ${{ github.run_id }}
       
     - name: Build and push image
-      if: ${{ github.event_name	== 'push' }}
       run: ./deploy.sh
       env:
         BUILD_NUMBER: ${{ github.run_id }}
