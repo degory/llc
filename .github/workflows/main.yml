@@ -19,25 +19,32 @@ jobs:
         DOCKER_USER_NAME: ${{ secrets.DOCKER_USER_NAME }}  
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }} 
 
-    - name: Bootstrap
-      run: ./ci-bootstrap.sh
+    - name: Build lc.zip
+      run: ./ci-build.sh
       env:
         WORKSPACE: ${{ github.workspace }}
-        BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
-        BUILD_NUMBER: ${{ github.run_id }}
-      
-    - name: Build and push image
+
+    - name: Build and push image 1
       run: ./ci-deploy.sh
       env:
         BUILD_NUMBER: ${{ github.run_id }}
 
-    - name: Bootstrap
+    - name: Bootstrap 1
       run: ./ci-bootstrap.sh
       env:
         WORKSPACE: ${{ github.workspace }}
         BUILD_WITH: ${{ format('ghul/ex:{0}', github.run_id )}}
-        BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
-        BUILD_NUMBER: ${{ format('test-{0}', github.run_id) }}
+
+    - name: Build and push image 2
+      run: ./ci-deploy.sh
+      env:
+        BUILD_NUMBER: ${{ format('test-{}', github.run_id }}
+
+    - name: Bootstrap 2
+      run: ./ci-bootstrap.sh
+      env:
+        WORKSPACE: ${{ github.workspace }}
+        BUILD_WITH: ${{ format('ghul/ex:test-{0}', github.run_id )}}
 
     - name: Tag image as stable
       if: ${{ github.event_name	== 'push' }}
