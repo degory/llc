@@ -27,7 +27,7 @@ jobs:
         BUILD_NUMBER: ${{ github.run_id }}
       
     - name: Build and push image
-      run: ./deploy.sh
+      run: ./ci-deploy.sh
       env:
         BUILD_NUMBER: ${{ github.run_id }}
 
