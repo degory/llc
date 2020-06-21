@@ -19,7 +19,7 @@ jobs:
         DOCKER_USER_NAME: ${{ secrets.DOCKER_USER_NAME }}  
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }} 
 
-    - name: Build lc.zip
+    - name: Build lc.zip 1
       run: ./ci-build.sh
       env:
         WORKSPACE: ${{ github.workspace }}
@@ -35,10 +35,16 @@ jobs:
         WORKSPACE: ${{ github.workspace }}
         BUILD_WITH: ${{ format('ghul/ex:{0}', github.run_id) }}
 
+    - name: Build lc.zip 2
+      run: ./ci-build.sh
+      env:
+        WORKSPACE: ${{ github.workspace }}
+        BUILD_WITH: ${{ format('ghul/ex:{0}', github.run_id) }}
+
     - name: Build and push image 2
       run: ./ci-deploy.sh
       env:
-        BUILD_NUMBER: ${{ format('test-{}', github.run_id) }}
+        BUILD_NUMBER: ${{ format('test-{0}', github.run_id) }}
 
     - name: Bootstrap 2
       run: ./ci-bootstrap.sh
