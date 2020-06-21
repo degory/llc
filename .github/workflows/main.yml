@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: 
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+              
+    - name: Docker Login
+      run: ./docker-login.sh
+      env:
+        DOCKER_USER_NAME: ${{ secrets.DOCKER_USER_NAME }}  
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }} 
+
+    - name: Bootstrap
+      run: ./ci-bootstrap.sh
+      env:
+        WORKSPACE: ${{ github.workspace }}
+        BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
+        BUILD_NUMBER: ${{ github.run_id }}
+      
+    - name: Build and push image
+      if: ${{ github.event_name	== 'push' }}
+      run: ./deploy.sh
+        env:
+          BUILD_NUMBER: ${{ github.run_id }}
+
+    - name: Tag image as stable
+      if: ${{ github.event_name	== 'push' }}
+      run: ./deploy.sh
+        env:
+          BUILD_NUMBER: ${{ github.run_id }}
+      
+    - name: Docker Logout
+      run: docker logout
+      if: ${{ always() }}
+
