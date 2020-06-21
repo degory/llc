@@ -29,14 +29,14 @@ jobs:
     - name: Build and push image
       if: ${{ github.event_name	== 'push' }}
       run: ./deploy.sh
-        env:
-          BUILD_NUMBER: ${{ github.run_id }}
+      env:
+        BUILD_NUMBER: ${{ github.run_id }}
 
     - name: Tag image as stable
       if: ${{ github.event_name	== 'push' }}
       run: ./deploy.sh
-        env:
-          BUILD_NUMBER: ${{ github.run_id }}
+      env:
+        BUILD_NUMBER: ${{ github.run_id }}
       
     - name: Docker Logout
       run: docker logout
