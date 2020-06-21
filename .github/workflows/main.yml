@@ -32,11 +32,19 @@ jobs:
         env:
           BUILD_NUMBER: ${{ github.run_id }}
 
+    - name: Bootstrap
+      run: ./ci-bootstrap.sh
+      env:
+        WORKSPACE: ${{ github.workspace }}
+        BUILD_WITH: ${{ format('ghul/ex:{0}', github.run_id )}}
+        BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
+        BUILD_NUMBER: ${{ format('test-{0}', github.run_id) }}
+
     - name: Tag image as stable
       if: ${{ github.event_name	== 'push' }}
-      run: ./deploy.sh
-        env:
-          BUILD_NUMBER: ${{ github.run_id }}
+      run: ./ci-tag-stable.sh
+      env:
+        BUILD_NUMBER: ${{ github.run_id }}
       
     - name: Docker Logout
       run: docker logout
