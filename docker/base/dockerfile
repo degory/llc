@@ -1,4 +1,4 @@
-FROM ubuntu:10.04
+FROM ubuntu:12.04
 
 COPY sources.list /etc/apt/
 
