@@ -1,7 +1,4 @@
 #WANT_LINKSOLIB:=1
 #WANT_NATIVEOBJS:=1
 #JOBS:=4
-export LLVM_CC=`which llvm-gcc`
-export LLVM_CXX=`which llvm-g++`
 PATH:=/usr/local/sbin:/usr/lib/llvm-2.8/bin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games
-

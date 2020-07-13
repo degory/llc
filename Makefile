@@ -58,11 +58,11 @@ else
 endif
 
 ifeq ($(LLVM_CC),)
-	LLVM_CC:=/usr/local/bin/gcc
+	LLVM_CC:=llvm-gcc
 endif
 
 ifeq ($(LLVM_CXX),)
-	LLVM_CXX:=/usr/local/bin/g++
+	LLVM_CXX:=llvm-g++
 endif
 
 ifeq ($(PREFIX),)
