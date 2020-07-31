@@ -8,8 +8,6 @@ import gproc;
 import iterator;
 import exception;
 import startup;
-import thread;
-import coroutine;
 import generator;
 import time;
 import logger;

@@ -113,6 +113,14 @@ lc.zip: $(INSTALL_OBJS)
 	rm lc.zip || true
 	HERE=`pwd` ; cd /tmp/canned ; zip -r $$HERE/lc.zip .
 
+lc.tar.gz: $(INSTALL_OBJS)	
+	rm -r /tmp/canned || true
+	mkdir /tmp/canned
+	$(MAKE) $(MAKEFILE) PREFIX=/tmp/canned install
+	cp /usr/lib/
+	rm lc.zip || true
+	HERE=`pwd` ; cd /tmp/canned ; tar cvzf $$HERE/lc.tar.gz .
+
 clean:
 	rm $(CLEAN) || true
 

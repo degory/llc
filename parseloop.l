@@ -473,7 +473,6 @@ namespace Parse {
                 return;
             }
              
-            // MethodCall *elements_call = new MethodCall( line_number, expr, new Identifier( line_number, "elements" ), 0 );
             t = wrapped_expr.getType(state);
 
             if( t == undefined_type ) {
@@ -484,7 +483,6 @@ namespace Parse {
             LLVM.Type let;
 
 
-            // IO.Std.err.println( "QQQQQQ: iterator type is: " + type_expr );
             et = t;
             
             let = et.getLLVMType(state);

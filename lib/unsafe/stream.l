@@ -3,8 +3,6 @@
 // Copyright 2004-2010 <degs@giantblob.com> all rights reserved
 
 import string;
-import thread;
-import lock;
 import stat;
 
 pragma NoWarnUnsafe, NoMarkUnsafe;
@@ -37,18 +35,6 @@ namespace IO {
         public static get Reader input { return in; }
         public static get Writer output { return out; }
         public static get Writer error { return err; }
-
-        /// Replace standard input, standard output and standard error with thread safe versions
-        public static void makeThreadSafe() {
-            out.flush();
-            err.flush();
-            
-            // FIXME: anything buffered here is lost:
-            in = new LockedReader( in_stream );
-            
-            out = cast Writer(Exit.add(new LockedWriter( out_stream )));
-            err = cast Writer(Exit.add(new LockedWriter( err_stream )));
-        }
     }
 
     /// Thrown on IO failures
@@ -73,152 +59,7 @@ namespace IO {
             this.os_error = 0;
         }
     }
-
-    /// A thread-safe Reader
-    class LockedReader extends Reader {
-        const int DEFAULT_CAPACITY = 1024;
-        Util.Lock lock;
-
-        /// Construct a LockedReader
-        /// \param s CharStream to read
-        /// \param c size of buffer to allocate in chars
-        void init( CharStream s, int c ) {
-            super.init( s, c );
-            lock = new Util.Lock();
-        }
-
-        /// Construct a LockedReader with default buffer size
-        /// \param s CharStream to read
-        void init( CharStream s ) {
-            init( s, DEFAULT_CAPACITY );
-        }
-
-        int read() {
-            try {
-                lock.lock();
-
-                return _readUnlocked();
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        /*
-        int read() {
-            int result = -1;
-            // native.printf( `ReadBuffer.lock() this = %lp\n`, this );
-            try {
-                lock.lock();
-                result = _read();
-            } finally {
-                lock.unlock();
-            }
-
-            return result;
-        }
-        */
-
-        void unRead( int c ) {
-            try {
-                    lock.lock();
-                _unReadUnlocked(c);
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        void readAll( StringBuffer b, int terminator ) {
-            try {
-                lock.lock();
-                _readAllUnlocked( b, terminator );
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        int readInt() {
-            try {
-                lock.lock();
-                return _readIntUnlocked();
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        void close() {
-            try {
-                lock.lock();
-                _closeUnlocked();
-            } finally {
-                lock.unlock();
-            }
-        }
-    }
-
-    /// A thread-safe Writer
-    class LockedWriter extends Writer {
-        private Util.Lock lock;
-
-        /// Construct a LockedWriter
-        /// \param s CharStream to write to
-        /// \param c size of buffer to allocate in chars
-        void init( CharStream s, int c ) {
-            super.init( s, c );
-            lock = new Util.Lock();
-        }
-
-        /// Construct a LockedWriter with default buffer size
-        /// \param s CharStream to write to
-        void init( CharStream s ) {
-            init( s, 1024 );
-        }
-
-        void flush() {
-            try {
-                lock.lock();
-                _flushUnlocked();
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        void close() {
-            try {
-                lock.lock();
-                _closeUnlocked();
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        void write( int i ) {
-            try {
-                lock.lock();
-                _writeUnlocked( i );
-            } finally {
-                lock.unlock();
-            }
-        }
-        
-        void write( char b ) {
-            try {
-                lock.lock();
-                _writeUnlocked( b );
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        void write( char ptr b, int len ) {
-            try {
-                lock.lock();
-                _writeUnlocked( b, len );
-            } finally {
-                lock.unlock();
-            }
-        }
-    }
-
+    
     /// Reads from a CharStream through a buffer
     class Reader extends Object {
         const int DEFAULT_CAPACITY = 1024;
