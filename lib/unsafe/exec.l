@@ -38,8 +38,7 @@ namespace Util is
 		IO.Std.err.flush();
 
 		if e == ENOMEM then
-		    System.Thread.sleep(3);
-		    return fork();
+		    throwUnixError("fork");
 		elif e == EAGAIN || e == EINTR then
 		    return fork();
 		else
@@ -69,8 +68,7 @@ namespace Util is
 		int e = cast int(native.__geterrno());
 		IO.Std.err.println( "fork failed: " + e );
 		if e == ENOMEM then
-		    System.Thread.sleep(3);
-		    return fork();
+		    throwUnixError("fork");
 		elif e == EAGAIN || e == EINTR then
 		    return fork();
 		else 
