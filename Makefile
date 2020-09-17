@@ -106,7 +106,7 @@ install: $(INSTALL_OBJS)
 #	cp $(CP_FLAGS) lang.so $(PREFIX)/lib/lang/$(TARGET)/trusted/
 
 
-lc.zip: $(INSTALL_OBJS)	
+lc.zip: $(INSTALL_OBJS)	operation.l
 	rm -r /tmp/canned || true
 	mkdir /tmp/canned
 	$(MAKE) $(MAKEFILE) PREFIX=/tmp/canned install
