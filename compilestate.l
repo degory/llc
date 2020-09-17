@@ -13,6 +13,7 @@ import symboltable;
 import needcompile;
 import parser;
 import exec;
+import pointer;
 
 namespace Parse {
     use System.Object;
