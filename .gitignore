@@ -25,7 +25,7 @@ bs4/*
 *.so
 lc
 *.bc
-*.d
+# *.d
 lrt-llvm-0.2
 operation.l
 *.bak
@@ -35,3 +35,4 @@ lrt-llvm-0.2.s
 forward.c
 interp.l
 printtermg
+.bashhistory

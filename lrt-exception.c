@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
-#include <pthread.h>
+// #include <pthread.h>
 #include <time.h>
 #include <unistd.h>
 #include <errno.h>
@@ -443,6 +443,7 @@ void *__calloc( WORD size ) {
   return result;
 }
 
+/*
 void *__mutex_alloc() {
   return __calloc( sizeof(pthread_mutex_t) );
 }
@@ -450,6 +451,7 @@ void *__mutex_alloc() {
 void *__cond_alloc() {
   return __calloc( sizeof(pthread_cond_t) );
 }
+*/
 
 int __get_time() {
   struct timeval t;
@@ -475,9 +477,12 @@ char *__get_dirent_name(struct dirent *ep) {
 // C calling convention:
 
 // L calling convention on 32 bit x86 is fastcall - first two parameters in ecx and edx and callee pops arguments from stack:
+/*
 extern __attribute__((fastcall)) void _ZN6System6Thread16__set_pthread_idEu4word( void *thread, WORD id );
 extern __attribute__((fastcall)) void _ZN6System6Thread14__thread_entryEv( void *thread );
 extern __attribute__((fastcall)) void _ZN6System9Coroutine17__coroutine_entryEv( void *coroutine );
+*/
+
 extern __attribute__((fastcall)) char *_ZN6System12StringBuffer9toCStringEv( void *lstring );
 extern __attribute__((fastcall)) void *_ZN6System9Exception16getBacktraceInfoEv( void *e );
 extern __attribute__((fastcall)) void *_ZN6System12StringBuffer6appendEPc( void *buffer, char *s );
@@ -494,9 +499,12 @@ extern __attribute__((fastcall)) char *_ZN6System6Object9toCStringEv( void *e );
 
 #else
 
+/*
 extern void _ZN6System6Thread16__set_pthread_idEu4word( void *thread, WORD id );
 extern void _ZN6System6Thread14__thread_entryEv( void *thread );
 extern void _ZN6System9Coroutine17__coroutine_entryEv( void *coroutine );
+*/
+
 extern char *_ZN6System12StringBuffer9toCStringEv( void *lstring );
 extern void *_ZN6System9Exception16getBacktraceInfoEv( void *e );
 extern void *_ZN6System12StringBuffer6appendEPc( void *buffer, char *s );
@@ -517,6 +525,7 @@ extern  _ZN6System15MemoryException7throwMEEv();
 
 #define STACK_SIZE (1024*1024*2)
 
+/*
 void *__thread_entry( void *thread_object ) {
   _ZN6System6Thread14__thread_entryEv( thread_object );
   return 0;
@@ -610,8 +619,10 @@ void __thread_start( void *thread_object ) {
   stack = 
   GC_add_roots( stack, stack+STACK_SIZE );
   */
+/*
 }
 
+*/
 
 void __GC_add_roots( GC_PTR from, GC_PTR to ) {
   GC_add_roots( from, (void *)(((unsigned long *)to)+1) );
@@ -1596,6 +1607,7 @@ void ftest(void) {
 }
 
 
+/*
 void *__alloc_ucontext(void *coroutine_object, size_t stack_size) {
   fprintf(stderr, "alloc ucontext object %p, stacksize %u...\n", coroutine_object, stack_size ); fflush(stderr);
   ucontext_t *result = GC_malloc(sizeof(ucontext_t));
@@ -1613,3 +1625,4 @@ void *__alloc_ucontext(void *coroutine_object, size_t stack_size) {
   return result;
 }
 
+*/

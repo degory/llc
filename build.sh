@@ -11,4 +11,4 @@ fi
 
 echo lcache is /tmp/lcache-$PROJECT
 
-pushd jay; make jay; popd; make lc.zip
+pushd jay; make jay; popd; make lc.zip lc.tar.gz

@@ -1,7 +1,6 @@
 #C
 
 import stream;
-import thread;
 
 namespace Test105 {
     class Main {
