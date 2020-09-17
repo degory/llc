@@ -3532,6 +3532,9 @@ namespace Parse {
                         } else {
                             o = Op.DYNAMIC_CALL_DISCARD;
                         }
+
+                        addNullCheck(state, into, from, line_number);
+
                         arg_values = ExpressionList.compilePush( arguments, state, from, symbol.Owner.Type, argument_types, into, true, false );
 
                         // message( "XXXXXXXX: virtual method may require interface calling convention: " + symbol.HumanName ); IO.Std.err.flush();

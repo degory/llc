@@ -117,8 +117,7 @@ lc.tar.gz: $(INSTALL_OBJS)
 	rm -r /tmp/canned || true
 	mkdir /tmp/canned
 	$(MAKE) $(MAKEFILE) PREFIX=/tmp/canned install
-	cp /usr/lib/
-	rm lc.zip || true
+	rm lc.tar.gz || true
 	HERE=`pwd` ; cd /tmp/canned ; tar cvzf $$HERE/lc.tar.gz .
 
 clean:
