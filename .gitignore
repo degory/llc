@@ -27,7 +27,7 @@ lc
 *.bc
 *.d
 lrt-llvm-0.2
-operation.l
+# operation.l
 *.bak
 *.out
 *.output
