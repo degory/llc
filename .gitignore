@@ -25,7 +25,7 @@ bs4/*
 *.so
 lc
 *.bc
-*.d
+# *.d
 lrt-llvm-0.2
 operation.l
 *.bak

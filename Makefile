@@ -106,7 +106,7 @@ install: $(INSTALL_OBJS)
 #	cp $(CP_FLAGS) lang.so $(PREFIX)/lib/lang/$(TARGET)/trusted/
 
 
-lc.zip: $(INSTALL_OBJS)	operation.l
+lc.zip: $(INSTALL_OBJS)
 	rm -r /tmp/canned || true
 	mkdir /tmp/canned
 	$(MAKE) $(MAKEFILE) PREFIX=/tmp/canned install
@@ -125,15 +125,15 @@ clean:
 
 ifneq ($(MAKECMDGOALS),clean)
 
-# lc.d:	operation.l syntaxl.l syntaxk.l
+# lc.d: operation.l syntaxl.l syntaxk.l
 # 	$(LC) $(MODEL) $(LFLAGS) -D -p test -o lc -s llvm main.l
 
 # lang.d:
-	# $(LC) $(MODEL) $(LFLAGS) -D -u $(RUNTIME)/trusted/liblang.l $(RUNTIME)/trusted/gstd.l -o lang
+# 	$(LC) $(MODEL) $(LFLAGS) -D -u $(RUNTIME)/trusted/liblang.l $(RUNTIME)/trusted/gstd.l -o lang
 
-# include lc.d
+include lc.d
 
-# include lang.d
+include lang.d
 
 endif
 
