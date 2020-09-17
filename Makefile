@@ -125,15 +125,15 @@ clean:
 
 ifneq ($(MAKECMDGOALS),clean)
 
-lc.d:	operation.l syntaxl.l syntaxk.l
-	$(LC) $(MODEL) $(LFLAGS) -D -p test -o lc -s llvm main.l
+# lc.d:	operation.l syntaxl.l syntaxk.l
+# 	$(LC) $(MODEL) $(LFLAGS) -D -p test -o lc -s llvm main.l
 
-lang.d:
-	$(LC) $(MODEL) $(LFLAGS) -D -u $(RUNTIME)/trusted/liblang.l $(RUNTIME)/trusted/gstd.l -o lang
+# lang.d:
+	# $(LC) $(MODEL) $(LFLAGS) -D -u $(RUNTIME)/trusted/liblang.l $(RUNTIME)/trusted/gstd.l -o lang
 
-include lc.d
+# include lc.d
 
-include lang.d
+# include lang.d
 
 endif
 

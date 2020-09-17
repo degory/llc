@@ -8,14 +8,11 @@ import oset;
 import machine;
 import symbol;
 import container;
-// import intermediate;
 import parsetree;
 import symboltable;
 import needcompile;
 import parser;
 import exec;
-
-// import threadpool;
 
 namespace Parse {
     use System.Object;
