@@ -412,6 +412,21 @@ namespace Parse {
                 return true;
             }
 
+            iterator_call =
+                new MethodCall(
+                               line_number,
+                               expr,
+                               new Identifier( line_number, "getiterator" ),
+                               null );
+
+            iterator_call.calcType(state,true);
+            
+            if( iterator_call.Quality != null ) {
+                wrapped_expr = iterator_call;
+
+                return true;
+            }            
+
             wrapped_expr = expr;
             return false;
         }
