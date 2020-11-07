@@ -3455,9 +3455,9 @@ namespace Parse {
                 case Symbol.STATIC_METHOD:
                     // IO.Std.err.println( "compile: static call" );
 
-                    if( flags & LOAD_FLAG_STATIC == 0 && super_class == null ) {
-                        warn( "call to static method " + symbol.HumanName + " does not evaluate left value" );
-                    }
+                    // if( flags & LOAD_FLAG_STATIC == 0 && super_class == null ) {
+                    //    warn( "call to static method " + symbol.HumanName + " does not evaluate left value" );
+                    // }
 
                     if( no_discard ) {
                         o = Op.STATIC_CALL;
